@@ -1,0 +1,151 @@
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+
+import type {
+  AttendanceMonthlySummary,
+  AttendancePunchDayRow,
+  AttendanceRecord,
+  AttendanceShiftFullConfig,
+} from "./types";
+import { hmFromIso, minutesFromMidnight, pad2, ymd } from "./shift";
+
+dayjs.extend(isSameOrAfter);
+
+function monthRange(month: string): { startDate: string; rangeEnd: string } {
+  const base = dayjs(`${month}-01`, "YYYY-MM-DD");
+  const start = base.startOf("month");
+  const end = base.isSame(dayjs(), "month") ? dayjs() : base.endOf("month");
+  return { startDate: start.format("YYYY-MM-DD"), rangeEnd: end.format("YYYY-MM-DD") };
+}
+
+function fmtOvertime(minutes: number): string {
+  if (minutes <= 0) return "-";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h <= 0) return `${m}分钟`;
+  if (m <= 0) return `${h}小时`;
+  return `${h}小时${m}分钟`;
+}
+
+function emptyDay(date: string): AttendancePunchDayRow {
+  return {
+    date,
+    morningIn: null,
+    morningOut: null,
+    afternoonIn: null,
+    afternoonOut: null,
+    overtimeMinutes: 0,
+    overtimeStr: "-",
+  };
+}
+
+function toDayKey(d: dayjs.Dayjs): string {
+  return d.format("YYYY-MM-DD");
+}
+
+function isSameUserMonthRecord(r: AttendanceRecord, userId: string, month: string): boolean {
+  if (r.userId !== userId) return false;
+  const d = dayjs(r.punchTime);
+  if (!d.isValid()) return false;
+  return d.format("YYYY-MM") === month;
+}
+
+function sortByTimeAsc(a: AttendanceRecord, b: AttendanceRecord) {
+  return dayjs(a.punchTime).valueOf() - dayjs(b.punchTime).valueOf();
+}
+
+export function computeMonthlySummary(params: {
+  records: AttendanceRecord[];
+  userId: string;
+  month: string; // YYYY-MM
+  shift: AttendanceShiftFullConfig;
+}): AttendanceMonthlySummary {
+  const { records, userId, month, shift } = params;
+  const { startDate, rangeEnd } = monthRange(month);
+
+  const monthRecords = records
+    .filter((r) => isSameUserMonthRecord(r, userId, month))
+    .sort(sortByTimeAsc);
+  const byDay = new Map<string, AttendanceRecord[]>();
+  for (const r of monthRecords) {
+    const d = dayjs(r.punchTime);
+    const key = toDayKey(d);
+    const arr = byDay.get(key) ?? [];
+    arr.push(r);
+    byDay.set(key, arr);
+  }
+
+  const start = dayjs(startDate, "YYYY-MM-DD");
+  const end = dayjs(rangeEnd, "YYYY-MM-DD");
+
+  const rows: AttendancePunchDayRow[] = [];
+  let attendanceDays = 0;
+  let restDays = 0;
+  let missingSlots = 0;
+  let overtimeMinutesTotal = 0;
+
+  const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd);
+  const normalAfternoonEnd = minutesFromMidnight(shift.overtimeAfternoonNormalEnd);
+
+  for (let d = end; d.isSameOrAfter(start, "day"); d = d.subtract(1, "day")) {
+    const key = toDayKey(d);
+    const dayRecords = (byDay.get(key) ?? []).slice().sort(sortByTimeAsc);
+    const row = emptyDay(key);
+
+    // 取每个 type 最早一条作为当天结果（与“打了就算”口径一致）
+    for (const r of dayRecords) {
+      const hm = hmFromIso(r.punchTime);
+      if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm;
+      if (r.type === "morning_out" && !row.morningOut) row.morningOut = hm;
+      if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm;
+      if (r.type === "afternoon_out" && !row.afternoonOut) row.afternoonOut = hm;
+    }
+
+    const hasAny = !!(row.morningIn || row.morningOut || row.afternoonIn || row.afternoonOut);
+    if (!hasAny) {
+      restDays += 1;
+      rows.push(row);
+      continue;
+    }
+
+    attendanceDays += 1;
+
+    const slots = [row.morningIn, row.morningOut, row.afternoonIn, row.afternoonOut];
+    missingSlots += slots.filter((x) => !x).length;
+
+    // 加班：以“下班打卡 - 正常下班时间”为准（上午/下午分别计算，分钟累加）
+    let overtime = 0;
+    if (row.morningOut && Number.isFinite(normalMorningEnd)) {
+      overtime += Math.max(0, minutesFromMidnight(row.morningOut) - normalMorningEnd);
+    }
+    if (row.afternoonOut && Number.isFinite(normalAfternoonEnd)) {
+      overtime += Math.max(0, minutesFromMidnight(row.afternoonOut) - normalAfternoonEnd);
+    }
+    row.overtimeMinutes = overtime;
+    row.overtimeStr = fmtOvertime(overtime);
+    overtimeMinutesTotal += overtime;
+
+    rows.push(row);
+  }
+
+  return {
+    month,
+    startDate,
+    rangeEnd,
+    attendanceDays,
+    restDays,
+    missingSlots,
+    overtimeMinutes: overtimeMinutesTotal,
+    overtimeStr: fmtOvertime(overtimeMinutesTotal),
+    rows,
+  };
+}
+
+export function monthLabel(month: string): string {
+  const [y, m] = month.split("-");
+  return `${y}-${pad2(Number(m) || 1)}`;
+}
+
+export function todayKey(): string {
+  return ymd(new Date());
+}

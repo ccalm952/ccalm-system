@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum AttendancePunchType {
+  morning_in
+  morning_out
+  afternoon_in
+  afternoon_out
+}
+
+model User {
+  id           String             @id @default(uuid())
+  username     String             @unique
+  passwordHash String
+  displayName  String
+  role         UserRole           @default(user)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  records AttendanceRecord[]
+}
+
+model GeofenceConfig {
+  id        String   @id @default("global")
+  enabled   Boolean  @default(false)
+  centerLat Float
+  centerLng Float
+  radiusM   Int
+  label     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShiftConfig {
+  id                       String   @id @default("global")
+  morningLabel             String   @default("上午班")
+  morningRangeStart        String   @default("08:30")
+  morningRangeEnd          String   @default("12:00")
+  afternoonLabel           String   @default("下午班")
+  afternoonRangeStart      String   @default("14:30")
+  afternoonRangeEnd        String   @default("18:00")
+  morningInWindowStart     String   @default("08:30")
+  morningInWindowEnd       String   @default("12:00")
+  morningOutWindowStart    String   @default("12:00")
+  morningOutWindowEnd      String   @default("14:30")
+  afternoonInWindowStart   String   @default("14:30")
+  afternoonInWindowEnd     String   @default("18:00")
+  afternoonOutWindowStart  String   @default("18:00")
+  afternoonOutWindowEnd    String   @default("23:59")
+  overtimeMorningNormalEnd String   @default("12:00")
+  overtimeAfternoonNormalEnd String @default("18:00")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model AttendanceRecord {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AttendancePunchType
+  punchTime DateTime            @default(now())
+  latitude  Float
+  longitude Float
+  address   String              @default("")
+  createdAt DateTime            @default(now())
+
+  @@index([userId, punchTime])
+  @@index([type, punchTime])
+}
+
+/// 种植模块：患者（与系统登录 User 无关）
+model ImplantPatient {
+  id        Int            @id @default(autoincrement())
+  name      String
+  phone     String
+  chartNo   String         @default("")
+  gender    String         @default("")
+  birthday  String?
+  age       Int?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  visits    ImplantVisit[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+model ImplantVisit {
+  id        Int            @id @default(autoincrement())
+  patientId Int
+  patient   ImplantPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitDate String
+  remark    String?
+  staff     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  teeth     ImplantTooth[]
+
+  @@index([patientId, visitDate])
+}
+
+model ImplantTooth {
+  id           Int          @id @default(autoincrement())
+  visitId      Int
+  visit        ImplantVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  toothNo      String?
+  implantBrand String?
+  implantModel String?
+  toothRemark  String?
+
+  @@index([visitId])
+}
+
+model ImplantInventory {
+  id         Int    @id @default(autoincrement())
+  brand      String
+  model      String
+  supplement Int    @default(0)
+  used       Int    @default(0)
+
+  @@unique([brand, model])
+}
