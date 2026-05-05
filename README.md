@@ -49,157 +49,179 @@ pnpm dev
 
 添加 UI 组件：`pnpm dlx shadcn@latest add <组件名>`（组件落在 `src/components/ui`）。
 
-## 服务器部署流程（Ubuntu + Nginx + PM2）
+## 1Panel 部署流程（推荐）
 
-以下为单机部署示例：前端静态资源由 Nginx 托管，后端 NestJS 用 PM2 守护，PostgreSQL 可本机或独立数据库实例。
+推荐在 1Panel 中这样部署：PostgreSQL 用 1Panel 应用商店安装，前端由 1Panel 网站/OpenResty 托管 `dist` 静态文件，后端 NestJS 用 Node.js + PM2 守护，网站把 `/api` 反向代理到后端端口。
 
-### 1) 服务器准备
-
-```bash
-sudo apt update
-sudo apt install -y git curl nginx
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-sudo npm i -g pnpm pm2
+```mermaid
+flowchart LR
+  browser["浏览器"] --> site["1Panel 网站 / OpenResty"]
+  site --> frontend["前端 dist 静态文件"]
+  site -->|"/api 反向代理"| backend["NestJS :3000"]
+  backend --> postgres["1Panel PostgreSQL"]
 ```
 
-确认版本：
+### 1) 安装 PostgreSQL
+
+在 1Panel「应用商店」安装 PostgreSQL，创建数据库和用户，例如：
+
+- 数据库名：`attendance`
+- 用户名：`attendance`
+- 密码：使用 1Panel 生成的强密码
+
+记下 PostgreSQL 的连接地址、端口、用户名、密码。若后端直接运行在宿主机，通常可使用 `127.0.0.1` 和应用暴露端口；若 1Panel 给出了容器内服务名或映射端口，以 1Panel 页面显示为准。
+
+### 2) 准备 Node.js、pnpm、PM2
+
+在 1Panel「运行环境」安装 Node.js 20，或在服务器终端安装：
 
 ```bash
 node -v
+npm i -g pnpm pm2
 pnpm -v
 pm2 -v
 ```
 
-### 2) 拉取项目并安装依赖
+### 3) 拉取项目
+
+建议把项目放到 1Panel 网站目录之外，例如 `/opt/shadcn`：
 
 ```bash
-cd /srv
-sudo mkdir -p shadcn && sudo chown -R $USER:$USER shadcn
+cd /opt
+git clone https://github.com/ccalm952/shadcn.git shadcn
 cd shadcn
-git clone <你的仓库地址> .
 pnpm install
-cd backend && pnpm install && cd ..
+cd backend
+pnpm install
+cd ..
 ```
 
-### 3) 配置生产环境变量
+如果目录已存在，使用 `git pull` 更新即可。
 
-后端：`backend/.env`
+### 4) 配置生产环境变量
 
-```env
-PORT=3000
-DATABASE_URL="postgresql://postgres:<数据库密码>@<数据库地址>:5432/attendance?schema=public"
-JWT_SECRET="<替换为高强度随机字符串>"
-```
-
-前端：根目录 `.env.production`
+前端生产环境：根目录 `.env`
 
 ```env
-VITE_API_BASE=https://<你的域名>/api
+VITE_API_BASE=/api
 VITE_AMAP_KEY=
 VITE_AMAP_SECURITY_JS_CODE=
 ```
 
-### 4) 数据库迁移（生产）
+同域部署时建议使用 `VITE_API_BASE=/api`，由 1Panel 网站反向代理到后端，避免跨域配置复杂化。
+
+后端生产环境：`backend/.env`
+
+```env
+PORT=3000
+DATABASE_URL="postgresql://attendance:<数据库密码>@127.0.0.1:5432/attendance?schema=public"
+JWT_SECRET="<替换为高强度随机字符串>"
+```
+
+不要提交真实 `.env`。`JWT_SECRET` 建议使用至少 32 位随机字符串。
+
+### 5) 初始化数据库
 
 ```bash
-cd /srv/shadcn/backend
+cd /opt/shadcn/backend
 pnpm exec prisma generate
 pnpm exec prisma migrate deploy
 ```
 
-首次部署请确保数据库里至少有 1 个 `role=admin` 的用户（可用 Prisma Studio、SQL 或 seed 脚本初始化）。
+首次部署请确保数据库里至少有 1 个 `role=admin` 的用户，否则无法登录后台管理人员。可以用 1Panel 数据库管理工具、Prisma Studio 或 SQL 初始化。
 
-### 5) 构建前后端
+### 6) 构建前后端
 
 ```bash
-cd /srv/shadcn
+cd /opt/shadcn
 pnpm build
 cd backend
 pnpm run build
 ```
 
-- 前端产物目录：`dist`
-- 后端产物入口：`backend/dist/main.js`
+- 前端产物目录：`/opt/shadcn/dist`
+- 后端产物入口：`/opt/shadcn/backend/dist/main.js`
 
-### 6) 用 PM2 启动后端
+### 7) 启动后端
 
 ```bash
-cd /srv/shadcn/backend
+cd /opt/shadcn/backend
 pm2 start dist/main.js --name shadcn-backend
 pm2 save
 pm2 startup
 ```
 
-查看状态与日志：
+查看状态和日志：
 
 ```bash
 pm2 status
 pm2 logs shadcn-backend
 ```
 
-### 7) 配置 Nginx（前端 + /api 反代）
+后端接口本机地址应为：`http://127.0.0.1:3000/api`
 
-新建配置文件：
+### 8) 配置 1Panel 网站
 
-```bash
-sudo nano /etc/nginx/sites-available/shadcn
-```
+在 1Panel「网站」中新建站点：
 
-写入以下内容（把 `your.domain.com` 换成你的域名）：
+- 类型：静态网站
+- 主目录：`/opt/shadcn/dist`
+- 运行目录：`/`
+- 默认文档：`index.html`
+- HTTPS：绑定域名后申请证书并开启强制 HTTPS
+
+在站点的 OpenResty/Nginx 配置中确保前端路由回退到 `index.html`：
 
 ```nginx
-server {
-  listen 80;
-  server_name your.domain.com;
-
-  root /srv/shadcn/dist;
-  index index.html;
-
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-
-  location /api/ {
-    proxy_pass http://127.0.0.1:3000/api/;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
+location / {
+  try_files $uri $uri/ /index.html;
 }
 ```
 
-启用并重载：
+再新增 `/api` 反向代理：
 
-```bash
-sudo ln -s /etc/nginx/sites-available/shadcn /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+```nginx
+location /api/ {
+  proxy_pass http://127.0.0.1:3000/api/;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
 ```
 
-### 8) HTTPS（推荐）
-
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain.com
-```
+保存后在 1Panel 中重载 OpenResty。访问 `https://<你的域名>/login` 验证页面，访问 `https://<你的域名>/api/auth/me` 应返回未登录或未授权响应，而不是 404。
 
 ### 9) 更新发布流程
 
 ```bash
-cd /srv/shadcn
+cd /opt/shadcn
 git pull
 pnpm install
-cd backend && pnpm install && pnpm exec prisma migrate deploy && pnpm run build && cd ..
+cd backend
+pnpm install
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy
+pnpm run build
+cd ..
 pnpm build
 pm2 restart shadcn-backend
-sudo systemctl reload nginx
+pm2 save
 ```
+
+如果只改了前端，通常只需要 `pnpm build` 并重载网站；如果改了数据库 schema，必须执行 `pnpm exec prisma migrate deploy`。
 
 ### 10) 常见排查
 
-- 后端起不来：先看 `pm2 logs shadcn-backend`，重点检查 `DATABASE_URL`、`JWT_SECRET`。
-- 前端页面空白：确认 `dist` 是否更新、Nginx `root` 路径是否正确。
-- 接口 404：检查 Nginx `location /api/` 转发和后端全局前缀 `/api` 是否一致。
+- 后端起不来：先看 `pm2 logs shadcn-backend`，重点检查 `backend/.env`、`DATABASE_URL`、`JWT_SECRET`。
+- 数据库连不上：确认 1Panel PostgreSQL 端口、账号、密码、数据库名和 `DATABASE_URL` 完全一致。
+- 前端页面空白：确认 1Panel 网站主目录指向 `/opt/shadcn/dist`，并且已执行 `pnpm build`。
+- 刷新子页面 404：确认网站配置里有 `try_files $uri $uri/ /index.html;`。
+- 接口 404：确认 `/api/` 反向代理到 `http://127.0.0.1:3000/api/`，后端代码已设置全局前缀 `/api`。
+- 登录接口跨域：同域部署时前端应使用 `VITE_API_BASE=/api`，不要写成另一个域名。
+- 地图不可用：检查 `VITE_AMAP_KEY` 和 `VITE_AMAP_SECURITY_JS_CODE`，并在高德控制台配置生产域名白名单。
+
+## 手动部署参考（Ubuntu + Nginx + PM2）
+
+不用 1Panel 时，也可以沿用同样思路：Nginx 托管 `dist`，`/api` 反代到 `127.0.0.1:3000`，后端用 PM2 启动 `backend/dist/main.js`。
