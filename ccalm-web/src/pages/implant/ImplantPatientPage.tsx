@@ -84,7 +84,7 @@ type PatientTableMeta = {
   clearSelection: () => void;
 };
 
-export function PlantingPatientPage() {
+export function ImplantPatientPage() {
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [chart, setChart] = React.useState("");

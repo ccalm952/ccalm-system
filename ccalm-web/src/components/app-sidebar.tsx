@@ -18,7 +18,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
-import { plantingSubNavItems } from "@/config/planting-nav";
+import { implantSubNavItems } from "@/config/implant-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -32,7 +32,7 @@ const navMain: {
   items: { title: string; url: string }[];
 }[] = [
   { title: "考勤", icon: CalendarCheck2, items: attendanceSubNavItems },
-  { title: "种植", icon: Sprout, items: plantingSubNavItems },
+  { title: "种植", icon: Sprout, items: implantSubNavItems },
 ];
 
 function SidebarNavCollapsible({

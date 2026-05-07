@@ -12,11 +12,11 @@ export const ROUTES = {
     shiftSettings: "/attendance/shift-settings",
     checkInRange: "/attendance/check-in-range",
   },
-  planting: {
-    root: "/planting",
-    records: "/planting/records",
-    patients: "/planting/patients",
-    stats: "/planting/stats",
-    inventory: "/planting/inventory",
+  implant: {
+    root: "/implant",
+    records: "/implant/records",
+    patients: "/implant/patients",
+    stats: "/implant/stats",
+    inventory: "/implant/inventory",
   },
 } as const;

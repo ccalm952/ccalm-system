@@ -33,19 +33,19 @@ const CheckInRangePage = lazyNamed(
   "CheckInRangePage",
 );
 const UsersPage = lazyNamed(() => import("./pages/users/UsersPage"), "UsersPage");
-const PlantingInventoryPage = lazyNamed(
-  () => import("./pages/planting/PlantingInventoryPage"),
-  "PlantingInventoryPage",
+const ImplantInventoryPage = lazyNamed(
+  () => import("./pages/implant/ImplantInventoryPage"),
+  "ImplantInventoryPage",
 );
-const PlantingPatientPage = lazyNamed(
-  () => import("./pages/planting/PlantingPatientPage"),
-  "PlantingPatientPage",
+const ImplantPatientPage = lazyNamed(
+  () => import("./pages/implant/ImplantPatientPage"),
+  "ImplantPatientPage",
 );
-const PlantingRecordsPage = lazyNamed(
-  () => import("./pages/planting/PlantingRecordsPage"),
-  "PlantingRecordsPage",
+const ImplantRecordsPage = lazyNamed(
+  () => import("./pages/implant/ImplantRecordsPage"),
+  "ImplantRecordsPage",
 );
-const PlantingStatsPage = lazyNamed(() => import("./pages/planting/PlantingStatsPage"), "PlantingStatsPage");
+const ImplantStatsPage = lazyNamed(() => import("./pages/implant/ImplantStatsPage"), "ImplantStatsPage");
 
 function RouteFallback() {
   return (
@@ -124,12 +124,12 @@ export function App() {
 
               <Route path={ROUTES.users.root} element={<UsersPage />} />
 
-              <Route path="planting">
-                <Route index element={<Navigate to={ROUTES.planting.records} replace />} />
-                <Route path="records" element={<PlantingRecordsPage />} />
-                <Route path="patients" element={<PlantingPatientPage />} />
-                <Route path="stats" element={<PlantingStatsPage />} />
-                <Route path="inventory" element={<PlantingInventoryPage />} />
+              <Route path="implant">
+                <Route index element={<Navigate to={ROUTES.implant.records} replace />} />
+                <Route path="records" element={<ImplantRecordsPage />} />
+                <Route path="patients" element={<ImplantPatientPage />} />
+                <Route path="stats" element={<ImplantStatsPage />} />
+                <Route path="inventory" element={<ImplantInventoryPage />} />
               </Route>
 
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />

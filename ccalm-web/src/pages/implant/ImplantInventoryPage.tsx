@@ -86,7 +86,7 @@ function InventoryBrandCombobox({
   );
 }
 
-export function PlantingInventoryPage() {
+export function ImplantInventoryPage() {
   const [list, setList] = React.useState<InvRow[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);

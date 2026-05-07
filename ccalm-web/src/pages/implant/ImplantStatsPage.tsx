@@ -24,7 +24,7 @@ import { toast } from "sonner";
 
 type StaffRow = { name: string; count: number };
 
-export function PlantingStatsPage() {
+export function ImplantStatsPage() {
   const [loading, setLoading] = React.useState(false);
   const [staffRows, setStaffRows] = React.useState<StaffRow[]>([]);
   const [monthItems, setMonthItems] = React.useState<{ label: string; value: string }[]>([]);

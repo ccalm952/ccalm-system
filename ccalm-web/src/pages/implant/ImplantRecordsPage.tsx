@@ -84,7 +84,7 @@ type Row = {
 };
 
 /** 种植记录：新增与编辑共用同一弹层；编辑带合并组内全部牙位行 */
-type PlantingRecordsVisitDialogState = { type: "add" } | { type: "edit"; group: Row[] };
+type ImplantRecordsVisitDialogState = { type: "add" } | { type: "edit"; group: Row[] };
 
 type EditTeethLine = {
   toothId: number | null;
@@ -210,12 +210,12 @@ function addVisitTodayStr() {
   return dayjs().format("YYYY-MM-DD");
 }
 
-function PlantingRecordsVisitDialog({
+function ImplantRecordsVisitDialog({
   state,
   onOpenChange,
   onSaved,
 }: {
-  state: PlantingRecordsVisitDialogState | null;
+  state: ImplantRecordsVisitDialogState | null;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }) {
@@ -1031,7 +1031,7 @@ function PlantingRecordsVisitDialog({
   );
 }
 
-export function PlantingRecordsPage() {
+export function ImplantRecordsPage() {
   const range = React.useMemo(() => defaultDateRange(), []);
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
@@ -1040,7 +1040,7 @@ export function PlantingRecordsPage() {
   const [rows, setRows] = React.useState<Row[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [visitDialog, setVisitDialog] = React.useState<PlantingRecordsVisitDialogState | null>(
+  const [visitDialog, setVisitDialog] = React.useState<ImplantRecordsVisitDialogState | null>(
     null,
   );
 
@@ -1364,7 +1364,7 @@ export function PlantingRecordsPage() {
           </CardContent>
         </Card>
 
-        <PlantingRecordsVisitDialog
+        <ImplantRecordsVisitDialog
           state={visitDialog}
           onOpenChange={(o) => {
             if (!o) setVisitDialog(null);

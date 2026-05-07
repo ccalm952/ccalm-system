@@ -124,25 +124,25 @@ export class ImplantController {
   }
 
   @Get("patient")
-  plantingPatients(
+  listPatients(
     @Query("name") name?: string,
     @Query("phone") phone?: string,
     @Query("chart") chart?: string
   ) {
-    return this.implant.listPlantingPatients(name, phone, chart)
+    return this.implant.listImplantPatients(name, phone, chart)
   }
 
   @Put("patient/:id")
-  updatePlantingPatient(
+  updatePatient(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateImplantPatientDto
   ) {
-    return this.implant.updatePlantingPatient(id, dto)
+    return this.implant.updateImplantPatient(id, dto)
   }
 
   @Delete("patient/:id")
-  deletePlantingPatient(@Param("id", ParseIntPipe) id: number) {
-    return this.implant.deletePlantingPatient(id)
+  deletePatient(@Param("id", ParseIntPipe) id: number) {
+    return this.implant.deleteImplantPatient(id)
   }
 
   /** 新增种植：姓名自动完成（本库患者） */

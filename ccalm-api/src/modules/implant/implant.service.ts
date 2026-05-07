@@ -428,7 +428,7 @@ export class ImplantService {
     return count
   }
 
-  async listPlantingPatients(name?: string, phone?: string, chart?: string) {
+  async listImplantPatients(name?: string, phone?: string, chart?: string) {
     const n = name?.trim()
     const ph = phone?.trim()
     const ch = chart?.trim()
@@ -443,10 +443,10 @@ export class ImplantService {
       },
       orderBy: { name: "asc" },
     })
-    return patients.map((p) => this.formatPlantingPatientRow(p))
+    return patients.map((p) => this.formatImplantPatientRow(p))
   }
 
-  private formatPlantingPatientRow(p: {
+  private formatImplantPatientRow(p: {
     id: number
     name: string
     phone: string
@@ -468,7 +468,7 @@ export class ImplantService {
     }
   }
 
-  async updatePlantingPatient(id: number, dto: UpdateImplantPatientDto) {
+  async updateImplantPatient(id: number, dto: UpdateImplantPatientDto) {
     const existing = await this.prisma.implantPatient.findUnique({
       where: { id },
     })
@@ -490,11 +490,11 @@ export class ImplantService {
         age: dto.age != null && Number.isFinite(dto.age) ? dto.age : null,
       },
     })
-    return this.formatPlantingPatientRow(updated)
+    return this.formatImplantPatientRow(updated)
   }
 
   /** 删除患者及其就诊、牙位（级联由 Prisma schema 保证） */
-  async deletePlantingPatient(id: number) {
+  async deleteImplantPatient(id: number) {
     const existing = await this.prisma.implantPatient.findUnique({
       where: { id },
     })
