@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "ccalm-api",
   "version": "0.0.1",
   "private": true,
   "description": "",
@@ -11,8 +11,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "check": "pnpm lint:check && pnpm typecheck && pnpm build",
+    "start:prod": "node dist/src/main.js",
+    "check": "pnpm prisma:generate && pnpm lint:check && pnpm typecheck && pnpm build",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "lint:check": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",

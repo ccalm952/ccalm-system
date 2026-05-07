@@ -139,7 +139,7 @@ export function NavUser({
       className="min-w-56 rounded-lg"
       side={menuSide}
       align="end"
-      sideOffset={4}
+      sideOffset={8}
     >
       <DropdownMenuGroup>
         {loadingUsers ? (

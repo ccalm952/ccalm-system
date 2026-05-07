@@ -11,10 +11,11 @@ node_modules
 dist
 dist-ssr
 coverage
+.vite
 *.tsbuildinfo
 .env
 *.local
-backend/uploads/
+ccalm-api/uploads/
 
 # Editor directories and files
 .vscode/*

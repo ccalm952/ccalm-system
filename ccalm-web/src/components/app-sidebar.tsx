@@ -97,10 +97,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link to={ROUTES.home} />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                <img src="https://lucide.dev/logo.light.svg" alt="" className="size-8" />
+                <img src="/lucide-logo-light.svg" alt="" className="size-8 dark:hidden" />
+                <img src="/lucide-logo-dark.svg" alt="" className="hidden size-8 dark:block" />
               </div>
               <div className="min-w-0 leading-none">
-                <span className="block truncate whitespace-nowrap font-medium">测试</span>
+                <span className="block truncate whitespace-nowrap font-medium">CCALM</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

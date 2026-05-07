@@ -18,7 +18,7 @@ import { JwtStrategy } from "./jwt.strategy"
         const secret = process.env.JWT_SECRET
         if (!secret) {
           throw new Error(
-            "Missing JWT_SECRET. Please create backend/.env and set JWT_SECRET=<your-secret>."
+            "Missing JWT_SECRET. Please create ccalm-api/.env and set JWT_SECRET=<your-secret>."
           )
         }
         return {

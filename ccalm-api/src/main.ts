@@ -7,7 +7,7 @@ import path from "node:path"
 import { AppModule } from "./app.module"
 
 async function bootstrap() {
-  // Prefer backend/.env regardless of where the process is started from.
+  // Prefer ccalm-api/.env regardless of where the process is started from.
   dotenv.config({ path: path.resolve(__dirname, "..", ".env") })
   dotenv.config()
   const app = await NestFactory.create<NestExpressApplication>(AppModule)

@@ -10,7 +10,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/attendance?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ccalm_system?schema=public
       JWT_SECRET: ci_jwt_secret_for_static_checks_only
       VITE_API_BASE: /api
       VITE_AMAP_KEY: ""
@@ -31,18 +31,15 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             pnpm-lock.yaml
-            backend/pnpm-lock.yaml
+            pnpm-lock.yaml
 
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install backend dependencies
-        working-directory: backend
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Check frontend
+        working-directory: ccalm-web
         run: pnpm lint && pnpm typecheck && pnpm build
 
       - name: Check backend
-        working-directory: backend
+        working-directory: ccalm-api
         run: pnpm check
