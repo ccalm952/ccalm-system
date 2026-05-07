@@ -99,7 +99,7 @@ function ProtectedRoute() {
   }
 
   return (
-    <AuthProvider me={me}>
+    <AuthProvider me={me} setMe={setMe}>
       <Outlet />
     </AuthProvider>
   );

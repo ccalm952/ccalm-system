@@ -29,13 +29,14 @@ export function setToken(token: string | null) {
 
 export async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   const token = getToken();
+  const isFormData = body instanceof FormData;
   const res = await fetch(`${API_BASE}${path.startsWith("/") ? path : `/${path}`}`, {
     method,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   const text = await res.text();

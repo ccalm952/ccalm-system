@@ -41,6 +41,11 @@ function lastMonth(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 }
 
+function dayOfMonth(date: string): string {
+  const d = dayjs(date);
+  return d.isValid() ? String(d.date()) : date;
+}
+
 type UserAgg = {
   userId: string;
   userName: string;
@@ -268,7 +273,7 @@ export function AttendanceStatsPage() {
                             <TableBody>
                               {row.original.rows.map((r) => (
                                 <TableRow key={r.date} className="border-t border-border">
-                                  <TableCell className="w-1/6 px-3 py-2">{r.date}</TableCell>
+                                  <TableCell className="w-1/6 px-3 py-2">{dayOfMonth(r.date)}</TableCell>
                                   <TableCell
                                     className={cn(
                                       "w-1/6 px-3 py-2",

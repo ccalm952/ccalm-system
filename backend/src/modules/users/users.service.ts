@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -18,6 +19,23 @@ export class UsersService {
         id: true,
         username: true,
         displayName: true,
+        avatarUrl: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+  }
+
+  async listSwitchableUsers() {
+    return await this.prisma.user.findMany({
+      where: { role: "user" },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -43,6 +61,7 @@ export class UsersService {
         id: true,
         username: true,
         displayName: true,
+        avatarUrl: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -83,6 +102,7 @@ export class UsersService {
         id: true,
         username: true,
         displayName: true,
+        avatarUrl: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -90,8 +110,44 @@ export class UsersService {
     })
   }
 
-  async deleteByAdmin(userId: string) {
-    await this.prisma.user.delete({ where: { id: userId } })
+  async updateAvatar(userId: string, avatarUrl: string) {
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+  }
+
+  async deleteByAdmin(params: { actorUserId: string; targetUserId: string }) {
+    const { actorUserId, targetUserId } = params
+    if (actorUserId === targetUserId) {
+      throw new BadRequestException("不能删除当前登录用户")
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true },
+    })
+    if (!existing) throw new NotFoundException("用户不存在")
+
+    if (existing.role === "admin") {
+      const adminCount = await this.prisma.user.count({
+        where: { role: "admin" },
+      })
+      if (adminCount <= 1) {
+        throw new BadRequestException("至少保留一个管理员")
+      }
+    }
+
+    await this.prisma.user.delete({ where: { id: targetUserId } })
     return { ok: true }
   }
 }

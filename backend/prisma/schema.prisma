@@ -23,6 +23,7 @@ model User {
   username     String             @unique
   passwordHash String
   displayName  String
+  avatarUrl    String             @default("")
   role         UserRole           @default(user)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt

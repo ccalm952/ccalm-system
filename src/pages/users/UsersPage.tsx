@@ -95,6 +95,13 @@ export function UsersPage() {
 
   const [userPendingDelete, setUserPendingDelete] = React.useState<UserRow | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
+  const adminCount = rows?.filter((row) => row.role === "admin").length ?? 0;
+
+  function deleteDisabledReason(row: UserRow): string | null {
+    if (row.id === me?.id) return "不能删除当前登录用户";
+    if (row.role === "admin" && adminCount <= 1) return "至少保留一个管理员";
+    return null;
+  }
 
   async function load() {
     const meRes = await api<{ id: string; role: "user" | "admin"; displayName: string }>(
@@ -172,38 +179,42 @@ export function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((r) => (
-                      <TableRow key={r.id} className="border-t border-border">
-                        <TableCell className="w-1/5">{r.username}</TableCell>
-                        <TableCell className="w-1/5">{r.displayName}</TableCell>
-                        <TableCell className="w-1/5">{r.role}</TableCell>
-                        <TableCell className="w-1/5 text-muted-foreground">
-                          {new Date(r.createdAt).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="w-1/5">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={() => {
-                                setEditUser({ ...r, password: "" });
-                                setEditOpen(true);
-                              }}
-                            >
-                              编辑
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              disabled={r.username === "admin"}
-                              onClick={() => setUserPendingDelete(r)}
-                            >
-                              删除
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {rows.map((r) => {
+                      const disabledReason = deleteDisabledReason(r);
+                      return (
+                        <TableRow key={r.id} className="border-t border-border">
+                          <TableCell className="w-1/5">{r.username}</TableCell>
+                          <TableCell className="w-1/5">{r.displayName}</TableCell>
+                          <TableCell className="w-1/5">{r.role}</TableCell>
+                          <TableCell className="w-1/5 text-muted-foreground">
+                            {new Date(r.createdAt).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="w-1/5">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => {
+                                  setEditUser({ ...r, password: "" });
+                                  setEditOpen(true);
+                                }}
+                              >
+                                编辑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={!!disabledReason}
+                                title={disabledReason ?? undefined}
+                                onClick={() => setUserPendingDelete(r)}
+                              >
+                                删除
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
                 <ScrollBar orientation="horizontal" />

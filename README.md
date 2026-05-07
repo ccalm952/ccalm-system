@@ -158,7 +158,7 @@ pm2 status
 pm2 logs shadcn-backend
 ```
 
-后端接口本机地址应为：`http://127.0.0.1:3000/api`
+后端接口本机地址应为：`http://127.0.0.1:3000/api`，上传头像等静态文件地址应为：`http://127.0.0.1:3000/api/uploads/...`
 
 ### 8) 配置 1Panel 网站
 

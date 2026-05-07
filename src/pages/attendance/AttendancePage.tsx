@@ -168,6 +168,11 @@ function pickQuickPunchTypePure(
   return null;
 }
 
+function dayOfMonth(date: string): string {
+  const d = dayjs(date);
+  return d.isValid() ? String(d.date()) : date;
+}
+
 export function AttendancePage() {
   const [now, setNow] = React.useState(() => dayjs());
   const [loc, setLoc] = React.useState<LocationState>(() => {
@@ -500,21 +505,20 @@ export function AttendancePage() {
                   <Table className="w-full table-fixed">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-1/6 text-center">日期</TableHead>
-                        <TableHead className="w-1/6 text-center">上午上班</TableHead>
-                        <TableHead className="w-1/6 text-center">上午下班</TableHead>
-                        <TableHead className="w-1/6 text-center">下午上班</TableHead>
-                        <TableHead className="w-1/6 text-center">下午下班</TableHead>
-                        <TableHead className="w-1/6 text-center">加班时长</TableHead>
+                        <TableHead className="w-1/5 text-center">日期</TableHead>
+                        <TableHead className="w-1/5 text-center">上午上班</TableHead>
+                        <TableHead className="w-1/5 text-center">上午下班</TableHead>
+                        <TableHead className="w-1/5 text-center">下午上班</TableHead>
+                        <TableHead className="w-1/5 text-center">下午下班</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {monthSummary.rows.map((r) => (
                         <TableRow key={r.date}>
-                          <TableCell className="w-1/6 text-center">{r.date}</TableCell>
+                          <TableCell className="w-1/5 text-center">{dayOfMonth(r.date)}</TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/6 text-center",
+                              "w-1/5 text-center",
                               r.morningIn ? "" : "text-destructive",
                             )}
                           >
@@ -522,7 +526,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/6 text-center",
+                              "w-1/5 text-center",
                               r.morningOut ? "" : "text-destructive",
                             )}
                           >
@@ -530,7 +534,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/6 text-center",
+                              "w-1/5 text-center",
                               r.afternoonIn ? "" : "text-destructive",
                             )}
                           >
@@ -538,14 +542,11 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/6 text-center",
+                              "w-1/5 text-center",
                               r.afternoonOut ? "" : "text-destructive",
                             )}
                           >
                             {r.afternoonOut ?? ""}
-                          </TableCell>
-                          <TableCell className="w-1/6 text-center text-muted-foreground">
-                            {r.overtimeStr === "-" ? "" : r.overtimeStr}
                           </TableCell>
                         </TableRow>
                       ))}

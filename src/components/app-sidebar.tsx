@@ -88,7 +88,7 @@ function SidebarNavCollapsible({
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
-  const { me } = useAuth();
+  const { me, setMe } = useAuth();
 
   return (
     <Sidebar {...props}>
@@ -127,9 +127,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <NavUser
               variant="sidebar"
               user={{
+                id: me?.id ?? "",
                 name: me?.displayName ?? "用户",
                 username: me?.username,
-                avatar: "",
+                avatar: me?.avatarUrl ?? "",
+                role: me?.role ?? "user",
+              }}
+              onAvatarUpdated={(avatarUrl) => {
+                setMe((current) => (current ? { ...current, avatarUrl } : current));
+              }}
+              onUserSwitched={(user) => {
+                setMe(user);
               }}
             />
           </SidebarMenuItem>

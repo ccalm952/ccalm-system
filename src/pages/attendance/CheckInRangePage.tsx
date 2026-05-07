@@ -34,6 +34,7 @@ type MeRole = { role: "user" | "admin" };
 export function CheckInRangePage() {
   const navigate = useNavigate();
   const [ready, setReady] = React.useState(false);
+  const [shouldAutoRefreshLocation, setShouldAutoRefreshLocation] = React.useState(false);
   const [radius, setRadius] = React.useState(DEFAULT_GEOFENCE.radiusM);
   const [placeName, setPlaceName] = React.useState(DEFAULT_GEOFENCE.label);
   const [center, setCenter] = React.useState({
@@ -69,6 +70,7 @@ export function CheckInRangePage() {
           lat: Number(geofence.centerLat) || DEFAULT_GEOFENCE.centerLat,
           lng: Number(geofence.centerLng) || DEFAULT_GEOFENCE.centerLng,
         });
+        setShouldAutoRefreshLocation(!geofence.enabled);
         setReady(true);
       } catch {
         window.location.href = "/login";
@@ -160,10 +162,11 @@ export function CheckInRangePage() {
 
   React.useEffect(() => {
     if (!ready) return;
+    if (!shouldAutoRefreshLocation) return;
     if (didAutoRefreshLocationRef.current) return;
     didAutoRefreshLocationRef.current = true;
     void refreshLocation();
-  }, [ready, refreshLocation]);
+  }, [ready, refreshLocation, shouldAutoRefreshLocation]);
 
   const saveCurrentGeofence = React.useCallback(async () => {
     const nextRadius = Math.max(1, Math.round(Number(radius) || DEFAULT_GEOFENCE.radiusM));
