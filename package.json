@@ -3,11 +3,23 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev:web": "pnpm --dir ccalm-web dev",
-    "dev:api": "pnpm --dir ccalm-api start:dev",
-    "build": "pnpm --dir ccalm-web build && pnpm --dir ccalm-api build",
-    "check": "pnpm --dir ccalm-web check && pnpm --dir ccalm-api check",
-    "lint": "pnpm --dir ccalm-web lint && pnpm --dir ccalm-api lint:check",
-    "typecheck": "pnpm --dir ccalm-web typecheck && pnpm --dir ccalm-api typecheck"
+    "dev:web": "pnpm -C ccalm-web dev",
+    "dev:api": "pnpm -C ccalm-api start:dev",
+    "build:web": "pnpm -C ccalm-web build",
+    "build:api": "pnpm -C ccalm-api build",
+    "build": "pnpm -C ccalm-web build && pnpm -C ccalm-api build",
+    "check:web": "pnpm -C ccalm-web check",
+    "check:api": "pnpm -C ccalm-api check",
+    "check": "pnpm -C ccalm-web check && pnpm -C ccalm-api check",
+    "lint:web": "pnpm -C ccalm-web lint",
+    "lint:api": "pnpm -C ccalm-api lint:check",
+    "lint": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint:check",
+    "lint:fix": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint",
+    "typecheck:web": "pnpm -C ccalm-web typecheck",
+    "typecheck:api": "pnpm -C ccalm-api typecheck",
+    "typecheck": "pnpm -C ccalm-web typecheck && pnpm -C ccalm-api typecheck",
+    "format:web": "pnpm -C ccalm-web format",
+    "format:api": "pnpm -C ccalm-api format",
+    "format": "pnpm -C ccalm-web format && pnpm -C ccalm-api format"
   }
 }
