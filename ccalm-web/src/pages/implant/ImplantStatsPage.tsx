@@ -1,7 +1,6 @@
 import * as React from "react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -25,13 +24,12 @@ import { toast } from "sonner";
 type StaffRow = { name: string; count: number };
 
 export function ImplantStatsPage() {
-  const [loading, setLoading] = React.useState(false);
   const [staffRows, setStaffRows] = React.useState<StaffRow[]>([]);
   const [monthItems, setMonthItems] = React.useState<{ label: string; value: string }[]>([]);
   const [month, setMonth] = React.useState("");
   const [monthTotal, setMonthTotal] = React.useState(0);
 
-  /** 与上面所选月份一致：人员次数、植体数量均按该月统计 */
+  /** 与所选月份一致：人员次数、植体数量均按该月统计 */
   async function loadMonthStats(m: string) {
     if (!m) {
       setStaffRows([]);
@@ -52,7 +50,6 @@ export function ImplantStatsPage() {
   }
 
   async function loadAll() {
-    setLoading(true);
     try {
       const monthsRes = await api<string[]>("GET", "/implant/stats/months");
       const mlist = Array.isArray(monthsRes) ? monthsRes : [];
@@ -64,8 +61,6 @@ export function ImplantStatsPage() {
       toast.error(errorMessage(e));
       setStaffRows([]);
       setMonthItems([]);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -78,10 +73,6 @@ export function ImplantStatsPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>统计</CardTitle>
-            <CardDescription>人员次数与植体数量均按上方所选月份统计</CardDescription>
-          </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm">月份</span>
@@ -107,17 +98,12 @@ export function ImplantStatsPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <span className="text-sm text-muted-foreground">
-                植体数量：<strong className="text-foreground">{monthTotal}</strong>
+              <span className="inline-flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">植体数量</span>
+                <span className="inline-flex h-8 items-center rounded-lg border border-input bg-transparent px-2.5 font-medium tabular-nums text-foreground dark:bg-input/30">
+                  {monthTotal}
+                </span>
               </span>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={loading}
-                onClick={() => void loadAll()}
-              >
-                刷新
-              </Button>
             </div>
 
             <Table className="w-full table-fixed">

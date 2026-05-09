@@ -14,14 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Command,
   CommandEmpty,
@@ -39,7 +32,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { SearchIcon, X } from "lucide-react";
 import {
   Field,
   FieldContent,
@@ -51,6 +44,7 @@ import {
 } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePickerField, DateRangePickerField } from "@/components/date-picker-field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -181,17 +175,15 @@ function ToothBrandCombobox({
   value,
   onValueChange,
   className,
-  inputAriaLabel,
 }: {
   brands: string[];
   value: string;
   onValueChange: (v: string) => void;
   className?: string;
-  inputAriaLabel?: string;
 }) {
   return (
     <Combobox items={brands} value={value || null} onValueChange={(v) => onValueChange(v ?? "")}>
-      <ComboboxInput showTrigger={false} className={className} aria-label={inputAriaLabel} />
+      <ComboboxInput showTrigger={false} className={className} />
       <ComboboxContent>
         <ComboboxEmpty>库存中暂无品牌</ComboboxEmpty>
         <ComboboxList>
@@ -677,7 +669,6 @@ function ImplantRecordsVisitDialog({
                         readOnly
                         disabled
                         className="pointer-events-none bg-muted/40"
-                        aria-readonly
                       />
                     </FieldContent>
                   </Field>
@@ -701,7 +692,6 @@ function ImplantRecordsVisitDialog({
                         readOnly
                         disabled
                         className="pointer-events-none bg-muted/40"
-                        aria-readonly
                       />
                     </FieldContent>
                   </Field>
@@ -739,7 +729,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>牙位</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "牙位"}
                                   value={t.toothNo}
                                   onChange={(e) =>
                                     setEditTeeth((rows) =>
@@ -763,7 +752,6 @@ function ImplantRecordsVisitDialog({
                                     )
                                   }
                                   className="w-full"
-                                  inputAriaLabel={showToothFieldLabels ? undefined : "品牌"}
                                 />
                               </FieldContent>
                             </Field>
@@ -771,7 +759,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>植体</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "植体"}
                                   value={t.implantModel}
                                   onChange={(e) =>
                                     setEditTeeth((rows) =>
@@ -787,7 +774,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>备注</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "备注"}
                                   value={t.toothRemark}
                                   onChange={(e) =>
                                     setEditTeeth((rows) =>
@@ -805,7 +791,6 @@ function ImplantRecordsVisitDialog({
                           variant="outline"
                           size="icon"
                           onClick={() => removeEditToothAt(i)}
-                          aria-label={`删除第 ${i + 1} 条牙位`}
                         >
                           <X className="size-4" />
                         </Button>
@@ -939,7 +924,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>牙位</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "牙位"}
                                   value={row.toothNo}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -963,7 +947,6 @@ function ImplantRecordsVisitDialog({
                                     )
                                   }
                                   className="w-full"
-                                  inputAriaLabel={showToothFieldLabels ? undefined : "品牌"}
                                 />
                               </FieldContent>
                             </Field>
@@ -971,7 +954,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>植体</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "植体"}
                                   value={row.implantModel}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -987,7 +969,6 @@ function ImplantRecordsVisitDialog({
                               {showToothFieldLabels ? <FieldLabel>备注</FieldLabel> : null}
                               <FieldContent>
                                 <Input
-                                  aria-label={showToothFieldLabels ? undefined : "备注"}
                                   value={row.toothRemark}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -1005,7 +986,6 @@ function ImplantRecordsVisitDialog({
                           variant="outline"
                           size="icon"
                           onClick={() => removeToothAt(i)}
-                          aria-label={`删除第 ${i + 1} 条牙位`}
                         >
                           <X className="size-4" />
                         </Button>
@@ -1033,8 +1013,7 @@ function ImplantRecordsVisitDialog({
 
 export function ImplantRecordsPage() {
   const range = React.useMemo(() => defaultDateRange(), []);
-  const [name, setName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [dateFrom, setDateFrom] = React.useState(range.from);
   const [dateTo, setDateTo] = React.useState(range.to);
   const [rows, setRows] = React.useState<Row[]>([]);
@@ -1067,22 +1046,22 @@ export function ImplantRecordsPage() {
   const load = React.useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (name.trim()) params.set("name", name.trim());
-      if (phone.trim()) params.set("phone", phone.trim());
-      const textFilter = Boolean(name.trim() || phone.trim());
-      if (!textFilter) {
+      const kw = searchQuery.trim();
+      if (kw) {
+        params.set("q", kw);
+      } else {
         if (dateFrom) params.set("dateFrom", dateFrom);
         if (dateTo) params.set("dateTo", dateTo);
       }
-      const q = params.toString();
-      const data = await api<Row[]>("GET", `/implant/records${q ? `?${q}` : ""}`);
+      const qs = params.toString();
+      const data = await api<Row[]>("GET", `/implant/records${qs ? `?${qs}` : ""}`);
       setRows(Array.isArray(data) ? data : []);
       setSelection(new Set());
     } catch (e) {
       toast.error(errorMessage(e));
       setRows([]);
     }
-  }, [name, phone, dateFrom, dateTo]);
+  }, [searchQuery, dateFrom, dateTo]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -1139,7 +1118,6 @@ export function ImplantRecordsPage() {
                 if (value) meta?.selectAllRows?.();
                 else meta?.clearSelection?.();
               }}
-              aria-label="全选"
             />
           );
         },
@@ -1152,7 +1130,6 @@ export function ImplantRecordsPage() {
               checked={sel?.has(i) ?? false}
               onCheckedChange={() => toggle?.(i)}
               onClick={(e) => e.stopPropagation()}
-              aria-label="选择行"
             />
           );
         },
@@ -1248,73 +1225,61 @@ export function ImplantRecordsPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>种植记录</CardTitle>
-            <CardDescription>
-              未填姓名、手机时按日期区间筛选，填写任一项则不限日期，匹配全部记录。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Field>
-                  <FieldLabel>姓名</FieldLabel>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
-                </Field>
-                <Field>
-                  <FieldLabel>手机</FieldLabel>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-                </Field>
-                <Field>
-                  <FieldLabel>日期</FieldLabel>
-                  <DateRangePickerField
-                    dateFrom={dateFrom}
-                    dateTo={dateTo}
-                    onRangeChange={(from, to) => {
-                      setDateFrom(from);
-                      setDateTo(to);
-                    }}
-                  />
-                </Field>
-              </div>
-            </FieldGroup>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardAction>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <Button type="button" onClick={() => setVisitDialog({ type: "add" })}>
-                  新增
-                </Button>
-                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                  <AlertDialogTrigger
-                    disabled={!selection.size}
-                    render={<Button variant="destructive" />}
-                  >
-                    删除选中
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>确认删除</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        确定删除选中的 {selection.size} 条记录吗？
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        onClick={() => void confirmDeleteSelected()}
-                      >
-                        删除
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardAction>
+          <CardHeader className="flex min-w-0 flex-col gap-3 space-y-0 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between">
+            <div className="flex min-w-0 w-full flex-1 flex-nowrap items-center gap-2">
+              <InputGroup className="min-w-0 flex-1 sm:max-w-md">
+                <InputGroupAddon align="inline-start">
+                  <SearchIcon className="size-4 shrink-0 opacity-50" aria-hidden />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </InputGroup>
+              <DateRangePickerField
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onRangeChange={(from, to) => {
+                  setDateFrom(from);
+                  setDateTo(to);
+                }}
+                className="min-w-0 max-w-[min(100%,280px)] shrink-0 sm:max-w-[280px]"
+              />
+            </div>
+            <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
+              <Button
+                type="button"
+                className="shrink-0"
+                onClick={() => setVisitDialog({ type: "add" })}
+              >
+                新增
+              </Button>
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger
+                  disabled={!selection.size}
+                  render={<Button variant="destructive" className="shrink-0" />}
+                >
+                  删除选中
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认删除</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      确定删除选中的 {selection.size} 条记录吗？
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => void confirmDeleteSelected()}
+                    >
+                      删除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="w-full min-w-0">

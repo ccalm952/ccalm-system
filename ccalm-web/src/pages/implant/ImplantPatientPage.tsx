@@ -20,14 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -35,15 +28,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-  FieldTitle,
-} from "@/components/ui/field";
+import { Field, FieldContent, FieldLabel, FieldSet, FieldTitle } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -54,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SearchIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "sonner";
@@ -85,9 +73,7 @@ type PatientTableMeta = {
 };
 
 export function ImplantPatientPage() {
-  const [name, setName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [chart, setChart] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [patients, setPatients] = React.useState<PatientRow[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -124,18 +110,17 @@ export function ImplantPatientPage() {
   const load = React.useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (name.trim()) params.set("name", name.trim());
-      if (phone.trim()) params.set("phone", phone.trim());
-      if (chart.trim()) params.set("chart", chart.trim());
-      const q = params.toString();
-      const data = await api<PatientRow[]>("GET", `/implant/patient${q ? `?${q}` : ""}`);
+      const q = searchQuery.trim();
+      if (q) params.set("q", q);
+      const qs = params.toString();
+      const data = await api<PatientRow[]>("GET", `/implant/patient${qs ? `?${qs}` : ""}`);
       setPatients(Array.isArray(data) ? data : []);
       setSelection(new Set());
     } catch (e) {
       toast.error(errorMessage(e));
       setPatients([]);
     }
-  }, [name, phone, chart]);
+  }, [searchQuery]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -231,7 +216,6 @@ export function ImplantPatientPage() {
                 if (value) meta?.selectAllRows?.();
                 else meta?.clearSelection?.();
               }}
-              aria-label="全选"
             />
           );
         },
@@ -245,7 +229,6 @@ export function ImplantPatientPage() {
               checked={sel?.has(i) ?? false}
               onCheckedChange={() => toggle?.(i)}
               onClick={(e) => e.stopPropagation()}
-              aria-label="选择行"
             />
           );
         },
@@ -327,72 +310,44 @@ export function ImplantPatientPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>种植患者</CardTitle>
-            <CardDescription>
-              仅列出至少有一条种植就诊记录的患者。可选填姓名、手机、病历号筛选，与种植记录页相同为子串匹配。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldSet>
-              <FieldGroup>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <Field>
-                    <FieldLabel>
-                      <FieldTitle>姓名</FieldTitle>
-                    </FieldLabel>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} />
-                  </Field>
-                  <Field>
-                    <FieldLabel>
-                      <FieldTitle>手机</FieldTitle>
-                    </FieldLabel>
-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  </Field>
-                  <Field>
-                    <FieldLabel>
-                      <FieldTitle>病历号</FieldTitle>
-                    </FieldLabel>
-                    <Input value={chart} onChange={(e) => setChart(e.target.value)} />
-                  </Field>
-                </div>
-              </FieldGroup>
-            </FieldSet>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardAction>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                  <AlertDialogTrigger
-                    disabled={!selection.size}
-                    render={<Button variant="destructive" />}
-                  >
-                    删除选中
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>确认删除</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        确定删除选中的 {selection.size}{" "}
-                        名患者吗？将同时删除其全部种植就诊与牙位记录。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        onClick={() => void confirmDeleteSelected()}
-                      >
-                        删除
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardAction>
+          <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            <InputGroup className="min-w-0 w-full sm:max-w-md">
+              <InputGroupAddon align="inline-start">
+                <SearchIcon className="size-4 shrink-0 opacity-50" aria-hidden />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </InputGroup>
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger
+                  disabled={!selection.size}
+                  render={<Button variant="destructive" />}
+                >
+                  删除选中
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认删除</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      确定删除选中的 {selection.size}{" "}
+                      名患者吗？将同时删除其全部种植就诊与牙位记录。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => void confirmDeleteSelected()}
+                    >
+                      删除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea>

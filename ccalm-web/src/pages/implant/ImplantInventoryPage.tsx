@@ -1,4 +1,12 @@
 import * as React from "react";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type Column,
+  type ColumnDef,
+  type VisibilityState,
+} from "@tanstack/react-table";
 
 import {
   AlertDialog,
@@ -12,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +38,13 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -42,7 +57,11 @@ import {
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
+import { ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
+
+/** 勾选列固定宽度（与 `w-10` 一致） */
+const INV_TABLE_SELECT_COL_W = "2.5rem";
 
 type InvRow = {
   id: number;
@@ -53,16 +72,24 @@ type InvRow = {
   left: number;
 };
 
+function inventoryColumnPickerLabel(column: Column<InvRow, unknown>) {
+  const h = column.columnDef.header;
+  if (typeof h === "string") return h;
+  return column.id;
+}
+
 function InventoryBrandCombobox({
   items,
   value,
   onValueChange,
   className,
+  placeholder,
 }: {
   items: string[];
   value: string;
   onValueChange: (v: string) => void;
   className?: string;
+  placeholder?: string;
 }) {
   return (
     <Combobox
@@ -71,7 +98,11 @@ function InventoryBrandCombobox({
       onValueChange={(v) => onValueChange(v ?? "")}
       onInputValueChange={(v) => onValueChange(v)}
     >
-      <ComboboxInput showTrigger={false} className={cn("w-full min-w-0", className)} />
+      <ComboboxInput
+        showTrigger={false}
+        placeholder={placeholder}
+        className={cn("w-full min-w-0", className)}
+      />
       <ComboboxContent>
         <ComboboxEmpty>暂无匹配，可直接输入新品牌</ComboboxEmpty>
         <ComboboxList>
@@ -90,7 +121,7 @@ export function ImplantInventoryPage() {
   const [list, setList] = React.useState<InvRow[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = React.useState(false);
+  const [addStockOpen, setAddStockOpen] = React.useState(false);
 
   const [addBrand, setAddBrand] = React.useState("");
   const [addModel, setAddModel] = React.useState("");
@@ -103,6 +134,7 @@ export function ImplantInventoryPage() {
   const [editModel, setEditModel] = React.useState("");
   const [editSupplement, setEditSupplement] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
   const addBrandItems = React.useMemo(() => {
     const s = new Set<string>();
@@ -141,6 +173,7 @@ export function ImplantInventoryPage() {
       toast.success("已保存");
       setAddModel("");
       setAddQty("1");
+      setAddStockOpen(false);
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -149,14 +182,14 @@ export function ImplantInventoryPage() {
     }
   }
 
-  function toggleSel(id: number) {
+  const toggleSel = React.useCallback((id: number) => {
     setSelection((prev) => {
       const n = new Set(prev);
       if (n.has(id)) n.delete(id);
       else n.add(id);
       return n;
     });
-  }
+  }, []);
 
   async function confirmDeleteSelected() {
     const ids = [...selection];
@@ -179,25 +212,97 @@ export function ImplantInventoryPage() {
     }
   }
 
-  async function confirmDeleteAll() {
-    try {
-      await api("DELETE", "/implant/inventory");
-      toast.success("已清空");
-      await load();
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setDeleteAllDialogOpen(false);
-    }
-  }
-
-  function openEdit(row: InvRow) {
+  const openEdit = React.useCallback((row: InvRow) => {
     editRowRef.current = row;
     setEditBrand(row.brand);
     setEditModel(row.model);
     setEditSupplement(String(row.supplement));
     setEditOpen(true);
-  }
+  }, []);
+
+  const columns = React.useMemo<ColumnDef<InvRow>[]>(
+    () => [
+      {
+        id: "select",
+        header: () => {
+          const ids = list.map((r) => r.id);
+          const selectedCount = ids.filter((id) => selection.has(id)).length;
+          const allSelected = ids.length > 0 && selectedCount === ids.length;
+          const someSelected = selectedCount > 0 && !allSelected;
+          return (
+            <Checkbox
+              checked={allSelected}
+              indeterminate={someSelected}
+              disabled={ids.length === 0}
+              onCheckedChange={(checked) => {
+                setSelection(checked ? new Set(ids) : new Set());
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          );
+        },
+        cell: ({ row }) => (
+          <Checkbox
+            checked={selection.has(row.original.id)}
+            onCheckedChange={() => toggleSel(row.original.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "brand",
+        header: "品牌",
+      },
+      {
+        accessorKey: "model",
+        header: "植体",
+      },
+      {
+        accessorKey: "supplement",
+        header: "补货",
+      },
+      {
+        accessorKey: "used",
+        header: "已用",
+      },
+      {
+        accessorKey: "left",
+        header: "库存",
+      },
+      {
+        id: "actions",
+        header: "操作",
+        cell: ({ row }) => (
+          <Button
+            type="button"
+            variant="link"
+            onClick={(e) => {
+              e.stopPropagation();
+              openEdit(row.original);
+            }}
+          >
+            编辑
+          </Button>
+        ),
+        enableHiding: false,
+      },
+    ],
+    [list, selection, toggleSel, openEdit],
+  );
+
+  const table = useReactTable({
+    data: list,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => String(row.id),
+    onColumnVisibilityChange: setColumnVisibility,
+    state: { columnVisibility },
+  });
+
+  const leafCols = table.getVisibleLeafColumns();
+  /** 与操作列一起均分的列数（全部可见列减去勾选列） */
+  const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
 
   async function saveEdit() {
     const row = editRowRef.current;
@@ -223,65 +328,32 @@ export function ImplantInventoryPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>补货</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FieldSet className="text-sm">
-              <div className="flex min-w-0 items-end gap-3">
-                <div className="grid min-w-0 flex-1 grid-cols-3 gap-3">
-                  <Field orientation="vertical" className="min-w-0">
-                    <FieldLabel>
-                      <FieldTitle>品牌</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <InventoryBrandCombobox
-                        items={addBrandItems}
-                        value={addBrand}
-                        onValueChange={setAddBrand}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical" className="min-w-0">
-                    <FieldLabel>
-                      <FieldTitle>植体</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input value={addModel} onChange={(e) => setAddModel(e.target.value)} />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical" className="min-w-0">
-                    <FieldLabel>
-                      <FieldTitle>数量</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={addQty}
-                        onChange={(e) => setAddQty(e.target.value)}
-                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                    </FieldContent>
-                  </Field>
-                </div>
-                <Button
-                  type="button"
-                  className="shrink-0"
-                  disabled={adding}
-                  onClick={() => void addStock()}
-                >
-                  添加
-                </Button>
-              </div>
-            </FieldSet>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-            <CardTitle>库存列表</CardTitle>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-end gap-2 space-y-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" />}>
+                  列
+                  <ChevronDownIcon className="size-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuGroup>
+                    {table
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .map((column) => (
+                        <DropdownMenuCheckboxItem
+                          key={column.id}
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                        >
+                          {inventoryColumnPickerLabel(column)}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button type="button" onClick={() => setAddStockOpen(true)}>
+                补货
+              </Button>
               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogTrigger
                   disabled={!selection.size}
@@ -307,79 +379,99 @@ export function ImplantInventoryPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
-                <AlertDialogTrigger render={<Button variant="destructive" />}>
-                  全部删除
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>确认清空</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      确定清空全部库存型号吗？此操作不可恢复。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
-                    <AlertDialogAction
-                      variant="destructive"
-                      onClick={() => void confirmDeleteAll()}
-                    >
-                      清空
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
           </CardHeader>
           <CardContent>
-            <Table className="table-fixed">
+            <Table className="table-fixed w-full border-collapse">
+              <colgroup>
+                {leafCols.map((col) => {
+                  if (col.id === "select") {
+                    return <col key={col.id} style={{ width: INV_TABLE_SELECT_COL_W }} />;
+                  }
+                  return (
+                    <col
+                      key={col.id}
+                      style={{
+                        width: `calc((100% - ${INV_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
+                      }}
+                    />
+                  );
+                })}
+              </colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10" />
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">品牌</TableHead>
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">植体</TableHead>
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">补货</TableHead>
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">已用</TableHead>
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">库存</TableHead>
-                  <TableHead className="w-[calc((100%_-_2.5rem)_/_6)]">操作</TableHead>
-                </TableRow>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        className={cn(header.column.id !== "select" && "min-w-0 max-w-0")}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
-                {list.map((row) => (
-                  <TableRow key={row.id} onDoubleClick={() => openEdit(row)}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selection.has(row.id)}
-                        onCheckedChange={() => toggleSel(row.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        aria-label="选择该行"
-                      />
-                    </TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">{row.brand}</TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">{row.model}</TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">
-                      {row.supplement}
-                    </TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">{row.used}</TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">{row.left}</TableCell>
-                    <TableCell className="w-[calc((100%_-_2.5rem)_/_6)]">
-                      <Button
-                        type="button"
-                        variant="link"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(row);
-                        }}
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          cell.column.id !== "select" &&
+                            cn(
+                              "min-w-0 max-w-0",
+                              cell.column.id === "actions"
+                                ? "whitespace-nowrap"
+                                : "truncate",
+                            ),
+                        )}
                       >
-                        编辑
-                      </Button>
-                    </TableCell>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        <Dialog open={addStockOpen} onOpenChange={setAddStockOpen}>
+          <DialogContent>
+            <FieldSet>
+              <InventoryBrandCombobox
+                items={addBrandItems}
+                value={addBrand}
+                onValueChange={setAddBrand}
+                placeholder="品牌"
+              />
+              <Input
+                value={addModel}
+                onChange={(e) => setAddModel(e.target.value)}
+                placeholder="植体"
+              />
+              <Input
+                type="number"
+                min={1}
+                value={addQty}
+                onChange={(e) => setAddQty(e.target.value)}
+                placeholder="数量"
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </FieldSet>
+            <DialogFooter className="grid grid-cols-2 gap-2 sm:grid-cols-2 *:w-full">
+              <Button type="button" variant="secondary" onClick={() => setAddStockOpen(false)}>
+                取消
+              </Button>
+              <Button type="button" disabled={adding} onClick={() => void addStock()}>
+                {adding ? "添加中…" : "添加"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent>
@@ -418,7 +510,7 @@ export function ImplantInventoryPage() {
                 </FieldContent>
               </Field>
             </FieldSet>
-            <DialogFooter>
+            <DialogFooter className="grid grid-cols-2 gap-2 sm:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>
                 取消
               </Button>

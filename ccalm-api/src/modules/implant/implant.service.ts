@@ -36,38 +36,37 @@ export class ImplantService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listRecords(filters: {
-    name?: string
-    phone?: string
-    chart?: string
+    q?: string
     dateFrom?: string
     dateTo?: string
     limit?: number
   }): Promise<ImplantRecordRow[]> {
-    const name = filters.name?.trim()
-    const phone = filters.phone?.trim()
-    const chart = filters.chart?.trim()
+    const kw = filters.q?.trim()
     const { dateFrom, dateTo } = filters
 
     const teeth = await this.prisma.implantTooth.findMany({
       where: {
         visit: {
-          ...(dateFrom || dateTo
+          ...(kw
+            ? {}
+            : dateFrom || dateTo
+              ? {
+                  visitDate: {
+                    ...(dateFrom ? { gte: dateFrom } : {}),
+                    ...(dateTo ? { lte: dateTo } : {}),
+                  },
+                }
+              : {}),
+          ...(kw
             ? {
-                visitDate: {
-                  ...(dateFrom ? { gte: dateFrom } : {}),
-                  ...(dateTo ? { lte: dateTo } : {}),
+                patient: {
+                  OR: [
+                    { name: { contains: kw, mode: "insensitive" as const } },
+                    { phone: { contains: kw } },
+                  ],
                 },
               }
             : {}),
-          patient: {
-            ...(name
-              ? { name: { contains: name, mode: "insensitive" as const } }
-              : {}),
-            ...(phone ? { phone: { contains: phone } } : {}),
-            ...(chart
-              ? { chartNo: { contains: chart, mode: "insensitive" as const } }
-              : {}),
-          },
         },
       },
       include: {
@@ -428,17 +427,19 @@ export class ImplantService {
     return count
   }
 
-  async listImplantPatients(name?: string, phone?: string, chart?: string) {
-    const n = name?.trim()
-    const ph = phone?.trim()
-    const ch = chart?.trim()
+  async listImplantPatients(q?: string) {
+    const kw = q?.trim()
     const patients = await this.prisma.implantPatient.findMany({
       where: {
         visits: { some: {} },
-        ...(n ? { name: { contains: n, mode: "insensitive" as const } } : {}),
-        ...(ph ? { phone: { contains: ph } } : {}),
-        ...(ch
-          ? { chartNo: { contains: ch, mode: "insensitive" as const } }
+        ...(kw
+          ? {
+              OR: [
+                { name: { contains: kw, mode: "insensitive" as const } },
+                { phone: { contains: kw } },
+                { chartNo: { contains: kw, mode: "insensitive" as const } },
+              ],
+            }
           : {}),
       },
       orderBy: { name: "asc" },

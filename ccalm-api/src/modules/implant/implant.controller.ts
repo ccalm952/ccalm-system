@@ -25,18 +25,14 @@ export class ImplantController {
 
   @Get("records")
   records(
-    @Query("name") name?: string,
-    @Query("phone") phone?: string,
-    @Query("chart") chart?: string,
+    @Query("q") q?: string,
     @Query("dateFrom") dateFrom?: string,
     @Query("dateTo") dateTo?: string,
     @Query("limit") limit?: string
   ) {
     const lim = limit != null && limit !== "" ? Number(limit) : undefined
     return this.implant.listRecords({
-      name,
-      phone,
-      chart,
+      q,
       dateFrom,
       dateTo,
       limit: Number.isFinite(lim) ? lim : undefined,
@@ -124,12 +120,8 @@ export class ImplantController {
   }
 
   @Get("patient")
-  listPatients(
-    @Query("name") name?: string,
-    @Query("phone") phone?: string,
-    @Query("chart") chart?: string
-  ) {
-    return this.implant.listImplantPatients(name, phone, chart)
+  listPatients(@Query("q") q?: string) {
+    return this.implant.listImplantPatients(q)
   }
 
   @Put("patient/:id")
