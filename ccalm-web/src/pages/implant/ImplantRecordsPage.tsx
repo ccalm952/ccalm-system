@@ -175,15 +175,22 @@ function ToothBrandCombobox({
   value,
   onValueChange,
   className,
+  placeholder,
 }: {
   brands: string[];
   value: string;
   onValueChange: (v: string) => void;
   className?: string;
+  placeholder?: string;
 }) {
   return (
     <Combobox items={brands} value={value || null} onValueChange={(v) => onValueChange(v ?? "")}>
-      <ComboboxInput showTrigger={false} className={className} />
+      <ComboboxInput
+        showTrigger={false}
+        className={className}
+        placeholder={placeholder}
+        aria-label={placeholder}
+      />
       <ComboboxContent>
         <ComboboxEmpty>库存中暂无品牌</ComboboxEmpty>
         <ComboboxList>
@@ -595,38 +602,15 @@ function ImplantRecordsVisitDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl" showCloseButton={false}>
         <FieldSet>
-          {/* 自 FieldSet 起的完整结构（调间距时对照；默认值见 @/components/ui/field）：
-              说明：FieldLegend 与 FieldDescription 是兄弟，都直接挂在 FieldSet（fieldset）下；
-              说明不在 legend 内（legend 只放短标题）。DOM：fieldset > legend + p（说明）+ 表单大段。
-              FieldSet          → 默认 flex flex-col gap-4，管「标题/说明/下面大段」之间的竖间距
-              ├── FieldLegend   → 默认 mb-1.5（与下一兄弟的间距）
-              ├── FieldDescription（新增与编辑各一段文案，二选一；与 Legend 同级）
-              └── [编辑] 或 [新增] 根容器
-                  └── div（flex flex-col gap-4）→ 主表单块 / 牙位块 / 保存行 三大段之间的间距
-                      ├── FieldGroup      → 默认 flex flex-col gap-5
-                      │   └── div（grid gap-4 sm:grid-cols-2）
-                      │       └── Field（orientation=vertical）→ 默认 flex-col gap-2（标签与控件）
-                      │           ├── FieldLabel
-                      │           └── FieldContent → 默认内部 gap-0.5
-                      │               └── Input | DatePickerField | …
-                      │             （仅新增）姓名为 FieldContent → div.relative → Command
-                      │               → CommandInput；展开时 CommandList（absolute）→ CommandGroup → CommandItem…
-                      ├── div（flex flex-col gap-2）→ 牙位行列表
-                      │       └── FieldGroup（每一行）
-                      │           └── div（flex items-end gap-4）→ 栅格与删除钮（新增/编辑一致）
-                      │               ├── div（min-w-0 flex-1）→ div（grid 四列 gap-4）→ Field×4
-                      │               └── Button 删除
-                      └── div（flex justify-end gap-2）→ 添加牙位 + 保存 Button
-          */}
-          <FieldLegend>{isEdit ? "编辑种植记录" : "新增种植记录"}</FieldLegend>
-          {!isEdit ? (
-            <FieldDescription>
-              保存时写入患者库与种植就诊记录。姓名可从已有患者中搜索选择。
-            </FieldDescription>
+          {isEdit ? (
+            <>
+              <FieldLegend>编辑种植记录</FieldLegend>
+              <FieldDescription>
+                病历号、出生日期、年龄为只读。牙位与植体与新增一致：可添加条目、行内删除；保存时先删已移除的牙位，再更新已有行并提交新行。
+              </FieldDescription>
+            </>
           ) : (
-            <FieldDescription>
-              病历号、出生日期、年龄为只读。牙位与植体与新增一致：可添加条目、行内删除；保存时先删已移除的牙位，再更新已有行并提交新行。
-            </FieldDescription>
+            <FieldLegend className="sr-only">新增种植记录</FieldLegend>
           )}
           {isEdit ? (
             <div className="flex flex-col gap-4">
@@ -800,11 +784,29 @@ function ImplantRecordsVisitDialog({
                 })}
               </div>
 
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={addEditToothRow}>
+              <div className="flex w-full gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-w-0 flex-1"
+                  onClick={addEditToothRow}
+                >
                   添加牙位
                 </Button>
-                <Button type="button" disabled={saving} onClick={() => void saveEdit()}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-w-0 flex-1"
+                  onClick={() => onOpenChange(false)}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  className="min-w-0 flex-1"
+                  disabled={saving}
+                  onClick={() => void saveEdit()}
+                >
                   {saving ? "保存中…" : "保存"}
                 </Button>
               </div>
@@ -814,13 +816,16 @@ function ImplantRecordsVisitDialog({
               <FieldGroup>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field orientation="vertical">
-                    <FieldLabel>日期</FieldLabel>
                     <FieldContent>
-                      <DatePickerField value={visitDate} onValueChange={setVisitDate} />
+                      <DatePickerField
+                        value={visitDate}
+                        onValueChange={setVisitDate}
+                        placeholder=""
+                        aria-label="日期"
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>姓名</FieldLabel>
                     <FieldContent>
                       <div ref={nameSuggestRootRef} className="relative">
                         <Command
@@ -830,6 +835,8 @@ function ImplantRecordsVisitDialog({
                         >
                           <CommandInput
                             ref={nameSuggestInputRef}
+                            placeholder="姓名"
+                            aria-label="姓名"
                             value={patientName}
                             onValueChange={(v) => {
                               setSuggestListDismissed(false);
@@ -869,44 +876,64 @@ function ImplantRecordsVisitDialog({
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>手机</FieldLabel>
                     <FieldContent>
-                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                      <Input
+                        placeholder="手机"
+                        aria-label="手机"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>病历号</FieldLabel>
                     <FieldContent>
-                      <Input value={chartNo} onChange={(e) => setChartNo(e.target.value)} />
+                      <Input
+                        placeholder="病历号"
+                        aria-label="病历号"
+                        value={chartNo}
+                        onChange={(e) => setChartNo(e.target.value)}
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>出生日期</FieldLabel>
                     <FieldContent>
                       <DatePickerField
                         value={birthday}
                         onValueChange={onBirthdayChange}
                         captionLayout="dropdown"
-                        placeholder=""
+                        placeholder="出生日期"
+                        aria-label="出生日期"
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>年龄</FieldLabel>
                     <FieldContent>
-                      <Input value={age} onChange={(e) => onAgeChange(e.target.value)} />
+                      <Input
+                        placeholder="年龄"
+                        aria-label="年龄"
+                        value={age}
+                        onChange={(e) => onAgeChange(e.target.value)}
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>人员</FieldLabel>
                     <FieldContent>
-                      <Input value={staff} onChange={(e) => setStaff(e.target.value)} />
+                      <Input
+                        placeholder="人员"
+                        aria-label="人员"
+                        value={staff}
+                        onChange={(e) => setStaff(e.target.value)}
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>二期（月数）</FieldLabel>
                     <FieldContent>
-                      <Input value={remark} onChange={(e) => setRemark(e.target.value)} />
+                      <Input
+                        placeholder="二期（月数）"
+                        aria-label="二期（月数）"
+                        value={remark}
+                        onChange={(e) => setRemark(e.target.value)}
+                      />
                     </FieldContent>
                   </Field>
                 </div>
@@ -914,16 +941,16 @@ function ImplantRecordsVisitDialog({
 
               <div className="flex flex-col gap-2">
                 {teeth.map((row, i) => {
-                  const showToothFieldLabels = i === 0;
                   return (
                     <FieldGroup key={i}>
                       <div className="flex min-w-0 items-end gap-4">
                         <div className="min-w-0 flex-1">
                           <div className="grid min-w-[28rem] grid-cols-4 gap-4">
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>牙位</FieldLabel> : null}
                               <FieldContent>
                                 <Input
+                                  placeholder="牙位"
+                                  aria-label="牙位"
                                   value={row.toothNo}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -936,7 +963,6 @@ function ImplantRecordsVisitDialog({
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>品牌</FieldLabel> : null}
                               <FieldContent>
                                 <ToothBrandCombobox
                                   brands={inventoryBrands}
@@ -947,13 +973,15 @@ function ImplantRecordsVisitDialog({
                                     )
                                   }
                                   className="w-full"
+                                  placeholder="品牌"
                                 />
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>植体</FieldLabel> : null}
                               <FieldContent>
                                 <Input
+                                  placeholder="植体"
+                                  aria-label="植体"
                                   value={row.implantModel}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -966,9 +994,10 @@ function ImplantRecordsVisitDialog({
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>备注</FieldLabel> : null}
                               <FieldContent>
                                 <Input
+                                  placeholder="备注"
+                                  aria-label="备注"
                                   value={row.toothRemark}
                                   onChange={(e) =>
                                     setTeeth((t) =>
@@ -995,11 +1024,29 @@ function ImplantRecordsVisitDialog({
                 })}
               </div>
 
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={addToothRow}>
+              <div className="flex w-full gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-w-0 flex-1"
+                  onClick={addToothRow}
+                >
                   添加牙位
                 </Button>
-                <Button type="button" disabled={saving} onClick={() => void submit()}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="min-w-0 flex-1"
+                  onClick={() => onOpenChange(false)}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  className="min-w-0 flex-1"
+                  disabled={saving}
+                  onClick={() => void submit()}
+                >
                   {saving ? "保存中…" : "保存"}
                 </Button>
               </div>

@@ -23,6 +23,8 @@ export type DatePickerFieldProps = {
   className?: string;
   id?: string;
   placeholder?: string;
+  /** 无外侧标签时用于触发按钮的可访问名称 */
+  "aria-label"?: string;
   /**
    * `"dropdown"`：与 shadcn 文档「Date of birth」一致（年月下拉 + 选毕关弹层）。
    * 默认 `"label"`：普通月历标题。
@@ -38,6 +40,7 @@ export function DatePickerField({
   id,
   placeholder = "选择日期",
   captionLayout = "label",
+  "aria-label": ariaLabel,
 }: DatePickerFieldProps) {
   const selected = React.useMemo(() => {
     if (!value) return undefined;
@@ -77,6 +80,7 @@ export function DatePickerField({
           <Button
             variant="outline"
             data-empty={!value}
+            aria-label={ariaLabel}
             className={cn(
               "w-full justify-start text-left font-normal data-[empty=true]:text-muted-foreground",
               className,
