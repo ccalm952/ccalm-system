@@ -1,16 +1,14 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { DEFAULT_SHIFT, isValidHHMM, minutesFromMidnight } from "@/lib/attendance/shift";
 import type { AttendanceShiftFullConfig } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type BackendShiftDto = {
   morningLabel: string;
@@ -130,8 +128,13 @@ export function AttendanceShiftSettingsPage() {
       ["下午下班可打结束", form.afternoonOutWindowEnd],
     ];
     for (const [label, value] of pairs) {
-      if (!isValidHHMM(String(value || "").trim())) {
-        toast.error(`${label} 须为 HH:mm，如 08:30`);
+      const trimmed = String(value || "").trim();
+      if (!trimmed) {
+        toast.error(`${label}不能为空`);
+        return false;
+      }
+      if (!isValidHHMM(trimmed)) {
+        toast.error(`${label}格式不正确`);
         return false;
       }
     }
@@ -172,23 +175,8 @@ export function AttendanceShiftSettingsPage() {
 
   return (
     <div className="min-h-svh bg-background p-4">
-      <div className="mx-auto max-w-3xl">
-        <p className="mb-4">
-          <Link
-            to="/attendance"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "-ms-1 gap-1 text-muted-foreground",
-            )}
-          >
-            <ArrowLeft className="opacity-70" />
-            返回
-          </Link>
-        </p>
-
-        <h1 className="text-lg font-medium leading-none">班次与时间规则</h1>
-
-        <div className="mt-4 flex flex-col gap-4 text-sm">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-col gap-4 text-sm">
           <section className="rounded-lg border border-border p-4">
             <div className="mb-3 text-sm font-semibold text-muted-foreground">上午班次</div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -200,14 +188,14 @@ export function AttendanceShiftSettingsPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">开始时间 (HH:mm)</label>
+                <label className="text-sm font-medium">开始时间</label>
                 <Input
                   value={form.morning.rangeStart}
                   onChange={(e) => updateMorning("rangeStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">结束时间 (HH:mm)</label>
+                <label className="text-sm font-medium">结束时间</label>
                 <Input
                   value={form.morning.rangeEnd}
                   onChange={(e) => updateMorning("rangeEnd", e.target.value)}
@@ -217,14 +205,14 @@ export function AttendanceShiftSettingsPage() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">上午上班可打开始 (HH:mm)</label>
+                <label className="text-sm font-medium">上午上班可打开始</label>
                 <Input
                   value={form.morningInWindowStart}
                   onChange={(e) => update("morningInWindowStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">上午上班可打结束 (HH:mm)</label>
+                <label className="text-sm font-medium">上午上班可打结束</label>
                 <Input
                   value={form.morningInWindowEnd}
                   onChange={(e) => update("morningInWindowEnd", e.target.value)}
@@ -234,14 +222,14 @@ export function AttendanceShiftSettingsPage() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">上午下班可打开始 (HH:mm)</label>
+                <label className="text-sm font-medium">上午下班可打开始</label>
                 <Input
                   value={form.morningOutWindowStart}
                   onChange={(e) => update("morningOutWindowStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">上午下班可打结束 (HH:mm)</label>
+                <label className="text-sm font-medium">上午下班可打结束</label>
                 <Input
                   value={form.morningOutWindowEnd}
                   onChange={(e) => update("morningOutWindowEnd", e.target.value)}
@@ -261,14 +249,14 @@ export function AttendanceShiftSettingsPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">开始时间 (HH:mm)</label>
+                <label className="text-sm font-medium">开始时间</label>
                 <Input
                   value={form.afternoon.rangeStart}
                   onChange={(e) => updateAfternoon("rangeStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">结束时间 (HH:mm)</label>
+                <label className="text-sm font-medium">结束时间</label>
                 <Input
                   value={form.afternoon.rangeEnd}
                   onChange={(e) => updateAfternoon("rangeEnd", e.target.value)}
@@ -278,14 +266,14 @@ export function AttendanceShiftSettingsPage() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">下午上班可打开始 (HH:mm)</label>
+                <label className="text-sm font-medium">下午上班可打开始</label>
                 <Input
                   value={form.afternoonInWindowStart}
                   onChange={(e) => update("afternoonInWindowStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">下午上班可打结束 (HH:mm)</label>
+                <label className="text-sm font-medium">下午上班可打结束</label>
                 <Input
                   value={form.afternoonInWindowEnd}
                   onChange={(e) => update("afternoonInWindowEnd", e.target.value)}
@@ -295,14 +283,14 @@ export function AttendanceShiftSettingsPage() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">下午下班可打开始 (HH:mm)</label>
+                <label className="text-sm font-medium">下午下班可打开始</label>
                 <Input
                   value={form.afternoonOutWindowStart}
                   onChange={(e) => update("afternoonOutWindowStart", e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">下午下班可打结束 (HH:mm)</label>
+                <label className="text-sm font-medium">下午下班可打结束</label>
                 <Input
                   value={form.afternoonOutWindowEnd}
                   onChange={(e) => update("afternoonOutWindowEnd", e.target.value)}

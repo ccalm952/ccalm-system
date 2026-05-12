@@ -1,10 +1,8 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { AmapMap } from "@/components/AmapMap";
 import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { requestAmapGeolocation } from "@/lib/amap-geolocate";
@@ -17,8 +15,7 @@ import {
 import type { GeofenceConfig } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 };
 const DEFAULT_GEOFENCE: GeofenceConfig = {
@@ -46,7 +43,6 @@ export function CheckInRangePage() {
   const [placeInputFocused, setPlaceInputFocused] = React.useState(false);
   const [placeSuggestions, setPlaceSuggestions] = React.useState<PlaceSuggestion[]>([]);
   const [loadingPlaceSuggestions, setLoadingPlaceSuggestions] = React.useState(false);
-  const [geolocateError, setGeolocateError] = React.useState<string | null>(null);
   const regeoSeqRef = React.useRef(0);
   const suggestionSeqRef = React.useRef(0);
   const didAutoRefreshLocationRef = React.useRef(false);
@@ -90,18 +86,17 @@ export function CheckInRangePage() {
       setPlaceName(address);
     } catch (e) {
       if (seq !== regeoSeqRef.current) return;
-      setGeolocateError(errorMessage(e));
+      toast.error(errorMessage(e));
     }
   }, []);
 
   const refreshLocation = React.useCallback(async () => {
-    setGeolocateError(null);
     setGeolocating(true);
     try {
       const { lat, lng } = await requestAmapGeolocation();
       await updateCenterWithAddress({ lat, lng });
     } catch (e) {
-      setGeolocateError(errorMessage(e));
+      toast.error(errorMessage(e));
     } finally {
       setGeolocating(false);
     }
@@ -140,7 +135,6 @@ export function CheckInRangePage() {
       suggestionSeqRef.current += 1;
       setPlaceInputFocused(false);
       setPlaceSuggestions([]);
-      setGeolocateError(null);
 
       const displayName = [suggestion.address, suggestion.name].filter(Boolean).join(" ");
       setPlaceName(displayName);
@@ -154,7 +148,7 @@ export function CheckInRangePage() {
         setPlaceName(result.address);
         await updateCenterWithAddress({ lat: result.lat, lng: result.lng });
       } catch (e) {
-        setGeolocateError(errorMessage(e));
+        toast.error(errorMessage(e));
       }
     },
     [updateCenterWithAddress],
@@ -207,7 +201,6 @@ export function CheckInRangePage() {
     setCenter(DEFAULT_CENTER);
     setPlaceSuggestions([]);
     setPlaceInputFocused(false);
-    setGeolocateError(null);
 
     setSavingGeofence(true);
     try {
@@ -230,23 +223,8 @@ export function CheckInRangePage() {
 
   return (
     <div className="min-h-svh bg-background p-4">
-      <div className="mx-auto max-w-2xl">
-        <p className="mb-4">
-          <Link
-            to="/attendance"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "-ms-1 gap-1 text-muted-foreground",
-            )}
-          >
-            <ArrowLeft className="opacity-70" />
-            返回
-          </Link>
-        </p>
-
-        <h1 className="text-lg font-medium leading-none">打卡范围配置</h1>
-
-        <div className="mt-4 flex flex-col gap-4 text-sm">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-col gap-4 text-sm">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium" htmlFor="radius">
@@ -278,7 +256,6 @@ export function CheckInRangePage() {
                     window.setTimeout(() => setPlaceInputFocused(false), 100);
                   }}
                   onChange={(e) => {
-                    setGeolocateError(null);
                     setPlaceName(e.target.value);
                   }}
                 />
@@ -316,12 +293,6 @@ export function CheckInRangePage() {
           <p className="text-sm text-muted-foreground">
             中心：{center.lat.toFixed(5)}, {center.lng.toFixed(5)}
           </p>
-
-          {geolocateError ? (
-            <p className="text-sm text-destructive" role="status">
-              {geolocateError}
-            </p>
-          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button
@@ -372,7 +343,6 @@ export function CheckInRangePage() {
               radiusMeters={radius}
               markerDraggable
               onPickCenter={(nextCenter) => {
-                setGeolocateError(null);
                 void updateCenterWithAddress(nextCenter);
               }}
             />

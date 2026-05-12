@@ -1,8 +1,7 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Trash2Icon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +13,7 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -51,8 +50,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type UserRow = {
   id: string;
@@ -137,23 +135,9 @@ export function UsersPage() {
   return (
     <div className="min-h-svh bg-background p-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "-ms-1 gap-1 text-muted-foreground",
-            )}
-          >
-            <ArrowLeft className="opacity-70" />
-            返回
-          </Link>
-        </div>
-
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle className="flex-1">人员管理</CardTitle>
+            <div className="flex items-center justify-end gap-2">
               {me?.role === "admin" ? (
                 <Button type="button" onClick={() => setCreateOpen(true)}>
                   创建

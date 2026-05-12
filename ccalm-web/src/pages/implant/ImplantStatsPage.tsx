@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type StaffRow = { name: string; count: number };
 

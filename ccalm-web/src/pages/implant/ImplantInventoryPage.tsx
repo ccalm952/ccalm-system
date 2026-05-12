@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -58,7 +59,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 /** 勾选列固定宽度（与 `w-10` 一致） */
 const INV_TABLE_SELECT_COL_W = "2.5rem";
@@ -381,7 +382,12 @@ export function ImplantInventoryPage() {
               </AlertDialog>
           </CardHeader>
           <CardContent>
-            <Table className="table-fixed w-full border-collapse">
+            <ScrollArea className="w-full min-w-0">
+              {/*
+                与 max-w-5xl（64rem=1024px）栏宽对齐：表最小宽度 = 1024 − 34 = 990
+                （Card 内容区左右各 16px 共 32px + ring 约 2px，算法同种植记录 1246）
+              */}
+              <Table className="w-full min-w-[990px] table-fixed border-collapse">
               <colgroup>
                 {leafCols.map((col) => {
                   if (col.id === "select") {
@@ -436,6 +442,8 @@ export function ImplantInventoryPage() {
                 ))}
               </TableBody>
             </Table>
+            <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </CardContent>
         </Card>
 

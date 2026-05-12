@@ -35,7 +35,7 @@ import { isWallClockInInclusiveRange } from "@/lib/attendance/shift";
 import { todayKey } from "@/lib/attendance/summary";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type LocationState = {
   locating: boolean;

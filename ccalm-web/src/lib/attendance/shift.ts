@@ -3,16 +3,16 @@ import dayjs from "dayjs";
 import type { AttendanceShiftFullConfig } from "./types";
 
 export const DEFAULT_SHIFT: AttendanceShiftFullConfig = {
-  morning: { label: "上午班", rangeStart: "08:30", rangeEnd: "12:00" },
-  afternoon: { label: "下午班", rangeStart: "14:30", rangeEnd: "18:00" },
-  morningInWindowStart: "08:30",
-  morningInWindowEnd: "12:00",
-  morningOutWindowStart: "12:00",
-  morningOutWindowEnd: "14:30",
-  afternoonInWindowStart: "14:30",
-  afternoonInWindowEnd: "18:00",
-  afternoonOutWindowStart: "18:00",
-  afternoonOutWindowEnd: "23:59",
+  morning: { label: "上午", rangeStart: "08:30", rangeEnd: "12:00" },
+  afternoon: { label: "下午", rangeStart: "14:30", rangeEnd: "18:00" },
+  morningInWindowStart: "08:25",
+  morningInWindowEnd: "09:00",
+  morningOutWindowStart: "11:00",
+  morningOutWindowEnd: "14:20",
+  afternoonInWindowStart: "14:25",
+  afternoonInWindowEnd: "15:00",
+  afternoonOutWindowStart: "17:00",
+  afternoonOutWindowEnd: "20:20",
   overtimeMorningNormalEnd: "12:00",
   overtimeAfternoonNormalEnd: "18:00",
 };

@@ -1,7 +1,5 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
 import dayjs from "dayjs";
-import { ArrowLeft } from "lucide-react";
 import {
   flexRender,
   getCoreRowModel,
@@ -11,7 +9,7 @@ import {
   type ExpandedState,
 } from "@tanstack/react-table";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -191,35 +189,22 @@ export function AttendanceStatsPage() {
 
   return (
     <div className="min-h-svh bg-background p-4">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/attendance"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "-ms-1 gap-1 text-muted-foreground",
-            )}
+      <div className="mx-auto flex max-w-5xl flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant={month === currentMonth() ? "secondary" : "ghost"}
+            onClick={() => setMonth(currentMonth())}
           >
-            <ArrowLeft className="opacity-70" />
-            返回
-          </Link>
-
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant={month === currentMonth() ? "secondary" : "ghost"}
-              onClick={() => setMonth(currentMonth())}
-            >
-              本月
-            </Button>
-            <Button
-              type="button"
-              variant={month === lastMonth() ? "secondary" : "ghost"}
-              onClick={() => setMonth(lastMonth())}
-            >
-              上个月
-            </Button>
-          </div>
+            本月
+          </Button>
+          <Button
+            type="button"
+            variant={month === lastMonth() ? "secondary" : "ghost"}
+            onClick={() => setMonth(lastMonth())}
+          >
+            上个月
+          </Button>
         </div>
 
         {error ? <div className="text-sm text-destructive">{error}</div> : null}

@@ -44,7 +44,7 @@ import {
 import { SearchIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type PatientRow = {
   id: number;
@@ -350,9 +350,12 @@ export function ImplantPatientPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea>
-              <div className="w-full min-w-0 overflow-hidden rounded-md border">
-                <Table className="table-fixed">
+            <ScrollArea className="w-full min-w-0">
+              {/*
+                与 max-w-7xl（80rem=1280px）栏宽对齐：表最小宽度 = 1280 − 34 = 1246
+                （Card 内容区左右各 16px 共 32px + ring 约 2px，与种植记录一致）
+              */}
+              <Table className="w-full min-w-[1246px] table-fixed">
                   <TableHeader>
                     {table.getHeaderGroups().map((hg) => (
                       <TableRow key={hg.id}>
@@ -396,7 +399,6 @@ export function ImplantPatientPage() {
                     )}
                   </TableBody>
                 </Table>
-              </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </CardContent>
