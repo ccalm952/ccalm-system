@@ -230,13 +230,6 @@ export function AttendancePage() {
   const dateText = now.locale("zh-cn").format("YYYY年M月D日 dddd");
 
   const [me, setMe] = React.useState<{ id: string; role: "user" | "admin" } | null>(null);
-  const [fence, setFence] = React.useState<GeofenceConfig>({
-    enabled: false,
-    centerLat: 0,
-    centerLng: 0,
-    radiusM: 0,
-    label: "",
-  });
   const [records, setRecords] = React.useState<AttendanceRecord[]>([]);
   const [monthSummary, setMonthSummary] = React.useState<AttendanceMonthlySummary | null>(null);
 
@@ -312,7 +305,6 @@ export function AttendancePage() {
           api<AttendanceRecord[]>("GET", "/attendance/today"),
         ]);
         if (cancelled) return;
-        setFence(geofenceRes);
         setRecords(todayRes);
 
         const monthly = await api<AttendanceMonthlySummary>(
@@ -419,7 +411,6 @@ export function AttendancePage() {
       ]);
       if (session !== autoPunchEpochRef.current) return;
 
-      setFence(geofenceRes);
       setRecords(todayRes);
 
       const punchResult = await autoPunchAfterLocate({
