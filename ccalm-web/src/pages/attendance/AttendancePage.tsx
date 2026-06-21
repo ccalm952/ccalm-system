@@ -1,6 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
+import { CircleXIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -24,6 +25,7 @@ import {
   TimelineTitle,
 } from "@/components/ui/timeline";
 import { requestAmapGeolocation } from "@/lib/amap-geolocate";
+import { reverseGeocodeDisplayAddress } from "@/lib/amap-regeo";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendancePunchType,
@@ -42,7 +44,10 @@ type LocationState = {
   attempted: boolean;
   lat: number;
   lng: number;
+  address?: string;
 };
+
+type PunchAttemptResult = "success" | "outside_fence" | "outside_time";
 
 const punchTypes: AttendancePunchType[] = [
   "morning_in",
@@ -128,9 +133,7 @@ function isManualPunchDisabledPure(
   if (opts.fence.enabled && !insideFenceFor(opts.lat, opts.lng, opts.fence)) return true;
   const { shift, map, at } = opts;
 
-  if (t === "morning_in" && map.morning_in) return true;
-  if (
-    t === "morning_in" &&
+  if (t === "morning_in" &&
     !isWallClockInInclusiveRange(at, shift.morningInWindowStart, shift.morningInWindowEnd)
   )
     return true;
@@ -142,9 +145,7 @@ function isManualPunchDisabledPure(
   )
     return true;
 
-  if (t === "afternoon_in" && map.afternoon_in) return true;
-  if (
-    t === "afternoon_in" &&
+  if (t === "afternoon_in" &&
     !isWallClockInInclusiveRange(at, shift.afternoonInWindowStart, shift.afternoonInWindowEnd)
   )
     return true;
@@ -173,17 +174,47 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
+function formatCurrentLocation(loc: Pick<LocationState, "lat" | "lng" | "address">): string {
+  if (loc.address?.trim()) return loc.address.trim();
+  if (loc.lat && loc.lng) return `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+  return "当前位置";
+}
+
+async function locateWithAddress(): Promise<Pick<LocationState, "lat" | "lng" | "address">> {
+  const { lat, lng } = await requestAmapGeolocation();
+  let address = "";
+  try {
+    address = await reverseGeocodeDisplayAddress(lat, lng);
+  } catch {
+    // 坐标仍可用
+  }
+  return { lat, lng, address };
+}
+
+function notifyPunchAttempt(result: PunchAttemptResult | null) {
+  const failIcon = <CircleXIcon className="size-4" />;
+  if (result === "success") toast.success("打卡成功");
+  else if (result === "outside_fence") toast("不在打卡范围内", { icon: failIcon });
+  else if (result === "outside_time") toast("不在打卡时间内", { icon: failIcon });
+}
+
 export function AttendancePage() {
   const [now, setNow] = React.useState(() => dayjs());
   const [loc, setLoc] = React.useState<LocationState>(() => {
     try {
       const raw = sessionStorage.getItem("attendance_last_loc");
       if (!raw) return { locating: false, attempted: false, lat: 0, lng: 0 };
-      const v = JSON.parse(raw) as { lat?: number; lng?: number };
+      const v = JSON.parse(raw) as { lat?: number; lng?: number; address?: string };
       const lat = Number(v.lat || 0);
       const lng = Number(v.lng || 0);
       if (!lat || !lng) return { locating: false, attempted: false, lat: 0, lng: 0 };
-      return { locating: false, attempted: true, lat, lng };
+      return {
+        locating: false,
+        attempted: true,
+        lat,
+        lng,
+        address: typeof v.address === "string" ? v.address : undefined,
+      };
     } catch {
       return { locating: false, attempted: false, lat: 0, lng: 0 };
     }
@@ -214,19 +245,27 @@ export function AttendancePage() {
 
   React.useEffect(() => {
     if (!loc.lat || !loc.lng) return;
-    sessionStorage.setItem("attendance_last_loc", JSON.stringify({ lat: loc.lat, lng: loc.lng }));
-  }, [loc.lat, loc.lng]);
+    sessionStorage.setItem(
+      "attendance_last_loc",
+      JSON.stringify({ lat: loc.lat, lng: loc.lng, address: loc.address ?? "" }),
+    );
+  }, [loc.lat, loc.lng, loc.address]);
 
   async function autoPunchAfterLocate(opts: {
     lat: number;
     lng: number;
+    address?: string;
     geofenceRes: GeofenceConfig;
     shiftRes: BackendShiftDto;
     recordsSnapshot: AttendanceRecord[];
     cancelled?: () => boolean;
     session?: number;
-  }) {
-    const { lat, lng, geofenceRes, shiftRes, recordsSnapshot, cancelled, session } = opts;
+  }): Promise<PunchAttemptResult | null> {
+    const { lat, lng, address, geofenceRes, shiftRes, recordsSnapshot, cancelled, session } = opts;
+
+    if (geofenceRes.enabled && !insideFenceFor(lat, lng, geofenceRes)) {
+      return "outside_fence";
+    }
 
     const map = todayTypeMapFromRecords(recordsSnapshot);
     const quick = pickQuickPunchTypePure({
@@ -237,27 +276,27 @@ export function AttendancePage() {
       map,
       at: new Date(),
     });
-    if (!quick) return false;
+    if (!quick) return "outside_time";
 
     await api("POST", "/attendance/punch", {
       type: quick,
       latitude: lat,
       longitude: lng,
-      address: geofenceRes.label || "",
+      address: address?.trim() || "",
     });
-    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return;
+    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return null;
 
     const todayRes2 = await api<AttendanceRecord[]>("GET", "/attendance/today");
     const monthly2 = await api<AttendanceMonthlySummary>(
       "GET",
       `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
     );
-    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return;
+    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return null;
 
     setRecords(todayRes2);
     setMonthSummary(monthly2);
     bumpRecordsVersion((x) => x + 1);
-    return true;
+    return "success";
   }
 
   React.useEffect(() => {
@@ -304,20 +343,21 @@ export function AttendancePage() {
         void (async () => {
           try {
             setLoc((s) => ({ ...s, attempted: true, locating: true }));
-            const { lat, lng } = await requestAmapGeolocation();
+            const located = await locateWithAddress();
             if (cancelled || session !== autoPunchEpochRef.current) return;
-            setLoc({ attempted: true, locating: false, lat, lng });
+            setLoc({ attempted: true, locating: false, ...located });
 
-            const punched = await autoPunchAfterLocate({
-              lat,
-              lng,
+            const punchResult = await autoPunchAfterLocate({
+              lat: located.lat,
+              lng: located.lng,
+              address: located.address,
               geofenceRes,
               shiftRes,
               recordsSnapshot: todayRes,
               cancelled: () => cancelled,
               session,
             });
-            if (punched) toast.success("打卡成功");
+            notifyPunchAttempt(punchResult);
           } catch {
             if (!cancelled && session === autoPunchEpochRef.current) {
               setLoc((s) => ({ ...s, locating: false, attempted: true }));
@@ -368,9 +408,9 @@ export function AttendancePage() {
     const session = ++autoPunchEpochRef.current;
     setLoc((s) => ({ ...s, attempted: true, locating: true }));
     try {
-      const { lat, lng } = await requestAmapGeolocation();
+      const located = await locateWithAddress();
       if (session !== autoPunchEpochRef.current) return;
-      setLoc({ attempted: true, locating: false, lat, lng });
+      setLoc({ attempted: true, locating: false, ...located });
 
       const [geofenceRes, shiftRes, todayRes] = await Promise.all([
         api<GeofenceConfig>("GET", "/attendance/geofence"),
@@ -382,15 +422,16 @@ export function AttendancePage() {
       setFence(geofenceRes);
       setRecords(todayRes);
 
-      const punched = await autoPunchAfterLocate({
-        lat,
-        lng,
+      const punchResult = await autoPunchAfterLocate({
+        lat: located.lat,
+        lng: located.lng,
+        address: located.address,
         geofenceRes,
         shiftRes,
         recordsSnapshot: todayRes,
         session,
       });
-      if (punched) toast.success("打卡成功");
+      notifyPunchAttempt(punchResult);
     } catch {
       if (session === autoPunchEpochRef.current) {
         setLoc((s) => ({ ...s, locating: false }));
@@ -408,9 +449,7 @@ export function AttendancePage() {
               <div className="text-sm text-muted-foreground">{dateText}</div>
               <div className="text-center text-sm">
                 {loc.lat ? (
-                  <div className="text-muted-foreground">
-                    {fence.label ? fence.label : "当前位置"}
-                  </div>
+                  <div className="text-muted-foreground">{formatCurrentLocation(loc)}</div>
                 ) : loc.locating ? (
                   <div className="text-muted-foreground">定位中…</div>
                 ) : showLocationFailed ? (

@@ -141,7 +141,6 @@ export class AttendanceService {
 
     const type = dto.type
     if (type === "morning_in") {
-      if (map.get("morning_in")) throw new BadRequestException("上午上班已打卡")
       if (!inRange(shift.morningInWindowStart, shift.morningInWindowEnd)) {
         throw new BadRequestException(
           `「上午上班」仅允许在 ${shift.morningInWindowStart} - ${shift.morningInWindowEnd} 内打卡`
@@ -158,8 +157,6 @@ export class AttendanceService {
       }
     }
     if (type === "afternoon_in") {
-      if (map.get("afternoon_in"))
-        throw new BadRequestException("下午上班已打卡")
       if (!inRange(shift.afternoonInWindowStart, shift.afternoonInWindowEnd)) {
         throw new BadRequestException(
           `「下午上班」仅允许在 ${shift.afternoonInWindowStart} - ${shift.afternoonInWindowEnd} 内打卡`
@@ -176,6 +173,19 @@ export class AttendanceService {
           `「下午下班」仅允许在 ${shift.afternoonOutWindowStart} - ${shift.afternoonOutWindowEnd} 内打卡`
         )
       }
+    }
+
+    const existing = map.get(type)
+    if (existing) {
+      return await this.prisma.attendanceRecord.update({
+        where: { id: existing.id },
+        data: {
+          punchTime: now,
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          address: dto.address ?? "",
+        },
+      })
     }
 
     return await this.prisma.attendanceRecord.create({
@@ -288,11 +298,10 @@ export class AttendanceService {
 
       for (const r of dayRecords) {
         const hm = dayjs(r.punchTime).format("HH:mm")
-        if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm
-        if (r.type === "morning_out" && !row.morningOut) row.morningOut = hm
-        if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm
-        if (r.type === "afternoon_out" && !row.afternoonOut)
-          row.afternoonOut = hm
+        if (r.type === "morning_in") row.morningIn = hm
+        if (r.type === "morning_out") row.morningOut = hm
+        if (r.type === "afternoon_in") row.afternoonIn = hm
+        if (r.type === "afternoon_out") row.afternoonOut = hm
       }
 
       const hasAny = !!(
