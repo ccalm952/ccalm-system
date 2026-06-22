@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import type { MakeupOutType } from "@/lib/attendance/makeup";
 import { formatDayCount } from "@/lib/attendance/summary";
+import type { AttendanceMonthlySummary } from "@/lib/attendance/types";
 import { api, type ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
