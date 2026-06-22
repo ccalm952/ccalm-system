@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { MakeupTodoButton } from "@/components/makeup-todo-button";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -78,6 +79,9 @@ export function MainLayout() {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <MakeupTodoButton />
           </div>
         </header>
         <div className="flex flex-1 flex-col">

@@ -266,6 +266,8 @@ export class AttendanceService {
       morningOut: string | null
       afternoonIn: string | null
       afternoonOut: string | null
+      morningOutIsMakeup: boolean
+      afternoonOutIsMakeup: boolean
       overtimeMinutes: number
       overtimeStr: string
     }> = []
@@ -292,6 +294,8 @@ export class AttendanceService {
         morningOut: null as string | null,
         afternoonIn: null as string | null,
         afternoonOut: null as string | null,
+        morningOutIsMakeup: false,
+        afternoonOutIsMakeup: false,
         overtimeMinutes: 0,
         overtimeStr: "-",
       }
@@ -299,9 +303,15 @@ export class AttendanceService {
       for (const r of dayRecords) {
         const hm = dayjs(r.punchTime).format("HH:mm")
         if (r.type === "morning_in") row.morningIn = hm
-        if (r.type === "morning_out") row.morningOut = hm
+        if (r.type === "morning_out") {
+          row.morningOut = hm
+          row.morningOutIsMakeup = r.source === "makeup"
+        }
         if (r.type === "afternoon_in") row.afternoonIn = hm
-        if (r.type === "afternoon_out") row.afternoonOut = hm
+        if (r.type === "afternoon_out") {
+          row.afternoonOut = hm
+          row.afternoonOutIsMakeup = r.source === "makeup"
+        }
       }
 
       const hasAny = !!(
@@ -316,7 +326,10 @@ export class AttendanceService {
         continue
       }
 
-      attendanceDays += 1
+      const dayStats = applyDayAttendanceRest(row)
+      attendanceDays += dayStats.attendanceDays
+      restDays += dayStats.restDays
+
       const slots = [
         row.morningIn,
         row.morningOut,
@@ -377,4 +390,32 @@ function haversineDistanceMeters(
       Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
+}
+
+function applyDayAttendanceRest(row: {
+  morningIn: string | null
+  morningOut: string | null
+  afternoonIn: string | null
+  afternoonOut: string | null
+}): { attendanceDays: number; restDays: number } {
+  const hasAny = !!(
+    row.morningIn ||
+    row.morningOut ||
+    row.afternoonIn ||
+    row.afternoonOut
+  )
+  if (!hasAny) {
+    return { attendanceDays: 0, restDays: 1 }
+  }
+
+  let attendanceDays = 0
+  let restDays = 0
+
+  if (row.morningIn) attendanceDays += 0.5
+  else restDays += 0.5
+
+  if (row.afternoonIn) attendanceDays += 0.5
+  else restDays += 0.5
+
+  return { attendanceDays, restDays }
 }

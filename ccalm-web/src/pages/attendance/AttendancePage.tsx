@@ -26,15 +26,19 @@ import {
 } from "@/components/ui/timeline";
 import { requestAmapGeolocation } from "@/lib/amap-geolocate";
 import { reverseGeocodeDisplayAddress } from "@/lib/amap-regeo";
+import { AttendanceOutCell } from "@/components/attendance-out-cell";
+import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
+import type { MakeupOutType } from "@/lib/attendance/makeup";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendancePunchType,
   type AttendanceMonthlySummary,
+  type AttendanceMakeupRequest,
   type AttendanceRecord,
   type GeofenceConfig,
 } from "@/lib/attendance/types";
 import { isWallClockInInclusiveRange } from "@/lib/attendance/shift";
-import { todayKey } from "@/lib/attendance/summary";
+import { todayKey, formatDayCount } from "@/lib/attendance/summary";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -232,6 +236,20 @@ export function AttendancePage() {
   const [me, setMe] = React.useState<{ id: string; role: "user" | "admin" } | null>(null);
   const [records, setRecords] = React.useState<AttendanceRecord[]>([]);
   const [monthSummary, setMonthSummary] = React.useState<AttendanceMonthlySummary | null>(null);
+  const [makeupRequests, setMakeupRequests] = React.useState<AttendanceMakeupRequest[]>([]);
+  const [makeupDialog, setMakeupDialog] = React.useState<{
+    date: string;
+    type: MakeupOutType;
+  } | null>(null);
+
+  const reloadMakeupRequests = React.useCallback(async () => {
+    try {
+      const list = await api<AttendanceMakeupRequest[]>("GET", "/attendance/makeup-requests/mine");
+      setMakeupRequests(list.filter((item) => item.status === "pending"));
+    } catch {
+      setMakeupRequests([]);
+    }
+  }, []);
 
   const autoPunchEpochRef = React.useRef(0);
   const didSessionAutoLocateRef = React.useRef(false);
@@ -313,6 +331,7 @@ export function AttendancePage() {
         );
         if (cancelled) return;
         setMonthSummary(monthly);
+        void reloadMakeupRequests();
 
         const navEntry = performance.getEntriesByType?.("navigation")?.[0] as
           | PerformanceNavigationTiming
@@ -515,11 +534,11 @@ export function AttendancePage() {
                 <>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="text-center">
-                      <div className="text-sm">{monthSummary.attendanceDays}</div>
+                      <div className="text-sm">{formatDayCount(monthSummary.attendanceDays)}</div>
                       <div className="text-sm">出勤天数</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-sm">{monthSummary.restDays}</div>
+                      <div className="text-sm">{formatDayCount(monthSummary.restDays)}</div>
                       <div className="text-sm">休息天数</div>
                     </div>
                     <div className="text-center">
@@ -560,7 +579,15 @@ export function AttendancePage() {
                               r.morningOut ? "" : "text-destructive",
                             )}
                           >
-                            {r.morningOut ?? ""}
+                            <AttendanceOutCell
+                              row={r}
+                              type="morning_out"
+                              time={r.morningOut}
+                              makeupRequests={makeupRequests}
+                              onApply={() =>
+                                setMakeupDialog({ date: r.date, type: "morning_out" })
+                              }
+                            />
                           </TableCell>
                           <TableCell
                             className={cn(
@@ -576,7 +603,15 @@ export function AttendancePage() {
                               r.afternoonOut ? "" : "text-destructive",
                             )}
                           >
-                            {r.afternoonOut ?? ""}
+                            <AttendanceOutCell
+                              row={r}
+                              type="afternoon_out"
+                              time={r.afternoonOut}
+                              makeupRequests={makeupRequests}
+                              onApply={() =>
+                                setMakeupDialog({ date: r.date, type: "afternoon_out" })
+                              }
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -588,6 +623,24 @@ export function AttendancePage() {
           </Card>
         </div>
       </div>
+
+      {makeupDialog ? (
+        <MakeupRequestDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setMakeupDialog(null);
+          }}
+          date={makeupDialog.date}
+          type={makeupDialog.type}
+          onSuccess={() => {
+            void reloadMakeupRequests();
+            void api<AttendanceMonthlySummary>(
+              "GET",
+              `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
+            ).then(setMonthSummary);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

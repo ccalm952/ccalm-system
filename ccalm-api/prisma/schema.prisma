@@ -18,6 +18,17 @@ enum AttendancePunchType {
   afternoon_out
 }
 
+enum AttendanceRecordSource {
+  normal
+  makeup
+}
+
+enum AttendanceMakeupRequestStatus {
+  pending
+  approved
+  rejected
+}
+
 model User {
   id           String             @id @default(uuid())
   username     String             @unique
@@ -28,7 +39,9 @@ model User {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
-  records AttendanceRecord[]
+  records              AttendanceRecord[]
+  makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
+  reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
 }
 
 model GeofenceConfig {
@@ -65,18 +78,39 @@ model ShiftConfig {
 }
 
 model AttendanceRecord {
-  id        String              @id @default(uuid())
+  id        String                 @id @default(uuid())
   userId    String
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      AttendancePunchType
-  punchTime DateTime            @default(now())
+  punchTime DateTime               @default(now())
   latitude  Float
   longitude Float
-  address   String              @default("")
-  createdAt DateTime            @default(now())
+  address   String                 @default("")
+  source    AttendanceRecordSource @default(normal)
+  createdAt DateTime               @default(now())
 
   @@index([userId, punchTime])
   @@index([type, punchTime])
+}
+
+model AttendanceMakeupRequest {
+  id           String                        @id @default(uuid())
+  userId       String
+  user         User                          @relation("MakeupApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  date         String
+  type         AttendancePunchType
+  punchTime    DateTime
+  reason       String
+  status       AttendanceMakeupRequestStatus @default(pending)
+  reviewedBy   String?
+  reviewer     User?                         @relation("MakeupReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  rejectReason String                        @default("")
+  createdAt    DateTime                      @default(now())
+  updatedAt    DateTime                      @updatedAt
+
+  @@index([userId, date])
+  @@index([status, createdAt])
 }
 
 /// 种植模块：患者（与系统登录 User 无关）

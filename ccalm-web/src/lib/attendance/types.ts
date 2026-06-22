@@ -16,6 +16,7 @@ export type AttendanceRecord = {
   latitude: number;
   longitude: number;
   address?: string;
+  source?: "normal" | "makeup";
 };
 
 export type GeofenceConfig = {
@@ -53,8 +54,36 @@ export type AttendancePunchDayRow = {
   morningOut: string | null;
   afternoonIn: string | null;
   afternoonOut: string | null;
+  morningOutIsMakeup?: boolean;
+  afternoonOutIsMakeup?: boolean;
   overtimeMinutes: number;
   overtimeStr: string;
+};
+
+export type AttendanceMakeupRequestStatus = "pending" | "approved" | "rejected";
+
+export const ATTENDANCE_MAKEUP_REQUEST_STATUS_LABEL: Record<
+  AttendanceMakeupRequestStatus,
+  string
+> = {
+  pending: "审批中",
+  approved: "已通过",
+  rejected: "已拒绝",
+};
+
+export type AttendanceMakeupRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  date: string;
+  type: AttendancePunchType;
+  punchTime: string;
+  reason: string;
+  status: AttendanceMakeupRequestStatus;
+  reviewedAt: string | null;
+  rejectReason: string;
+  createdAt: string;
+  reviewerName: string | null;
 };
 
 export type AttendanceMonthlySummary = {

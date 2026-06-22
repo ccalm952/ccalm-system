@@ -1,0 +1,143 @@
+import * as React from "react";
+import dayjs from "dayjs";
+
+import { Button } from "@/components/ui/button";
+import { TimePicker } from "@/components/time-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ATTENDANCE_PUNCH_TYPE_LABEL,
+  type AttendanceMakeupRequest,
+  type AttendancePunchType,
+} from "@/lib/attendance/types";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { toast } from "@/components/ui/sonner";
+
+type MakeupOutPunchType = Extract<AttendancePunchType, "morning_out" | "afternoon_out">;
+
+export function MakeupRequestDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  date: string;
+  type: MakeupOutPunchType;
+  mode?: "request" | "direct";
+  userId?: string;
+  userName?: string;
+  onSuccess: () => void;
+}) {
+  const {
+    open,
+    onOpenChange,
+    date,
+    type,
+    mode = "request",
+    userId,
+    userName,
+    onSuccess,
+  } = props;
+  const [time, setTime] = React.useState("12:00");
+  const [reason, setReason] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const isDirect = mode === "direct";
+
+  React.useEffect(() => {
+    if (!open) return;
+    setReason("");
+    if (type === "morning_out") setTime("12:00");
+    else setTime("18:00");
+  }, [open, type, date]);
+
+  async function handleSubmit() {
+    if (!isDirect) {
+      const trimmed = reason.trim();
+      if (!trimmed) {
+        toast.error("请填写补卡原因");
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      const timeValue = time.slice(0, 5);
+      if (isDirect) {
+        if (!userId) {
+          toast.error("缺少员工信息");
+          return;
+        }
+        await api("POST", "/attendance/makeup", {
+          userId,
+          date,
+          type,
+          time: timeValue,
+        });
+        toast.success("补卡成功");
+      } else {
+        await api<AttendanceMakeupRequest>("POST", "/attendance/makeup-requests", {
+          date,
+          type,
+          time: timeValue,
+          reason: reason.trim(),
+        });
+        toast.success("补卡申请已提交");
+      }
+      onSuccess();
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isDirect ? "补卡" : "申请补卡"}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-1 text-sm">
+            {isDirect && userName ? <div>员工：{userName}</div> : null}
+            <div>日期：{dayjs(date).format("YYYY年M月D日")}</div>
+            <div>类型：{ATTENDANCE_PUNCH_TYPE_LABEL[type]}</div>
+          </div>
+          <TimePicker
+            id="makeup-time"
+            label="补卡时间"
+            value={time}
+            onChange={setTime}
+            disabled={submitting}
+          />
+          {!isDirect ? (
+            <div className="grid gap-2">
+              <Label htmlFor="makeup-reason">补卡原因</Label>
+              <Textarea
+                id="makeup-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="请说明缺卡原因"
+                rows={3}
+              />
+            </div>
+          ) : null}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button type="button" disabled={submitting} onClick={() => void handleSubmit()}>
+            {submitting ? "提交中…" : isDirect ? "确认补卡" : "提交申请"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

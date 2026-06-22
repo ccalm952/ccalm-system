@@ -9,6 +9,8 @@ import {
   type ExpandedState,
 } from "@tanstack/react-table";
 
+import { AttendanceOutCell } from "@/components/attendance-out-cell";
+import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -19,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { AttendanceMonthlySummary } from "@/lib/attendance/types";
+import type { MakeupOutType } from "@/lib/attendance/makeup";
+import { formatDayCount } from "@/lib/attendance/summary";
 import { api, type ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
@@ -51,99 +54,107 @@ type UserAgg = {
   restDays: number;
   missingSlots: number;
   overtimeStr: string;
-  rows: Array<{
-    date: string;
-    morningIn: string | null;
-    morningOut: string | null;
-    afternoonIn: string | null;
-    afternoonOut: string | null;
-    overtimeMinutes: number;
-    overtimeStr: string;
-  }>;
+  rows: AttendanceMonthlySummary["rows"];
 };
+
+async function loadSummary(month: string): Promise<{ isAdmin: boolean; summary: UserAgg[] }> {
+  const me = await api<{
+    id: string;
+    role: "user" | "admin";
+    displayName: string;
+    username: string;
+  }>("GET", "/auth/me");
+
+  if (me.role === "admin") {
+    const users = await api<Array<{ id: string; displayName: string; username: string }>>(
+      "GET",
+      "/users",
+    );
+    const tasks = users.map(async (u) => {
+      const s = await api<AttendanceMonthlySummary>(
+        "GET",
+        `/attendance/summary/monthly?month=${month}&userId=${u.id}`,
+      );
+      return {
+        userId: u.id,
+        userName: u.displayName || u.username,
+        attendanceDays: s.attendanceDays,
+        restDays: s.restDays,
+        missingSlots: s.missingSlots,
+        overtimeStr: s.overtimeStr,
+        rows: s.rows,
+      } satisfies UserAgg;
+    });
+    return { isAdmin: true, summary: await Promise.all(tasks) };
+  }
+
+  const s = await api<AttendanceMonthlySummary>(
+    "GET",
+    `/attendance/summary/monthly?month=${month}`,
+  );
+  return {
+    isAdmin: false,
+    summary: [
+      {
+        userId: me.id,
+        userName: me.displayName || me.username,
+        attendanceDays: s.attendanceDays,
+        restDays: s.restDays,
+        missingSlots: s.missingSlots,
+        overtimeStr: s.overtimeStr,
+        rows: s.rows,
+      },
+    ],
+  };
+}
 
 export function AttendanceStatsPage() {
   const [month, setMonth] = React.useState(() => currentMonth());
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [summary, setSummary] = React.useState<UserAgg[] | null>(null);
+  const [isAdmin, setIsAdmin] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [makeupDialog, setMakeupDialog] = React.useState<{
+    userId: string;
+    userName: string;
+    date: string;
+    type: MakeupOutType;
+  } | null>(null);
+
+  const reload = React.useCallback(async () => {
+    try {
+      setError(null);
+      const result = await loadSummary(month);
+      setIsAdmin(result.isAdmin);
+      setSummary(result.summary);
+    } catch (e) {
+      const msg = errorMessage(e);
+      setError(msg);
+      const status =
+        typeof e === "object" && e && "status" in e ? (e as ApiError).status : undefined;
+      if (status === 401) {
+        window.location.href = "/login";
+      }
+    }
+  }, [month]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setError(null);
-        const me = await api<{
-          id: string;
-          role: "user" | "admin";
-          displayName: string;
-          username: string;
-        }>("GET", "/auth/me");
-
-        if (me.role === "admin") {
-          const users = await api<Array<{ id: string; displayName: string; username: string }>>(
-            "GET",
-            "/users",
-          );
-          const tasks = users.map(async (u) => {
-            const s = await api<AttendanceMonthlySummary>(
-              "GET",
-              `/attendance/summary/monthly?month=${month}&userId=${u.id}`,
-            );
-            return {
-              userId: u.id,
-              userName: u.displayName || u.username,
-              attendanceDays: s.attendanceDays,
-              restDays: s.restDays,
-              missingSlots: s.missingSlots,
-              overtimeStr: s.overtimeStr,
-              rows: s.rows,
-            } satisfies UserAgg;
-          });
-
-          const out = await Promise.all(tasks);
-          if (cancelled) return;
-          setSummary(out);
-          return;
-        }
-
-        const s = await api<AttendanceMonthlySummary>(
-          "GET",
-          `/attendance/summary/monthly?month=${month}`,
-        );
-        if (cancelled) return;
-        setSummary([
-          {
-            userId: me.id,
-            userName: me.displayName || me.username,
-            attendanceDays: s.attendanceDays,
-            restDays: s.restDays,
-            missingSlots: s.missingSlots,
-            overtimeStr: s.overtimeStr,
-            rows: s.rows,
-          },
-        ]);
-      } catch (e) {
-        if (cancelled) return;
-        const msg = errorMessage(e);
-        setError(msg);
-        const status =
-          typeof e === "object" && e && "status" in e ? (e as ApiError).status : undefined;
-        if (status === 401) {
-          window.location.href = "/login";
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [month]);
+    void reload();
+  }, [reload]);
 
   const columns = React.useMemo<Array<ColumnDef<UserAgg>>>(() => {
     return [
       { header: "姓名", accessorKey: "userName" },
-      { header: "出勤天数", accessorKey: "attendanceDays" },
-      { header: "休息天数", accessorKey: "restDays" },
+      {
+        header: "出勤天数",
+        accessorKey: "attendanceDays",
+        cell: ({ getValue }) => formatDayCount(Number(getValue() ?? 0)),
+      },
+      {
+        header: "休息天数",
+        accessorKey: "restDays",
+        cell: ({ getValue }) => formatDayCount(Number(getValue() ?? 0)),
+      },
       { header: "缺卡", accessorKey: "missingSlots" },
       {
         header: "加班",
@@ -269,11 +280,28 @@ export function AttendanceStatsPage() {
                                   </TableCell>
                                   <TableCell
                                     className={cn(
-                                      "w-1/6 px-3 py-2",
+                                      "w-1/6 px-3 py-2 text-center",
                                       r.morningOut ? "" : "text-destructive",
                                     )}
                                   >
-                                    {r.morningOut ?? ""}
+                                    {isAdmin ? (
+                                      <AttendanceOutCell
+                                        row={r}
+                                        type="morning_out"
+                                        time={r.morningOut}
+                                        adminDirect
+                                        onApply={() =>
+                                          setMakeupDialog({
+                                            userId: row.original.userId,
+                                            userName: row.original.userName,
+                                            date: r.date,
+                                            type: "morning_out",
+                                          })
+                                        }
+                                      />
+                                    ) : (
+                                      (r.morningOut ?? "")
+                                    )}
                                   </TableCell>
                                   <TableCell
                                     className={cn(
@@ -285,11 +313,28 @@ export function AttendanceStatsPage() {
                                   </TableCell>
                                   <TableCell
                                     className={cn(
-                                      "w-1/6 px-3 py-2",
+                                      "w-1/6 px-3 py-2 text-center",
                                       r.afternoonOut ? "" : "text-destructive",
                                     )}
                                   >
-                                    {r.afternoonOut ?? ""}
+                                    {isAdmin ? (
+                                      <AttendanceOutCell
+                                        row={r}
+                                        type="afternoon_out"
+                                        time={r.afternoonOut}
+                                        adminDirect
+                                        onApply={() =>
+                                          setMakeupDialog({
+                                            userId: row.original.userId,
+                                            userName: row.original.userName,
+                                            date: r.date,
+                                            type: "afternoon_out",
+                                          })
+                                        }
+                                      />
+                                    ) : (
+                                      (r.afternoonOut ?? "")
+                                    )}
                                   </TableCell>
                                   <TableCell className="w-1/6 px-3 py-2 text-muted-foreground">
                                     {r.overtimeStr === "-" ? "" : r.overtimeStr}
@@ -314,6 +359,23 @@ export function AttendanceStatsPage() {
           <span>渲染时间：{dayjs().format("YYYY-MM-DD HH:mm:ss")}</span>
         </div>
       </div>
+
+      {makeupDialog ? (
+        <MakeupRequestDialog
+          open
+          mode="direct"
+          userId={makeupDialog.userId}
+          userName={makeupDialog.userName}
+          onOpenChange={(open) => {
+            if (!open) setMakeupDialog(null);
+          }}
+          date={makeupDialog.date}
+          type={makeupDialog.type}
+          onSuccess={() => {
+            void reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -54,6 +54,34 @@ function sortByTimeAsc(a: AttendanceRecord, b: AttendanceRecord) {
   return dayjs(a.punchTime).valueOf() - dayjs(b.punchTime).valueOf();
 }
 
+/** 按半天统计：有上午/下午上班各 +0.5 出勤，缺相应上班 +0.5 休息；全天无打卡 +1 休息。 */
+export function applyDayAttendanceRest(row: {
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+}): { attendanceDays: number; restDays: number } {
+  const hasAny = !!(row.morningIn || row.morningOut || row.afternoonIn || row.afternoonOut);
+  if (!hasAny) {
+    return { attendanceDays: 0, restDays: 1 };
+  }
+
+  let attendanceDays = 0;
+  let restDays = 0;
+
+  if (row.morningIn) attendanceDays += 0.5;
+  else restDays += 0.5;
+
+  if (row.afternoonIn) attendanceDays += 0.5;
+  else restDays += 0.5;
+
+  return { attendanceDays, restDays };
+}
+
+export function formatDayCount(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 export function computeMonthlySummary(params: {
   records: AttendanceRecord[];
   userId: string;
@@ -108,7 +136,9 @@ export function computeMonthlySummary(params: {
       continue;
     }
 
-    attendanceDays += 1;
+    const dayStats = applyDayAttendanceRest(row);
+    attendanceDays += dayStats.attendanceDays;
+    restDays += dayStats.restDays;
 
     const slots = [row.morningIn, row.morningOut, row.afternoonIn, row.afternoonOut];
     missingSlots += slots.filter((x) => !x).length;
