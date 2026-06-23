@@ -46,3 +46,16 @@ export function formatMakeupTime(iso: string): string {
   const d = dayjs(iso);
   return d.isValid() ? d.format("HH:mm") : iso;
 }
+
+/** 有上班卡、无对应下班卡各计 1 次缺卡（与补卡按钮显示规则一致）。 */
+export function countMissingOutSlots(row: {
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+}): number {
+  let count = 0;
+  if (row.morningIn && !row.morningOut) count += 1;
+  if (row.afternoonIn && !row.afternoonOut) count += 1;
+  return count;
+}

@@ -330,13 +330,7 @@ export class AttendanceService {
       attendanceDays += dayStats.attendanceDays
       restDays += dayStats.restDays
 
-      const slots = [
-        row.morningIn,
-        row.morningOut,
-        row.afternoonIn,
-        row.afternoonOut,
-      ]
-      missingSlots += slots.filter((x) => !x).length
+      missingSlots += countMissingOutSlots(row)
 
       let overtime = 0
       if (row.morningOut && Number.isFinite(normalMorningEnd)) {
@@ -418,4 +412,16 @@ function applyDayAttendanceRest(row: {
   else restDays += 0.5
 
   return { attendanceDays, restDays }
+}
+
+function countMissingOutSlots(row: {
+  morningIn: string | null
+  morningOut: string | null
+  afternoonIn: string | null
+  afternoonOut: string | null
+}): number {
+  let count = 0
+  if (row.morningIn && !row.morningOut) count += 1
+  if (row.afternoonIn && !row.afternoonOut) count += 1
+  return count
 }

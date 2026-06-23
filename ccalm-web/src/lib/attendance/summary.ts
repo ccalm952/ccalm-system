@@ -8,6 +8,7 @@ import type {
   AttendanceShiftFullConfig,
 } from "./types";
 import { hmFromIso, minutesFromMidnight, pad2, ymd } from "./shift";
+import { countMissingOutSlots } from "./makeup";
 
 dayjs.extend(isSameOrAfter);
 
@@ -140,8 +141,7 @@ export function computeMonthlySummary(params: {
     attendanceDays += dayStats.attendanceDays;
     restDays += dayStats.restDays;
 
-    const slots = [row.morningIn, row.morningOut, row.afternoonIn, row.afternoonOut];
-    missingSlots += slots.filter((x) => !x).length;
+    missingSlots += countMissingOutSlots(row);
 
     // 加班：以“下班打卡 - 正常下班时间”为准（上午/下午分别计算，分钟累加）
     let overtime = 0;
