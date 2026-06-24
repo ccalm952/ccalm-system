@@ -1,3 +1,4 @@
+import { Type } from "class-transformer"
 import { IsIn, IsNumber, IsOptional, IsString, MinLength } from "class-validator"
 
 export class CreateUserDto {
@@ -16,6 +17,7 @@ export class CreateUserDto {
   role!: "user" | "admin"
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   leaveInitialBalance?: number
 }

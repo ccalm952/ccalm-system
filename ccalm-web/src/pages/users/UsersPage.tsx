@@ -61,6 +61,17 @@ type UserRow = {
   createdAt: string;
 };
 
+function isLeaveBalanceInput(raw: string): boolean {
+  return raw === "" || raw === "-" || /^-?\d*\.?\d*$/.test(raw);
+}
+
+function parseLeaveBalance(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === "" || trimmed === "-") return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function UsersPage() {
   const [me, setMe] = React.useState<{ id: string; role: "user" | "admin" } | null>(null);
   const [rows, setRows] = React.useState<UserRow[] | null>(null);
@@ -79,7 +90,7 @@ export function UsersPage() {
     displayName: "",
     password: "",
     role: "user" as "user" | "admin",
-    leaveInitialBalance: 0,
+    leaveInitialBalance: "0",
   });
 
   const [editOpen, setEditOpen] = React.useState(false);
@@ -89,7 +100,7 @@ export function UsersPage() {
         password: string;
         role: "user" | "admin";
         displayName: string;
-        leaveInitialBalance: number;
+        leaveInitialBalance: string;
       })
     | null
   >(null);
@@ -189,7 +200,7 @@ export function UsersPage() {
                                   setEditUser({
                                     ...r,
                                     password: "",
-                                    leaveInitialBalance: r.leaveInitialBalance ?? 0,
+                                    leaveInitialBalance: String(r.leaveInitialBalance ?? 0),
                                   });
                                   setEditOpen(true);
                                 }}
@@ -224,7 +235,7 @@ export function UsersPage() {
             setCreateOpen(open);
             if (!open) {
               setCreateSubmitting(false);
-              setNewUser({ username: "", displayName: "", password: "", role: "user", leaveInitialBalance: 0 });
+              setNewUser({ username: "", displayName: "", password: "", role: "user", leaveInitialBalance: "0" });
             }
           }}
         >
@@ -319,16 +330,14 @@ export function UsersPage() {
                       </FieldLabel>
                       <FieldContent>
                         <Input
-                          className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          type="number"
-                          step={0.5}
+                          className="w-full"
+                          type="text"
+                          inputMode="decimal"
                           value={newUser.leaveInitialBalance}
                           onChange={(e) => {
-                            const n = Number(e.target.value);
-                            setNewUser((s) => ({
-                              ...s,
-                              leaveInitialBalance: Number.isFinite(n) ? n : 0,
-                            }));
+                            const raw = e.target.value;
+                            if (!isLeaveBalanceInput(raw)) return;
+                            setNewUser((s) => ({ ...s, leaveInitialBalance: raw }));
                           }}
                         />
                       </FieldContent>
@@ -358,13 +367,20 @@ export function UsersPage() {
                   void (async () => {
                     try {
                       setCreateSubmitting(true);
+                      const leaveInitialBalance =
+                        newUser.role === "user"
+                          ? parseLeaveBalance(newUser.leaveInitialBalance)
+                          : undefined;
+                      if (newUser.role === "user" && leaveInitialBalance === null) {
+                        toast.error("请输入有效的初始假期额度");
+                        return;
+                      }
                       await api("POST", "/users", {
                         username: newUser.username.trim(),
                         displayName: newUser.displayName.trim(),
                         password: newUser.password,
                         role: newUser.role,
-                        leaveInitialBalance:
-                          newUser.role === "user" ? newUser.leaveInitialBalance : undefined,
+                        leaveInitialBalance,
                       });
                       toast.success("用户已创建");
                       setCreateOpen(false);
@@ -480,20 +496,14 @@ export function UsersPage() {
                       </FieldLabel>
                       <FieldContent>
                         <Input
-                          className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          type="number"
-                          step={0.5}
+                          className="w-full"
+                          type="text"
+                          inputMode="decimal"
                           value={editUser.leaveInitialBalance}
                           onChange={(e) => {
-                            const n = Number(e.target.value);
-                            setEditUser((s) =>
-                              s
-                                ? {
-                                    ...s,
-                                    leaveInitialBalance: Number.isFinite(n) ? n : 0,
-                                  }
-                                : s,
-                            );
+                            const raw = e.target.value;
+                            if (!isLeaveBalanceInput(raw)) return;
+                            setEditUser((s) => (s ? { ...s, leaveInitialBalance: raw } : s));
                           }}
                         />
                       </FieldContent>
@@ -521,12 +531,17 @@ export function UsersPage() {
                   void (async () => {
                     try {
                       setEditSubmitting(true);
+                      const leaveInitialBalance =
+                        u.role === "user" ? parseLeaveBalance(u.leaveInitialBalance) : undefined;
+                      if (u.role === "user" && leaveInitialBalance === null) {
+                        toast.error("请输入有效的初始假期额度");
+                        return;
+                      }
                       await api("PATCH", `/users/${u.id}`, {
                         displayName: u.displayName.trim(),
                         role: u.role,
                         password: u.password ? u.password : undefined,
-                        leaveInitialBalance:
-                          u.role === "user" ? u.leaveInitialBalance : undefined,
+                        leaveInitialBalance,
                       });
                       toast.success("用户已更新");
                       setEditOpen(false);
