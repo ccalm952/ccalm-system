@@ -1,0 +1,382 @@
+import * as React from "react";
+import dayjs from "dayjs";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatDayCount } from "@/lib/attendance/summary";
+import type { ChinaHolidayYear } from "@/lib/attendance/holidays";
+import { formatHolidayRange } from "@/lib/attendance/holidays";
+import type { ScheduleMonthData, ScheduleShiftType } from "@/lib/attendance/schedule";
+import {
+  SCHEDULE_SHIFT_CYCLE,
+  SCHEDULE_SHIFT_LABEL,
+  clampScheduleMonth,
+  scheduleCellClass,
+  scheduleMonthRange,
+} from "@/lib/attendance/schedule";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/sonner";
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function nextShift(current: ScheduleShiftType | null): ScheduleShiftType | null {
+  const idx = SCHEDULE_SHIFT_CYCLE.indexOf(current);
+  const next = SCHEDULE_SHIFT_CYCLE[(idx + 1) % SCHEDULE_SHIFT_CYCLE.length];
+  return next;
+}
+
+export function SchedulePage() {
+  const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
+  const [me, setMe] = React.useState<{ role: "user" | "admin" } | null>(null);
+  const [month, setMonth] = React.useState(() =>
+    clampScheduleMonth(dayjs().format("YYYY-MM")),
+  );
+  const [data, setData] = React.useState<ScheduleMonthData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const loadSeqRef = React.useRef(0);
+  const hasDataRef = React.useRef(false);
+  const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
+  const [savingAllowance, setSavingAllowance] = React.useState(false);
+  const [autoFilling, setAutoFilling] = React.useState(false);
+  const [holidaysByYear, setHolidaysByYear] = React.useState<
+    Record<string, ChinaHolidayYear>
+  >({});
+
+  const isAdmin = me?.role === "admin";
+  const year = month.split("-")[0] ?? dayjs().format("YYYY");
+  const holidays = holidaysByYear[year] ?? null;
+
+  const load = React.useCallback(async (targetMonth: string) => {
+    const seq = ++loadSeqRef.current;
+    if (!hasDataRef.current) {
+      setLoading(true);
+    }
+
+    try {
+      const res = await api<ScheduleMonthData>(
+        "GET",
+        `/attendance/schedule?month=${targetMonth}`,
+      );
+      if (seq !== loadSeqRef.current) return;
+      hasDataRef.current = true;
+      setData(res);
+      setMonthAllowanceInput(String(res.monthAllowance));
+    } catch (e) {
+      if (seq !== loadSeqRef.current) return;
+      toast.error(errorMessage(e));
+      if (!hasDataRef.current) setData(null);
+    } finally {
+      if (seq !== loadSeqRef.current) return;
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void api<{ role: "user" | "admin" }>("GET", "/auth/me").then(setMe);
+  }, []);
+
+  React.useEffect(() => {
+    void load(month);
+  }, [load, month]);
+
+  React.useEffect(() => {
+    if (holidaysByYear[year]) return;
+    let cancelled = false;
+    void api<ChinaHolidayYear>("GET", `/attendance/holidays?year=${year}`)
+      .then((res) => {
+        if (!cancelled) {
+          setHolidaysByYear((prev) => ({ ...prev, [year]: res }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHolidaysByYear((prev) => ({
+            ...prev,
+            [year]: {
+              year: Number(year),
+              periods: [],
+              makeupDays: [],
+              offDayMap: {},
+            },
+          }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [year, holidaysByYear]);
+
+  function holidayDateKey(day: number): string {
+    return `${month}-${pad2(day)}`;
+  }
+
+  async function saveMonthAllowance() {
+    const value = Number(monthAllowanceInput);
+    if (!Number.isFinite(value) || value < 0) {
+      toast.error("本月假期须为非负数字");
+      return;
+    }
+    setSavingAllowance(true);
+    try {
+      await api("PUT", "/attendance/schedule/month-config", {
+        month,
+        monthAllowance: value,
+      });
+      toast.success("已保存本月假期");
+      await load(month);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSavingAllowance(false);
+    }
+  }
+
+  async function autoFill() {
+    setAutoFilling(true);
+    try {
+      const res = await api<ScheduleMonthData>(
+        "POST",
+        `/attendance/schedule/auto-fill?month=${month}`,
+      );
+      setData(res);
+      setMonthAllowanceInput(String(res.monthAllowance));
+      toast.success("已根据打卡记录自动填写");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setAutoFilling(false);
+    }
+  }
+
+  async function onCellClick(userId: string, day: number, current: ScheduleShiftType | null) {
+    if (!isAdmin || !data) return;
+    const date = `${month}-${pad2(day)}`;
+    const shiftType = nextShift(current);
+    try {
+      const res = await api<ScheduleMonthData>("PUT", "/attendance/schedule/entries", {
+        month,
+        entries: [{ userId, date, shiftType }],
+      });
+      setData(res);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
+  const [yearLabel, mon] = month.split("-");
+  const canGoPrev = month > minMonth;
+  const canGoNext = month < maxMonth;
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={!canGoPrev}
+              onClick={() =>
+                setMonth(
+                  clampScheduleMonth(
+                    dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM"),
+                  ),
+                )
+              }
+            >
+              <ChevronLeftIcon className="size-4" />
+            </Button>
+            <div className="min-w-28 text-center text-sm font-medium">
+              {yearLabel}年{Number(mon)}月
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={!canGoNext}
+              onClick={() =>
+                setMonth(
+                  clampScheduleMonth(
+                    dayjs(`${month}-01`).add(1, "month").format("YYYY-MM"),
+                  ),
+                )
+              }
+            >
+              <ChevronRightIcon className="size-4" />
+            </Button>
+          </div>
+
+          {isAdmin ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="month-allowance" className="shrink-0 text-sm">
+                  本月假期（全员）
+                </Label>
+                <Input
+                  id="month-allowance"
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  className="w-28 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  value={monthAllowanceInput}
+                  onChange={(e) => setMonthAllowanceInput(e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={savingAllowance}
+                onClick={() => void saveMonthAllowance()}
+              >
+                保存假期
+              </Button>
+              <Button
+                type="button"
+                disabled={autoFilling}
+                onClick={() => void autoFill()}
+              >
+                根据打卡填写
+              </Button>
+            </div>
+          ) : null}
+        </CardHeader>
+
+        <CardContent>
+          {loading ? (
+            <div className="text-sm text-muted-foreground">加载中…</div>
+          ) : !data ? (
+            <div className="text-sm text-muted-foreground">暂无数据</div>
+          ) : (
+            <ScrollArea className="max-w-full whitespace-nowrap [&_[data-slot=table-container]]:w-max">
+              <Table className="w-max text-center text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-20 w-24 bg-background text-center">
+                      姓名
+                    </TableHead>
+                    {data.dayHeaders.map((h) => {
+                      const dateKey = holidayDateKey(h.day);
+                      const holidayName = holidays?.offDayMap[dateKey];
+                      const isHoliday = !!holidayName;
+                      return (
+                      <TableHead
+                        key={h.day}
+                        title={holidayName}
+                        className={cn(
+                          "w-9 px-1 text-center",
+                          isHoliday && "text-red-600",
+                        )}
+                      >
+                        <div>{h.weekday}</div>
+                        <div>{h.day}</div>
+                      </TableHead>
+                      );
+                    })}
+                    <TableHead className="w-10 text-center">全</TableHead>
+                    <TableHead className="w-10 text-center">上</TableHead>
+                    <TableHead className="w-10 text-center">下</TableHead>
+                    <TableHead className="w-16 text-center">本月请假</TableHead>
+                    <TableHead className="w-16 text-center">本月假期</TableHead>
+                    <TableHead className="w-16 text-center">剩余假期</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.users.map((user) => (
+                    <TableRow key={user.userId}>
+                      <TableCell className="sticky left-0 z-10 w-24 bg-background text-center font-medium">
+                        {user.userName}
+                      </TableCell>
+                      {data.dayHeaders.map((h) => {
+                        const shift = user.days[String(h.day)] ?? null;
+                        return (
+                          <TableCell key={h.day} className="w-9 p-0.5 text-center">
+                            <button
+                              type="button"
+                              disabled={!isAdmin}
+                              className={cn(
+                                "mx-auto flex h-8 w-8 items-center justify-center rounded text-sm",
+                                scheduleCellClass(shift),
+                                isAdmin && "cursor-pointer hover:ring-1 hover:ring-ring",
+                                !isAdmin && "cursor-default",
+                              )}
+                              onClick={() => void onCellClick(user.userId, h.day, shift)}
+                            >
+                              {shift ? SCHEDULE_SHIFT_LABEL[shift] : ""}
+                            </button>
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="w-10 text-center">{user.fullCount}</TableCell>
+                      <TableCell className="w-10 text-center">{user.morningCount}</TableCell>
+                      <TableCell className="w-10 text-center">{user.afternoonCount}</TableCell>
+                      <TableCell className="w-16 text-center">
+                        {formatDayCount(user.monthLeave)}
+                      </TableCell>
+                      <TableCell className="w-16 text-center">
+                        {formatDayCount(data.monthAllowance)}
+                      </TableCell>
+                      <TableCell className="w-16 text-center">
+                        {formatDayCount(user.remainingLeave)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
+
+          {holidays ? (
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="font-medium">{holidays.year}年法定节假日</div>
+              <ul className="space-y-1 text-muted-foreground">
+                {holidays.periods.map((p) => (
+                  <li key={`${p.name}-${p.start}`}>
+                    <span className="text-foreground">{p.name}</span>
+                    {"："}
+                    {formatHolidayRange(p.start, p.end)}
+                  </li>
+                ))}
+              </ul>
+              {holidays.makeupDays.length > 0 ? (
+                <div className="space-y-1">
+                  <div className="font-medium">调休上班</div>
+                  <ul className="space-y-1 text-muted-foreground">
+                    {holidays.makeupDays.map((d) => (
+                      <li key={d.date}>
+                        {d.date.slice(5).replace("-", "月")}日 {d.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {isAdmin ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              点击格子切换：空 → 全 → 上 → 下 → 空。全=整天休息，上=上午休息，下=下午休息，空=正常出勤。
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

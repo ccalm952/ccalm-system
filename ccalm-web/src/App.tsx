@@ -32,6 +32,10 @@ const CheckInRangePage = lazyNamed(
   () => import("./pages/attendance/CheckInRangePage"),
   "CheckInRangePage",
 );
+const SchedulePage = lazyNamed(
+  () => import("./pages/attendance/SchedulePage"),
+  "SchedulePage",
+);
 const UsersPage = lazyNamed(() => import("./pages/users/UsersPage"), "UsersPage");
 const ImplantInventoryPage = lazyNamed(
   () => import("./pages/implant/ImplantInventoryPage"),
@@ -120,6 +124,7 @@ export function App() {
                 <Route path="check-in-range" element={<CheckInRangePage />} />
                 <Route path="shift-settings" element={<AttendanceShiftSettingsPage />} />
                 <Route path="stats" element={<AttendanceStatsPage />} />
+                <Route path="schedule" element={<SchedulePage />} />
               </Route>
 
               <Route path={ROUTES.users.root} element={<UsersPage />} />

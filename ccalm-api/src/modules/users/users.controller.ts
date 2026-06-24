@@ -114,6 +114,7 @@ export class UsersController {
       displayName: dto.displayName,
       password: dto.password,
       role: dto.role,
+      leaveInitialBalance: dto.leaveInitialBalance,
     })
   }
 

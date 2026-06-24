@@ -1,4 +1,4 @@
-import { IsIn, IsString, MinLength } from "class-validator"
+import { IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from "class-validator"
 
 export class CreateUserDto {
   @IsString()
@@ -14,4 +14,9 @@ export class CreateUserDto {
   @IsString()
   @IsIn(["user", "admin"])
   role!: "user" | "admin"
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  leaveInitialBalance?: number
 }

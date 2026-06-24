@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, MinLength } from "class-validator"
+import { IsIn, IsNumber, IsOptional, IsString, MinLength, Min } from "class-validator"
 
 export class UpdateUserDto {
   @IsOptional()
@@ -14,4 +14,9 @@ export class UpdateUserDto {
   @IsString()
   @IsIn(["user", "admin"])
   role?: "user" | "admin"
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  leaveInitialBalance?: number
 }

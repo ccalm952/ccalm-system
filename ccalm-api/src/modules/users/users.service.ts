@@ -21,6 +21,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -37,6 +38,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -48,6 +50,7 @@ export class UsersService {
     password: string
     displayName: string
     role: "user" | "admin"
+    leaveInitialBalance?: number
   }) {
     const passwordHash = await bcrypt.hash(input.password, 10)
     return await this.prisma.user.create({
@@ -56,6 +59,10 @@ export class UsersService {
         passwordHash,
         displayName: input.displayName,
         role: input.role,
+        leaveInitialBalance:
+          input.role === "user" && typeof input.leaveInitialBalance === "number"
+            ? input.leaveInitialBalance
+            : 0,
       },
       select: {
         id: true,
@@ -63,6 +70,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -75,8 +83,10 @@ export class UsersService {
     displayName?: string
     password?: string
     role?: "user" | "admin"
+    leaveInitialBalance?: number
   }) {
-    const { actor, targetUserId, displayName, password, role } = params
+    const { actor, targetUserId, displayName, password, role, leaveInitialBalance } =
+      params
     const isSelf = actor.userId === targetUserId
     const isAdmin = actor.role === "admin"
 
@@ -94,6 +104,8 @@ export class UsersService {
     if (typeof password === "string" && password.length >= 6)
       data.passwordHash = await bcrypt.hash(password, 10)
     if (role && isAdmin) data.role = role
+    if (typeof leaveInitialBalance === "number" && isAdmin)
+      data.leaveInitialBalance = leaveInitialBalance
 
     return await this.prisma.user.update({
       where: { id: targetUserId },
@@ -104,6 +116,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -120,6 +133,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },

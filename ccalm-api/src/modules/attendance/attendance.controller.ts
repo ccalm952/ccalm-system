@@ -19,14 +19,22 @@ import {
 } from "./dto/makeup-request.dto"
 import { PunchDto } from "./dto/punch.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
+import {
+  UpsertScheduleEntriesDto,
+  UpsertScheduleMonthConfigDto,
+} from "./dto/schedule.dto"
 import { AttendanceMakeupService } from "./attendance-makeup.service"
+import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"
+import { ChinaHolidaysService } from "./china-holidays.service"
 
 @Controller("attendance")
 export class AttendanceController {
   constructor(
     private readonly attendance: AttendanceService,
-    private readonly makeup: AttendanceMakeupService
+    private readonly makeup: AttendanceMakeupService,
+    private readonly schedule: AttendanceScheduleService,
+    private readonly holidays: ChinaHolidaysService
   ) {}
 
   private userId(req: Request): string {
@@ -152,5 +160,43 @@ export class AttendanceController {
   ) {
     this.requireAdmin(req)
     return await this.makeup.reject(id, this.userId(req), dto.rejectReason)
+  }
+
+  @Get("schedule")
+  async getSchedule(@Query("month") month: string) {
+    return await this.schedule.getMonth(month)
+  }
+
+  @Get("holidays")
+  async getHolidays(@Query("year") year?: string) {
+    const y = year ? Number(year) : new Date().getFullYear()
+    return await this.holidays.getYear(y)
+  }
+
+  @Put("schedule/month-config")
+  async putScheduleMonthConfig(
+    @Req() req: Request,
+    @Body() dto: UpsertScheduleMonthConfigDto
+  ) {
+    this.requireAdmin(req)
+    return await this.schedule.upsertMonthConfig(dto)
+  }
+
+  @Put("schedule/entries")
+  async putScheduleEntries(
+    @Req() req: Request,
+    @Body() dto: UpsertScheduleEntriesDto
+  ) {
+    this.requireAdmin(req)
+    return await this.schedule.upsertEntries(dto.month, dto.entries)
+  }
+
+  @Post("schedule/auto-fill")
+  async autoFillSchedule(
+    @Req() req: Request,
+    @Query("month") month: string
+  ) {
+    this.requireAdmin(req)
+    return await this.schedule.autoFillFromPunches(month)
   }
 }

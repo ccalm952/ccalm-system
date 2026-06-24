@@ -29,6 +29,12 @@ enum AttendanceMakeupRequestStatus {
   rejected
 }
 
+enum ScheduleShiftType {
+  full_rest
+  morning_rest
+  afternoon_rest
+}
+
 model User {
   id           String             @id @default(uuid())
   username     String             @unique
@@ -36,12 +42,14 @@ model User {
   displayName  String
   avatarUrl    String             @default("")
   role         UserRole           @default(user)
+  leaveInitialBalance Float         @default(0)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
   records              AttendanceRecord[]
   makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
   reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
+  scheduleEntries      ScheduleEntry[]
 }
 
 model GeofenceConfig {
@@ -111,6 +119,26 @@ model AttendanceMakeupRequest {
 
   @@index([userId, date])
   @@index([status, createdAt])
+}
+
+model ScheduleEntry {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  shiftType ScheduleShiftType
+  isManual  Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model ScheduleMonthConfig {
+  month          String   @id
+  monthAllowance Float    @default(0)
+  updatedAt      DateTime @updatedAt
 }
 
 /// 种植模块：患者（与系统登录 User 无关）

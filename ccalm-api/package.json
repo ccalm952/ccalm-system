@@ -19,7 +19,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed:makeup-test": "npx tsx scripts/seed-makeup-test.ts"
+    "seed:makeup-test": "npx tsx scripts/seed-makeup-test.ts",
+    "seed:schedule-test": "npx tsx scripts/seed-schedule-test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

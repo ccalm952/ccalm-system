@@ -9,6 +9,7 @@ export const ROUTES = {
   attendance: {
     root: "/attendance",
     stats: "/attendance/stats",
+    schedule: "/attendance/schedule",
     shiftSettings: "/attendance/shift-settings",
     checkInRange: "/attendance/check-in-range",
   },

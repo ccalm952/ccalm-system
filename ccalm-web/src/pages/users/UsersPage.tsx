@@ -57,6 +57,7 @@ type UserRow = {
   username: string;
   displayName: string;
   role: "user" | "admin";
+  leaveInitialBalance?: number;
   createdAt: string;
 };
 
@@ -78,6 +79,7 @@ export function UsersPage() {
     displayName: "",
     password: "",
     role: "user" as "user" | "admin",
+    leaveInitialBalance: 0,
   });
 
   const [editOpen, setEditOpen] = React.useState(false);
@@ -87,6 +89,7 @@ export function UsersPage() {
         password: string;
         role: "user" | "admin";
         displayName: string;
+        leaveInitialBalance: number;
       })
     | null
   >(null);
@@ -155,11 +158,12 @@ export function UsersPage() {
                 <Table className="w-full min-w-[800px] table-fixed">
                   <TableHeader className="bg-muted/40 text-muted-foreground">
                     <TableRow>
-                      <TableHead className="w-1/5">用户名</TableHead>
-                      <TableHead className="w-1/5">显示名称</TableHead>
-                      <TableHead className="w-1/5">角色</TableHead>
-                      <TableHead className="w-1/5">创建时间</TableHead>
-                      <TableHead className="w-1/5">操作</TableHead>
+                      <TableHead className="w-[18%]">用户名</TableHead>
+                      <TableHead className="w-[18%]">显示名称</TableHead>
+                      <TableHead className="w-[12%]">角色</TableHead>
+                      <TableHead className="w-[12%]">初始额度</TableHead>
+                      <TableHead className="w-[18%]">创建时间</TableHead>
+                      <TableHead className="w-[18%]">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -167,19 +171,26 @@ export function UsersPage() {
                       const disabledReason = deleteDisabledReason(r);
                       return (
                         <TableRow key={r.id} className="border-t border-border">
-                          <TableCell className="w-1/5">{r.username}</TableCell>
-                          <TableCell className="w-1/5">{r.displayName}</TableCell>
-                          <TableCell className="w-1/5">{r.role}</TableCell>
-                          <TableCell className="w-1/5 text-muted-foreground">
+                          <TableCell className="w-[18%]">{r.username}</TableCell>
+                          <TableCell className="w-[18%]">{r.displayName}</TableCell>
+                          <TableCell className="w-[12%]">{r.role}</TableCell>
+                          <TableCell className="w-[12%]">
+                            {r.role === "user" ? (r.leaveInitialBalance ?? 0) : "-"}
+                          </TableCell>
+                          <TableCell className="w-[18%] text-muted-foreground">
                             {new Date(r.createdAt).toLocaleString()}
                           </TableCell>
-                          <TableCell className="w-1/5">
+                          <TableCell className="w-[18%]">
                             <div className="flex items-center gap-2">
                               <Button
                                 type="button"
                                 variant="secondary"
                                 onClick={() => {
-                                  setEditUser({ ...r, password: "" });
+                                  setEditUser({
+                                    ...r,
+                                    password: "",
+                                    leaveInitialBalance: r.leaveInitialBalance ?? 0,
+                                  });
                                   setEditOpen(true);
                                 }}
                               >
@@ -213,7 +224,7 @@ export function UsersPage() {
             setCreateOpen(open);
             if (!open) {
               setCreateSubmitting(false);
-              setNewUser({ username: "", displayName: "", password: "", role: "user" });
+              setNewUser({ username: "", displayName: "", password: "", role: "user", leaveInitialBalance: 0 });
             }
           }}
         >
@@ -298,9 +309,32 @@ export function UsersPage() {
                         </SelectContent>
                       </Select>
                     </FieldContent>
-                  </Field>
-                </FieldGroup>
-              </div>
+                    </Field>
+                  </FieldGroup>
+
+                  {newUser.role === "user" ? (
+                    <Field orientation="responsive">
+                      <FieldLabel>
+                        <FieldTitle>初始假期额度</FieldTitle>
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input
+                          className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={newUser.leaveInitialBalance}
+                          onChange={(e) =>
+                            setNewUser((s) => ({
+                              ...s,
+                              leaveInitialBalance: Number(e.target.value) || 0,
+                            }))
+                          }
+                        />
+                      </FieldContent>
+                    </Field>
+                  ) : null}
+                </div>
             </FieldSet>
 
             <DialogFooter>
@@ -329,6 +363,8 @@ export function UsersPage() {
                         displayName: newUser.displayName.trim(),
                         password: newUser.password,
                         role: newUser.role,
+                        leaveInitialBalance:
+                          newUser.role === "user" ? newUser.leaveInitialBalance : undefined,
                       });
                       toast.success("用户已创建");
                       setCreateOpen(false);
@@ -436,6 +472,33 @@ export function UsersPage() {
                       </FieldContent>
                     </Field>
                   </FieldGroup>
+
+                  {editUser.role === "user" ? (
+                    <Field orientation="responsive">
+                      <FieldLabel>
+                        <FieldTitle>初始假期额度</FieldTitle>
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input
+                          className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={editUser.leaveInitialBalance}
+                          onChange={(e) =>
+                            setEditUser((s) =>
+                              s
+                                ? {
+                                    ...s,
+                                    leaveInitialBalance: Number(e.target.value) || 0,
+                                  }
+                                : s,
+                            )
+                          }
+                        />
+                      </FieldContent>
+                    </Field>
+                  ) : null}
                 </div>
               </FieldSet>
             ) : null}
@@ -462,6 +525,8 @@ export function UsersPage() {
                         displayName: u.displayName.trim(),
                         role: u.role,
                         password: u.password ? u.password : undefined,
+                        leaveInitialBalance:
+                          u.role === "user" ? u.leaveInitialBalance : undefined,
                       });
                       toast.success("用户已更新");
                       setEditOpen(false);
