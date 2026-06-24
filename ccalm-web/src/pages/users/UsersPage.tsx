@@ -321,15 +321,15 @@ export function UsersPage() {
                         <Input
                           className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           type="number"
-                          min={0}
                           step={0.5}
                           value={newUser.leaveInitialBalance}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
                             setNewUser((s) => ({
                               ...s,
-                              leaveInitialBalance: Number(e.target.value) || 0,
-                            }))
-                          }
+                              leaveInitialBalance: Number.isFinite(n) ? n : 0,
+                            }));
+                          }}
                         />
                       </FieldContent>
                     </Field>
@@ -482,19 +482,19 @@ export function UsersPage() {
                         <Input
                           className="w-full [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           type="number"
-                          min={0}
                           step={0.5}
                           value={editUser.leaveInitialBalance}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
                             setEditUser((s) =>
                               s
                                 ? {
                                     ...s,
-                                    leaveInitialBalance: Number(e.target.value) || 0,
+                                    leaveInitialBalance: Number.isFinite(n) ? n : 0,
                                   }
                                 : s,
-                            )
-                          }
+                            );
+                          }}
                         />
                       </FieldContent>
                     </Field>

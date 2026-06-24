@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from "class-validator"
+import { IsIn, IsNumber, IsOptional, IsString, MinLength } from "class-validator"
 
 export class CreateUserDto {
   @IsString()
@@ -17,6 +17,5 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   leaveInitialBalance?: number
 }
