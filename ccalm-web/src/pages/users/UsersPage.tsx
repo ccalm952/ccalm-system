@@ -61,6 +61,11 @@ type UserRow = {
   createdAt: string;
 };
 
+type EditUserForm = Omit<UserRow, "leaveInitialBalance"> & {
+  password: string;
+  leaveInitialBalance: string;
+};
+
 function isLeaveBalanceInput(raw: string): boolean {
   return raw === "" || raw === "-" || /^-?\d*\.?\d*$/.test(raw);
 }
@@ -95,15 +100,7 @@ export function UsersPage() {
 
   const [editOpen, setEditOpen] = React.useState(false);
   const [editSubmitting, setEditSubmitting] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<
-    | (UserRow & {
-        password: string;
-        role: "user" | "admin";
-        displayName: string;
-        leaveInitialBalance: string;
-      })
-    | null
-  >(null);
+  const [editUser, setEditUser] = React.useState<EditUserForm | null>(null);
 
   const [userPendingDelete, setUserPendingDelete] = React.useState<UserRow | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
