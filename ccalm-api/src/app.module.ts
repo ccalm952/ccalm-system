@@ -7,6 +7,7 @@ import { APP_GUARD } from "@nestjs/core"
 import { UsersModule } from "./modules/users/users.module"
 import { AttendanceModule } from "./modules/attendance/attendance.module"
 import { ImplantModule } from "./modules/implant/implant.module"
+import { WarehouseModule } from "./modules/warehouse/warehouse.module"
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ImplantModule } from "./modules/implant/implant.module"
     UsersModule,
     AttendanceModule,
     ImplantModule,
+    WarehouseModule,
   ],
   controllers: [],
   providers: [

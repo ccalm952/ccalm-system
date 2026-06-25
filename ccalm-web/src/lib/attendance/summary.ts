@@ -8,7 +8,8 @@ import type {
   AttendanceShiftFullConfig,
 } from "./types";
 import { hmFromIso, minutesFromMidnight, pad2, ymd } from "./shift";
-import { countMissingOutSlots } from "./makeup";
+import { countMakeupButtonSlots } from "./makeup";
+import type { AttendanceMakeupRequest } from "./types";
 
 dayjs.extend(isSameOrAfter);
 
@@ -88,8 +89,9 @@ export function computeMonthlySummary(params: {
   userId: string;
   month: string; // YYYY-MM
   shift: AttendanceShiftFullConfig;
+  makeupRequests?: AttendanceMakeupRequest[];
 }): AttendanceMonthlySummary {
-  const { records, userId, month, shift } = params;
+  const { records, userId, month, shift, makeupRequests = [] } = params;
   const { startDate, rangeEnd } = monthRange(month);
 
   const monthRecords = records
@@ -133,6 +135,7 @@ export function computeMonthlySummary(params: {
     const hasAny = !!(row.morningIn || row.morningOut || row.afternoonIn || row.afternoonOut);
     if (!hasAny) {
       restDays += 1;
+      missingSlots += countMakeupButtonSlots(row, makeupRequests);
       rows.push(row);
       continue;
     }
@@ -141,7 +144,7 @@ export function computeMonthlySummary(params: {
     attendanceDays += dayStats.attendanceDays;
     restDays += dayStats.restDays;
 
-    missingSlots += countMissingOutSlots(row);
+    missingSlots += countMakeupButtonSlots(row, makeupRequests);
 
     // 加班：以“下班打卡 - 正常下班时间”为准（上午/下午分别计算，分钟累加）
     let overtime = 0;

@@ -15,7 +15,6 @@ import { UpsertGeofenceDto } from "./dto/geofence.dto"
 import {
   CreateMakeupRequestDto,
   AdminMakeupDto,
-  RejectMakeupRequestDto,
 } from "./dto/makeup-request.dto"
 import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
 import { PunchDto } from "./dto/punch.dto"
@@ -159,22 +158,15 @@ export class AttendanceController {
   }
 
   @Post("makeup-requests/:id/approve")
-  async approveMakeupRequest(
-    @Req() req: Request,
-    @Param("id") id: string
-  ) {
+  async approveMakeupRequest(@Req() req: Request, @Param("id") id: string) {
     this.requireAdmin(req)
     return await this.makeup.approve(id, this.userId(req))
   }
 
   @Post("makeup-requests/:id/reject")
-  async rejectMakeupRequest(
-    @Req() req: Request,
-    @Param("id") id: string,
-    @Body() dto: RejectMakeupRequestDto
-  ) {
+  async rejectMakeupRequest(@Req() req: Request, @Param("id") id: string) {
     this.requireAdmin(req)
-    return await this.makeup.reject(id, this.userId(req), dto.rejectReason)
+    return await this.makeup.reject(id, this.userId(req))
   }
 
   @Get("schedule")
@@ -207,10 +199,7 @@ export class AttendanceController {
   }
 
   @Post("schedule/auto-fill")
-  async autoFillSchedule(
-    @Req() req: Request,
-    @Query("month") month: string
-  ) {
+  async autoFillSchedule(@Req() req: Request, @Query("month") month: string) {
     this.requireAdmin(req)
     return await this.schedule.autoFillFromPunches(month)
   }

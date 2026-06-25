@@ -50,6 +50,14 @@ const ImplantRecordsPage = lazyNamed(
   "ImplantRecordsPage",
 );
 const ImplantStatsPage = lazyNamed(() => import("./pages/implant/ImplantStatsPage"), "ImplantStatsPage");
+const WarehouseLedgerPage = lazyNamed(
+  () => import("./pages/warehouse/WarehouseLedgerPage"),
+  "WarehouseLedgerPage",
+);
+const WarehouseStatsPage = lazyNamed(
+  () => import("./pages/warehouse/WarehouseStatsPage"),
+  "WarehouseStatsPage",
+);
 
 function RouteFallback() {
   return (
@@ -135,6 +143,12 @@ export function App() {
                 <Route path="patients" element={<ImplantPatientPage />} />
                 <Route path="stats" element={<ImplantStatsPage />} />
                 <Route path="inventory" element={<ImplantInventoryPage />} />
+              </Route>
+
+              <Route path="warehouse">
+                <Route index element={<Navigate to={ROUTES.warehouse.ledger} replace />} />
+                <Route path="ledger" element={<WarehouseLedgerPage />} />
+                <Route path="stats" element={<WarehouseStatsPage />} />
               </Route>
 
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />

@@ -14,6 +14,7 @@ import {
 import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { warehouseSubNavItems } from "@/config/warehouse-nav";
 
 /** 路由变化后收起 Sheet 侧栏（移动端或 overlaySidebar 桌面模式）。 */
 function CloseSidebarOnNavigate() {
@@ -67,6 +68,20 @@ export function MainLayout() {
                   <NavigationMenuTrigger className="h-8">种植</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {implantSubNavItems.map((item) => (
+                      <NavigationMenuLink
+                        className="w-62"
+                        key={item.title}
+                        render={<Link to={item.url} />}
+                      >
+                        {item.title}
+                      </NavigationMenuLink>
+                    ))}
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-8">库房</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {warehouseSubNavItems.map((item) => (
                       <NavigationMenuLink
                         className="w-62"
                         key={item.title}

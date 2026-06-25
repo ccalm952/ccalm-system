@@ -33,9 +33,53 @@ const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
   afternoon_out: "afternoon_in",
 }
 
+const OUT_TYPE_BY_IN: Record<MakeupInType, MakeupOutType> = {
+  morning_in: "morning_out",
+  afternoon_in: "afternoon_out",
+}
+
 @Injectable()
 export class AttendanceMakeupService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private createMakeupRecordData(
+    userId: string,
+    type: AdminMakeupType,
+    punchTime: Date
+  ) {
+    return {
+      userId,
+      type,
+      punchTime,
+      latitude: 0,
+      longitude: 0,
+      address: "补卡",
+      source: "makeup" as const,
+    }
+  }
+
+  private shouldAutoMakeupOut(dateStr: string, type: MakeupRequestType) {
+    if (!MAKEUP_IN_TYPES.includes(type as MakeupInType)) return false
+    return dateStr !== dayjs().format("YYYY-MM-DD")
+  }
+
+  private buildAutoOutRecord(
+    _userId: string,
+    dateStr: string,
+    type: MakeupInType
+  ) {
+    if (!this.shouldAutoMakeupOut(dateStr, type)) return null
+
+    const outType = OUT_TYPE_BY_IN[type]
+    const time = type === "morning_in" ? "12:00" : "18:00"
+    const punchTime = dayjs(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm", true)
+    if (!punchTime.isValid()) return null
+
+    return {
+      type: outType,
+      punchTime: punchTime.toDate(),
+    }
+  }
 
   private isWithinMakeupWindow(dateStr: string): boolean {
     const d = dayjs(dateStr, "YYYY-MM-DD", true)
@@ -47,7 +91,10 @@ export class AttendanceMakeupService {
 
   private async dayRecordMap(userId: string, dateStr: string) {
     const start = dayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
-    const end = dayjs(dateStr, "YYYY-MM-DD").add(1, "day").startOf("day").toDate()
+    const end = dayjs(dateStr, "YYYY-MM-DD")
+      .add(1, "day")
+      .startOf("day")
+      .toDate()
     const records = await this.prisma.attendanceRecord.findMany({
       where: { userId, punchTime: { gte: start, lt: end } },
     })
@@ -235,11 +282,7 @@ export class AttendanceMakeupService {
 
     await this.assertMakeupRequestAvailable(userId, dto.date, type)
 
-    const punchTime = dayjs(
-      `${dto.date} ${dto.time}`,
-      "YYYY-MM-DD HH:mm",
-      true
-    )
+    const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
     if (!punchTime.isValid()) {
       throw new BadRequestException("补卡时间不合法")
     }
@@ -300,26 +343,38 @@ export class AttendanceMakeupService {
       throw new BadRequestException("该申请已处理")
     }
 
-    const type = req.type as MakeupRequestType
+    const type = req.type
     if (!MAKEUP_REQUEST_TYPES.includes(type)) {
       throw new BadRequestException("申请类型不合法")
     }
 
-    await this.assertMakeupRequestAvailable(req.userId, req.date, type, requestId)
+    await this.assertMakeupRequestAvailable(
+      req.userId,
+      req.date,
+      type,
+      requestId
+    )
 
-    const [, updated] = await this.prisma.$transaction([
-      this.prisma.attendanceRecord.create({
-        data: {
-          userId: req.userId,
-          type: req.type,
-          punchTime: req.punchTime,
-          latitude: 0,
-          longitude: 0,
-          address: "补卡",
-          source: "makeup",
-        },
-      }),
-      this.prisma.attendanceMakeupRequest.update({
+    const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
+      ? this.buildAutoOutRecord(req.userId, req.date, type as MakeupInType)
+      : null
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.attendanceRecord.create({
+        data: this.createMakeupRecordData(req.userId, req.type, req.punchTime),
+      })
+
+      if (autoOut) {
+        await tx.attendanceRecord.create({
+          data: this.createMakeupRecordData(
+            req.userId,
+            autoOut.type,
+            autoOut.punchTime
+          ),
+        })
+      }
+
+      return await tx.attendanceMakeupRequest.update({
         where: { id: requestId },
         data: {
           status: "approved",
@@ -327,13 +382,13 @@ export class AttendanceMakeupService {
           reviewedAt: new Date(),
         },
         include: this.includeUser(),
-      }),
-    ])
+      })
+    })
 
     return this.serializeRequest(updated)
   }
 
-  async reject(requestId: string, adminId: string, rejectReason: string) {
+  async reject(requestId: string, adminId: string) {
     const req = await this.prisma.attendanceMakeupRequest.findUnique({
       where: { id: requestId },
     })
@@ -348,7 +403,7 @@ export class AttendanceMakeupService {
         status: "rejected",
         reviewedBy: adminId,
         reviewedAt: new Date(),
-        rejectReason: rejectReason.trim(),
+        rejectReason: "",
       },
       include: this.includeUser(),
     })
@@ -368,14 +423,14 @@ export class AttendanceMakeupService {
 
     await this.assertAdminMakeupSlotAvailable(dto.userId, dto.date, type)
 
-    const punchTime = dayjs(
-      `${dto.date} ${dto.time}`,
-      "YYYY-MM-DD HH:mm",
-      true
-    )
+    const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
     if (!punchTime.isValid()) {
       throw new BadRequestException("补卡时间不合法")
     }
+
+    const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
+      ? this.buildAutoOutRecord(dto.userId, dto.date, type as MakeupInType)
+      : null
 
     const record = await this.prisma.$transaction(async (tx) => {
       await tx.attendanceMakeupRequest.deleteMany({
@@ -387,17 +442,21 @@ export class AttendanceMakeupService {
         },
       })
 
-      return await tx.attendanceRecord.create({
-        data: {
-          userId: dto.userId,
-          type,
-          punchTime: punchTime.toDate(),
-          latitude: 0,
-          longitude: 0,
-          address: "补卡",
-          source: "makeup",
-        },
+      const created = await tx.attendanceRecord.create({
+        data: this.createMakeupRecordData(dto.userId, type, punchTime.toDate()),
       })
+
+      if (autoOut) {
+        await tx.attendanceRecord.create({
+          data: this.createMakeupRecordData(
+            dto.userId,
+            autoOut.type,
+            autoOut.punchTime
+          ),
+        })
+      }
+
+      return created
     })
 
     return {

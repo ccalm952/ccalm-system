@@ -16,11 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import {
   ATTENDANCE_MAKEUP_REQUEST_STATUS_LABEL,
   ATTENDANCE_PUNCH_TYPE_LABEL,
@@ -43,7 +41,6 @@ function MakeupRequestCard(props: {
 }) {
   const { item, showUser = false, mode, onChanged } = props;
   const [rejectOpen, setRejectOpen] = React.useState(false);
-  const [rejectReason, setRejectReason] = React.useState("");
   const [acting, setActing] = React.useState(false);
 
   async function approve() {
@@ -60,19 +57,11 @@ function MakeupRequestCard(props: {
   }
 
   async function reject() {
-    const trimmed = rejectReason.trim();
-    if (!trimmed) {
-      toast.error("请填写拒绝原因");
-      return;
-    }
     setActing(true);
     try {
-      await api("POST", `/attendance/makeup-requests/${item.id}/reject`, {
-        rejectReason: trimmed,
-      });
+      await api("POST", `/attendance/makeup-requests/${item.id}/reject`);
       toast.success("已拒绝补卡申请");
       setRejectOpen(false);
-      setRejectReason("");
       onChanged();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -98,9 +87,6 @@ function MakeupRequestCard(props: {
               {dayjs(item.date).format("M月D日")} {ATTENDANCE_PUNCH_TYPE_LABEL[item.type]}{" "}
               {formatMakeupTime(item.punchTime)}
             </div>
-            {mode === "mine" && item.status === "rejected" && item.rejectReason ? (
-              <div className="text-muted-foreground">拒绝原因：{item.rejectReason}</div>
-            ) : null}
           </CardDescription>
           {mode === "review" && item.status === "pending" ? (
             <CardAction>
@@ -140,15 +126,7 @@ function MakeupRequestCard(props: {
             <DialogHeader>
               <DialogTitle>拒绝补卡申请</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-2">
-              <Label htmlFor={`reject-reason-${item.id}`}>拒绝原因</Label>
-              <Textarea
-                id={`reject-reason-${item.id}`}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={3}
-              />
-            </div>
+            <div className="text-sm text-muted-foreground">确认拒绝这条补卡申请吗？</div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRejectOpen(false)}>
                 取消

@@ -292,7 +292,10 @@ export class AttendanceScheduleService {
       orderBy: { punchTime: "asc" },
     })
 
-    const byUserDay = new Map<string, Array<{ type: string; punchTime: Date }>>()
+    const byUserDay = new Map<
+      string,
+      Array<{ type: string; punchTime: Date }>
+    >()
     for (const r of records) {
       const date = dayjs(r.punchTime).format("YYYY-MM-DD")
       const key = `${r.userId}:${date}`
@@ -387,7 +390,10 @@ export class AttendanceScheduleService {
 
   private async dayPunchTypes(userId: string, dateStr: string) {
     const start = dayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
-    const end = dayjs(dateStr, "YYYY-MM-DD").add(1, "day").startOf("day").toDate()
+    const end = dayjs(dateStr, "YYYY-MM-DD")
+      .add(1, "day")
+      .startOf("day")
+      .toDate()
     const records = await this.prisma.attendanceRecord.findMany({
       where: { userId, punchTime: { gte: start, lt: end } },
       select: { type: true },
@@ -407,11 +413,18 @@ export class AttendanceScheduleService {
     return "afternoon_rest"
   }
 
-  async declareRest(userId: string, date: string, half: "morning" | "afternoon") {
+  async declareRest(
+    userId: string,
+    date: string,
+    half: "morning" | "afternoon"
+  ) {
     this.assertRestDateAllowed(date)
 
     const punched = await this.dayPunchTypes(userId, date)
-    if (half === "morning" && (punched.has("morning_in") || punched.has("morning_out"))) {
+    if (
+      half === "morning" &&
+      (punched.has("morning_in") || punched.has("morning_out"))
+    ) {
       throw new BadRequestException("上午已有打卡记录，无法登记休息")
     }
     if (
@@ -426,7 +439,10 @@ export class AttendanceScheduleService {
     })
     const current = existing?.shiftType ?? null
 
-    if (half === "morning" && (current === "morning_rest" || current === "full_rest")) {
+    if (
+      half === "morning" &&
+      (current === "morning_rest" || current === "full_rest")
+    ) {
       throw new BadRequestException("上午已登记休息")
     }
     if (
@@ -455,7 +471,11 @@ export class AttendanceScheduleService {
     return { date, shiftType: next }
   }
 
-  async clearRestHalf(userId: string, date: string, half: "morning" | "afternoon") {
+  async clearRestHalf(
+    userId: string,
+    date: string,
+    half: "morning" | "afternoon"
+  ) {
     this.assertRestDateAllowed(date)
 
     const existing = await this.prisma.scheduleEntry.findUnique({

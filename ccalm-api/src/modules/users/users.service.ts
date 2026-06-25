@@ -85,8 +85,14 @@ export class UsersService {
     role?: "user" | "admin"
     leaveInitialBalance?: number
   }) {
-    const { actor, targetUserId, displayName, password, role, leaveInitialBalance } =
-      params
+    const {
+      actor,
+      targetUserId,
+      displayName,
+      password,
+      role,
+      leaveInitialBalance,
+    } = params
     const isSelf = actor.userId === targetUserId
     const isAdmin = actor.role === "admin"
 

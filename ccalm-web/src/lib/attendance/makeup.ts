@@ -17,14 +17,6 @@ const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
   afternoon_out: "afternoon_in",
 };
 
-function isMorningEffectivelyAtRest(row: AttendancePunchDayRow): boolean {
-  return isHalfEffectivelyAtRest(row, "morning");
-}
-
-function isAfternoonEffectivelyAtRest(row: AttendancePunchDayRow): boolean {
-  return isHalfEffectivelyAtRest(row, "afternoon");
-}
-
 export function slotTime(
   row: AttendancePunchDayRow,
   type: AttendancePunchType,
@@ -65,8 +57,8 @@ export function makeupSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
-  if (type === "morning_out" && isMorningEffectivelyAtRest(row)) return null;
-  if (type === "afternoon_out" && isAfternoonEffectivelyAtRest(row)) return null;
+  if (type === "morning_out" && isHalfEffectivelyAtRest(row, "morning")) return null;
+  if (type === "afternoon_out" && isHalfEffectivelyAtRest(row, "afternoon")) return null;
 
   const inType = IN_TYPE_BY_OUT[type];
   if (!slotTime(row, inType) || slotTime(row, type)) return null;
@@ -84,8 +76,8 @@ export function makeupInSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
-  if (type === "morning_in" && isMorningEffectivelyAtRest(row)) return null;
-  if (type === "afternoon_in" && isAfternoonEffectivelyAtRest(row)) return null;
+  if (type === "morning_in" && isHalfEffectivelyAtRest(row, "morning")) return null;
+  if (type === "afternoon_in" && isHalfEffectivelyAtRest(row, "afternoon")) return null;
 
   if (slotTime(row, type)) return null;
 
@@ -104,20 +96,15 @@ export function formatMakeupTime(iso: string): string {
   return d.isValid() ? d.format("HH:mm") : iso;
 }
 
-/** 有上班卡、无对应下班卡各计 1 次缺卡（休息半天不计）。 */
-export function countMissingOutSlots(row: AttendancePunchDayRow): number {
+/** 与打卡页一致：每个可点击的「补/补卡」按钮计 1 次缺卡（审批中不计）。 */
+export function countMakeupButtonSlots(
+  row: AttendancePunchDayRow,
+  requests: AttendanceMakeupRequest[] = [],
+): number {
   let count = 0;
-  if (
-    !isMorningEffectivelyAtRest(row) &&
-    row.morningIn &&
-    !row.morningOut
-  )
-    count += 1;
-  if (
-    !isAfternoonEffectivelyAtRest(row) &&
-    row.afternoonIn &&
-    !row.afternoonOut
-  )
-    count += 1;
+  if (makeupInSlotState(row, "morning_in", requests) === "apply") count += 1;
+  if (makeupInSlotState(row, "afternoon_in", requests) === "apply") count += 1;
+  if (makeupSlotState(row, "morning_out", requests) === "apply") count += 1;
+  if (makeupSlotState(row, "afternoon_out", requests) === "apply") count += 1;
   return count;
 }

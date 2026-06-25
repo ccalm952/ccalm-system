@@ -1,4 +1,4 @@
-import { IsIn, IsString, Matches, MinLength } from "class-validator"
+import { IsIn, IsString, Matches } from "class-validator"
 
 export class CreateMakeupRequestDto {
   @IsString()
@@ -12,12 +12,6 @@ export class CreateMakeupRequestDto {
   @IsString()
   @Matches(/^\d{2}:\d{2}$/)
   time!: string
-}
-
-export class RejectMakeupRequestDto {
-  @IsString()
-  @MinLength(1)
-  rejectReason!: string
 }
 
 export class AdminMakeupDto {

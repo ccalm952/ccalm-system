@@ -48,6 +48,27 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
+function slotRestLabel(
+  row: AttendancePunchDayRow,
+  type: AdminMakeupType,
+): string | null {
+  const scheduleRest = row.scheduleRest ?? null;
+  if (!scheduleRest) return null;
+  if (
+    (type === "morning_in" || type === "morning_out") &&
+    (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
+  ) {
+    return type === "morning_out" ? "—" : "休";
+  }
+  if (
+    (type === "afternoon_in" || type === "afternoon_out") &&
+    (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
+  ) {
+    return type === "afternoon_out" ? "—" : "休";
+  }
+  return null;
+}
+
 type UserAgg = {
   userId: string;
   userName: string;
@@ -283,15 +304,18 @@ export function AttendanceStatsPage() {
                                   <TableCell className="w-1/6 px-3 py-2">{dayOfMonth(r.date)}</TableCell>
                                   {PUNCH_DETAIL_COLUMNS.map((col) => {
                                     const time = col.getTime(r);
+                                    const restLabel = slotRestLabel(r, col.type);
                                     return (
                                       <TableCell
                                         key={col.type}
                                         className={cn(
                                           "w-1/6 px-3 py-2 text-center",
-                                          time ? "" : "text-destructive",
+                                          time ? "" : restLabel ? "text-muted-foreground" : "text-destructive",
                                         )}
                                       >
-                                        {isAdmin ? (
+                                        {restLabel ? (
+                                          restLabel
+                                        ) : isAdmin ? (
                                           <AttendanceOutCell
                                             row={r}
                                             type={col.type}

@@ -30,10 +30,10 @@ type HolidayCnJson = {
 export class ChinaHolidaysService {
   private readonly cache = new Map<number, ChinaHolidayYear>()
 
-  private groupOffDayPeriods(
-    days: ChinaHolidayDay[]
-  ): ChinaHolidayPeriod[] {
-    const offDays = days.filter((d) => d.isOffDay).sort((a, b) => a.date.localeCompare(b.date))
+  private groupOffDayPeriods(days: ChinaHolidayDay[]): ChinaHolidayPeriod[] {
+    const offDays = days
+      .filter((d) => d.isOffDay)
+      .sort((a, b) => a.date.localeCompare(b.date))
     const periods: ChinaHolidayPeriod[] = []
 
     for (const day of offDays) {

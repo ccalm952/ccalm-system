@@ -7,6 +7,7 @@ import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
 import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
 import type { PunchDto } from "./dto/punch.dto"
+import { countMakeupButtonSlots, applyDayAttendanceRest } from "./makeup-slots"
 import { minutesFromMidnight } from "./time"
 
 const GLOBAL_CONFIG_ID = "global" as const
@@ -269,6 +270,15 @@ export class AttendanceService {
       shift.overtimeAfternoonNormalEnd
     )
 
+    const pendingMakeups = await this.prisma.attendanceMakeupRequest.findMany({
+      where: {
+        userId,
+        status: "pending",
+        date: { gte: startDate, lte: rangeEnd },
+      },
+      select: { date: true, type: true, status: true },
+    })
+
     let attendanceDays = 0
     let restDays = 0
     let missingSlots = 0
@@ -338,15 +348,16 @@ export class AttendanceService {
       )
       if (!hasAny && !scheduleRest) {
         restDays += 1
+        missingSlots += countMakeupButtonSlots(row, pendingMakeups)
         rows.push(row)
         continue
       }
 
-      const dayStats = applyDayAttendanceRest(row, scheduleRest)
+      const dayStats = applyDayAttendanceRest(row)
       attendanceDays += dayStats.attendanceDays
       restDays += dayStats.restDays
 
-      missingSlots += countMissingOutSlots(row, scheduleRest)
+      missingSlots += countMakeupButtonSlots(row, pendingMakeups)
 
       let overtime = 0
       if (row.morningOut && Number.isFinite(normalMorningEnd)) {
@@ -403,92 +414,4 @@ function haversineDistanceMeters(
       Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
-}
-
-function isMorningScheduleRest(
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "morning_rest"
-}
-
-function isAfternoonScheduleRest(
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest"
-}
-
-function isMorningEffectivelyAtRest(
-  row: {
-    morningIn: string | null
-    morningOut: string | null
-  },
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): boolean {
-  return (
-    isMorningScheduleRest(scheduleRest) &&
-    !row.morningIn &&
-    !row.morningOut
-  )
-}
-
-function isAfternoonEffectivelyAtRest(
-  row: {
-    afternoonIn: string | null
-    afternoonOut: string | null
-  },
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): boolean {
-  return (
-    isAfternoonScheduleRest(scheduleRest) &&
-    !row.afternoonIn &&
-    !row.afternoonOut
-  )
-}
-
-function applyDayAttendanceRest(
-  row: {
-    morningIn: string | null
-    morningOut: string | null
-    afternoonIn: string | null
-    afternoonOut: string | null
-  },
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): { attendanceDays: number; restDays: number } {
-  let attendanceDays = 0
-  let restDays = 0
-
-  if (row.morningIn) attendanceDays += 0.5
-  else if (isMorningEffectivelyAtRest(row, scheduleRest)) restDays += 0.5
-  else restDays += 0.5
-
-  if (row.afternoonIn) attendanceDays += 0.5
-  else if (isAfternoonEffectivelyAtRest(row, scheduleRest)) restDays += 0.5
-  else restDays += 0.5
-
-  return { attendanceDays, restDays }
-}
-
-function countMissingOutSlots(
-  row: {
-    morningIn: string | null
-    morningOut: string | null
-    afternoonIn: string | null
-    afternoonOut: string | null
-  },
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-): number {
-  let count = 0
-  if (
-    !isMorningEffectivelyAtRest(row, scheduleRest) &&
-    row.morningIn &&
-    !row.morningOut
-  )
-    count += 1
-  if (
-    !isAfternoonEffectivelyAtRest(row, scheduleRest) &&
-    row.afternoonIn &&
-    !row.afternoonOut
-  )
-    count += 1
-  return count
 }
