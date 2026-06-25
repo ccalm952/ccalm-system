@@ -3,19 +3,14 @@ import dayjs from "dayjs"
 import * as XLSX from "xlsx"
 
 export type LichiImportRow = {
-  orderNo: string
-  shipNo: string
-  shipDate: string
-  productCode: string
+  code: string
   name: string
+  occurDate: string
+  qty: number
+  unitPrice: number
   brand: string
   spec: string
   unit: string
-  batch: string
-  qty: number
-  unitPrice: number
-  manufacturer: string
-  category: string
   remarkKey: string
 }
 
@@ -27,6 +22,53 @@ export type LichiImportResult = {
 }
 
 const SUPPLIER = "励齿"
+
+type ImportField =
+  | "code"
+  | "name"
+  | "occurDate"
+  | "qty"
+  | "unitPrice"
+  | "brand"
+  | "spec"
+  | "unit"
+
+const FIELD_LABELS: Record<ImportField, string> = {
+  code: "编码",
+  name: "名称",
+  occurDate: "日期",
+  qty: "数量",
+  unitPrice: "单价",
+  brand: "品牌",
+  spec: "规格",
+  unit: "单位",
+}
+
+/** 按优先级匹配列头，列名包含关键词即可（如「商品编码」匹配「编码」） */
+const FIELD_KEYWORDS: Record<ImportField, string[]> = {
+  code: ["商品编码", "编码"],
+  name: ["商品名称", "名称"],
+  occurDate: ["发货日期", "日期"],
+  qty: ["数量"],
+  unitPrice: ["含税单价", "单价"],
+  brand: ["品牌"],
+  spec: ["规格型号", "规格"],
+  unit: ["计量单位", "单位"],
+}
+
+const REQUIRED_FIELDS: ImportField[] = [
+  "code",
+  "name",
+  "occurDate",
+  "qty",
+  "unitPrice",
+]
+
+function normalizeHeader(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+}
 
 function cell(row: Record<string, unknown>, key: string): string {
   const v = row[key]
@@ -41,10 +83,61 @@ function cell(row: Record<string, unknown>, key: string): string {
   return ""
 }
 
-function warehouseCode(productCode: string): string {
-  const code = productCode.trim().replace(/^LC/i, "")
-  if (!code) throw new BadRequestException("存在空的商品编码")
-  return code
+function resolveColumnMap(headers: string[]): Record<ImportField, string | null> {
+  const normalized = headers.map((h) => normalizeHeader(h))
+  const used = new Set<number>()
+  const map = Object.fromEntries(
+    (Object.keys(FIELD_KEYWORDS) as ImportField[]).map((field) => [field, null]),
+  ) as Record<ImportField, string | null>
+
+  for (const field of Object.keys(FIELD_KEYWORDS) as ImportField[]) {
+    for (const keyword of FIELD_KEYWORDS[field]) {
+      const idx = normalized.findIndex(
+        (header, index) => !used.has(index) && header.includes(keyword),
+      )
+      if (idx >= 0) {
+        map[field] = headers[idx]!
+        used.add(idx)
+        break
+      }
+    }
+  }
+
+  return map
+}
+
+function requireColumnMap(headers: string[]): Record<ImportField, string> {
+  const map = resolveColumnMap(headers)
+  const missing = REQUIRED_FIELDS.filter((field) => !map[field]).map(
+    (field) => FIELD_LABELS[field],
+  )
+  if (missing.length) {
+    throw new BadRequestException(`Excel 缺少列：${missing.join("、")}`)
+  }
+  return map as Record<ImportField, string>
+}
+
+function readField(
+  row: Record<string, unknown>,
+  map: Record<ImportField, string>,
+  field: ImportField,
+): string {
+  return cell(row, map[field])
+}
+
+function readOptionalField(
+  row: Record<string, unknown>,
+  map: Record<ImportField, string | null>,
+  field: ImportField,
+): string {
+  const col = map[field]
+  return col ? cell(row, col) : ""
+}
+
+function warehouseCode(code: string): string {
+  const value = code.trim()
+  if (!value) throw new BadRequestException("存在空的编码")
+  return value
 }
 
 function parseQty(value: string): number {
@@ -65,7 +158,7 @@ function parsePrice(value: string): number {
 
 function parseDate(value: string): string {
   const d = dayjs(value, ["YYYY-MM-DD", "YYYY/M/D"], true)
-  if (!d.isValid()) throw new BadRequestException(`发货日期不合法：${value}`)
+  if (!d.isValid()) throw new BadRequestException(`日期不合法：${value}`)
   return d.format("YYYY-MM-DD")
 }
 
@@ -76,52 +169,55 @@ export function parseLichiExcel(buffer: Buffer): LichiImportRow[] {
 
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
     wb.Sheets[sheetName],
-    { defval: "" }
+    { defval: "" },
   )
   if (rows.length === 0) throw new BadRequestException("Excel 中没有数据行")
 
+  const headers = Object.keys(rows[0] ?? {})
+  const requiredMap = requireColumnMap(headers)
+  const fullMap = resolveColumnMap(headers)
+
   return rows.map((row, index) => {
-    const productCode = cell(row, "商品编码")
-    const name = cell(row, "商品名称")
-    if (!productCode || !name) {
-      throw new BadRequestException(`第 ${index + 2} 行缺少商品编码或商品名称`)
+    const code = readField(row, requiredMap, "code")
+    const name = readField(row, requiredMap, "name")
+    const occurDateRaw = readField(row, requiredMap, "occurDate")
+    const qtyRaw = readField(row, requiredMap, "qty")
+    const unitPriceRaw = readField(row, requiredMap, "unitPrice")
+
+    if (!code || !name) {
+      throw new BadRequestException(`第 ${index + 2} 行缺少编码或名称`)
+    }
+    if (!occurDateRaw) {
+      throw new BadRequestException(`第 ${index + 2} 行缺少日期`)
+    }
+    if (!qtyRaw) {
+      throw new BadRequestException(`第 ${index + 2} 行缺少数量`)
+    }
+    if (!unitPriceRaw) {
+      throw new BadRequestException(`第 ${index + 2} 行缺少单价`)
     }
 
-    const shipNo = cell(row, "发货单号")
-    const batch = cell(row, "批次")
-    const orderNo = cell(row, "订单号")
+    const occurDate = parseDate(occurDateRaw)
+    const qty = parseQty(qtyRaw)
+    const unitPrice = parsePrice(unitPriceRaw)
+    const normalizedCode = warehouseCode(code)
 
     return {
-      orderNo,
-      shipNo,
-      shipDate: parseDate(cell(row, "发货日期")),
-      productCode,
+      code: normalizedCode,
       name,
-      brand: cell(row, "品牌"),
-      spec: cell(row, "规格型号"),
-      unit: cell(row, "计量单位") || "个",
-      batch,
-      qty: parseQty(cell(row, "数量")),
-      unitPrice: parsePrice(cell(row, "含税单价")),
-      manufacturer: cell(row, "生产厂商"),
-      category: cell(row, "分类"),
-      remarkKey: `励齿|${shipNo}|${productCode}|${batch}|${orderNo}`,
+      occurDate,
+      qty,
+      unitPrice,
+      brand: readOptionalField(row, fullMap, "brand"),
+      spec: readOptionalField(row, fullMap, "spec"),
+      unit: readOptionalField(row, fullMap, "unit") || "个",
+      remarkKey: `励齿|${normalizedCode}|${occurDate}|${qty}|${unitPrice}`,
     }
   })
 }
 
-export function lichiTxnRemark(row: LichiImportRow): string {
-  const parts = [
-    `励齿导入`,
-    row.shipNo ? `发货单:${row.shipNo}` : "",
-    row.orderNo ? `订单:${row.orderNo}` : "",
-    row.batch ? `批次:${row.batch}` : "",
-  ].filter(Boolean)
-  return parts.join(" ")
-}
-
-export function lichiItemCode(productCode: string): string {
-  return warehouseCode(productCode)
+export function lichiItemCode(code: string): string {
+  return warehouseCode(code)
 }
 
 export const LICHI_SUPPLIER = SUPPLIER

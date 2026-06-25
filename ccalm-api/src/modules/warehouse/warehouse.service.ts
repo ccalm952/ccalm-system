@@ -13,7 +13,6 @@ import type {
 } from "./dto/warehouse.dto"
 import {
   lichiItemCode,
-  lichiTxnRemark,
   LICHI_SUPPLIER,
   parseLichiExcel,
   type LichiImportResult,
@@ -146,13 +145,16 @@ export class WarehouseService {
   }
 
   async deleteItem(id: number) {
-    const count = await this.prisma.warehouseTxn.count({
-      where: { itemId: id },
+    const item = await this.prisma.warehouseItem.findUnique({
+      where: { id },
     })
-    if (count > 0) {
-      throw new BadRequestException("已有出入库流水的物料不能删除")
-    }
-    await this.prisma.warehouseItem.delete({ where: { id } })
+    if (!item) throw new NotFoundException("物料不存在")
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.warehouseTxn.deleteMany({ where: { itemId: id } })
+      await tx.warehouseItem.delete({ where: { id } })
+    })
+
     return { ok: true }
   }
 
@@ -341,11 +343,10 @@ export class WarehouseService {
     let skippedTxns = 0
 
     for (const row of rows) {
-      const code = lichiItemCode(row.productCode)
-      const remark = lichiTxnRemark(row)
+      const code = lichiItemCode(row.code)
 
       const duplicated = await this.prisma.warehouseTxn.findFirst({
-        where: { remark },
+        where: { remark: row.remarkKey },
       })
       if (duplicated) {
         skippedTxns += 1
@@ -361,11 +362,11 @@ export class WarehouseService {
           data: {
             code,
             name: row.name,
-            category: row.category,
+            category: "",
             spec: row.spec,
             unit: row.unit,
             brand: row.brand,
-            manufacturer: row.manufacturer,
+            manufacturer: "",
             supplierName: LICHI_SUPPLIER,
             enabled: true,
           },
@@ -385,8 +386,8 @@ export class WarehouseService {
             qty: row.qty,
             unitPrice: row.unitPrice,
             amount,
-            occurDate: row.shipDate,
-            remark,
+            occurDate: row.occurDate,
+            remark: row.remarkKey,
             operatorUserId,
           },
         })

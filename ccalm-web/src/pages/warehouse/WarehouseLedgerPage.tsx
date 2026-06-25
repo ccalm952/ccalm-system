@@ -292,6 +292,8 @@ export function WarehouseLedgerPage() {
   const [itemSort, setItemSort] = React.useState<ItemSort | null>(null);
   const [deleteTxnId, setDeleteTxnId] = React.useState<number | null>(null);
   const [deleteTxnSubmitting, setDeleteTxnSubmitting] = React.useState(false);
+  const [deleteItemTarget, setDeleteItemTarget] = React.useState<WarehouseItem | null>(null);
+  const [deleteItemSubmitting, setDeleteItemSubmitting] = React.useState(false);
 
   const displayItems = React.useMemo(() => {
     if (!itemSort) return items;
@@ -492,6 +494,21 @@ export function WarehouseLedgerPage() {
     }
   }
 
+  async function confirmDeleteItem() {
+    if (!deleteItemTarget) return;
+    setDeleteItemSubmitting(true);
+    try {
+      await api("DELETE", `/warehouse/items/${deleteItemTarget.id}`);
+      toast.success("物品已删除");
+      setDeleteItemTarget(null);
+      await Promise.all([loadItems(), loadTxns()]);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setDeleteItemSubmitting(false);
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <Card>
@@ -567,7 +584,7 @@ export function WarehouseLedgerPage() {
                   <SortableItemHead label="规格" sortKey="spec" activeSort={itemSort} onSort={toggleItemSort} className="w-[16%]" />
                   <SortableItemHead label="单位" sortKey="unit" activeSort={itemSort} onSort={toggleItemSort} className="w-[7%]" />
                   <SortableItemHead label="库存" sortKey="currentQty" activeSort={itemSort} onSort={toggleItemSort} className="w-[8%]" align="center" />
-                  <TableHead className="w-[9%] text-center">操作</TableHead>
+                  <TableHead className="w-[12%] text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -596,17 +613,31 @@ export function WarehouseLedgerPage() {
                     <TableCell className="text-center">{item.currentQty}</TableCell>
                     <TableCell className="text-center">
                       {isAdmin ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditItem(item);
-                          }}
-                        >
-                          编辑
-                        </Button>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditItem(item);
+                            }}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteItemTarget(item);
+                            }}
+                          >
+                            删除
+                          </Button>
+                        </div>
                       ) : null}
                     </TableCell>
                   </TableRow>
@@ -865,6 +896,29 @@ export function WarehouseLedgerPage() {
               onClick={() => void confirmDeleteTxn()}
             >
               {deleteTxnSubmitting ? "删除中…" : "删除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteItemTarget != null} onOpenChange={(open) => !open && setDeleteItemTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除物品</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteItemTarget
+                ? `确定删除「${deleteItemTarget.name}」吗？将同时删除其全部出入库流水，且不可恢复。`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteItemSubmitting}
+              onClick={() => void confirmDeleteItem()}
+            >
+              {deleteItemSubmitting ? "删除中…" : "删除"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
