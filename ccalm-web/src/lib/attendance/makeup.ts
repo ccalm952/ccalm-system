@@ -1,11 +1,7 @@
 import dayjs from "dayjs";
 
 import { isHalfEffectivelyAtRest } from "./rest";
-import type {
-  AttendanceMakeupRequest,
-  AttendancePunchDayRow,
-  AttendancePunchType,
-} from "./types";
+import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType } from "./types";
 
 export type MakeupInType = "morning_in" | "afternoon_in";
 export type MakeupOutType = "morning_out" | "afternoon_out";
@@ -17,10 +13,7 @@ const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
   afternoon_out: "afternoon_in",
 };
 
-export function slotTime(
-  row: AttendancePunchDayRow,
-  type: AttendancePunchType,
-): string | null {
+export function slotTime(row: AttendancePunchDayRow, type: AttendancePunchType): string | null {
   if (type === "morning_in") return row.morningIn;
   if (type === "morning_out") return row.morningOut;
   if (type === "afternoon_in") return row.afternoonIn;

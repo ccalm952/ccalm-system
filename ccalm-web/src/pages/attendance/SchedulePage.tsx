@@ -44,9 +44,7 @@ function nextShift(current: ScheduleShiftType | null): ScheduleShiftType | null 
 export function SchedulePage() {
   const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
   const [me, setMe] = React.useState<{ role: "user" | "admin" } | null>(null);
-  const [month, setMonth] = React.useState(() =>
-    clampScheduleMonth(dayjs().format("YYYY-MM")),
-  );
+  const [month, setMonth] = React.useState(() => clampScheduleMonth(dayjs().format("YYYY-MM")));
   const [data, setData] = React.useState<ScheduleMonthData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const loadSeqRef = React.useRef(0);
@@ -54,9 +52,7 @@ export function SchedulePage() {
   const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
   const [savingAllowance, setSavingAllowance] = React.useState(false);
   const [autoFilling, setAutoFilling] = React.useState(false);
-  const [holidaysByYear, setHolidaysByYear] = React.useState<
-    Record<string, ChinaHolidayYear>
-  >({});
+  const [holidaysByYear, setHolidaysByYear] = React.useState<Record<string, ChinaHolidayYear>>({});
 
   const isAdmin = me?.role === "admin";
   const year = month.split("-")[0] ?? dayjs().format("YYYY");
@@ -69,10 +65,7 @@ export function SchedulePage() {
     }
 
     try {
-      const res = await api<ScheduleMonthData>(
-        "GET",
-        `/attendance/schedule?month=${targetMonth}`,
-      );
+      const res = await api<ScheduleMonthData>("GET", `/attendance/schedule?month=${targetMonth}`);
       if (seq !== loadSeqRef.current) return;
       hasDataRef.current = true;
       setData(res);
@@ -82,8 +75,9 @@ export function SchedulePage() {
       toast.error(errorMessage(e));
       if (!hasDataRef.current) setData(null);
     } finally {
-      if (seq !== loadSeqRef.current) return;
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -195,9 +189,7 @@ export function SchedulePage() {
               disabled={!canGoPrev}
               onClick={() =>
                 setMonth(
-                  clampScheduleMonth(
-                    dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM"),
-                  ),
+                  clampScheduleMonth(dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM")),
                 )
               }
             >
@@ -212,11 +204,7 @@ export function SchedulePage() {
               size="icon"
               disabled={!canGoNext}
               onClick={() =>
-                setMonth(
-                  clampScheduleMonth(
-                    dayjs(`${month}-01`).add(1, "month").format("YYYY-MM"),
-                  ),
-                )
+                setMonth(clampScheduleMonth(dayjs(`${month}-01`).add(1, "month").format("YYYY-MM")))
               }
             >
               <ChevronRightIcon className="size-4" />
@@ -247,11 +235,7 @@ export function SchedulePage() {
               >
                 保存假期
               </Button>
-              <Button
-                type="button"
-                disabled={autoFilling}
-                onClick={() => void autoFill()}
-              >
+              <Button type="button" disabled={autoFilling} onClick={() => void autoFill()}>
                 根据打卡填写
               </Button>
             </div>
@@ -276,17 +260,14 @@ export function SchedulePage() {
                       const holidayName = holidays?.offDayMap[dateKey];
                       const isHoliday = !!holidayName;
                       return (
-                      <TableHead
-                        key={h.day}
-                        title={holidayName}
-                        className={cn(
-                          "w-9 px-1 text-center",
-                          isHoliday && "text-red-600",
-                        )}
-                      >
-                        <div>{h.weekday}</div>
-                        <div>{h.day}</div>
-                      </TableHead>
+                        <TableHead
+                          key={h.day}
+                          title={holidayName}
+                          className={cn("w-9 px-1 text-center", isHoliday && "text-red-600")}
+                        >
+                          <div>{h.weekday}</div>
+                          <div>{h.day}</div>
+                        </TableHead>
                       );
                     })}
                     <TableHead className="w-10 text-center">全</TableHead>
@@ -372,7 +353,8 @@ export function SchedulePage() {
 
           {isAdmin ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              点击格子切换：空 → 全 → 上 → 下 → 空。全=整天休息，上=上午休息，下=下午休息，空=正常出勤。
+              点击格子切换：空 → 全 → 上 → 下 →
+              空。全=整天休息，上=上午休息，下=下午休息，空=正常出勤。
             </p>
           ) : null}
         </CardContent>

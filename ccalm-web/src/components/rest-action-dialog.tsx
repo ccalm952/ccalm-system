@@ -9,10 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  restConfirmMessage,
-  type RestHalf,
-} from "@/lib/attendance/rest";
+import { restConfirmMessage, type RestHalf } from "@/lib/attendance/rest";
 import type { ScheduleRestType } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
@@ -27,15 +24,7 @@ export function RestActionDialog(props: {
   scheduleRest?: ScheduleRestType | null;
   onSuccess: () => void;
 }) {
-  const {
-    open,
-    onOpenChange,
-    date,
-    half,
-    mode,
-    scheduleRest = null,
-    onSuccess,
-  } = props;
+  const { open, onOpenChange, date, half, mode, scheduleRest = null, onSuccess } = props;
   const [submitting, setSubmitting] = React.useState(false);
 
   const message = restConfirmMessage(date, half, scheduleRest, mode);
@@ -67,9 +56,7 @@ export function RestActionDialog(props: {
         </DialogHeader>
         <div className="flex flex-col gap-3 text-sm">
           <p>{message}</p>
-          <p className="text-muted-foreground">
-            日期：{dayjs(date).format("YYYY年M月D日")}
-          </p>
+          <p className="text-muted-foreground">日期：{dayjs(date).format("YYYY年M月D日")}</p>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

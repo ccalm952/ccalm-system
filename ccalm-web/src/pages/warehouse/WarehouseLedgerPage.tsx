@@ -84,13 +84,7 @@ type WarehouseTxn = {
   id: number;
   itemId: number;
   type: "in" | "out" | "adjust";
-  bizType:
-    | "purchase"
-    | "use"
-    | "return_in"
-    | "return_out"
-    | "adjust_in"
-    | "adjust_out";
+  bizType: "purchase" | "use" | "return_in" | "return_out" | "adjust_in" | "adjust_out";
   qty: number;
   unitPrice: number;
   amount: number;
@@ -282,7 +276,7 @@ export function WarehouseLedgerPage() {
       );
       setItems(Array.isArray(data) ? data : []);
       setSelectedId((prev) =>
-        data.some((item) => item.id === prev) ? prev : data[0]?.id ?? null,
+        data.some((item) => item.id === prev) ? prev : (data[0]?.id ?? null),
       );
     } catch (e) {
       toast.error(errorMessage(e));
@@ -552,13 +546,56 @@ export function WarehouseLedgerPage() {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <SortableTableHead label="编码" sortKey="code" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableTableHead label="名称" sortKey="name" activeSort={itemSort} onSort={toggleItemSort} className="w-[20%]" />
-                  <SortableTableHead label="分类" sortKey="category" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableTableHead label="品牌" sortKey="brand" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableTableHead label="规格" sortKey="spec" activeSort={itemSort} onSort={toggleItemSort} className="w-[16%]" />
-                  <SortableTableHead label="单位" sortKey="unit" activeSort={itemSort} onSort={toggleItemSort} className="w-[7%]" />
-                  <SortableTableHead label="库存" sortKey="currentQty" activeSort={itemSort} onSort={toggleItemSort} className="w-[8%]" align="center" />
+                  <SortableTableHead
+                    label="编码"
+                    sortKey="code"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[10%]"
+                  />
+                  <SortableTableHead
+                    label="名称"
+                    sortKey="name"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[20%]"
+                  />
+                  <SortableTableHead
+                    label="分类"
+                    sortKey="category"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[10%]"
+                  />
+                  <SortableTableHead
+                    label="品牌"
+                    sortKey="brand"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[10%]"
+                  />
+                  <SortableTableHead
+                    label="规格"
+                    sortKey="spec"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[16%]"
+                  />
+                  <SortableTableHead
+                    label="单位"
+                    sortKey="unit"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[7%]"
+                  />
+                  <SortableTableHead
+                    label="库存"
+                    sortKey="currentQty"
+                    activeSort={itemSort}
+                    onSort={toggleItemSort}
+                    className="w-[8%]"
+                    align="center"
+                  />
                   <TableHead className="w-[12%] text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -576,10 +613,14 @@ export function WarehouseLedgerPage() {
                       <TruncateCell title={item.name}>{item.name}</TruncateCell>
                     </TableCell>
                     <TableCell className="max-w-0">
-                      <TruncateCell title={item.category || undefined}>{item.category || "-"}</TruncateCell>
+                      <TruncateCell title={item.category || undefined}>
+                        {item.category || "-"}
+                      </TruncateCell>
                     </TableCell>
                     <TableCell className="max-w-0">
-                      <TruncateCell title={item.brand || undefined}>{item.brand || "-"}</TruncateCell>
+                      <TruncateCell title={item.brand || undefined}>
+                        {item.brand || "-"}
+                      </TruncateCell>
                     </TableCell>
                     <TableCell className="max-w-0">
                       <TruncateCell title={item.spec || undefined}>{item.spec || "-"}</TruncateCell>
@@ -667,7 +708,9 @@ export function WarehouseLedgerPage() {
                     <TableCell className="text-center">
                       {txn.type === "in" ? formatMoney(txn.amount) : "-"}
                     </TableCell>
-                    <TableCell>{txn.operatorUser?.displayName || txn.operatorUser?.username || "-"}</TableCell>
+                    <TableCell>
+                      {txn.operatorUser?.displayName || txn.operatorUser?.username || "-"}
+                    </TableCell>
                     {isAdmin ? (
                       <TableCell className="text-center">
                         <Button
@@ -730,19 +773,33 @@ export function WarehouseLedgerPage() {
           <FieldSet className="text-sm">
             <FieldGroup className="grid gap-3 sm:grid-cols-2">
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>编码</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>编码</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" value={itemForm.code} onChange={(e) => setItemForm((s) => ({ ...s, code: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    value={itemForm.code}
+                    onChange={(e) => setItemForm((s) => ({ ...s, code: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>名称</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>名称</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" value={itemForm.name} onChange={(e) => setItemForm((s) => ({ ...s, name: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm((s) => ({ ...s, name: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>分类</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>分类</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
                   <WarehouseCategoryCombobox
                     items={categoryItems}
@@ -753,7 +810,9 @@ export function WarehouseLedgerPage() {
               </Field>
               {editingItemId ? (
                 <Field orientation="vertical">
-                  <FieldLabel><FieldTitle>库存</FieldTitle></FieldLabel>
+                  <FieldLabel>
+                    <FieldTitle>库存</FieldTitle>
+                  </FieldLabel>
                   <FieldContent>
                     <Input
                       className="w-full"
@@ -766,21 +825,39 @@ export function WarehouseLedgerPage() {
                 </Field>
               ) : null}
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>规格</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>规格</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" value={itemForm.spec} onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    value={itemForm.spec}
+                    onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>单位</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>单位</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" value={itemForm.unit} onChange={(e) => setItemForm((s) => ({ ...s, unit: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    value={itemForm.unit}
+                    onChange={(e) => setItemForm((s) => ({ ...s, unit: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>品牌</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>品牌</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" value={itemForm.brand} onChange={(e) => setItemForm((s) => ({ ...s, brand: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    value={itemForm.brand}
+                    onChange={(e) => setItemForm((s) => ({ ...s, brand: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
             </FieldGroup>
@@ -804,14 +881,22 @@ export function WarehouseLedgerPage() {
           </DialogHeader>
           <FieldSet className="text-sm">
             <Field orientation="vertical">
-              <FieldLabel><FieldTitle>物品</FieldTitle></FieldLabel>
+              <FieldLabel>
+                <FieldTitle>物品</FieldTitle>
+              </FieldLabel>
               <FieldContent>
-                <Input className="w-full" value={selectedItem ? `${selectedItem.name} (${selectedItem.code})` : ""} disabled />
+                <Input
+                  className="w-full"
+                  value={selectedItem ? `${selectedItem.name} (${selectedItem.code})` : ""}
+                  disabled
+                />
               </FieldContent>
             </Field>
             <FieldGroup className="grid gap-3 sm:grid-cols-2">
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>类型</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>类型</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
                   <Select
                     value={txnForm.type}
@@ -823,18 +908,20 @@ export function WarehouseLedgerPage() {
                         type,
                         bizType: txnBizOptions[type][0]?.value ?? s.bizType,
                         unitPrice:
-                          type === "in"
-                            ? String(selectedItem?.lastPurchasePrice || 0)
-                            : "0",
+                          type === "in" ? String(selectedItem?.lastPurchasePrice || 0) : "0",
                       }));
                     }}
                     items={txnTypeOptions}
                   >
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {txnTypeOptions.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
                         ))}
                       </SelectGroup>
                     </SelectContent>
@@ -842,18 +929,26 @@ export function WarehouseLedgerPage() {
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>业务</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>业务</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
                   <Select
                     value={txnForm.bizType}
-                    onValueChange={(v: string | null) => v && setTxnForm((s) => ({ ...s, bizType: v }))}
+                    onValueChange={(v: string | null) =>
+                      v && setTxnForm((s) => ({ ...s, bizType: v }))
+                    }
                     items={txnBizOptions[txnForm.type]}
                   >
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {txnBizOptions[txnForm.type].map((item) => (
-                          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
                         ))}
                       </SelectGroup>
                     </SelectContent>
@@ -861,31 +956,63 @@ export function WarehouseLedgerPage() {
                 </FieldContent>
               </Field>
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>数量</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>数量</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" type="number" min={1} value={txnForm.qty} onChange={(e) => setTxnForm((s) => ({ ...s, qty: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    type="number"
+                    min={1}
+                    value={txnForm.qty}
+                    onChange={(e) => setTxnForm((s) => ({ ...s, qty: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
               {txnForm.type === "in" ? (
                 <>
                   <Field orientation="vertical">
-                    <FieldLabel><FieldTitle>单价</FieldTitle></FieldLabel>
+                    <FieldLabel>
+                      <FieldTitle>单价</FieldTitle>
+                    </FieldLabel>
                     <FieldContent>
-                      <Input className="w-full" type="number" min={0} step={0.01} value={txnForm.unitPrice} onChange={(e) => setTxnForm((s) => ({ ...s, unitPrice: e.target.value }))} />
+                      <Input
+                        className="w-full"
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={txnForm.unitPrice}
+                        onChange={(e) => setTxnForm((s) => ({ ...s, unitPrice: e.target.value }))}
+                      />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel><FieldTitle>金额</FieldTitle></FieldLabel>
+                    <FieldLabel>
+                      <FieldTitle>金额</FieldTitle>
+                    </FieldLabel>
                     <FieldContent>
-                      <Input className="w-full" disabled value={formatMoney((Number(txnForm.qty) || 0) * (Number(txnForm.unitPrice) || 0))} />
+                      <Input
+                        className="w-full"
+                        disabled
+                        value={formatMoney(
+                          (Number(txnForm.qty) || 0) * (Number(txnForm.unitPrice) || 0),
+                        )}
+                      />
                     </FieldContent>
                   </Field>
                 </>
               ) : null}
               <Field orientation="vertical">
-                <FieldLabel><FieldTitle>日期</FieldTitle></FieldLabel>
+                <FieldLabel>
+                  <FieldTitle>日期</FieldTitle>
+                </FieldLabel>
                 <FieldContent>
-                  <Input className="w-full" type="date" value={txnForm.occurDate} onChange={(e) => setTxnForm((s) => ({ ...s, occurDate: e.target.value }))} />
+                  <Input
+                    className="w-full"
+                    type="date"
+                    value={txnForm.occurDate}
+                    onChange={(e) => setTxnForm((s) => ({ ...s, occurDate: e.target.value }))}
+                  />
                 </FieldContent>
               </Field>
             </FieldGroup>
@@ -901,7 +1028,10 @@ export function WarehouseLedgerPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteTxnId != null} onOpenChange={(open) => !open && setDeleteTxnId(null)}>
+      <AlertDialog
+        open={deleteTxnId != null}
+        onOpenChange={(open) => !open && setDeleteTxnId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除流水</AlertDialogTitle>
@@ -922,7 +1052,10 @@ export function WarehouseLedgerPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={deleteItemTarget != null} onOpenChange={(open) => !open && setDeleteItemTarget(null)}>
+      <AlertDialog
+        open={deleteItemTarget != null}
+        onOpenChange={(open) => !open && setDeleteItemTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除物品</AlertDialogTitle>

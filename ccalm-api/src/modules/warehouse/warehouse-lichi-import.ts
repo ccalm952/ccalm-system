@@ -64,9 +64,15 @@ const REQUIRED_FIELDS: ImportField[] = [
 ]
 
 function normalizeHeader(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .replace(/\s+/g, "")
+  if (value == null) return ""
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value).trim().replace(/\s+/g, "")
+  }
+  return ""
 }
 
 function cell(row: Record<string, unknown>, key: string): string {
@@ -82,17 +88,19 @@ function cell(row: Record<string, unknown>, key: string): string {
   return ""
 }
 
-function resolveColumnMap(headers: string[]): Record<ImportField, string | null> {
+function resolveColumnMap(
+  headers: string[]
+): Record<ImportField, string | null> {
   const normalized = headers.map((h) => normalizeHeader(h))
   const used = new Set<number>()
   const map = Object.fromEntries(
-    (Object.keys(FIELD_KEYWORDS) as ImportField[]).map((field) => [field, null]),
+    (Object.keys(FIELD_KEYWORDS) as ImportField[]).map((field) => [field, null])
   ) as Record<ImportField, string | null>
 
   for (const field of Object.keys(FIELD_KEYWORDS) as ImportField[]) {
     for (const keyword of FIELD_KEYWORDS[field]) {
       const idx = normalized.findIndex(
-        (header, index) => !used.has(index) && header.includes(keyword),
+        (header, index) => !used.has(index) && header.includes(keyword)
       )
       if (idx >= 0) {
         map[field] = headers[idx]!
@@ -108,7 +116,7 @@ function resolveColumnMap(headers: string[]): Record<ImportField, string | null>
 function requireColumnMap(headers: string[]): Record<ImportField, string> {
   const map = resolveColumnMap(headers)
   const missing = REQUIRED_FIELDS.filter((field) => !map[field]).map(
-    (field) => FIELD_LABELS[field],
+    (field) => FIELD_LABELS[field]
   )
   if (missing.length) {
     throw new BadRequestException(`Excel 缺少列：${missing.join("、")}`)
@@ -119,7 +127,7 @@ function requireColumnMap(headers: string[]): Record<ImportField, string> {
 function readField(
   row: Record<string, unknown>,
   map: Record<ImportField, string>,
-  field: ImportField,
+  field: ImportField
 ): string {
   return cell(row, map[field])
 }
@@ -127,7 +135,7 @@ function readField(
 function readOptionalField(
   row: Record<string, unknown>,
   map: Record<ImportField, string | null>,
-  field: ImportField,
+  field: ImportField
 ): string {
   const col = map[field]
   return col ? cell(row, col) : ""
@@ -168,7 +176,7 @@ export function parseLichiExcel(buffer: Buffer): LichiImportRow[] {
 
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
     wb.Sheets[sheetName],
-    { defval: "" },
+    { defval: "" }
   )
   if (rows.length === 0) throw new BadRequestException("Excel 中没有数据行")
 

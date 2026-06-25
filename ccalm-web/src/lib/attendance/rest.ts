@@ -5,9 +5,7 @@ import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 
 export type RestHalf = "morning" | "afternoon";
 
-export function isMorningScheduleRest(
-  scheduleRest: ScheduleRestType | null | undefined,
-): boolean {
+export function isMorningScheduleRest(scheduleRest: ScheduleRestType | null | undefined): boolean {
   return scheduleRest === "full_rest" || scheduleRest === "morning_rest";
 }
 
@@ -31,10 +29,7 @@ export function halfHasPunch(row: AttendancePunchDayRow, half: RestHalf): boolea
   return !!(row.afternoonIn || row.afternoonOut);
 }
 
-export function isHalfEffectivelyAtRest(
-  row: AttendancePunchDayRow,
-  half: RestHalf,
-): boolean {
+export function isHalfEffectivelyAtRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
   return isHalfScheduleRest(row.scheduleRest, half) && !halfHasPunch(row, half);
 }
 

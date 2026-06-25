@@ -91,9 +91,13 @@ export function NavUser({
       if (targetUser.id === user.id) return;
       setSwitchingUserId(targetUser.id);
       try {
-        const result = await api<{ accessToken: string; user: AuthMe }>("POST", "/auth/switch-user", {
-          userId: targetUser.id,
-        });
+        const result = await api<{ accessToken: string; user: AuthMe }>(
+          "POST",
+          "/auth/switch-user",
+          {
+            userId: targetUser.id,
+          },
+        );
         setToken(result.accessToken);
         onUserSwitched?.(result.user);
         toast.success(`已切换到：${result.user.displayName}`);
@@ -116,7 +120,9 @@ export function NavUser({
         const updated = await api<AuthMe>("POST", "/users/me/avatar", form);
         onAvatarUpdated?.(updated.avatarUrl);
         setUsers((current) =>
-          current.map((item) => (item.id === updated.id ? { ...item, avatarUrl: updated.avatarUrl } : item)),
+          current.map((item) =>
+            item.id === updated.id ? { ...item, avatarUrl: updated.avatarUrl } : item,
+          ),
         );
         toast.success("头像已更新");
       } catch (e) {
@@ -135,12 +141,7 @@ export function NavUser({
     </Avatar>
   );
   const menuContent = (
-    <DropdownMenuContent
-      className="min-w-56 rounded-lg"
-      side={menuSide}
-      align="end"
-      sideOffset={8}
-    >
+    <DropdownMenuContent className="min-w-56 rounded-lg" side={menuSide} align="end" sideOffset={8}>
       <DropdownMenuGroup>
         {loadingUsers ? (
           <DropdownMenuItem disabled>加载中...</DropdownMenuItem>
@@ -194,7 +195,9 @@ export function NavUser({
           }}
         >
           <DropdownMenuTrigger
-            render={<SidebarMenuButton size="lg" className="w-full aria-expanded:bg-sidebar-accent" />}
+            render={
+              <SidebarMenuButton size="lg" className="w-full aria-expanded:bg-sidebar-accent" />
+            }
           >
             {avatar}
             <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">

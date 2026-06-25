@@ -31,11 +31,7 @@ import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { RestActionDialog } from "@/components/rest-action-dialog";
 import type { EmployeeMakeupType } from "@/lib/attendance/makeup";
-import {
-  canDeclareRest,
-  isHalfScheduleRest,
-  type RestHalf,
-} from "@/lib/attendance/rest";
+import { canDeclareRest, isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendancePunchType,
@@ -146,9 +142,7 @@ function isManualPunchDisabledPure(
 
   if (t === "morning_in") {
     if (map.morning_in) return true;
-    if (
-      !isWallClockInInclusiveRange(at, shift.morningInWindowStart, shift.morningInWindowEnd)
-    )
+    if (!isWallClockInInclusiveRange(at, shift.morningInWindowStart, shift.morningInWindowEnd))
       return true;
   }
 
@@ -161,9 +155,7 @@ function isManualPunchDisabledPure(
 
   if (t === "afternoon_in") {
     if (map.afternoon_in) return true;
-    if (
-      !isWallClockInInclusiveRange(at, shift.afternoonInWindowStart, shift.afternoonInWindowEnd)
-    )
+    if (!isWallClockInInclusiveRange(at, shift.afternoonInWindowStart, shift.afternoonInWindowEnd))
       return true;
   }
 
@@ -191,14 +183,22 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
-function inCellClass(row: AttendanceMonthlySummary["rows"][number], half: RestHalf, time: string | null) {
+function inCellClass(
+  row: AttendanceMonthlySummary["rows"][number],
+  half: RestHalf,
+  time: string | null,
+) {
   if (time) return "";
   if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
   if (canDeclareRest(row, half)) return "";
   return "text-destructive";
 }
 
-function outCellClass(row: AttendanceMonthlySummary["rows"][number], half: RestHalf, time: string | null) {
+function outCellClass(
+  row: AttendanceMonthlySummary["rows"][number],
+  half: RestHalf,
+  time: string | null,
+) {
   if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
   if (time) return "";
   return "text-destructive";
@@ -335,14 +335,16 @@ export function AttendancePage() {
       longitude: lng,
       address: address?.trim() || "",
     });
-    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return null;
+    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
+      return null;
 
     const todayRes2 = await api<AttendanceRecord[]>("GET", "/attendance/today");
     const monthly2 = await api<AttendanceMonthlySummary>(
       "GET",
       `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
     );
-    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current)) return null;
+    if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
+      return null;
 
     setRecords(todayRes2);
     setMonthSummary(monthly2);
@@ -632,9 +634,7 @@ export function AttendancePage() {
                                   scheduleRest: r.scheduleRest,
                                 })
                               }
-                              onMakeup={(type) =>
-                                setMakeupDialog({ date: r.date, type })
-                              }
+                              onMakeup={(type) => setMakeupDialog({ date: r.date, type })}
                             />
                           </TableCell>
                           <TableCell
@@ -649,9 +649,7 @@ export function AttendancePage() {
                               type="morning_out"
                               time={r.morningOut}
                               makeupRequests={makeupRequests}
-                              onApply={() =>
-                                setMakeupDialog({ date: r.date, type: "morning_out" })
-                              }
+                              onApply={() => setMakeupDialog({ date: r.date, type: "morning_out" })}
                             />
                           </TableCell>
                           <TableCell
@@ -681,9 +679,7 @@ export function AttendancePage() {
                                   scheduleRest: r.scheduleRest,
                                 })
                               }
-                              onMakeup={(type) =>
-                                setMakeupDialog({ date: r.date, type })
-                              }
+                              onMakeup={(type) => setMakeupDialog({ date: r.date, type })}
                             />
                           </TableCell>
                           <TableCell

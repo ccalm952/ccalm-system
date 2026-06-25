@@ -52,10 +52,7 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
-function slotRestLabel(
-  row: AttendancePunchDayRow,
-  type: AdminMakeupType,
-): string | null {
+function slotRestLabel(row: AttendancePunchDayRow, type: AdminMakeupType): string | null {
   const scheduleRest = row.scheduleRest ?? null;
   if (!scheduleRest) return null;
   if (
@@ -352,7 +349,9 @@ export function AttendanceStatsPage() {
                             <TableBody>
                               {row.original.rows.map((r) => (
                                 <TableRow key={r.date} className="border-t border-border">
-                                  <TableCell className="w-1/6 px-3 py-2">{dayOfMonth(r.date)}</TableCell>
+                                  <TableCell className="w-1/6 px-3 py-2">
+                                    {dayOfMonth(r.date)}
+                                  </TableCell>
                                   {PUNCH_DETAIL_COLUMNS.map((col) => {
                                     const time = col.getTime(r);
                                     const restLabel = slotRestLabel(r, col.type);
@@ -364,7 +363,11 @@ export function AttendanceStatsPage() {
                                         key={col.type}
                                         className={cn(
                                           "w-1/6 px-3 py-2 text-center",
-                                          time ? "" : restLabel ? "text-muted-foreground" : "text-destructive",
+                                          time
+                                            ? ""
+                                            : restLabel
+                                              ? "text-muted-foreground"
+                                              : "text-destructive",
                                         )}
                                       >
                                         {restLabel ? (

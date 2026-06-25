@@ -1,18 +1,9 @@
 import { Button } from "@/components/ui/button";
-import {
-  inTypeForHalf,
-  makeupInSlotState,
-  type MakeupInType,
-} from "@/lib/attendance/makeup";
-import {
-  canDeclareRest,
-  isHalfEffectivelyAtRest,
-  type RestHalf,
-} from "@/lib/attendance/rest";
+import { inTypeForHalf, makeupInSlotState, type MakeupInType } from "@/lib/attendance/makeup";
+import { canDeclareRest, isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
-const actionLinkClass =
-  "h-auto px-0 text-sm font-normal underline-offset-2 hover:underline";
+const actionLinkClass = "h-auto px-0 text-sm font-normal underline-offset-2 hover:underline";
 
 export function AttendanceInCell(props: {
   row: AttendancePunchDayRow;
@@ -23,15 +14,7 @@ export function AttendanceInCell(props: {
   onClear: () => void;
   onMakeup: (type: MakeupInType) => void;
 }) {
-  const {
-    row,
-    half,
-    time,
-    makeupRequests = [],
-    onDeclare,
-    onClear,
-    onMakeup,
-  } = props;
+  const { row, half, time, makeupRequests = [], onDeclare, onClear, onMakeup } = props;
 
   if (time) return <span>{time}</span>;
 
@@ -70,12 +53,8 @@ export function AttendanceInCell(props: {
           休
         </Button>
       ) : null}
-      {showRest && makeupState ? (
-        <span className="text-muted-foreground">/</span>
-      ) : null}
-      {makeupState === "pending" ? (
-        <span className="text-muted-foreground">审批中</span>
-      ) : null}
+      {showRest && makeupState ? <span className="text-muted-foreground">/</span> : null}
+      {makeupState === "pending" ? <span className="text-muted-foreground">审批中</span> : null}
       {makeupState === "apply" ? (
         <Button
           type="button"

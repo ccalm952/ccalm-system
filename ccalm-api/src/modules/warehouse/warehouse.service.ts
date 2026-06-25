@@ -31,7 +31,7 @@ function requireDate(value: string): string {
 function txnQtyDelta(
   type: "in" | "out" | "adjust",
   bizType: string,
-  qty: number,
+  qty: number
 ): number {
   if (type === "out" || bizType === "adjust_out") return -qty
   return qty
@@ -122,7 +122,7 @@ export class WarehouseService {
   async updateItem(
     id: number,
     dto: UpdateWarehouseItemDto,
-    operatorUserId: string,
+    operatorUserId: string
   ) {
     const existing = await this.prisma.warehouseItem.findUnique({
       where: { id },

@@ -2,13 +2,7 @@ import * as React from "react";
 import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -91,12 +85,7 @@ function MakeupRequestCard(props: {
           {mode === "review" && item.status === "pending" ? (
             <CardAction>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={acting}
-                  onClick={() => void approve()}
-                >
+                <Button type="button" size="sm" disabled={acting} onClick={() => void approve()}>
                   通过
                 </Button>
                 <Button

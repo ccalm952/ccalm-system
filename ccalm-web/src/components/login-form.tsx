@@ -2,10 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldGroup,
-} from "@/components/ui/field";
+import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/sonner";
@@ -53,11 +50,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
       >
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <img
-              src="/lucide-logo-light.svg"
-              alt="CCALM"
-              className="h-10 w-auto dark:hidden"
-            />
+            <img src="/lucide-logo-light.svg" alt="CCALM" className="h-10 w-auto dark:hidden" />
             <img
               src="/lucide-logo-dark.svg"
               alt=""

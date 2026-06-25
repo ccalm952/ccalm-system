@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { adminMakeupSlotStateWithPending, makeupSlotState, type AdminMakeupType, type MakeupOutType } from "@/lib/attendance/makeup";
+import {
+  adminMakeupSlotStateWithPending,
+  makeupSlotState,
+  type AdminMakeupType,
+  type MakeupOutType,
+} from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
 type AttendanceOutCellProps =

@@ -332,8 +332,7 @@ export function ImplantPatientPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>确认删除</AlertDialogTitle>
                     <AlertDialogDescription>
-                      确定删除选中的 {selection.size}{" "}
-                      名患者吗？将同时删除其全部种植就诊与牙位记录。
+                      确定删除选中的 {selection.size} 名患者吗？将同时删除其全部种植就诊与牙位记录。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -356,49 +355,49 @@ export function ImplantPatientPage() {
                 （Card 内容区左右各 16px 共 32px + ring 约 2px，与种植记录一致）
               */}
               <Table className="w-full min-w-[1246px] table-fixed">
-                  <TableHeader>
-                    {table.getHeaderGroups().map((hg) => (
-                      <TableRow key={hg.id}>
-                        {hg.headers.map((h) => (
-                          <TableHead
-                            key={h.id}
+                <TableHeader>
+                  {table.getHeaderGroups().map((hg) => (
+                    <TableRow key={hg.id}>
+                      {hg.headers.map((h) => (
+                        <TableHead
+                          key={h.id}
+                          className={
+                            h.column.id === "select" ? undefined : "w-[calc((100%_-_2.5rem)_/_8)]"
+                          }
+                        >
+                          {h.isPlaceholder
+                            ? null
+                            : flexRender(h.column.columnDef.header, h.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
                             className={
-                              h.column.id === "select" ? undefined : "w-[calc((100%_-_2.5rem)_/_8)]"
+                              cell.column.id === "select"
+                                ? undefined
+                                : "w-[calc((100%_-_2.5rem)_/_8)]"
                             }
                           >
-                            {h.isPlaceholder
-                              ? null
-                              : flexRender(h.column.columnDef.header, h.getContext())}
-                          </TableHead>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
                         ))}
                       </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row) => (
-                        <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell
-                              key={cell.id}
-                              className={
-                                cell.column.id === "select"
-                                  ? undefined
-                                  : "w-[calc((100%_-_2.5rem)_/_8)]"
-                              }
-                            >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={table.getAllColumns().length}>无结果。</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={table.getAllColumns().length}>无结果。</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </CardContent>

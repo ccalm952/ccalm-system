@@ -6,9 +6,7 @@ import { cn } from "@/lib/utils";
 import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
-  return (
-    <nav data-slot="breadcrumb" className={cn(className)} {...props} />
-  );
+  return <nav data-slot="breadcrumb" className={cn(className)} {...props} />;
 }
 
 function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
@@ -62,11 +60,7 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
 
 function BreadcrumbSeparator({ children, className, ...props }: React.ComponentProps<"li">) {
   return (
-    <li
-      data-slot="breadcrumb-separator"
-      className={cn("[&>svg]:size-3.5", className)}
-      {...props}
-    >
+    <li data-slot="breadcrumb-separator" className={cn("[&>svg]:size-3.5", className)} {...props}>
       {children ?? <ChevronRightIcon />}
     </li>
   );

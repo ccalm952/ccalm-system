@@ -771,11 +771,7 @@ function ImplantRecordsVisitDialog({
                             </Field>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => removeEditToothAt(i)}
-                        >
+                        <Button variant="outline" size="icon" onClick={() => removeEditToothAt(i)}>
                           <X className="size-4" />
                         </Button>
                       </div>
@@ -1011,11 +1007,7 @@ function ImplantRecordsVisitDialog({
                             </Field>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => removeToothAt(i)}
-                        >
+                        <Button variant="outline" size="icon" onClick={() => removeToothAt(i)}>
                           <X className="size-4" />
                         </Button>
                       </div>
@@ -1066,9 +1058,7 @@ export function ImplantRecordsPage() {
   const [rows, setRows] = React.useState<Row[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [visitDialog, setVisitDialog] = React.useState<ImplantRecordsVisitDialogState | null>(
-    null,
-  );
+  const [visitDialog, setVisitDialog] = React.useState<ImplantRecordsVisitDialogState | null>(null);
 
   /** 合并行依赖行顺序（与接口返回顺序一致） */
   const mergeSpans = React.useMemo(() => computeMergeSpans(rows), [rows]);

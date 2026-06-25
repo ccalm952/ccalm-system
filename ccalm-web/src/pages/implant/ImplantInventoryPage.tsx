@@ -330,56 +330,56 @@ export function ImplantInventoryPage() {
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center justify-end gap-2 space-y-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="outline" />}>
-                  列
-                  <ChevronDownIcon className="size-4 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuGroup>
-                    {table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        >
-                          {inventoryColumnPickerLabel(column)}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button type="button" onClick={() => setAddStockOpen(true)}>
-                补货
-              </Button>
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogTrigger
-                  disabled={!selection.size}
-                  render={<Button variant="destructive" />}
-                >
-                  删除选中
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>确认删除</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      确定删除选中的 {selection.size} 条库存型号吗？
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
-                    <AlertDialogAction
-                      variant="destructive"
-                      onClick={() => void confirmDeleteSelected()}
-                    >
-                      删除
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" />}>
+                列
+                <ChevronDownIcon className="size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuGroup>
+                  {table
+                    .getAllColumns()
+                    .filter((column) => column.getCanHide())
+                    .map((column) => (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {inventoryColumnPickerLabel(column)}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button type="button" onClick={() => setAddStockOpen(true)}>
+              补货
+            </Button>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger
+                disabled={!selection.size}
+                render={<Button variant="destructive" />}
+              >
+                删除选中
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认删除</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    确定删除选中的 {selection.size} 条库存型号吗？
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={() => void confirmDeleteSelected()}
+                  >
+                    删除
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardHeader>
           <CardContent>
             <ScrollArea className="w-full min-w-0">
@@ -388,61 +388,59 @@ export function ImplantInventoryPage() {
                 （Card 内容区左右各 16px 共 32px + ring 约 2px，算法同种植记录 1246）
               */}
               <Table className="w-full min-w-[990px] table-fixed border-collapse">
-              <colgroup>
-                {leafCols.map((col) => {
-                  if (col.id === "select") {
-                    return <col key={col.id} style={{ width: INV_TABLE_SELECT_COL_W }} />;
-                  }
-                  return (
-                    <col
-                      key={col.id}
-                      style={{
-                        width: `calc((100% - ${INV_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
-                      }}
-                    />
-                  );
-                })}
-              </colgroup>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className={cn(header.column.id !== "select" && "min-w-0 max-w-0")}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          cell.column.id !== "select" &&
-                            cn(
-                              "min-w-0 max-w-0",
-                              cell.column.id === "actions"
-                                ? "whitespace-nowrap"
-                                : "truncate",
-                            ),
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <ScrollBar orientation="horizontal" />
+                <colgroup>
+                  {leafCols.map((col) => {
+                    if (col.id === "select") {
+                      return <col key={col.id} style={{ width: INV_TABLE_SELECT_COL_W }} />;
+                    }
+                    return (
+                      <col
+                        key={col.id}
+                        style={{
+                          width: `calc((100% - ${INV_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
+                        }}
+                      />
+                    );
+                  })}
+                </colgroup>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={cn(header.column.id !== "select" && "min-w-0 max-w-0")}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            cell.column.id !== "select" &&
+                              cn(
+                                "min-w-0 max-w-0",
+                                cell.column.id === "actions" ? "whitespace-nowrap" : "truncate",
+                              ),
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </CardContent>
         </Card>

@@ -42,16 +42,7 @@ export function MakeupRequestDialog(props: {
   userName?: string;
   onSuccess: () => void;
 }) {
-  const {
-    open,
-    onOpenChange,
-    date,
-    type,
-    mode = "request",
-    userId,
-    userName,
-    onSuccess,
-  } = props;
+  const { open, onOpenChange, date, type, mode = "request", userId, userName, onSuccess } = props;
   const [time, setTime] = React.useState("12:00");
   const [submitting, setSubmitting] = React.useState(false);
   const isDirect = mode === "direct";

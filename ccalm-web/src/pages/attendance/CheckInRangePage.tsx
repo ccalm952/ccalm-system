@@ -77,18 +77,21 @@ export function CheckInRangePage() {
     };
   }, [navigate]);
 
-  const updateCenterWithAddress = React.useCallback(async (nextCenter: { lat: number; lng: number }) => {
-    const seq = ++regeoSeqRef.current;
-    setCenter(nextCenter);
-    try {
-      const address = await reverseGeocodeDisplayAddress(nextCenter.lat, nextCenter.lng);
-      if (seq !== regeoSeqRef.current || !address) return;
-      setPlaceName(address);
-    } catch (e) {
-      if (seq !== regeoSeqRef.current) return;
-      toast.error(errorMessage(e));
-    }
-  }, []);
+  const updateCenterWithAddress = React.useCallback(
+    async (nextCenter: { lat: number; lng: number }) => {
+      const seq = ++regeoSeqRef.current;
+      setCenter(nextCenter);
+      try {
+        const address = await reverseGeocodeDisplayAddress(nextCenter.lat, nextCenter.lng);
+        if (seq !== regeoSeqRef.current || !address) return;
+        setPlaceName(address);
+      } catch (e) {
+        if (seq !== regeoSeqRef.current) return;
+        toast.error(errorMessage(e));
+      }
+    },
+    [],
+  );
 
   const refreshLocation = React.useCallback(async () => {
     setGeolocating(true);
@@ -277,7 +280,9 @@ export function CheckInRangePage() {
                         >
                           <span>{suggestion.name}</span>
                           {suggestion.address ? (
-                            <span className="text-xs text-muted-foreground">{suggestion.address}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {suggestion.address}
+                            </span>
                           ) : null}
                         </button>
                       ))
@@ -295,12 +300,7 @@ export function CheckInRangePage() {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={geolocating}
-              onClick={refreshLocation}
-            >
+            <Button type="button" variant="ghost" disabled={geolocating} onClick={refreshLocation}>
               {geolocating ? (
                 <>
                   <Spinner data-icon="inline-start" />
@@ -310,11 +310,7 @@ export function CheckInRangePage() {
                 "刷新定位"
               )}
             </Button>
-            <Button
-              type="button"
-              disabled={savingGeofence}
-              onClick={saveCurrentGeofence}
-            >
+            <Button type="button" disabled={savingGeofence} onClick={saveCurrentGeofence}>
               {savingGeofence ? (
                 <>
                   <Spinner data-icon="inline-start" />

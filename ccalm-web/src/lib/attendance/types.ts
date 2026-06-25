@@ -65,14 +65,12 @@ export type AttendancePunchDayRow = {
 
 export type AttendanceMakeupRequestStatus = "pending" | "approved" | "rejected";
 
-export const ATTENDANCE_MAKEUP_REQUEST_STATUS_LABEL: Record<
-  AttendanceMakeupRequestStatus,
-  string
-> = {
-  pending: "审批中",
-  approved: "已通过",
-  rejected: "已拒绝",
-};
+export const ATTENDANCE_MAKEUP_REQUEST_STATUS_LABEL: Record<AttendanceMakeupRequestStatus, string> =
+  {
+    pending: "审批中",
+    approved: "已通过",
+    rejected: "已拒绝",
+  };
 
 export type AttendanceMakeupRequest = {
   id: string;

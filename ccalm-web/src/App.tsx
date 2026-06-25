@@ -19,7 +19,10 @@ function lazyNamed<T extends NamedComponentModule, K extends keyof T>(
 }
 
 const LoginPage = lazyNamed(() => import("./pages/auth/LoginPage"), "LoginPage");
-const AttendancePage = lazyNamed(() => import("./pages/attendance/AttendancePage"), "AttendancePage");
+const AttendancePage = lazyNamed(
+  () => import("./pages/attendance/AttendancePage"),
+  "AttendancePage",
+);
 const AttendanceShiftSettingsPage = lazyNamed(
   () => import("./pages/attendance/AttendanceShiftSettingsPage"),
   "AttendanceShiftSettingsPage",
@@ -32,10 +35,7 @@ const CheckInRangePage = lazyNamed(
   () => import("./pages/attendance/CheckInRangePage"),
   "CheckInRangePage",
 );
-const SchedulePage = lazyNamed(
-  () => import("./pages/attendance/SchedulePage"),
-  "SchedulePage",
-);
+const SchedulePage = lazyNamed(() => import("./pages/attendance/SchedulePage"), "SchedulePage");
 const UsersPage = lazyNamed(() => import("./pages/users/UsersPage"), "UsersPage");
 const ImplantInventoryPage = lazyNamed(
   () => import("./pages/implant/ImplantInventoryPage"),
@@ -49,7 +49,10 @@ const ImplantRecordsPage = lazyNamed(
   () => import("./pages/implant/ImplantRecordsPage"),
   "ImplantRecordsPage",
 );
-const ImplantStatsPage = lazyNamed(() => import("./pages/implant/ImplantStatsPage"), "ImplantStatsPage");
+const ImplantStatsPage = lazyNamed(
+  () => import("./pages/implant/ImplantStatsPage"),
+  "ImplantStatsPage",
+);
 const WarehouseLedgerPage = lazyNamed(
   () => import("./pages/warehouse/WarehouseLedgerPage"),
   "WarehouseLedgerPage",

@@ -232,7 +232,13 @@ export function UsersPage() {
             setCreateOpen(open);
             if (!open) {
               setCreateSubmitting(false);
-              setNewUser({ username: "", displayName: "", password: "", role: "user", leaveInitialBalance: "0" });
+              setNewUser({
+                username: "",
+                displayName: "",
+                password: "",
+                role: "user",
+                leaveInitialBalance: "0",
+              });
             }
           }}
         >
@@ -317,30 +323,30 @@ export function UsersPage() {
                         </SelectContent>
                       </Select>
                     </FieldContent>
-                    </Field>
-                  </FieldGroup>
+                  </Field>
+                </FieldGroup>
 
-                  {newUser.role === "user" ? (
-                    <Field orientation="responsive">
-                      <FieldLabel>
-                        <FieldTitle>初始假期额度</FieldTitle>
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input
-                          className="w-full"
-                          type="text"
-                          inputMode="decimal"
-                          value={newUser.leaveInitialBalance}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (!isLeaveBalanceInput(raw)) return;
-                            setNewUser((s) => ({ ...s, leaveInitialBalance: raw }));
-                          }}
-                        />
-                      </FieldContent>
-                    </Field>
-                  ) : null}
-                </div>
+                {newUser.role === "user" ? (
+                  <Field orientation="responsive">
+                    <FieldLabel>
+                      <FieldTitle>初始假期额度</FieldTitle>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        className="w-full"
+                        type="text"
+                        inputMode="decimal"
+                        value={newUser.leaveInitialBalance}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (!isLeaveBalanceInput(raw)) return;
+                          setNewUser((s) => ({ ...s, leaveInitialBalance: raw }));
+                        }}
+                      />
+                    </FieldContent>
+                  </Field>
+                ) : null}
+              </div>
             </FieldSet>
 
             <DialogFooter>
