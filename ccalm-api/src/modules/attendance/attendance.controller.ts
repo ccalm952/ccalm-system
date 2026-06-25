@@ -17,6 +17,7 @@ import {
   AdminMakeupDto,
   RejectMakeupRequestDto,
 } from "./dto/makeup-request.dto"
+import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
 import { PunchDto } from "./dto/punch.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
 import {
@@ -120,6 +121,20 @@ export class AttendanceController {
   async directMakeup(@Req() req: Request, @Body() dto: AdminMakeupDto) {
     this.requireAdmin(req)
     return await this.makeup.directMakeup(dto)
+  }
+
+  @Post("rest")
+  async declareRest(@Req() req: Request, @Body() dto: DeclareRestDto) {
+    return await this.schedule.declareRest(this.userId(req), dto.date, dto.half)
+  }
+
+  @Post("rest/clear")
+  async clearRest(@Req() req: Request, @Body() dto: ClearRestDto) {
+    return await this.schedule.clearRestHalf(
+      this.userId(req),
+      dto.date,
+      dto.half
+    )
   }
 
   @Get("makeup-requests/mine")

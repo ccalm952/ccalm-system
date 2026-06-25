@@ -26,9 +26,16 @@ import {
 } from "@/components/ui/timeline";
 import { requestAmapGeolocation } from "@/lib/amap-geolocate";
 import { reverseGeocodeDisplayAddress } from "@/lib/amap-regeo";
-import { AttendanceOutCell } from "@/components/attendance-out-cell";
+import { AttendanceHalfOutCell } from "@/components/attendance-half-out-cell";
+import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
+import { RestActionDialog } from "@/components/rest-action-dialog";
 import type { MakeupOutType } from "@/lib/attendance/makeup";
+import {
+  canDeclareRest,
+  isHalfScheduleRest,
+  type RestHalf,
+} from "@/lib/attendance/rest";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendancePunchType,
@@ -184,6 +191,19 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
+function inCellClass(row: AttendanceMonthlySummary["rows"][number], half: RestHalf, time: string | null) {
+  if (time) return "";
+  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
+  if (canDeclareRest(row, half)) return "";
+  return "text-destructive";
+}
+
+function outCellClass(row: AttendanceMonthlySummary["rows"][number], half: RestHalf, time: string | null) {
+  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
+  if (time) return "";
+  return "text-destructive";
+}
+
 function formatCurrentLocation(loc: Pick<LocationState, "lat" | "lng" | "address">): string {
   if (loc.address?.trim()) return loc.address.trim();
   if (loc.lat && loc.lng) return `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
@@ -247,6 +267,20 @@ export function AttendancePage() {
     date: string;
     type: MakeupOutType;
   } | null>(null);
+  const [restDialog, setRestDialog] = React.useState<{
+    date: string;
+    half: RestHalf;
+    mode: "declare" | "clear";
+    scheduleRest?: AttendanceMonthlySummary["rows"][number]["scheduleRest"];
+  } | null>(null);
+
+  const reloadMonthSummary = React.useCallback(async () => {
+    const monthly = await api<AttendanceMonthlySummary>(
+      "GET",
+      `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
+    );
+    setMonthSummary(monthly);
+  }, []);
 
   const reloadMakeupRequests = React.useCallback(async () => {
     try {
@@ -574,19 +608,40 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              r.morningIn ? "" : "text-destructive",
+                              inCellClass(r, "morning", r.morningIn),
                             )}
                           >
-                            {r.morningIn ?? ""}
+                            <AttendanceInCell
+                              row={r}
+                              half="morning"
+                              time={r.morningIn}
+                              onDeclare={() =>
+                                setRestDialog({
+                                  date: r.date,
+                                  half: "morning",
+                                  mode: "declare",
+                                  scheduleRest: r.scheduleRest,
+                                })
+                              }
+                              onClear={() =>
+                                setRestDialog({
+                                  date: r.date,
+                                  half: "morning",
+                                  mode: "clear",
+                                  scheduleRest: r.scheduleRest,
+                                })
+                              }
+                            />
                           </TableCell>
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              r.morningOut ? "" : "text-destructive",
+                              outCellClass(r, "morning", r.morningOut),
                             )}
                           >
-                            <AttendanceOutCell
+                            <AttendanceHalfOutCell
                               row={r}
+                              half="morning"
                               type="morning_out"
                               time={r.morningOut}
                               makeupRequests={makeupRequests}
@@ -598,19 +653,40 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              r.afternoonIn ? "" : "text-destructive",
+                              inCellClass(r, "afternoon", r.afternoonIn),
                             )}
                           >
-                            {r.afternoonIn ?? ""}
+                            <AttendanceInCell
+                              row={r}
+                              half="afternoon"
+                              time={r.afternoonIn}
+                              onDeclare={() =>
+                                setRestDialog({
+                                  date: r.date,
+                                  half: "afternoon",
+                                  mode: "declare",
+                                  scheduleRest: r.scheduleRest,
+                                })
+                              }
+                              onClear={() =>
+                                setRestDialog({
+                                  date: r.date,
+                                  half: "afternoon",
+                                  mode: "clear",
+                                  scheduleRest: r.scheduleRest,
+                                })
+                              }
+                            />
                           </TableCell>
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              r.afternoonOut ? "" : "text-destructive",
+                              outCellClass(r, "afternoon", r.afternoonOut),
                             )}
                           >
-                            <AttendanceOutCell
+                            <AttendanceHalfOutCell
                               row={r}
+                              half="afternoon"
                               type="afternoon_out"
                               time={r.afternoonOut}
                               makeupRequests={makeupRequests}
@@ -640,10 +716,24 @@ export function AttendancePage() {
           type={makeupDialog.type}
           onSuccess={() => {
             void reloadMakeupRequests();
-            void api<AttendanceMonthlySummary>(
-              "GET",
-              `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
-            ).then(setMonthSummary);
+            void reloadMonthSummary();
+          }}
+        />
+      ) : null}
+
+      {restDialog ? (
+        <RestActionDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setRestDialog(null);
+          }}
+          date={restDialog.date}
+          half={restDialog.half}
+          mode={restDialog.mode}
+          scheduleRest={restDialog.scheduleRest}
+          remainingLeave={monthSummary?.remainingLeave}
+          onSuccess={() => {
+            void reloadMonthSummary();
           }}
         />
       ) : null}

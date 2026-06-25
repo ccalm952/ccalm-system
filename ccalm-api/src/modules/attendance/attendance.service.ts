@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common"
 import dayjs from "dayjs"
 
 import { PrismaService } from "../../prisma/prisma.service"
+import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
 import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
@@ -12,7 +13,10 @@ const GLOBAL_CONFIG_ID = "global" as const
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly schedule: AttendanceScheduleService
+  ) {}
 
   async getGeofence() {
     const row = await this.prisma.geofenceConfig.findUnique({
@@ -234,6 +238,12 @@ export class AttendanceService {
     const startDate = start.format("YYYY-MM-DD")
     const rangeEnd = end.format("YYYY-MM-DD")
 
+    const scheduleMap = await this.schedule.scheduleMapForUser(
+      userId,
+      startDate,
+      rangeEnd
+    )
+
     const list = await this.prisma.attendanceRecord.findMany({
       where: {
         userId,
@@ -271,6 +281,7 @@ export class AttendanceService {
       afternoonOut: string | null
       morningOutIsMakeup: boolean
       afternoonOutIsMakeup: boolean
+      scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
       overtimeMinutes: number
       overtimeStr: string
     }> = []
@@ -290,6 +301,7 @@ export class AttendanceService {
       d = d.subtract(1, "day")
     ) {
       const ymd = d.format("YYYY-MM-DD")
+      const scheduleRest = scheduleMap.get(ymd) ?? null
       const dayRecords = (byDate.get(ymd) ?? []).slice()
       const row = {
         date: ymd,
@@ -299,6 +311,7 @@ export class AttendanceService {
         afternoonOut: null as string | null,
         morningOutIsMakeup: false,
         afternoonOutIsMakeup: false,
+        scheduleRest,
         overtimeMinutes: 0,
         overtimeStr: "-",
       }
@@ -323,17 +336,17 @@ export class AttendanceService {
         row.afternoonIn ||
         row.afternoonOut
       )
-      if (!hasAny) {
+      if (!hasAny && !scheduleRest) {
         restDays += 1
         rows.push(row)
         continue
       }
 
-      const dayStats = applyDayAttendanceRest(row)
+      const dayStats = applyDayAttendanceRest(row, scheduleRest)
       attendanceDays += dayStats.attendanceDays
       restDays += dayStats.restDays
 
-      missingSlots += countMissingOutSlots(row)
+      missingSlots += countMissingOutSlots(row, scheduleRest)
 
       let overtime = 0
       if (row.morningOut && Number.isFinite(normalMorningEnd)) {
@@ -355,6 +368,8 @@ export class AttendanceService {
       rows.push(row)
     }
 
+    const remainingLeave = await this.schedule.getRemainingLeave(userId, month)
+
     return {
       month,
       startDate,
@@ -364,6 +379,7 @@ export class AttendanceService {
       missingSlots,
       overtimeMinutes,
       overtimeStr: fmtOvertime(overtimeMinutes),
+      remainingLeave,
       rows,
     }
   }
@@ -389,42 +405,62 @@ function haversineDistanceMeters(
   return R * c
 }
 
-function applyDayAttendanceRest(row: {
-  morningIn: string | null
-  morningOut: string | null
-  afternoonIn: string | null
-  afternoonOut: string | null
-}): { attendanceDays: number; restDays: number } {
-  const hasAny = !!(
-    row.morningIn ||
-    row.morningOut ||
-    row.afternoonIn ||
-    row.afternoonOut
-  )
-  if (!hasAny) {
-    return { attendanceDays: 0, restDays: 1 }
-  }
+function isMorningScheduleRest(
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): boolean {
+  return scheduleRest === "full_rest" || scheduleRest === "morning_rest"
+}
 
+function isAfternoonScheduleRest(
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): boolean {
+  return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest"
+}
+
+function applyDayAttendanceRest(
+  row: {
+    morningIn: string | null
+    morningOut: string | null
+    afternoonIn: string | null
+    afternoonOut: string | null
+  },
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): { attendanceDays: number; restDays: number } {
   let attendanceDays = 0
   let restDays = 0
 
   if (row.morningIn) attendanceDays += 0.5
+  else if (isMorningScheduleRest(scheduleRest)) restDays += 0.5
   else restDays += 0.5
 
   if (row.afternoonIn) attendanceDays += 0.5
+  else if (isAfternoonScheduleRest(scheduleRest)) restDays += 0.5
   else restDays += 0.5
 
   return { attendanceDays, restDays }
 }
 
-function countMissingOutSlots(row: {
-  morningIn: string | null
-  morningOut: string | null
-  afternoonIn: string | null
-  afternoonOut: string | null
-}): number {
+function countMissingOutSlots(
+  row: {
+    morningIn: string | null
+    morningOut: string | null
+    afternoonIn: string | null
+    afternoonOut: string | null
+  },
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): number {
   let count = 0
-  if (row.morningIn && !row.morningOut) count += 1
-  if (row.afternoonIn && !row.afternoonOut) count += 1
+  if (
+    !isMorningScheduleRest(scheduleRest) &&
+    row.morningIn &&
+    !row.morningOut
+  )
+    count += 1
+  if (
+    !isAfternoonScheduleRest(scheduleRest) &&
+    row.afternoonIn &&
+    !row.afternoonOut
+  )
+    count += 1
   return count
 }

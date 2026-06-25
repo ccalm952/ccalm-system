@@ -359,4 +359,165 @@ export class AttendanceScheduleService {
 
     return await this.getMonth(month)
   }
+
+  async getRemainingLeave(userId: string, month: string): Promise<number> {
+    monthBounds(month)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { leaveInitialBalance: true, createdAt: true },
+    })
+    if (!user) throw new BadRequestException("用户不存在")
+    return await this.remainingLeaveForMonth(
+      userId,
+      month,
+      user.leaveInitialBalance,
+      user.createdAt
+    )
+  }
+
+  private assertRestDateAllowed(dateStr: string) {
+    const d = dayjs(dateStr, "YYYY-MM-DD", true)
+    if (!d.isValid()) throw new BadRequestException("日期不合法")
+    const today = dayjs().startOf("day")
+    const earliest = today.subtract(29, "day")
+    if (d.isBefore(earliest) || d.isAfter(today)) {
+      throw new BadRequestException("仅支持登记最近 30 天内的休息")
+    }
+  }
+
+  private async dayPunchTypes(userId: string, dateStr: string) {
+    const start = dayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
+    const end = dayjs(dateStr, "YYYY-MM-DD").add(1, "day").startOf("day").toDate()
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: { userId, punchTime: { gte: start, lt: end } },
+      select: { type: true },
+    })
+    return new Set(records.map((r) => r.type))
+  }
+
+  private nextRestType(
+    current: ScheduleShiftType | null,
+    half: "morning" | "afternoon"
+  ): ScheduleShiftType {
+    if (half === "morning") {
+      if (current === "afternoon_rest") return "full_rest"
+      return "morning_rest"
+    }
+    if (current === "morning_rest") return "full_rest"
+    return "afternoon_rest"
+  }
+
+  private leaveDelta(
+    current: ScheduleShiftType | null,
+    next: ScheduleShiftType | null
+  ): number {
+    return leaveDaysForShift(next) - leaveDaysForShift(current)
+  }
+
+  async declareRest(userId: string, date: string, half: "morning" | "afternoon") {
+    this.assertRestDateAllowed(date)
+
+    const punched = await this.dayPunchTypes(userId, date)
+    if (half === "morning" && (punched.has("morning_in") || punched.has("morning_out"))) {
+      throw new BadRequestException("上午已有打卡记录，无法登记休息")
+    }
+    if (
+      half === "afternoon" &&
+      (punched.has("afternoon_in") || punched.has("afternoon_out"))
+    ) {
+      throw new BadRequestException("下午已有打卡记录，无法登记休息")
+    }
+
+    const existing = await this.prisma.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date } },
+    })
+    const current = existing?.shiftType ?? null
+
+    if (half === "morning" && (current === "morning_rest" || current === "full_rest")) {
+      throw new BadRequestException("上午已登记休息")
+    }
+    if (
+      half === "afternoon" &&
+      (current === "afternoon_rest" || current === "full_rest")
+    ) {
+      throw new BadRequestException("下午已登记休息")
+    }
+
+    const next = this.nextRestType(current, half)
+    const month = dayjs(date).format("YYYY-MM")
+    const delta = this.leaveDelta(current, next)
+    if (delta > 0) {
+      const remaining = await this.getRemainingLeave(userId, month)
+      if (remaining < delta) {
+        throw new BadRequestException("剩余假期不足，无法登记休息")
+      }
+    }
+
+    await this.prisma.scheduleEntry.upsert({
+      where: { userId_date: { userId, date } },
+      create: {
+        userId,
+        date,
+        shiftType: next,
+        isManual: true,
+      },
+      update: {
+        shiftType: next,
+        isManual: true,
+      },
+    })
+
+    return { date, shiftType: next }
+  }
+
+  async clearRestHalf(userId: string, date: string, half: "morning" | "afternoon") {
+    this.assertRestDateAllowed(date)
+
+    const existing = await this.prisma.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date } },
+    })
+    if (!existing) {
+      throw new BadRequestException("该日未登记休息")
+    }
+
+    const current = existing.shiftType
+    let next: ScheduleShiftType | null = null
+
+    if (half === "morning") {
+      if (current === "morning_rest") next = null
+      else if (current === "full_rest") next = "afternoon_rest"
+      else throw new BadRequestException("上午未登记休息")
+    } else {
+      if (current === "afternoon_rest") next = null
+      else if (current === "full_rest") next = "morning_rest"
+      else throw new BadRequestException("下午未登记休息")
+    }
+
+    if (!next) {
+      await this.prisma.scheduleEntry.delete({
+        where: { userId_date: { userId, date } },
+      })
+      return { date, shiftType: null }
+    }
+
+    await this.prisma.scheduleEntry.update({
+      where: { userId_date: { userId, date } },
+      data: { shiftType: next, isManual: true },
+    })
+    return { date, shiftType: next }
+  }
+
+  async scheduleMapForUser(
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<Map<string, ScheduleShiftType>> {
+    const entries = await this.prisma.scheduleEntry.findMany({
+      where: {
+        userId,
+        date: { gte: startDate, lte: endDate },
+      },
+    })
+    return new Map(entries.map((e) => [e.date, e.shiftType]))
+  }
 }

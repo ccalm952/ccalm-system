@@ -1,5 +1,7 @@
 export type AttendancePunchType = "morning_in" | "morning_out" | "afternoon_in" | "afternoon_out";
 
+export type ScheduleRestType = "full_rest" | "morning_rest" | "afternoon_rest";
+
 export const ATTENDANCE_PUNCH_TYPE_LABEL: Record<AttendancePunchType, string> = {
   morning_in: "上午上班",
   morning_out: "上午下班",
@@ -56,6 +58,7 @@ export type AttendancePunchDayRow = {
   afternoonOut: string | null;
   morningOutIsMakeup?: boolean;
   afternoonOutIsMakeup?: boolean;
+  scheduleRest?: ScheduleRestType | null;
   overtimeMinutes: number;
   overtimeStr: string;
 };
@@ -95,5 +98,6 @@ export type AttendanceMonthlySummary = {
   missingSlots: number;
   overtimeMinutes: number;
   overtimeStr: string;
+  remainingLeave?: number;
   rows: AttendancePunchDayRow[];
 };

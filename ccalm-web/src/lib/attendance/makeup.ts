@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType } from "./types";
+import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType, ScheduleRestType } from "./types";
 
 export type MakeupOutType = "morning_out" | "afternoon_out";
 export type AdminMakeupType = AttendancePunchType;
@@ -18,6 +18,18 @@ export function slotTime(
   if (type === "morning_out") return row.morningOut;
   if (type === "afternoon_in") return row.afternoonIn;
   return row.afternoonOut;
+}
+
+function isMorningScheduleRest(
+  scheduleRest: ScheduleRestType | null | undefined,
+): boolean {
+  return scheduleRest === "full_rest" || scheduleRest === "morning_rest";
+}
+
+function isAfternoonScheduleRest(
+  scheduleRest: ScheduleRestType | null | undefined,
+): boolean {
+  return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest";
 }
 
 export function isWithinMakeupWindow(dateStr: string): boolean {
@@ -50,6 +62,9 @@ export function makeupSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
+  if (type === "morning_out" && isMorningScheduleRest(row.scheduleRest)) return null;
+  if (type === "afternoon_out" && isAfternoonScheduleRest(row.scheduleRest)) return null;
+
   const inType = IN_TYPE_BY_OUT[type];
   if (!slotTime(row, inType) || slotTime(row, type)) return null;
 
@@ -64,15 +79,26 @@ export function formatMakeupTime(iso: string): string {
   return d.isValid() ? d.format("HH:mm") : iso;
 }
 
-/** 有上班卡、无对应下班卡各计 1 次缺卡（与补卡按钮显示规则一致）。 */
+/** 有上班卡、无对应下班卡各计 1 次缺卡（休息半天不计）。 */
 export function countMissingOutSlots(row: {
   morningIn: string | null;
   morningOut: string | null;
   afternoonIn: string | null;
   afternoonOut: string | null;
+  scheduleRest?: ScheduleRestType | null;
 }): number {
   let count = 0;
-  if (row.morningIn && !row.morningOut) count += 1;
-  if (row.afternoonIn && !row.afternoonOut) count += 1;
+  if (
+    !isMorningScheduleRest(row.scheduleRest) &&
+    row.morningIn &&
+    !row.morningOut
+  )
+    count += 1;
+  if (
+    !isAfternoonScheduleRest(row.scheduleRest) &&
+    row.afternoonIn &&
+    !row.afternoonOut
+  )
+    count += 1;
   return count;
 }
