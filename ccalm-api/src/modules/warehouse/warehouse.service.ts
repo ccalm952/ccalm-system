@@ -11,6 +11,13 @@ import type {
   CreateWarehouseTxnDto,
   UpdateWarehouseItemDto,
 } from "./dto/warehouse.dto"
+import {
+  lichiItemCode,
+  lichiTxnRemark,
+  LICHI_SUPPLIER,
+  parseLichiExcel,
+  type LichiImportResult,
+} from "./warehouse-lichi-import"
 
 function cleanText(value?: string, fallback = ""): string {
   return value?.trim() || fallback
@@ -20,6 +27,40 @@ function requireDate(value: string): string {
   const d = dayjs(value, "YYYY-MM-DD", true)
   if (!d.isValid()) throw new BadRequestException("日期格式不合法")
   return d.format("YYYY-MM-DD")
+}
+
+function txnQtyDelta(type: "in" | "out" | "adjust", qty: number): number {
+  return type === "out" ? -qty : qty
+}
+
+function resolveTxnDateRange(filters: {
+  month?: string
+  startDate?: string
+  endDate?: string
+}): { gte: string; lte: string } | undefined {
+  const startDate = filters.startDate?.trim()
+  const endDate = filters.endDate?.trim()
+
+  if (startDate || endDate) {
+    if (startDate) requireDate(startDate)
+    if (endDate) requireDate(endDate)
+    if (startDate && endDate && startDate > endDate) {
+      throw new BadRequestException("开始日期不能晚于结束日期")
+    }
+    const gte = startDate ?? endDate!
+    const lte = endDate ?? startDate!
+    return { gte, lte }
+  }
+
+  const month = filters.month?.trim()
+  if (!month) return undefined
+  if (!dayjs(`${month}-01`, "YYYY-MM-DD", true).isValid()) {
+    throw new BadRequestException("月份格式不合法")
+  }
+  return {
+    gte: `${month}-01`,
+    lte: dayjs(`${month}-01`).endOf("month").format("YYYY-MM-DD"),
+  }
 }
 
 @Injectable()
@@ -124,7 +165,7 @@ export class WarehouseService {
     if (!item.enabled)
       throw new BadRequestException("物料已停用，不能继续出入库")
 
-    const qtyDelta = dto.type === "out" ? -dto.qty : dto.qty
+    const qtyDelta = txnQtyDelta(dto.type, dto.qty)
     const nextQty = item.currentQty + qtyDelta
     if (nextQty < 0) throw new BadRequestException("出库后库存不能为负数")
 
@@ -159,28 +200,59 @@ export class WarehouseService {
     return { ok: true }
   }
 
+  async deleteTxn(id: number) {
+    const txn = await this.prisma.warehouseTxn.findUnique({
+      where: { id },
+      include: { item: true },
+    })
+    if (!txn) throw new NotFoundException("流水不存在")
+
+    const qtyDelta = txnQtyDelta(txn.type, txn.qty)
+    const nextQty = txn.item.currentQty - qtyDelta
+    if (nextQty < 0) {
+      throw new BadRequestException("删除后库存不能为负数")
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.warehouseTxn.delete({ where: { id } })
+
+      const latestPurchase = await tx.warehouseTxn.findFirst({
+        where: {
+          itemId: txn.itemId,
+          type: "in",
+          bizType: "purchase",
+        },
+        orderBy: [{ occurDate: "desc" }, { id: "desc" }],
+      })
+
+      await tx.warehouseItem.update({
+        where: { id: txn.itemId },
+        data: {
+          currentQty: nextQty,
+          ...(txn.type === "in" && txn.bizType === "purchase"
+            ? { lastPurchasePrice: latestPurchase?.unitPrice ?? 0 }
+            : {}),
+        },
+      })
+    })
+
+    return { ok: true }
+  }
+
   async listTxns(filters: {
     month?: string
+    startDate?: string
+    endDate?: string
     type?: "in" | "out" | "adjust"
     itemId?: number
   }) {
-    const month = filters.month?.trim()
-    if (month && !dayjs(`${month}-01`, "YYYY-MM-DD", true).isValid()) {
-      throw new BadRequestException("月份格式不合法")
-    }
+    const occurDate = resolveTxnDateRange(filters)
 
     return await this.prisma.warehouseTxn.findMany({
       where: {
         ...(filters.type ? { type: filters.type } : {}),
         ...(filters.itemId ? { itemId: filters.itemId } : {}),
-        ...(month
-          ? {
-              occurDate: {
-                gte: `${month}-01`,
-                lte: dayjs(`${month}-01`).endOf("month").format("YYYY-MM-DD"),
-              },
-            }
-          : {}),
+        ...(occurDate ? { occurDate } : {}),
       },
       include: {
         item: true,
@@ -193,20 +265,20 @@ export class WarehouseService {
     })
   }
 
-  async purchaseStats(month?: string) {
-    const targetMonth = cleanText(month, dayjs().format("YYYY-MM"))
-    if (!dayjs(`${targetMonth}-01`, "YYYY-MM-DD", true).isValid()) {
-      throw new BadRequestException("月份格式不合法")
-    }
+  async purchaseStats(filters: {
+    month?: string
+    startDate?: string
+    endDate?: string
+  }) {
+    const occurDate =
+      resolveTxnDateRange(filters) ??
+      resolveTxnDateRange({ month: dayjs().format("YYYY-MM") })!
 
     const txns = await this.prisma.warehouseTxn.findMany({
       where: {
         type: "in",
         bizType: "purchase",
-        occurDate: {
-          gte: `${targetMonth}-01`,
-          lte: dayjs(`${targetMonth}-01`).endOf("month").format("YYYY-MM-DD"),
-        },
+        occurDate,
       },
       include: { item: true },
       orderBy: [{ amount: "desc" }, { id: "desc" }],
@@ -221,6 +293,7 @@ export class WarehouseService {
         spec: string
         unit: string
         qty: number
+        unitPrice: number
         amount: number
       }
     >()
@@ -237,21 +310,104 @@ export class WarehouseService {
         spec: txn.item.spec,
         unit: txn.item.unit,
         qty: 0,
+        unitPrice: 0,
         amount: 0,
       }
       prev.qty += txn.qty
       prev.amount += txn.amount
+      prev.unitPrice =
+        prev.qty > 0 ? Number((prev.amount / prev.qty).toFixed(2)) : 0
       byItemMap.set(txn.itemId, prev)
     }
 
     const byItem = [...byItemMap.values()].sort((a, b) => b.amount - a.amount)
 
     return {
-      month: targetMonth,
+      month: filters.month?.trim() || "",
       totalAmount: Number(totalAmount.toFixed(2)),
       totalQty,
       txnCount: txns.length,
       byItem,
+    }
+  }
+
+  async importLichiExcel(
+    buffer: Buffer,
+    operatorUserId: string
+  ): Promise<LichiImportResult> {
+    const rows = parseLichiExcel(buffer)
+    let createdItems = 0
+    let createdTxns = 0
+    let skippedTxns = 0
+
+    for (const row of rows) {
+      const code = lichiItemCode(row.productCode)
+      const remark = lichiTxnRemark(row)
+
+      const duplicated = await this.prisma.warehouseTxn.findFirst({
+        where: { remark },
+      })
+      if (duplicated) {
+        skippedTxns += 1
+        continue
+      }
+
+      let item = await this.prisma.warehouseItem.findUnique({
+        where: { code },
+      })
+
+      if (!item) {
+        item = await this.prisma.warehouseItem.create({
+          data: {
+            code,
+            name: row.name,
+            category: row.category,
+            spec: row.spec,
+            unit: row.unit,
+            brand: row.brand,
+            manufacturer: row.manufacturer,
+            supplierName: LICHI_SUPPLIER,
+            enabled: true,
+          },
+        })
+        createdItems += 1
+      }
+
+      const itemId = item.id
+      const amount = Number((row.qty * row.unitPrice).toFixed(2))
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.warehouseTxn.create({
+          data: {
+            itemId,
+            type: "in",
+            bizType: "purchase",
+            qty: row.qty,
+            unitPrice: row.unitPrice,
+            amount,
+            occurDate: row.shipDate,
+            remark,
+            operatorUserId,
+          },
+        })
+
+        await tx.warehouseItem.update({
+          where: { id: itemId },
+          data: {
+            currentQty: { increment: row.qty },
+            lastPurchasePrice: row.unitPrice,
+          },
+        })
+      })
+
+      createdTxns += 1
+    }
+
+    return {
+      totalRows: rows.length,
+      createdItems,
+      createdTxns,
+      skippedTxns,
     }
   }
 }

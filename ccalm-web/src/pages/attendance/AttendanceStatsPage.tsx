@@ -9,7 +9,6 @@ import {
   type ExpandedState,
 } from "@tanstack/react-table";
 
-import { AttendanceOutCell } from "@/components/attendance-out-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -22,8 +21,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AdminMakeupType } from "@/lib/attendance/makeup";
+import { punchSlotState } from "@/lib/attendance/makeup";
 import { formatDayCount } from "@/lib/attendance/summary";
-import type { AttendanceMonthlySummary, AttendancePunchDayRow } from "@/lib/attendance/types";
+import type {
+  AttendanceMakeupRequest,
+  AttendanceMonthlySummary,
+  AttendancePunchDayRow,
+} from "@/lib/attendance/types";
 import { api, type ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
@@ -89,13 +93,30 @@ const PUNCH_DETAIL_COLUMNS: Array<{
   { type: "afternoon_out", getTime: (row) => row.afternoonOut },
 ];
 
-async function loadSummary(month: string): Promise<{ isAdmin: boolean; summary: UserAgg[] }> {
+async function loadPendingMakeupRequests(isAdmin: boolean): Promise<AttendanceMakeupRequest[]> {
+  if (isAdmin) {
+    return await api<AttendanceMakeupRequest[]>(
+      "GET",
+      "/attendance/makeup-requests?status=pending",
+    );
+  }
+  const list = await api<AttendanceMakeupRequest[]>("GET", "/attendance/makeup-requests/mine");
+  return list.filter((item) => item.status === "pending");
+}
+
+async function loadSummary(month: string): Promise<{
+  isAdmin: boolean;
+  summary: UserAgg[];
+  pendingMakeupRequests: AttendanceMakeupRequest[];
+}> {
   const me = await api<{
     id: string;
     role: "user" | "admin";
     displayName: string;
     username: string;
   }>("GET", "/auth/me");
+
+  const pendingMakeupRequests = await loadPendingMakeupRequests(me.role === "admin");
 
   if (me.role === "admin") {
     const users = await api<Array<{ id: string; displayName: string; username: string }>>(
@@ -117,7 +138,7 @@ async function loadSummary(month: string): Promise<{ isAdmin: boolean; summary: 
         rows: s.rows,
       } satisfies UserAgg;
     });
-    return { isAdmin: true, summary: await Promise.all(tasks) };
+    return { isAdmin: true, summary: await Promise.all(tasks), pendingMakeupRequests };
   }
 
   const s = await api<AttendanceMonthlySummary>(
@@ -137,13 +158,42 @@ async function loadSummary(month: string): Promise<{ isAdmin: boolean; summary: 
         rows: s.rows,
       },
     ],
+    pendingMakeupRequests,
   };
+}
+
+function StatsPunchCell(props: {
+  row: AttendancePunchDayRow;
+  type: AdminMakeupType;
+  time: string | null;
+  makeupRequests: AttendanceMakeupRequest[];
+  adminDirect: boolean;
+  onApply?: () => void;
+}) {
+  const { row, type, time, makeupRequests, adminDirect, onApply } = props;
+  if (time) return <span>{time}</span>;
+
+  const slotState = punchSlotState(row, type, makeupRequests, adminDirect);
+  if (slotState === "pending") {
+    return <span className="text-sm text-muted-foreground">审批中</span>;
+  }
+  if (slotState === "apply" && onApply) {
+    return (
+      <Button type="button" variant="link" className="h-auto px-0 text-sm" onClick={onApply}>
+        补卡
+      </Button>
+    );
+  }
+  return null;
 }
 
 export function AttendanceStatsPage() {
   const [month, setMonth] = React.useState(() => currentMonth());
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [summary, setSummary] = React.useState<UserAgg[] | null>(null);
+  const [pendingMakeupRequests, setPendingMakeupRequests] = React.useState<
+    AttendanceMakeupRequest[]
+  >([]);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [makeupDialog, setMakeupDialog] = React.useState<{
@@ -159,6 +209,7 @@ export function AttendanceStatsPage() {
       const result = await loadSummary(month);
       setIsAdmin(result.isAdmin);
       setSummary(result.summary);
+      setPendingMakeupRequests(result.pendingMakeupRequests);
     } catch (e) {
       const msg = errorMessage(e);
       setError(msg);
@@ -305,6 +356,9 @@ export function AttendanceStatsPage() {
                                   {PUNCH_DETAIL_COLUMNS.map((col) => {
                                     const time = col.getTime(r);
                                     const restLabel = slotRestLabel(r, col.type);
+                                    const userRequests = pendingMakeupRequests.filter(
+                                      (item) => item.userId === row.original.userId,
+                                    );
                                     return (
                                       <TableCell
                                         key={col.type}
@@ -315,23 +369,25 @@ export function AttendanceStatsPage() {
                                       >
                                         {restLabel ? (
                                           restLabel
-                                        ) : isAdmin ? (
-                                          <AttendanceOutCell
+                                        ) : (
+                                          <StatsPunchCell
                                             row={r}
                                             type={col.type}
                                             time={time}
-                                            adminDirect
-                                            onApply={() =>
-                                              setMakeupDialog({
-                                                userId: row.original.userId,
-                                                userName: row.original.userName,
-                                                date: r.date,
-                                                type: col.type,
-                                              })
+                                            makeupRequests={userRequests}
+                                            adminDirect={isAdmin}
+                                            onApply={
+                                              isAdmin
+                                                ? () =>
+                                                    setMakeupDialog({
+                                                      userId: row.original.userId,
+                                                      userName: row.original.userName,
+                                                      date: r.date,
+                                                      type: col.type,
+                                                    })
+                                                : undefined
                                             }
                                           />
-                                        ) : (
-                                          (time ?? "")
                                         )}
                                       </TableCell>
                                     );

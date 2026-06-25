@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { adminMakeupSlotState, makeupSlotState, type AdminMakeupType, type MakeupOutType } from "@/lib/attendance/makeup";
+import { adminMakeupSlotStateWithPending, makeupSlotState, type AdminMakeupType, type MakeupOutType } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
 type AttendanceOutCellProps =
@@ -27,7 +27,7 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
 
   let slotState: "apply" | "pending" | null;
   if (props.adminDirect) {
-    slotState = adminMakeupSlotState(row, props.type);
+    slotState = adminMakeupSlotStateWithPending(row, props.type, makeupRequests);
   } else {
     slotState = makeupSlotState(row, props.type, makeupRequests);
   }

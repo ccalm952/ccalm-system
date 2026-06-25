@@ -50,6 +50,34 @@ export function adminMakeupSlotState(
   return "apply";
 }
 
+export function adminMakeupSlotStateWithPending(
+  row: AttendancePunchDayRow,
+  type: AdminMakeupType,
+  requests: AttendanceMakeupRequest[] = [],
+): "apply" | "pending" | null {
+  const base = adminMakeupSlotState(row, type);
+  if (!base) return null;
+  const pending = requests.some(
+    (r) => r.date === row.date && r.type === type && r.status === "pending",
+  );
+  return pending ? "pending" : "apply";
+}
+
+export function punchSlotState(
+  row: AttendancePunchDayRow,
+  type: AdminMakeupType,
+  requests: AttendanceMakeupRequest[] = [],
+  adminDirect = false,
+): "apply" | "pending" | null {
+  if (adminDirect) {
+    return adminMakeupSlotStateWithPending(row, type, requests);
+  }
+  if (type === "morning_in" || type === "afternoon_in") {
+    return makeupInSlotState(row, type, requests);
+  }
+  return makeupSlotState(row, type, requests);
+}
+
 export function makeupSlotState(
   row: AttendancePunchDayRow,
   type: MakeupOutType,

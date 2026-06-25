@@ -1,7 +1,18 @@
 import * as React from "react";
 import dayjs from "dayjs";
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
@@ -37,10 +48,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/sonner";
-import { MonthPickerField } from "@/components/month-picker-field";
+import { DateRangePickerField, type DateRangeValue } from "@/components/date-range-picker-field";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
+import { cn } from "@/lib/utils";
 
 type WarehouseItem = {
   id: number;
@@ -108,13 +128,125 @@ function makeWarehouseItemCode() {
   return `WP${dayjs().format("YYYYMMDDHHmmss")}`;
 }
 
+function defaultDateRange(): DateRangeValue {
+  return {
+    from: dayjs().startOf("month").format("YYYY-MM-DD"),
+    to: dayjs().format("YYYY-MM-DD"),
+  };
+}
+
+function WarehouseCategoryCombobox({
+  items,
+  value,
+  onValueChange,
+  className,
+}: {
+  items: string[];
+  value: string;
+  onValueChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <Combobox
+      items={items}
+      value={value || null}
+      onValueChange={(v) => onValueChange(v ?? "")}
+      onInputValueChange={(v) => onValueChange(v)}
+    >
+      <ComboboxInput
+        showTrigger={false}
+        placeholder="选择或输入分类"
+        className={cn("w-full min-w-0", className)}
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>暂无匹配，可直接输入新分类</ComboboxEmpty>
+        <ComboboxList>
+          {(item: string) => (
+            <ComboboxItem key={item} value={item}>
+              {item}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
+
+function TruncateCell({ children, title }: { children: React.ReactNode; title?: string }) {
+  return (
+    <div className="truncate text-left" title={title ?? (typeof children === "string" ? children : undefined)}>
+      {children}
+    </div>
+  );
+}
+
+type ItemSortKey = "code" | "name" | "category" | "brand" | "spec" | "unit" | "currentQty";
+
+type ItemSort = {
+  key: ItemSortKey;
+  dir: "asc" | "desc";
+};
+
+function compareItems(a: WarehouseItem, b: WarehouseItem, sort: ItemSort): number {
+  let cmp = 0;
+  if (sort.key === "currentQty") {
+    cmp = a.currentQty - b.currentQty;
+  } else {
+    const av = (a[sort.key] ?? "").toString();
+    const bv = (b[sort.key] ?? "").toString();
+    cmp = av.localeCompare(bv, "zh-CN", { numeric: true });
+  }
+  return sort.dir === "asc" ? cmp : -cmp;
+}
+
+function SortableItemHead({
+  label,
+  sortKey,
+  activeSort,
+  onSort,
+  className,
+  align = "left",
+}: {
+  label: string;
+  sortKey: ItemSortKey;
+  activeSort: ItemSort | null;
+  onSort: (key: ItemSortKey) => void;
+  className?: string;
+  align?: "left" | "center";
+}) {
+  const active = activeSort?.key === sortKey;
+  const dir = active ? activeSort.dir : null;
+
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex w-full items-center gap-1 font-medium hover:text-foreground",
+          align === "center" ? "justify-center" : "justify-start",
+        )}
+        onClick={() => onSort(sortKey)}
+      >
+        <span>{label}</span>
+        {dir === "asc" ? (
+          <ArrowUpIcon className="size-3.5 shrink-0" />
+        ) : dir === "desc" ? (
+          <ArrowDownIcon className="size-3.5 shrink-0" />
+        ) : (
+          <ArrowUpDownIcon className="size-3.5 shrink-0 opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
 export function WarehouseLedgerPage() {
   const { me } = useAuth();
   const isAdmin = me?.role === "admin";
   const [items, setItems] = React.useState<WarehouseItem[]>([]);
   const [txns, setTxns] = React.useState<WarehouseTxn[]>([]);
   const [q, setQ] = React.useState("");
-  const [month, setMonth] = React.useState(dayjs().format("YYYY-MM"));
+  const [dateRange, setDateRange] = React.useState<DateRangeValue>(defaultDateRange);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
 
   const [itemDialogOpen, setItemDialogOpen] = React.useState(false);
@@ -145,6 +277,35 @@ export function WarehouseLedgerPage() {
 
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
   const totalQty = items.reduce((sum, item) => sum + item.currentQty, 0);
+  const categoryItems = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      const c = item.category?.trim();
+      if (c) set.add(c);
+    }
+    const current = itemForm.category.trim();
+    if (current) set.add(current);
+    return [...set].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  }, [items, itemForm.category]);
+  const importInputRef = React.useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = React.useState(false);
+  const [itemSort, setItemSort] = React.useState<ItemSort | null>(null);
+  const [deleteTxnId, setDeleteTxnId] = React.useState<number | null>(null);
+  const [deleteTxnSubmitting, setDeleteTxnSubmitting] = React.useState(false);
+
+  const displayItems = React.useMemo(() => {
+    if (!itemSort) return items;
+    return [...items].sort((a, b) => compareItems(a, b, itemSort));
+  }, [items, itemSort]);
+
+  function toggleItemSort(key: ItemSortKey) {
+    setItemSort((prev) => {
+      if (prev?.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      }
+      return { key, dir: "asc" };
+    });
+  }
 
   async function loadItems() {
     try {
@@ -166,7 +327,8 @@ export function WarehouseLedgerPage() {
   async function loadTxns() {
     try {
       const params = new URLSearchParams();
-      if (month) params.set("month", month);
+      if (dateRange.from) params.set("startDate", dateRange.from);
+      if (dateRange.to) params.set("endDate", dateRange.to);
       if (selectedId) params.set("itemId", String(selectedId));
       const data = await api<WarehouseTxn[]>(
         "GET",
@@ -187,7 +349,7 @@ export function WarehouseLedgerPage() {
   React.useEffect(() => {
     void loadTxns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, selectedId]);
+  }, [dateRange, selectedId]);
 
   function openCreateItem() {
     setEditingItemId(null);
@@ -268,6 +430,30 @@ export function WarehouseLedgerPage() {
     }
   }
 
+  async function handleImportLichi(file?: File) {
+    if (!file) return;
+    setImporting(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const result = await api<{
+        totalRows: number;
+        createdItems: number;
+        createdTxns: number;
+        skippedTxns: number;
+      }>("POST", "/warehouse/import/lichi", form);
+      toast.success(
+        `导入完成：${result.createdTxns} 条入库，新增物品 ${result.createdItems} 个，跳过 ${result.skippedTxns} 条`,
+      );
+      await Promise.all([loadItems(), loadTxns()]);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
   async function submitTxn() {
     if (!selectedItem) return;
     setTxnSubmitting(true);
@@ -277,7 +463,7 @@ export function WarehouseLedgerPage() {
         type: txnForm.type,
         bizType: txnForm.bizType,
         qty: Number(txnForm.qty),
-        unitPrice: Number(txnForm.unitPrice) || 0,
+        unitPrice: txnForm.type === "in" ? Number(txnForm.unitPrice) || 0 : 0,
         occurDate: txnForm.occurDate,
         remark: txnForm.remark.trim(),
       });
@@ -288,6 +474,21 @@ export function WarehouseLedgerPage() {
       toast.error(errorMessage(e));
     } finally {
       setTxnSubmitting(false);
+    }
+  }
+
+  async function confirmDeleteTxn() {
+    if (deleteTxnId == null) return;
+    setDeleteTxnSubmitting(true);
+    try {
+      await api("DELETE", `/warehouse/txns/${deleteTxnId}`);
+      toast.success("流水已删除");
+      setDeleteTxnId(null);
+      await Promise.all([loadItems(), loadTxns()]);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setDeleteTxnSubmitting(false);
     }
   }
 
@@ -305,10 +506,25 @@ export function WarehouseLedgerPage() {
             <Button type="button" variant="outline" onClick={() => void loadItems()}>
               搜索
             </Button>
-            <MonthPickerField value={month} onValueChange={setMonth} />
+            <DateRangePickerField value={dateRange} onValueChange={setDateRange} />
           </div>
           {isAdmin ? (
             <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => void handleImportLichi(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={importing}
+                onClick={() => importInputRef.current?.click()}
+              >
+                {importing ? "导入中…" : "导入"}
+              </Button>
               <Button type="button" variant="outline" onClick={openCreateItem}>
                 新增物品
               </Button>
@@ -344,27 +560,39 @@ export function WarehouseLedgerPage() {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[16%]">编码</TableHead>
-                  <TableHead className="w-[20%]">名称</TableHead>
-                  <TableHead className="w-[14%]">分类</TableHead>
-                  <TableHead className="w-[16%]">规格</TableHead>
-                  <TableHead className="w-[10%]">单位</TableHead>
-                  <TableHead className="w-[12%] text-center">库存</TableHead>
-                  <TableHead className="w-[12%] text-center">操作</TableHead>
+                  <SortableItemHead label="编码" sortKey="code" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableItemHead label="名称" sortKey="name" activeSort={itemSort} onSort={toggleItemSort} className="w-[20%]" />
+                  <SortableItemHead label="分类" sortKey="category" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableItemHead label="品牌" sortKey="brand" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableItemHead label="规格" sortKey="spec" activeSort={itemSort} onSort={toggleItemSort} className="w-[16%]" />
+                  <SortableItemHead label="单位" sortKey="unit" activeSort={itemSort} onSort={toggleItemSort} className="w-[7%]" />
+                  <SortableItemHead label="库存" sortKey="currentQty" activeSort={itemSort} onSort={toggleItemSort} className="w-[8%]" align="center" />
+                  <TableHead className="w-[9%] text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
+                {displayItems.map((item) => (
                   <TableRow
                     key={item.id}
                     className={selectedId === item.id ? "bg-muted/40" : undefined}
                     onClick={() => setSelectedId(item.id)}
                   >
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>{item.spec || "-"}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
+                    <TableCell className="max-w-0">
+                      <TruncateCell title={item.code}>{item.code}</TruncateCell>
+                    </TableCell>
+                    <TableCell className="max-w-0">
+                      <TruncateCell title={item.name}>{item.name}</TruncateCell>
+                    </TableCell>
+                    <TableCell className="max-w-0">
+                      <TruncateCell title={item.category || undefined}>{item.category || "-"}</TruncateCell>
+                    </TableCell>
+                    <TableCell className="max-w-0">
+                      <TruncateCell title={item.brand || undefined}>{item.brand || "-"}</TruncateCell>
+                    </TableCell>
+                    <TableCell className="max-w-0">
+                      <TruncateCell title={item.spec || undefined}>{item.spec || "-"}</TruncateCell>
+                    </TableCell>
+                    <TableCell className="text-center">{item.unit}</TableCell>
                     <TableCell className="text-center">{item.currentQty}</TableCell>
                     <TableCell className="text-center">
                       {isAdmin ? (
@@ -410,12 +638,14 @@ export function WarehouseLedgerPage() {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[18%]">日期</TableHead>
-                  <TableHead className="w-[12%]">类型</TableHead>
-                  <TableHead className="w-[20%]">业务</TableHead>
-                  <TableHead className="w-[12%] text-center">数量</TableHead>
-                  <TableHead className="w-[18%] text-center">金额</TableHead>
-                  <TableHead className="w-[20%]">操作人</TableHead>
+                  <TableHead className="w-[14%]">日期</TableHead>
+                  <TableHead className="w-[9%]">类型</TableHead>
+                  <TableHead className="w-[15%]">业务</TableHead>
+                  <TableHead className="w-[9%] text-center">数量</TableHead>
+                  <TableHead className="w-[10%] text-center">单价</TableHead>
+                  <TableHead className="w-[12%] text-center">金额</TableHead>
+                  <TableHead className={isAdmin ? "w-[14%]" : "w-[23%]"}>操作人</TableHead>
+                  {isAdmin ? <TableHead className="w-[9%] text-center">操作</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -425,8 +655,26 @@ export function WarehouseLedgerPage() {
                     <TableCell>{typeItems.find((x) => x.value === txn.type)?.label ?? txn.type}</TableCell>
                     <TableCell>{bizTypeItems[txn.type].find((x) => x.value === txn.bizType)?.label ?? txn.bizType}</TableCell>
                     <TableCell className="text-center">{txn.qty}</TableCell>
-                    <TableCell className="text-center">{formatMoney(txn.amount)}</TableCell>
+                    <TableCell className="text-center">
+                      {txn.type === "in" ? formatMoney(txn.unitPrice) : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {txn.type === "in" ? formatMoney(txn.amount) : "-"}
+                    </TableCell>
                     <TableCell>{txn.operatorUser?.displayName || txn.operatorUser?.username || "-"}</TableCell>
+                    {isAdmin ? (
+                      <TableCell className="text-center">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTxnId(txn.id)}
+                        >
+                          删除
+                        </Button>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))}
               </TableBody>
@@ -436,41 +684,45 @@ export function WarehouseLedgerPage() {
       </Card>
 
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingItemId ? "编辑物品" : "新增物品"}</DialogTitle>
             <DialogDescription>维护库房物品主档，后续出入库都基于这里的物品。</DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              <Field orientation="responsive">
+            <FieldGroup className="grid gap-3 sm:grid-cols-2">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>名称</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input value={itemForm.name} onChange={(e) => setItemForm((s) => ({ ...s, name: e.target.value }))} />
+                  <Input className="w-full" value={itemForm.name} onChange={(e) => setItemForm((s) => ({ ...s, name: e.target.value }))} />
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>分类</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input value={itemForm.category} onChange={(e) => setItemForm((s) => ({ ...s, category: e.target.value }))} />
+                  <WarehouseCategoryCombobox
+                    items={categoryItems}
+                    value={itemForm.category}
+                    onValueChange={(category) => setItemForm((s) => ({ ...s, category }))}
+                  />
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>规格</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input value={itemForm.spec} onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))} />
+                  <Input className="w-full" value={itemForm.spec} onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))} />
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>单位</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input value={itemForm.unit} onChange={(e) => setItemForm((s) => ({ ...s, unit: e.target.value }))} />
+                  <Input className="w-full" value={itemForm.unit} onChange={(e) => setItemForm((s) => ({ ...s, unit: e.target.value }))} />
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>品牌</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input value={itemForm.brand} onChange={(e) => setItemForm((s) => ({ ...s, brand: e.target.value }))} />
+                  <Input className="w-full" value={itemForm.brand} onChange={(e) => setItemForm((s) => ({ ...s, brand: e.target.value }))} />
                 </FieldContent>
               </Field>
             </FieldGroup>
@@ -487,20 +739,20 @@ export function WarehouseLedgerPage() {
       </Dialog>
 
       <Dialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>登记流水</DialogTitle>
             <DialogDescription>为当前选中的物品登记入库、出库或库存调整。</DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
-            <Field orientation="responsive">
+            <Field orientation="vertical">
               <FieldLabel><FieldTitle>物品</FieldTitle></FieldLabel>
               <FieldContent>
-                <Input value={selectedItem ? `${selectedItem.name} (${selectedItem.code})` : ""} disabled />
+                <Input className="w-full" value={selectedItem ? `${selectedItem.name} (${selectedItem.code})` : ""} disabled />
               </FieldContent>
             </Field>
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              <Field orientation="responsive">
+            <FieldGroup className="grid gap-3 sm:grid-cols-2">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>类型</FieldTitle></FieldLabel>
                 <FieldContent>
                   <Select
@@ -512,11 +764,15 @@ export function WarehouseLedgerPage() {
                         ...s,
                         type,
                         bizType: bizTypeItems[type][0]?.value ?? s.bizType,
+                        unitPrice:
+                          type === "in"
+                            ? String(selectedItem?.lastPurchasePrice || 0)
+                            : "0",
                       }));
                     }}
                     items={typeItems}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {typeItems.map((item) => (
@@ -527,7 +783,7 @@ export function WarehouseLedgerPage() {
                   </Select>
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>业务</FieldTitle></FieldLabel>
                 <FieldContent>
                   <Select
@@ -535,7 +791,7 @@ export function WarehouseLedgerPage() {
                     onValueChange={(v: string | null) => v && setTxnForm((s) => ({ ...s, bizType: v }))}
                     items={bizTypeItems[txnForm.type]}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {bizTypeItems[txnForm.type].map((item) => (
@@ -546,35 +802,39 @@ export function WarehouseLedgerPage() {
                   </Select>
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>数量</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input type="number" min={1} value={txnForm.qty} onChange={(e) => setTxnForm((s) => ({ ...s, qty: e.target.value }))} />
+                  <Input className="w-full" type="number" min={1} value={txnForm.qty} onChange={(e) => setTxnForm((s) => ({ ...s, qty: e.target.value }))} />
                 </FieldContent>
               </Field>
-              <Field orientation="responsive">
-                <FieldLabel><FieldTitle>单价</FieldTitle></FieldLabel>
-                <FieldContent>
-                  <Input type="number" min={0} step={0.01} value={txnForm.unitPrice} onChange={(e) => setTxnForm((s) => ({ ...s, unitPrice: e.target.value }))} />
-                </FieldContent>
-              </Field>
-              <Field orientation="responsive">
+              {txnForm.type === "in" ? (
+                <>
+                  <Field orientation="vertical">
+                    <FieldLabel><FieldTitle>单价</FieldTitle></FieldLabel>
+                    <FieldContent>
+                      <Input className="w-full" type="number" min={0} step={0.01} value={txnForm.unitPrice} onChange={(e) => setTxnForm((s) => ({ ...s, unitPrice: e.target.value }))} />
+                    </FieldContent>
+                  </Field>
+                  <Field orientation="vertical">
+                    <FieldLabel><FieldTitle>金额</FieldTitle></FieldLabel>
+                    <FieldContent>
+                      <Input className="w-full" disabled value={formatMoney((Number(txnForm.qty) || 0) * (Number(txnForm.unitPrice) || 0))} />
+                    </FieldContent>
+                  </Field>
+                </>
+              ) : null}
+              <Field orientation="vertical">
                 <FieldLabel><FieldTitle>日期</FieldTitle></FieldLabel>
                 <FieldContent>
-                  <Input type="date" value={txnForm.occurDate} onChange={(e) => setTxnForm((s) => ({ ...s, occurDate: e.target.value }))} />
-                </FieldContent>
-              </Field>
-              <Field orientation="responsive">
-                <FieldLabel><FieldTitle>金额</FieldTitle></FieldLabel>
-                <FieldContent>
-                  <Input disabled value={formatMoney((Number(txnForm.qty) || 0) * (Number(txnForm.unitPrice) || 0))} />
+                  <Input className="w-full" type="date" value={txnForm.occurDate} onChange={(e) => setTxnForm((s) => ({ ...s, occurDate: e.target.value }))} />
                 </FieldContent>
               </Field>
             </FieldGroup>
-            <Field orientation="responsive">
+            <Field orientation="vertical">
               <FieldLabel><FieldTitle>备注</FieldTitle></FieldLabel>
               <FieldContent>
-                <Input value={txnForm.remark} onChange={(e) => setTxnForm((s) => ({ ...s, remark: e.target.value }))} />
+                <Input className="w-full" value={txnForm.remark} onChange={(e) => setTxnForm((s) => ({ ...s, remark: e.target.value }))} />
               </FieldContent>
             </Field>
           </FieldSet>
@@ -588,6 +848,27 @@ export function WarehouseLedgerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteTxnId != null} onOpenChange={(open) => !open && setDeleteTxnId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除流水</AlertDialogTitle>
+            <AlertDialogDescription>
+              删除后会同步回滚该物品库存。若删除的是采购入库记录，最近采购单价也会重新计算。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline">取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteTxnSubmitting}
+              onClick={() => void confirmDeleteTxn()}
+            >
+              {deleteTxnSubmitting ? "删除中…" : "删除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
