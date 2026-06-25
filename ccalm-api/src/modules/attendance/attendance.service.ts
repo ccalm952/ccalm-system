@@ -177,6 +177,9 @@ export class AttendanceService {
 
     const existing = map.get(type)
     if (existing) {
+      if (type === "morning_in" || type === "afternoon_in") {
+        throw new BadRequestException("今日该上班卡已打过，不可重复打卡")
+      }
       return await this.prisma.attendanceRecord.update({
         where: { id: existing.id },
         data: {
@@ -302,12 +305,12 @@ export class AttendanceService {
 
       for (const r of dayRecords) {
         const hm = dayjs(r.punchTime).format("HH:mm")
-        if (r.type === "morning_in") row.morningIn = hm
+        if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm
         if (r.type === "morning_out") {
           row.morningOut = hm
           row.morningOutIsMakeup = r.source === "makeup"
         }
-        if (r.type === "afternoon_in") row.afternoonIn = hm
+        if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm
         if (r.type === "afternoon_out") {
           row.afternoonOut = hm
           row.afternoonOutIsMakeup = r.source === "makeup"

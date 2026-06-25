@@ -121,12 +121,12 @@ export function computeMonthlySummary(params: {
     const dayRecords = (byDay.get(key) ?? []).slice().sort(sortByTimeAsc);
     const row = emptyDay(key);
 
-    // 窗口内允许重复打卡，取最晚一条作为当天结果
+    // 上班卡取最早一条；下班卡取最晚一条（下班可在窗口内更新）
     for (const r of dayRecords) {
       const hm = hmFromIso(r.punchTime);
-      if (r.type === "morning_in") row.morningIn = hm;
+      if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm;
       if (r.type === "morning_out") row.morningOut = hm;
-      if (r.type === "afternoon_in") row.afternoonIn = hm;
+      if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm;
       if (r.type === "afternoon_out") row.afternoonOut = hm;
     }
 

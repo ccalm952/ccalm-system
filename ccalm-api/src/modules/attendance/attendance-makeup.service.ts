@@ -14,6 +14,14 @@ dayjs.extend(customParseFormat)
 const MAKEUP_OUT_TYPES = ["morning_out", "afternoon_out"] as const
 type MakeupOutType = (typeof MAKEUP_OUT_TYPES)[number]
 
+const ADMIN_MAKEUP_TYPES = [
+  "morning_in",
+  "morning_out",
+  "afternoon_in",
+  "afternoon_out",
+] as const
+type AdminMakeupType = (typeof ADMIN_MAKEUP_TYPES)[number]
+
 const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
   morning_out: "morning_in",
   afternoon_out: "afternoon_in",
@@ -73,6 +81,21 @@ export class AttendanceMakeupService {
         })
     if (pending) {
       throw new BadRequestException("该缺卡已有审批中的补卡申请")
+    }
+  }
+
+  private async assertAdminMakeupSlotAvailable(
+    userId: string,
+    dateStr: string,
+    type: AdminMakeupType
+  ) {
+    if (!this.isWithinMakeupWindow(dateStr)) {
+      throw new BadRequestException("仅支持补最近 30 天内的缺卡")
+    }
+
+    const map = await this.dayRecordMap(userId, dateStr)
+    if (map.get(type)) {
+      throw new BadRequestException("该打卡已存在，无需补卡")
     }
   }
 
@@ -246,17 +269,15 @@ export class AttendanceMakeupService {
   async directMakeup(dto: {
     userId: string
     date: string
-    type: MakeupOutType
+    type: AdminMakeupType
     time: string
   }) {
     const type = dto.type
-    if (!MAKEUP_OUT_TYPES.includes(type)) {
-      throw new BadRequestException("仅支持补上午下班或下午下班")
+    if (!ADMIN_MAKEUP_TYPES.includes(type)) {
+      throw new BadRequestException("补卡类型不合法")
     }
 
-    await this.assertMakeupSlotAvailable(dto.userId, dto.date, type, undefined, {
-      skipPendingCheck: true,
-    })
+    await this.assertAdminMakeupSlotAvailable(dto.userId, dto.date, type)
 
     const punchTime = dayjs(
       `${dto.date} ${dto.time}`,

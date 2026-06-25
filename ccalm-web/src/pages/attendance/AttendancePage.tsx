@@ -137,10 +137,13 @@ function isManualPunchDisabledPure(
   if (opts.fence.enabled && !insideFenceFor(opts.lat, opts.lng, opts.fence)) return true;
   const { shift, map, at } = opts;
 
-  if (t === "morning_in" &&
-    !isWallClockInInclusiveRange(at, shift.morningInWindowStart, shift.morningInWindowEnd)
-  )
-    return true;
+  if (t === "morning_in") {
+    if (map.morning_in) return true;
+    if (
+      !isWallClockInInclusiveRange(at, shift.morningInWindowStart, shift.morningInWindowEnd)
+    )
+      return true;
+  }
 
   if (t === "morning_out" && !map.morning_in) return true;
   if (
@@ -149,10 +152,13 @@ function isManualPunchDisabledPure(
   )
     return true;
 
-  if (t === "afternoon_in" &&
-    !isWallClockInInclusiveRange(at, shift.afternoonInWindowStart, shift.afternoonInWindowEnd)
-  )
-    return true;
+  if (t === "afternoon_in") {
+    if (map.afternoon_in) return true;
+    if (
+      !isWallClockInInclusiveRange(at, shift.afternoonInWindowStart, shift.afternoonInWindowEnd)
+    )
+      return true;
+  }
 
   if (t === "afternoon_out" && !map.afternoon_in) return true;
   if (

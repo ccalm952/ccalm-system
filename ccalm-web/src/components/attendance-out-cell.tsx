@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { adminMakeupSlotState, makeupSlotState, type MakeupOutType } from "@/lib/attendance/makeup";
+import { adminMakeupSlotState, makeupSlotState, type AdminMakeupType, type MakeupOutType } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
 export function AttendanceOutCell(props: {
   row: AttendancePunchDayRow;
-  type: MakeupOutType;
+  type: MakeupOutType | AdminMakeupType;
   time: string | null;
   makeupRequests?: AttendanceMakeupRequest[];
   adminDirect?: boolean;

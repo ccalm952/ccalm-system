@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { MakeupOutType } from "@/lib/attendance/makeup";
+import type { AdminMakeupType } from "@/lib/attendance/makeup";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type { AttendanceMonthlySummary } from "@/lib/attendance/types";
 import { api, type ApiError } from "@/lib/api";
@@ -119,7 +119,7 @@ export function AttendanceStatsPage() {
     userId: string;
     userName: string;
     date: string;
-    type: MakeupOutType;
+    type: AdminMakeupType;
   } | null>(null);
 
   const reload = React.useCallback(async () => {
@@ -273,11 +273,28 @@ export function AttendanceStatsPage() {
                                   <TableCell className="w-1/6 px-3 py-2">{dayOfMonth(r.date)}</TableCell>
                                   <TableCell
                                     className={cn(
-                                      "w-1/6 px-3 py-2",
+                                      "w-1/6 px-3 py-2 text-center",
                                       r.morningIn ? "" : "text-destructive",
                                     )}
                                   >
-                                    {r.morningIn ?? ""}
+                                    {isAdmin ? (
+                                      <AttendanceOutCell
+                                        row={r}
+                                        type="morning_in"
+                                        time={r.morningIn}
+                                        adminDirect
+                                        onApply={() =>
+                                          setMakeupDialog({
+                                            userId: row.original.userId,
+                                            userName: row.original.userName,
+                                            date: r.date,
+                                            type: "morning_in",
+                                          })
+                                        }
+                                      />
+                                    ) : (
+                                      (r.morningIn ?? "")
+                                    )}
                                   </TableCell>
                                   <TableCell
                                     className={cn(
@@ -306,11 +323,28 @@ export function AttendanceStatsPage() {
                                   </TableCell>
                                   <TableCell
                                     className={cn(
-                                      "w-1/6 px-3 py-2",
+                                      "w-1/6 px-3 py-2 text-center",
                                       r.afternoonIn ? "" : "text-destructive",
                                     )}
                                   >
-                                    {r.afternoonIn ?? ""}
+                                    {isAdmin ? (
+                                      <AttendanceOutCell
+                                        row={r}
+                                        type="afternoon_in"
+                                        time={r.afternoonIn}
+                                        adminDirect
+                                        onApply={() =>
+                                          setMakeupDialog({
+                                            userId: row.original.userId,
+                                            userName: row.original.userName,
+                                            date: r.date,
+                                            type: "afternoon_in",
+                                          })
+                                        }
+                                      />
+                                    ) : (
+                                      (r.afternoonIn ?? "")
+                                    )}
                                   </TableCell>
                                   <TableCell
                                     className={cn(

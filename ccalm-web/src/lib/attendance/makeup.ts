@@ -1,8 +1,19 @@
 import dayjs from "dayjs";
 
-import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "./types";
+import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType } from "./types";
 
 export type MakeupOutType = "morning_out" | "afternoon_out";
+export type AdminMakeupType = AttendancePunchType;
+
+export function slotTime(
+  row: AttendancePunchDayRow,
+  type: AttendancePunchType,
+): string | null {
+  if (type === "morning_in") return row.morningIn;
+  if (type === "morning_out") return row.morningOut;
+  if (type === "afternoon_in") return row.afternoonIn;
+  return row.afternoonOut;
+}
 
 export function isWithinMakeupWindow(dateStr: string): boolean {
   const d = dayjs(dateStr, "YYYY-MM-DD", true);
@@ -14,14 +25,10 @@ export function isWithinMakeupWindow(dateStr: string): boolean {
 
 export function adminMakeupSlotState(
   row: AttendancePunchDayRow,
-  type: MakeupOutType,
+  type: AdminMakeupType,
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
-
-  const hasIn = type === "morning_out" ? !!row.morningIn : !!row.afternoonIn;
-  const hasOut = type === "morning_out" ? !!row.morningOut : !!row.afternoonOut;
-  if (!hasIn || hasOut) return null;
-
+  if (slotTime(row, type)) return null;
   return "apply";
 }
 
