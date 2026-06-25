@@ -2,19 +2,30 @@ import { Button } from "@/components/ui/button";
 import { adminMakeupSlotState, makeupSlotState, type AdminMakeupType, type MakeupOutType } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
-export function AttendanceOutCell(props: {
-  row: AttendancePunchDayRow;
-  type: MakeupOutType | AdminMakeupType;
-  time: string | null;
-  makeupRequests?: AttendanceMakeupRequest[];
-  adminDirect?: boolean;
-  onApply: () => void;
-}) {
-  const { row, type, time, makeupRequests = [], adminDirect = false, onApply } = props;
+type AttendanceOutCellProps =
+  | {
+      row: AttendancePunchDayRow;
+      type: AdminMakeupType;
+      time: string | null;
+      adminDirect: true;
+      makeupRequests?: AttendanceMakeupRequest[];
+      onApply: () => void;
+    }
+  | {
+      row: AttendancePunchDayRow;
+      type: MakeupOutType;
+      time: string | null;
+      adminDirect?: false;
+      makeupRequests?: AttendanceMakeupRequest[];
+      onApply: () => void;
+    };
+
+export function AttendanceOutCell(props: AttendanceOutCellProps) {
+  const { row, type, time, makeupRequests = [], onApply } = props;
 
   if (time) return <span>{time}</span>;
 
-  const slotState = adminDirect
+  const slotState = props.adminDirect
     ? adminMakeupSlotState(row, type)
     : makeupSlotState(row, type, makeupRequests);
 
