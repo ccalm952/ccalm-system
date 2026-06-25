@@ -1,4 +1,4 @@
-import { IsIn, IsString, Matches } from "class-validator"
+import { IsIn, IsString, Matches, MinLength } from "class-validator"
 
 export class CreateMakeupRequestDto {
   @IsString()
