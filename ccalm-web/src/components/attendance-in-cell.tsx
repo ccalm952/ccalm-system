@@ -11,6 +11,9 @@ import {
 } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
+const actionLinkClass =
+  "h-auto px-0 text-sm font-normal underline-offset-2 hover:underline";
+
 export function AttendanceInCell(props: {
   row: AttendancePunchDayRow;
   half: RestHalf;
@@ -37,7 +40,7 @@ export function AttendanceInCell(props: {
       <Button
         type="button"
         variant="link"
-        className="h-auto px-0 text-sm text-muted-foreground"
+        className={`${actionLinkClass} text-muted-foreground`}
         onClick={onClear}
       >
         休
@@ -51,34 +54,38 @@ export function AttendanceInCell(props: {
 
   if (!showRest && !makeupState) return null;
 
+  if (makeupState === "pending" && !showRest) {
+    return <span className="text-sm text-muted-foreground">审批中</span>;
+  }
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-1.5">
+    <span className="inline-flex items-center justify-center text-sm">
       {showRest ? (
         <Button
           type="button"
           variant="link"
-          className="h-auto px-0 text-sm text-muted-foreground"
+          className={`${actionLinkClass} text-muted-foreground`}
           onClick={onDeclare}
         >
-          休息
+          休
         </Button>
       ) : null}
       {showRest && makeupState ? (
-        <span className="text-xs text-muted-foreground">·</span>
+        <span className="text-muted-foreground">/</span>
       ) : null}
       {makeupState === "pending" ? (
-        <span className="text-sm text-muted-foreground">审批中</span>
+        <span className="text-muted-foreground">审批中</span>
       ) : null}
       {makeupState === "apply" ? (
         <Button
           type="button"
           variant="link"
-          className="h-auto px-0 text-sm text-pink-500"
+          className={`${actionLinkClass} text-pink-500`}
           onClick={() => onMakeup(inType)}
         >
-          补卡
+          补
         </Button>
       ) : null}
-    </div>
+    </span>
   );
 }
