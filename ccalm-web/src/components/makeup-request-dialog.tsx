@@ -10,8 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendanceMakeupRequest,
@@ -55,25 +53,15 @@ export function MakeupRequestDialog(props: {
     onSuccess,
   } = props;
   const [time, setTime] = React.useState("12:00");
-  const [reason, setReason] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const isDirect = mode === "direct";
 
   React.useEffect(() => {
     if (!open) return;
-    setReason("");
     setTime(DEFAULT_MAKEUP_TIME[type]);
   }, [open, type, date]);
 
   async function handleSubmit() {
-    if (!isDirect) {
-      const trimmed = reason.trim();
-      if (!trimmed) {
-        toast.error("请填写补卡原因");
-        return;
-      }
-    }
-
     setSubmitting(true);
     try {
       const timeValue = time.slice(0, 5);
@@ -94,7 +82,6 @@ export function MakeupRequestDialog(props: {
           date,
           type,
           time: timeValue,
-          reason: reason.trim(),
         });
         toast.success("补卡申请已提交");
       }
@@ -126,18 +113,6 @@ export function MakeupRequestDialog(props: {
             onChange={setTime}
             disabled={submitting}
           />
-          {!isDirect ? (
-            <div className="grid gap-2">
-              <Label htmlFor="makeup-reason">补卡原因</Label>
-              <Textarea
-                id="makeup-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="请说明缺卡原因"
-                rows={3}
-              />
-            </div>
-          ) : null}
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -417,6 +417,34 @@ function isAfternoonScheduleRest(
   return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest"
 }
 
+function isMorningEffectivelyAtRest(
+  row: {
+    morningIn: string | null
+    morningOut: string | null
+  },
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): boolean {
+  return (
+    isMorningScheduleRest(scheduleRest) &&
+    !row.morningIn &&
+    !row.morningOut
+  )
+}
+
+function isAfternoonEffectivelyAtRest(
+  row: {
+    afternoonIn: string | null
+    afternoonOut: string | null
+  },
+  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+): boolean {
+  return (
+    isAfternoonScheduleRest(scheduleRest) &&
+    !row.afternoonIn &&
+    !row.afternoonOut
+  )
+}
+
 function applyDayAttendanceRest(
   row: {
     morningIn: string | null
@@ -430,11 +458,11 @@ function applyDayAttendanceRest(
   let restDays = 0
 
   if (row.morningIn) attendanceDays += 0.5
-  else if (isMorningScheduleRest(scheduleRest)) restDays += 0.5
+  else if (isMorningEffectivelyAtRest(row, scheduleRest)) restDays += 0.5
   else restDays += 0.5
 
   if (row.afternoonIn) attendanceDays += 0.5
-  else if (isAfternoonScheduleRest(scheduleRest)) restDays += 0.5
+  else if (isAfternoonEffectivelyAtRest(row, scheduleRest)) restDays += 0.5
   else restDays += 0.5
 
   return { attendanceDays, restDays }
@@ -451,13 +479,13 @@ function countMissingOutSlots(
 ): number {
   let count = 0
   if (
-    !isMorningScheduleRest(scheduleRest) &&
+    !isMorningEffectivelyAtRest(row, scheduleRest) &&
     row.morningIn &&
     !row.morningOut
   )
     count += 1
   if (
-    !isAfternoonScheduleRest(scheduleRest) &&
+    !isAfternoonEffectivelyAtRest(row, scheduleRest) &&
     row.afternoonIn &&
     !row.afternoonOut
   )

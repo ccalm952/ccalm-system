@@ -250,7 +250,7 @@ export class AttendanceMakeupService {
         date: dto.date,
         type,
         punchTime: punchTime.toDate(),
-        reason: dto.reason.trim(),
+        reason: "",
       },
       include: this.includeUser(),
     })

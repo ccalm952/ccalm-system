@@ -31,10 +31,17 @@ export function halfHasPunch(row: AttendancePunchDayRow, half: RestHalf): boolea
   return !!(row.afternoonIn || row.afternoonOut);
 }
 
+export function isHalfEffectivelyAtRest(
+  row: AttendancePunchDayRow,
+  half: RestHalf,
+): boolean {
+  return isHalfScheduleRest(row.scheduleRest, half) && !halfHasPunch(row, half);
+}
+
 export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
   if (!isWithinMakeupWindow(row.date)) return false;
   if (halfHasPunch(row, half)) return false;
-  if (isHalfScheduleRest(row.scheduleRest, half)) return false;
+  if (isHalfEffectivelyAtRest(row, half)) return false;
   return true;
 }
 

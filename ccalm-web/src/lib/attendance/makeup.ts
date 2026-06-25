@@ -1,6 +1,11 @@
 import dayjs from "dayjs";
 
-import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType, ScheduleRestType } from "./types";
+import { isHalfEffectivelyAtRest } from "./rest";
+import type {
+  AttendanceMakeupRequest,
+  AttendancePunchDayRow,
+  AttendancePunchType,
+} from "./types";
 
 export type MakeupInType = "morning_in" | "afternoon_in";
 export type MakeupOutType = "morning_out" | "afternoon_out";
@@ -12,6 +17,14 @@ const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
   afternoon_out: "afternoon_in",
 };
 
+function isMorningEffectivelyAtRest(row: AttendancePunchDayRow): boolean {
+  return isHalfEffectivelyAtRest(row, "morning");
+}
+
+function isAfternoonEffectivelyAtRest(row: AttendancePunchDayRow): boolean {
+  return isHalfEffectivelyAtRest(row, "afternoon");
+}
+
 export function slotTime(
   row: AttendancePunchDayRow,
   type: AttendancePunchType,
@@ -20,18 +33,6 @@ export function slotTime(
   if (type === "morning_out") return row.morningOut;
   if (type === "afternoon_in") return row.afternoonIn;
   return row.afternoonOut;
-}
-
-function isMorningScheduleRest(
-  scheduleRest: ScheduleRestType | null | undefined,
-): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "morning_rest";
-}
-
-function isAfternoonScheduleRest(
-  scheduleRest: ScheduleRestType | null | undefined,
-): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest";
 }
 
 export function isWithinMakeupWindow(dateStr: string): boolean {
@@ -64,8 +65,8 @@ export function makeupSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
-  if (type === "morning_out" && isMorningScheduleRest(row.scheduleRest)) return null;
-  if (type === "afternoon_out" && isAfternoonScheduleRest(row.scheduleRest)) return null;
+  if (type === "morning_out" && isMorningEffectivelyAtRest(row)) return null;
+  if (type === "afternoon_out" && isAfternoonEffectivelyAtRest(row)) return null;
 
   const inType = IN_TYPE_BY_OUT[type];
   if (!slotTime(row, inType) || slotTime(row, type)) return null;
@@ -83,8 +84,8 @@ export function makeupInSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
-  if (type === "morning_in" && isMorningScheduleRest(row.scheduleRest)) return null;
-  if (type === "afternoon_in" && isAfternoonScheduleRest(row.scheduleRest)) return null;
+  if (type === "morning_in" && isMorningEffectivelyAtRest(row)) return null;
+  if (type === "afternoon_in" && isAfternoonEffectivelyAtRest(row)) return null;
 
   if (slotTime(row, type)) return null;
 
@@ -104,22 +105,16 @@ export function formatMakeupTime(iso: string): string {
 }
 
 /** 有上班卡、无对应下班卡各计 1 次缺卡（休息半天不计）。 */
-export function countMissingOutSlots(row: {
-  morningIn: string | null;
-  morningOut: string | null;
-  afternoonIn: string | null;
-  afternoonOut: string | null;
-  scheduleRest?: ScheduleRestType | null;
-}): number {
+export function countMissingOutSlots(row: AttendancePunchDayRow): number {
   let count = 0;
   if (
-    !isMorningScheduleRest(row.scheduleRest) &&
+    !isMorningEffectivelyAtRest(row) &&
     row.morningIn &&
     !row.morningOut
   )
     count += 1;
   if (
-    !isAfternoonScheduleRest(row.scheduleRest) &&
+    !isAfternoonEffectivelyAtRest(row) &&
     row.afternoonIn &&
     !row.afternoonOut
   )

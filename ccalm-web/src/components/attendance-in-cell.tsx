@@ -6,7 +6,7 @@ import {
 } from "@/lib/attendance/makeup";
 import {
   canDeclareRest,
-  isHalfScheduleRest,
+  isHalfEffectivelyAtRest,
   type RestHalf,
 } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
@@ -35,7 +35,7 @@ export function AttendanceInCell(props: {
 
   if (time) return <span>{time}</span>;
 
-  if (isHalfScheduleRest(row.scheduleRest, half)) {
+  if (isHalfEffectivelyAtRest(row, half)) {
     return (
       <Button
         type="button"

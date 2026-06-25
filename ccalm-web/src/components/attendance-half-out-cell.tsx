@@ -1,5 +1,5 @@
 import { AttendanceOutCell } from "@/components/attendance-out-cell";
-import { isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
+import { isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
 import type { MakeupOutType } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
@@ -13,7 +13,7 @@ export function AttendanceHalfOutCell(props: {
 }) {
   const { row, half, type, time, makeupRequests = [], onApply } = props;
 
-  if (isHalfScheduleRest(row.scheduleRest, half)) {
+  if (isHalfEffectivelyAtRest(row, half)) {
     return <span className="text-muted-foreground">—</span>;
   }
 

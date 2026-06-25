@@ -98,7 +98,6 @@ function MakeupRequestCard(props: {
               {dayjs(item.date).format("M月D日")} {ATTENDANCE_PUNCH_TYPE_LABEL[item.type]}{" "}
               {formatMakeupTime(item.punchTime)}
             </div>
-            <div>原因：{item.reason}</div>
             {mode === "mine" && item.status === "rejected" && item.rejectReason ? (
               <div className="text-muted-foreground">拒绝原因：{item.rejectReason}</div>
             ) : null}
