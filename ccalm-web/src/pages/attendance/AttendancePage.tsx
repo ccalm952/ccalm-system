@@ -739,7 +739,6 @@ export function AttendancePage() {
           half={restDialog.half}
           mode={restDialog.mode}
           scheduleRest={restDialog.scheduleRest}
-          remainingLeave={monthSummary?.remainingLeave}
           onSuccess={() => {
             void reloadMonthSummary();
           }}

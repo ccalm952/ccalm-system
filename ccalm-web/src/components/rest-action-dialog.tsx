@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  formatRemainingLeave,
   restConfirmMessage,
   type RestHalf,
 } from "@/lib/attendance/rest";
@@ -26,7 +25,6 @@ export function RestActionDialog(props: {
   half: RestHalf;
   mode: "declare" | "clear";
   scheduleRest?: ScheduleRestType | null;
-  remainingLeave?: number;
   onSuccess: () => void;
 }) {
   const {
@@ -36,7 +34,6 @@ export function RestActionDialog(props: {
     half,
     mode,
     scheduleRest = null,
-    remainingLeave,
     onSuccess,
   } = props;
   const [submitting, setSubmitting] = React.useState(false);
@@ -70,11 +67,6 @@ export function RestActionDialog(props: {
         </DialogHeader>
         <div className="flex flex-col gap-3 text-sm">
           <p>{message}</p>
-          {mode === "declare" && remainingLeave !== undefined ? (
-            <p className="text-muted-foreground">
-              当前剩余假期：{formatRemainingLeave(remainingLeave)} 天
-            </p>
-          ) : null}
           <p className="text-muted-foreground">
             日期：{dayjs(date).format("YYYY年M月D日")}
           </p>

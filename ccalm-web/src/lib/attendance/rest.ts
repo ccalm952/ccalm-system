@@ -57,18 +57,6 @@ export function restHalfLabel(half: RestHalf): string {
   return half === "morning" ? "上午" : "下午";
 }
 
-export function formatRemainingLeave(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-export function leaveCostForDeclare(
-  scheduleRest: ScheduleRestType | null | undefined,
-  half: RestHalf,
-): number {
-  if (willBecomeFullRest(scheduleRest, half)) return 0.5;
-  return 0.5;
-}
-
 export function restConfirmMessage(
   date: string,
   half: RestHalf,
@@ -81,7 +69,7 @@ export function restConfirmMessage(
     return `确认取消 ${dateText} ${label}休息登记？`;
   }
   if (willBecomeFullRest(scheduleRest, half)) {
-    return `确认将 ${dateText} 登记为全天休息？将再扣除 0.5 天假期`;
+    return `确认将 ${dateText} 登记为全天休息？`;
   }
-  return `确认将 ${dateText} ${label}登记为休息？将扣除 0.5 天假期`;
+  return `确认将 ${dateText} ${label}登记为休息？`;
 }

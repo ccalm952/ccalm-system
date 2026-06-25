@@ -407,13 +407,6 @@ export class AttendanceScheduleService {
     return "afternoon_rest"
   }
 
-  private leaveDelta(
-    current: ScheduleShiftType | null,
-    next: ScheduleShiftType | null
-  ): number {
-    return leaveDaysForShift(next) - leaveDaysForShift(current)
-  }
-
   async declareRest(userId: string, date: string, half: "morning" | "afternoon") {
     this.assertRestDateAllowed(date)
 
@@ -444,14 +437,6 @@ export class AttendanceScheduleService {
     }
 
     const next = this.nextRestType(current, half)
-    const month = dayjs(date).format("YYYY-MM")
-    const delta = this.leaveDelta(current, next)
-    if (delta > 0) {
-      const remaining = await this.getRemainingLeave(userId, month)
-      if (remaining < delta) {
-        throw new BadRequestException("剩余假期不足，无法登记休息")
-      }
-    }
 
     await this.prisma.scheduleEntry.upsert({
       where: { userId_date: { userId, date } },
