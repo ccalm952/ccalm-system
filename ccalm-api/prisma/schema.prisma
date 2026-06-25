@@ -188,7 +188,6 @@ model WarehouseTxn {
   unitPrice      Float               @default(0)
   amount         Float               @default(0)
   occurDate      String
-  remark         String              @default("")
   operatorUserId String?
   operatorUser   User?               @relation("WarehouseTxnOperator", fields: [operatorUserId], references: [id], onDelete: SetNull)
   createdAt      DateTime            @default(now())

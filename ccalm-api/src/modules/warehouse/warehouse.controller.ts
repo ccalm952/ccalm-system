@@ -58,8 +58,8 @@ export class WarehouseController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateWarehouseItemDto
   ) {
-    this.requireAdmin(req)
-    return this.warehouse.updateItem(id, dto)
+    const a = this.requireAdmin(req)
+    return this.warehouse.updateItem(id, dto, a.userId)
   }
 
   @Delete("items/:id")
@@ -74,10 +74,18 @@ export class WarehouseController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
     @Query("type") type?: "in" | "out" | "adjust",
-    @Query("itemId") itemId?: string
+    @Query("itemId") itemId?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string
   ) {
     const itemIdNum =
       itemId != null && itemId !== "" ? Number.parseInt(itemId, 10) : undefined
+    const pageNum =
+      page != null && page !== "" ? Number.parseInt(page, 10) : undefined
+    const pageSizeNum =
+      pageSize != null && pageSize !== ""
+        ? Number.parseInt(pageSize, 10)
+        : undefined
     return this.warehouse.listTxns({
       month,
       startDate,
@@ -85,6 +93,11 @@ export class WarehouseController {
       type,
       itemId:
         itemIdNum != null && Number.isFinite(itemIdNum) ? itemIdNum : undefined,
+      page: pageNum != null && Number.isFinite(pageNum) ? pageNum : undefined,
+      pageSize:
+        pageSizeNum != null && Number.isFinite(pageSizeNum)
+          ? pageSizeNum
+          : undefined,
     })
   }
 

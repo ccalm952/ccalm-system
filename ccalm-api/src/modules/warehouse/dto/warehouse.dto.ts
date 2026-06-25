@@ -93,6 +93,12 @@ export class UpdateWarehouseItemDto {
   @Type(() => Boolean)
   @IsBoolean()
   enabled?: boolean
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  currentQty?: number
 }
 
 export class CreateWarehouseTxnDto {
@@ -120,8 +126,4 @@ export class CreateWarehouseTxnDto {
 
   @IsString()
   occurDate!: string
-
-  @IsOptional()
-  @IsString()
-  remark?: string
 }

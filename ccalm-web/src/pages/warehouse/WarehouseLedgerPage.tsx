@@ -1,7 +1,8 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 
+import { SortableTableHead } from "@/components/sortable-table-head";
+import { TruncateCell } from "@/components/truncate-cell";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -94,18 +95,31 @@ type WarehouseTxn = {
   unitPrice: number;
   amount: number;
   occurDate: string;
-  remark: string;
   item: WarehouseItem;
   operatorUser?: { displayName: string; username: string } | null;
 };
 
-const typeItems = [
+const txnTypeLabels: Record<string, string> = {
+  in: "入库",
+  out: "出库",
+  adjust: "调整",
+};
+
+const txnBizLabels: Record<string, string> = {
+  purchase: "采购入库",
+  return_in: "退回入库",
+  use: "领用出库",
+  return_out: "退货出库",
+  adjust_in: "盘盈调整",
+  adjust_out: "盘亏调整",
+};
+
+const txnTypeOptions = [
   { label: "入库", value: "in" },
   { label: "出库", value: "out" },
-  { label: "调整", value: "adjust" },
 ] as const;
 
-const bizTypeItems: Record<"in" | "out" | "adjust", Array<{ label: string; value: string }>> = {
+const txnBizOptions: Record<"in" | "out", Array<{ label: string; value: string }>> = {
   in: [
     { label: "采购入库", value: "purchase" },
     { label: "退回入库", value: "return_in" },
@@ -113,10 +127,6 @@ const bizTypeItems: Record<"in" | "out" | "adjust", Array<{ label: string; value
   out: [
     { label: "领用出库", value: "use" },
     { label: "退货出库", value: "return_out" },
-  ],
-  adjust: [
-    { label: "盘盈调整", value: "adjust_in" },
-    { label: "盘亏调整", value: "adjust_out" },
   ],
 };
 
@@ -172,14 +182,6 @@ function WarehouseCategoryCombobox({
   );
 }
 
-function TruncateCell({ children, title }: { children: React.ReactNode; title?: string }) {
-  return (
-    <div className="truncate text-left" title={title ?? (typeof children === "string" ? children : undefined)}>
-      {children}
-    </div>
-  );
-}
-
 type ItemSortKey = "code" | "name" | "category" | "brand" | "spec" | "unit" | "currentQty";
 
 type ItemSort = {
@@ -199,46 +201,7 @@ function compareItems(a: WarehouseItem, b: WarehouseItem, sort: ItemSort): numbe
   return sort.dir === "asc" ? cmp : -cmp;
 }
 
-function SortableItemHead({
-  label,
-  sortKey,
-  activeSort,
-  onSort,
-  className,
-  align = "left",
-}: {
-  label: string;
-  sortKey: ItemSortKey;
-  activeSort: ItemSort | null;
-  onSort: (key: ItemSortKey) => void;
-  className?: string;
-  align?: "left" | "center";
-}) {
-  const active = activeSort?.key === sortKey;
-  const dir = active ? activeSort.dir : null;
-
-  return (
-    <TableHead className={className}>
-      <button
-        type="button"
-        className={cn(
-          "inline-flex w-full items-center gap-1 font-medium hover:text-foreground",
-          align === "center" ? "justify-center" : "justify-start",
-        )}
-        onClick={() => onSort(sortKey)}
-      >
-        <span>{label}</span>
-        {dir === "asc" ? (
-          <ArrowUpIcon className="size-3.5 shrink-0" />
-        ) : dir === "desc" ? (
-          <ArrowDownIcon className="size-3.5 shrink-0" />
-        ) : (
-          <ArrowUpDownIcon className="size-3.5 shrink-0 opacity-40" />
-        )}
-      </button>
-    </TableHead>
-  );
-}
+const TXN_PAGE_SIZE = 15;
 
 export function WarehouseLedgerPage() {
   const { me } = useAuth();
@@ -255,24 +218,24 @@ export function WarehouseLedgerPage() {
   const [itemForm, setItemForm] = React.useState({
     code: "",
     name: "",
-    category: "种植耗材",
+    category: "其他",
     spec: "",
     unit: "个",
     brand: "",
     manufacturer: "",
     supplierName: "",
+    currentQty: "0",
     enabled: true,
   });
 
   const [txnDialogOpen, setTxnDialogOpen] = React.useState(false);
   const [txnSubmitting, setTxnSubmitting] = React.useState(false);
   const [txnForm, setTxnForm] = React.useState({
-    type: "in" as "in" | "out" | "adjust",
+    type: "in" as "in" | "out",
     bizType: "purchase",
     qty: "1",
     unitPrice: "0",
     occurDate: dayjs().format("YYYY-MM-DD"),
-    remark: "",
   });
 
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
@@ -294,6 +257,8 @@ export function WarehouseLedgerPage() {
   const [deleteTxnSubmitting, setDeleteTxnSubmitting] = React.useState(false);
   const [deleteItemTarget, setDeleteItemTarget] = React.useState<WarehouseItem | null>(null);
   const [deleteItemSubmitting, setDeleteItemSubmitting] = React.useState(false);
+  const [txnPage, setTxnPage] = React.useState(1);
+  const [txnTotal, setTxnTotal] = React.useState(0);
 
   const displayItems = React.useMemo(() => {
     if (!itemSort) return items;
@@ -326,20 +291,27 @@ export function WarehouseLedgerPage() {
     }
   }
 
-  async function loadTxns() {
+  async function loadTxns(page = txnPage) {
     try {
       const params = new URLSearchParams();
       if (dateRange.from) params.set("startDate", dateRange.from);
       if (dateRange.to) params.set("endDate", dateRange.to);
       if (selectedId) params.set("itemId", String(selectedId));
-      const data = await api<WarehouseTxn[]>(
-        "GET",
-        `/warehouse/txns${params.size ? `?${params.toString()}` : ""}`,
-      );
-      setTxns(Array.isArray(data) ? data : []);
+      params.set("page", String(page));
+      params.set("pageSize", String(TXN_PAGE_SIZE));
+      const data = await api<{
+        items: WarehouseTxn[];
+        total: number;
+        page: number;
+        pageSize: number;
+      }>("GET", `/warehouse/txns?${params.toString()}`);
+      setTxns(Array.isArray(data.items) ? data.items : []);
+      setTxnTotal(data.total ?? 0);
+      setTxnPage(data.page ?? page);
     } catch (e) {
       toast.error(errorMessage(e));
       setTxns([]);
+      setTxnTotal(0);
     }
   }
 
@@ -349,7 +321,8 @@ export function WarehouseLedgerPage() {
   }, []);
 
   React.useEffect(() => {
-    void loadTxns();
+    setTxnPage(1);
+    void loadTxns(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, selectedId]);
 
@@ -358,12 +331,13 @@ export function WarehouseLedgerPage() {
     setItemForm({
       code: makeWarehouseItemCode(),
       name: "",
-      category: "种植耗材",
+      category: "其他",
       spec: "",
       unit: "个",
       brand: "",
       manufacturer: "",
       supplierName: "",
+      currentQty: "0",
       enabled: true,
     });
     setItemDialogOpen(true);
@@ -380,24 +354,24 @@ export function WarehouseLedgerPage() {
       brand: item.brand,
       manufacturer: item.manufacturer,
       supplierName: item.supplierName,
+      currentQty: String(item.currentQty),
       enabled: item.enabled,
     });
     setItemDialogOpen(true);
   }
 
-  function openTxn(type: "in" | "out" | "adjust") {
+  function openTxn(type: "in" | "out") {
     if (!selectedItem) {
       toast.error("请先选择物品");
       return;
     }
-    const firstBizType = bizTypeItems[type][0]?.value ?? "purchase";
+    const firstBizType = txnBizOptions[type][0]?.value ?? "purchase";
     setTxnForm({
       type,
       bizType: firstBizType,
       qty: "1",
       unitPrice: type === "in" ? String(selectedItem.lastPurchasePrice || 0) : "0",
       occurDate: dayjs().format("YYYY-MM-DD"),
-      remark: "",
     });
     setTxnDialogOpen(true);
   }
@@ -417,14 +391,17 @@ export function WarehouseLedgerPage() {
         enabled: itemForm.enabled,
       };
       if (editingItemId) {
-        await api("PUT", `/warehouse/items/${editingItemId}`, payload);
+        await api("PUT", `/warehouse/items/${editingItemId}`, {
+          ...payload,
+          currentQty: Math.max(0, Math.round(Number(itemForm.currentQty) || 0)),
+        });
         toast.success("物品已更新");
       } else {
         await api("POST", "/warehouse/items", payload);
         toast.success("物品已创建");
       }
       setItemDialogOpen(false);
-      await loadItems();
+      await Promise.all([loadItems(), loadTxns()]);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -467,7 +444,6 @@ export function WarehouseLedgerPage() {
         qty: Number(txnForm.qty),
         unitPrice: txnForm.type === "in" ? Number(txnForm.unitPrice) || 0 : 0,
         occurDate: txnForm.occurDate,
-        remark: txnForm.remark.trim(),
       });
       toast.success("流水已登记");
       setTxnDialogOpen(false);
@@ -486,7 +462,9 @@ export function WarehouseLedgerPage() {
       await api("DELETE", `/warehouse/txns/${deleteTxnId}`);
       toast.success("流水已删除");
       setDeleteTxnId(null);
-      await Promise.all([loadItems(), loadTxns()]);
+      const nextPage = txns.length === 1 && txnPage > 1 ? txnPage - 1 : txnPage;
+      await loadItems();
+      await loadTxns(nextPage);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -551,9 +529,6 @@ export function WarehouseLedgerPage() {
               <Button type="button" variant="outline" onClick={() => openTxn("out")}>
                 出库
               </Button>
-              <Button type="button" variant="outline" onClick={() => openTxn("adjust")}>
-                调整
-              </Button>
             </div>
           ) : null}
         </CardHeader>
@@ -577,13 +552,13 @@ export function WarehouseLedgerPage() {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <SortableItemHead label="编码" sortKey="code" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableItemHead label="名称" sortKey="name" activeSort={itemSort} onSort={toggleItemSort} className="w-[20%]" />
-                  <SortableItemHead label="分类" sortKey="category" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableItemHead label="品牌" sortKey="brand" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
-                  <SortableItemHead label="规格" sortKey="spec" activeSort={itemSort} onSort={toggleItemSort} className="w-[16%]" />
-                  <SortableItemHead label="单位" sortKey="unit" activeSort={itemSort} onSort={toggleItemSort} className="w-[7%]" />
-                  <SortableItemHead label="库存" sortKey="currentQty" activeSort={itemSort} onSort={toggleItemSort} className="w-[8%]" align="center" />
+                  <SortableTableHead label="编码" sortKey="code" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableTableHead label="名称" sortKey="name" activeSort={itemSort} onSort={toggleItemSort} className="w-[20%]" />
+                  <SortableTableHead label="分类" sortKey="category" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableTableHead label="品牌" sortKey="brand" activeSort={itemSort} onSort={toggleItemSort} className="w-[10%]" />
+                  <SortableTableHead label="规格" sortKey="spec" activeSort={itemSort} onSort={toggleItemSort} className="w-[16%]" />
+                  <SortableTableHead label="单位" sortKey="unit" activeSort={itemSort} onSort={toggleItemSort} className="w-[7%]" />
+                  <SortableTableHead label="库存" sortKey="currentQty" activeSort={itemSort} onSort={toggleItemSort} className="w-[8%]" align="center" />
                   <TableHead className="w-[12%] text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -683,8 +658,8 @@ export function WarehouseLedgerPage() {
                 {txns.map((txn) => (
                   <TableRow key={txn.id}>
                     <TableCell>{txn.occurDate}</TableCell>
-                    <TableCell>{typeItems.find((x) => x.value === txn.type)?.label ?? txn.type}</TableCell>
-                    <TableCell>{bizTypeItems[txn.type].find((x) => x.value === txn.bizType)?.label ?? txn.bizType}</TableCell>
+                    <TableCell>{txnTypeLabels[txn.type] ?? txn.type}</TableCell>
+                    <TableCell>{txnBizLabels[txn.bizType] ?? txn.bizType}</TableCell>
                     <TableCell className="text-center">{txn.qty}</TableCell>
                     <TableCell className="text-center">
                       {txn.type === "in" ? formatMoney(txn.unitPrice) : "-"}
@@ -710,6 +685,34 @@ export function WarehouseLedgerPage() {
                 ))}
               </TableBody>
             </Table>
+            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+              <span>
+                共 {txnTotal} 条
+                {txnTotal > 0
+                  ? `，第 ${txnPage} / ${Math.max(1, Math.ceil(txnTotal / TXN_PAGE_SIZE))} 页`
+                  : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={txnPage <= 1}
+                  onClick={() => void loadTxns(txnPage - 1)}
+                >
+                  上一页
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={txnPage >= Math.ceil(txnTotal / TXN_PAGE_SIZE)}
+                  onClick={() => void loadTxns(txnPage + 1)}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -718,10 +721,20 @@ export function WarehouseLedgerPage() {
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingItemId ? "编辑物品" : "新增物品"}</DialogTitle>
-            <DialogDescription>维护库房物品主档，后续出入库都基于这里的物品。</DialogDescription>
+            <DialogDescription>
+              {editingItemId
+                ? "修改库存时会自动登记一条调整流水。"
+                : "维护库房物品主档，后续出入库都基于这里的物品。"}
+            </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
             <FieldGroup className="grid gap-3 sm:grid-cols-2">
+              <Field orientation="vertical">
+                <FieldLabel><FieldTitle>编码</FieldTitle></FieldLabel>
+                <FieldContent>
+                  <Input className="w-full" value={itemForm.code} onChange={(e) => setItemForm((s) => ({ ...s, code: e.target.value }))} />
+                </FieldContent>
+              </Field>
               <Field orientation="vertical">
                 <FieldLabel><FieldTitle>名称</FieldTitle></FieldLabel>
                 <FieldContent>
@@ -738,6 +751,20 @@ export function WarehouseLedgerPage() {
                   />
                 </FieldContent>
               </Field>
+              {editingItemId ? (
+                <Field orientation="vertical">
+                  <FieldLabel><FieldTitle>库存</FieldTitle></FieldLabel>
+                  <FieldContent>
+                    <Input
+                      className="w-full"
+                      type="number"
+                      min={0}
+                      value={itemForm.currentQty}
+                      onChange={(e) => setItemForm((s) => ({ ...s, currentQty: e.target.value }))}
+                    />
+                  </FieldContent>
+                </Field>
+              ) : null}
               <Field orientation="vertical">
                 <FieldLabel><FieldTitle>规格</FieldTitle></FieldLabel>
                 <FieldContent>
@@ -773,7 +800,7 @@ export function WarehouseLedgerPage() {
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>登记流水</DialogTitle>
-            <DialogDescription>为当前选中的物品登记入库、出库或库存调整。</DialogDescription>
+            <DialogDescription>为当前选中的物品登记入库或出库。</DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
             <Field orientation="vertical">
@@ -790,23 +817,23 @@ export function WarehouseLedgerPage() {
                     value={txnForm.type}
                     onValueChange={(v: string | null) => {
                       if (!v) return;
-                      const type = v as "in" | "out" | "adjust";
+                      const type = v as "in" | "out";
                       setTxnForm((s) => ({
                         ...s,
                         type,
-                        bizType: bizTypeItems[type][0]?.value ?? s.bizType,
+                        bizType: txnBizOptions[type][0]?.value ?? s.bizType,
                         unitPrice:
                           type === "in"
                             ? String(selectedItem?.lastPurchasePrice || 0)
                             : "0",
                       }));
                     }}
-                    items={typeItems}
+                    items={txnTypeOptions}
                   >
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {typeItems.map((item) => (
+                        {txnTypeOptions.map((item) => (
                           <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                         ))}
                       </SelectGroup>
@@ -820,12 +847,12 @@ export function WarehouseLedgerPage() {
                   <Select
                     value={txnForm.bizType}
                     onValueChange={(v: string | null) => v && setTxnForm((s) => ({ ...s, bizType: v }))}
-                    items={bizTypeItems[txnForm.type]}
+                    items={txnBizOptions[txnForm.type]}
                   >
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {bizTypeItems[txnForm.type].map((item) => (
+                        {txnBizOptions[txnForm.type].map((item) => (
                           <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                         ))}
                       </SelectGroup>
@@ -862,12 +889,6 @@ export function WarehouseLedgerPage() {
                 </FieldContent>
               </Field>
             </FieldGroup>
-            <Field orientation="vertical">
-              <FieldLabel><FieldTitle>备注</FieldTitle></FieldLabel>
-              <FieldContent>
-                <Input className="w-full" value={txnForm.remark} onChange={(e) => setTxnForm((s) => ({ ...s, remark: e.target.value }))} />
-              </FieldContent>
-            </Field>
           </FieldSet>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={() => setTxnDialogOpen(false)}>

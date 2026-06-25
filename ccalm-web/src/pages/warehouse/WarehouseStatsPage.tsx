@@ -1,8 +1,10 @@
 import * as React from "react";
 import dayjs from "dayjs";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { DateRangePickerField, type DateRangeValue } from "@/components/date-range-picker-field";
+import { SortableTableHead } from "@/components/sortable-table-head";
+import { TruncateCell } from "@/components/truncate-cell";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -32,6 +34,13 @@ type PurchaseStats = {
   }>;
 };
 
+type StatsSortKey = "code" | "name" | "spec" | "unit" | "qty" | "unitPrice" | "amount";
+
+type StatsSort = {
+  key: StatsSortKey;
+  dir: "asc" | "desc";
+};
+
 function formatMoney(n: number) {
   return n.toFixed(2);
 }
@@ -43,17 +52,41 @@ function defaultDateRange(): DateRangeValue {
   };
 }
 
-function TruncateCell({ children, title }: { children: React.ReactNode; title?: string }) {
-  return (
-    <div className="truncate text-left" title={title ?? (typeof children === "string" ? children : undefined)}>
-      {children}
-    </div>
-  );
+function compareStatsRows(
+  a: PurchaseStats["byItem"][number],
+  b: PurchaseStats["byItem"][number],
+  sort: StatsSort,
+): number {
+  let cmp = 0;
+  if (sort.key === "qty" || sort.key === "unitPrice" || sort.key === "amount") {
+    cmp = a[sort.key] - b[sort.key];
+  } else {
+    const av = (a[sort.key] ?? "").toString();
+    const bv = (b[sort.key] ?? "").toString();
+    cmp = av.localeCompare(bv, "zh-CN", { numeric: true });
+  }
+  return sort.dir === "asc" ? cmp : -cmp;
 }
 
 export function WarehouseStatsPage() {
   const [dateRange, setDateRange] = React.useState<DateRangeValue>(defaultDateRange);
   const [stats, setStats] = React.useState<PurchaseStats | null>(null);
+  const [statsSort, setStatsSort] = React.useState<StatsSort | null>(null);
+
+  const displayRows = React.useMemo(() => {
+    const rows = stats?.byItem ?? [];
+    if (!statsSort) return rows;
+    return [...rows].sort((a, b) => compareStatsRows(a, b, statsSort));
+  }, [stats?.byItem, statsSort]);
+
+  function toggleStatsSort(key: StatsSortKey) {
+    setStatsSort((prev) => {
+      if (prev?.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      }
+      return { key, dir: "asc" };
+    });
+  }
 
   async function load(targetRange: DateRangeValue) {
     try {
@@ -110,17 +143,17 @@ export function WarehouseStatsPage() {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[12%]">编码</TableHead>
-                  <TableHead className="w-[24%]">名称</TableHead>
-                  <TableHead className="w-[16%]">规格</TableHead>
-                  <TableHead className="w-[8%]">单位</TableHead>
-                  <TableHead className="w-[12%] text-center">采购数量</TableHead>
-                  <TableHead className="w-[12%] text-center">单价</TableHead>
-                  <TableHead className="w-[16%] text-center">采购金额</TableHead>
+                  <SortableTableHead label="编码" sortKey="code" activeSort={statsSort} onSort={toggleStatsSort} className="w-[12%]" />
+                  <SortableTableHead label="名称" sortKey="name" activeSort={statsSort} onSort={toggleStatsSort} className="w-[24%]" />
+                  <SortableTableHead label="规格" sortKey="spec" activeSort={statsSort} onSort={toggleStatsSort} className="w-[16%]" />
+                  <SortableTableHead label="单位" sortKey="unit" activeSort={statsSort} onSort={toggleStatsSort} className="w-[8%]" />
+                  <SortableTableHead label="采购数量" sortKey="qty" activeSort={statsSort} onSort={toggleStatsSort} className="w-[12%]" align="center" />
+                  <SortableTableHead label="单价" sortKey="unitPrice" activeSort={statsSort} onSort={toggleStatsSort} className="w-[12%]" align="center" />
+                  <SortableTableHead label="采购金额" sortKey="amount" activeSort={statsSort} onSort={toggleStatsSort} className="w-[16%]" align="center" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats?.byItem.map((row) => (
+                {displayRows.map((row) => (
                   <TableRow key={row.itemId}>
                     <TableCell className="max-w-0">
                       <TruncateCell title={row.code}>{row.code}</TruncateCell>

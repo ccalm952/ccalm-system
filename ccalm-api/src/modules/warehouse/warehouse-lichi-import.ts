@@ -11,7 +11,6 @@ export type LichiImportRow = {
   brand: string
   spec: string
   unit: string
-  remarkKey: string
 }
 
 export type LichiImportResult = {
@@ -211,7 +210,6 @@ export function parseLichiExcel(buffer: Buffer): LichiImportRow[] {
       brand: readOptionalField(row, fullMap, "brand"),
       spec: readOptionalField(row, fullMap, "spec"),
       unit: readOptionalField(row, fullMap, "unit") || "个",
-      remarkKey: `励齿|${normalizedCode}|${occurDate}|${qty}|${unitPrice}`,
     }
   })
 }

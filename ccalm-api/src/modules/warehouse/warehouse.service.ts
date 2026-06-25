@@ -28,8 +28,13 @@ function requireDate(value: string): string {
   return d.format("YYYY-MM-DD")
 }
 
-function txnQtyDelta(type: "in" | "out" | "adjust", qty: number): number {
-  return type === "out" ? -qty : qty
+function txnQtyDelta(
+  type: "in" | "out" | "adjust",
+  bizType: string,
+  qty: number,
+): number {
+  if (type === "out" || bizType === "adjust_out") return -qty
+  return qty
 }
 
 function resolveTxnDateRange(filters: {
@@ -94,11 +99,16 @@ export class WarehouseService {
     const name = cleanText(dto.name)
     if (!code || !name) throw new BadRequestException("编码与名称不能为空")
 
+    const duplicated = await this.prisma.warehouseItem.findUnique({
+      where: { code },
+    })
+    if (duplicated) throw new BadRequestException("编码已存在")
+
     return await this.prisma.warehouseItem.create({
       data: {
         code,
         name,
-        category: cleanText(dto.category, "其他"),
+        category: cleanText(dto.category),
         spec: cleanText(dto.spec),
         unit: cleanText(dto.unit, "个"),
         brand: cleanText(dto.brand),
@@ -109,7 +119,11 @@ export class WarehouseService {
     })
   }
 
-  async updateItem(id: number, dto: UpdateWarehouseItemDto) {
+  async updateItem(
+    id: number,
+    dto: UpdateWarehouseItemDto,
+    operatorUserId: string,
+  ) {
     const existing = await this.prisma.warehouseItem.findUnique({
       where: { id },
     })
@@ -118,9 +132,7 @@ export class WarehouseService {
     const data = {
       ...(dto.code != null ? { code: cleanText(dto.code) } : {}),
       ...(dto.name != null ? { name: cleanText(dto.name) } : {}),
-      ...(dto.category != null
-        ? { category: cleanText(dto.category, "其他") }
-        : {}),
+      ...(dto.category != null ? { category: cleanText(dto.category) } : {}),
       ...(dto.spec != null ? { spec: cleanText(dto.spec) } : {}),
       ...(dto.unit != null ? { unit: cleanText(dto.unit, "个") } : {}),
       ...(dto.brand != null ? { brand: cleanText(dto.brand) } : {}),
@@ -138,10 +150,45 @@ export class WarehouseService {
     if ("name" in data && !data.name)
       throw new BadRequestException("名称不能为空")
 
-    return await this.prisma.warehouseItem.update({
-      where: { id },
-      data,
+    if ("code" in data && data.code) {
+      const duplicated = await this.prisma.warehouseItem.findFirst({
+        where: { code: data.code, NOT: { id } },
+      })
+      if (duplicated) throw new BadRequestException("编码已存在")
+    }
+
+    const nextQty =
+      dto.currentQty != null ? Math.round(dto.currentQty) : existing.currentQty
+    if (nextQty < 0) throw new BadRequestException("库存不能为负数")
+
+    const qtyDelta = nextQty - existing.currentQty
+
+    await this.prisma.$transaction(async (tx) => {
+      if (qtyDelta !== 0) {
+        await tx.warehouseTxn.create({
+          data: {
+            itemId: id,
+            type: "adjust",
+            bizType: qtyDelta > 0 ? "adjust_in" : "adjust_out",
+            qty: Math.abs(qtyDelta),
+            unitPrice: 0,
+            amount: 0,
+            occurDate: dayjs().format("YYYY-MM-DD"),
+            operatorUserId,
+          },
+        })
+      }
+
+      await tx.warehouseItem.update({
+        where: { id },
+        data: {
+          ...data,
+          ...(dto.currentQty != null ? { currentQty: nextQty } : {}),
+        },
+      })
     })
+
+    return await this.prisma.warehouseItem.findUnique({ where: { id } })
   }
 
   async deleteItem(id: number) {
@@ -167,7 +214,7 @@ export class WarehouseService {
     if (!item.enabled)
       throw new BadRequestException("物料已停用，不能继续出入库")
 
-    const qtyDelta = txnQtyDelta(dto.type, dto.qty)
+    const qtyDelta = txnQtyDelta(dto.type, dto.bizType, dto.qty)
     const nextQty = item.currentQty + qtyDelta
     if (nextQty < 0) throw new BadRequestException("出库后库存不能为负数")
 
@@ -183,7 +230,6 @@ export class WarehouseService {
           unitPrice: dto.unitPrice,
           amount,
           occurDate,
-          remark: cleanText(dto.remark),
           operatorUserId,
         },
       })
@@ -209,7 +255,7 @@ export class WarehouseService {
     })
     if (!txn) throw new NotFoundException("流水不存在")
 
-    const qtyDelta = txnQtyDelta(txn.type, txn.qty)
+    const qtyDelta = txnQtyDelta(txn.type, txn.bizType, txn.qty)
     const nextQty = txn.item.currentQty - qtyDelta
     if (nextQty < 0) {
       throw new BadRequestException("删除后库存不能为负数")
@@ -247,24 +293,35 @@ export class WarehouseService {
     endDate?: string
     type?: "in" | "out" | "adjust"
     itemId?: number
+    page?: number
+    pageSize?: number
   }) {
     const occurDate = resolveTxnDateRange(filters)
+    const page = Math.max(1, filters.page ?? 1)
+    const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 15))
+    const where = {
+      ...(filters.type ? { type: filters.type } : {}),
+      ...(filters.itemId ? { itemId: filters.itemId } : {}),
+      ...(occurDate ? { occurDate } : {}),
+    }
 
-    return await this.prisma.warehouseTxn.findMany({
-      where: {
-        ...(filters.type ? { type: filters.type } : {}),
-        ...(filters.itemId ? { itemId: filters.itemId } : {}),
-        ...(occurDate ? { occurDate } : {}),
-      },
-      include: {
-        item: true,
-        operatorUser: {
-          select: { displayName: true, username: true },
+    const [total, items] = await Promise.all([
+      this.prisma.warehouseTxn.count({ where }),
+      this.prisma.warehouseTxn.findMany({
+        where,
+        include: {
+          item: true,
+          operatorUser: {
+            select: { displayName: true, username: true },
+          },
         },
-      },
-      orderBy: [{ occurDate: "desc" }, { id: "desc" }],
-      take: 200,
-    })
+        orderBy: [{ occurDate: "desc" }, { id: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ])
+
+    return { items, total, page, pageSize }
   }
 
   async purchaseStats(filters: {
@@ -346,7 +403,14 @@ export class WarehouseService {
       const code = lichiItemCode(row.code)
 
       const duplicated = await this.prisma.warehouseTxn.findFirst({
-        where: { remark: row.remarkKey },
+        where: {
+          type: "in",
+          bizType: "purchase",
+          occurDate: row.occurDate,
+          qty: row.qty,
+          unitPrice: row.unitPrice,
+          item: { code },
+        },
       })
       if (duplicated) {
         skippedTxns += 1
@@ -387,7 +451,6 @@ export class WarehouseService {
             unitPrice: row.unitPrice,
             amount,
             occurDate: row.occurDate,
-            remark: row.remarkKey,
             operatorUserId,
           },
         })
