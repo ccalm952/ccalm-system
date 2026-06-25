@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -199,14 +200,10 @@ export function ImplantInventoryPage() {
       return;
     }
     try {
-      for (const id of ids) {
-        try {
-          await api("DELETE", `/implant/inventory/${id}`);
-        } catch (e) {
-          toast.error(errorMessage(e));
-        }
-      }
-      toast.success("已删除");
+      const { ok, fail } = await batchDelete(ids, (id) =>
+        api("DELETE", `/implant/inventory/${id}`),
+      );
+      toastBatchDeleteResult(ok, fail);
       await load();
     } finally {
       setDeleteDialogOpen(false);

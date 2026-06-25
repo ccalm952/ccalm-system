@@ -100,26 +100,11 @@ async function loadSummary(
   const pendingMakeupRequests = await loadPendingMakeupRequests(me.role === "admin");
 
   if (me.role === "admin") {
-    const users = await api<Array<{ id: string; displayName: string; username: string }>>(
+    const summary = await api<UserAgg[]>(
       "GET",
-      "/users",
+      `/attendance/summary/monthly-all?month=${month}`,
     );
-    const tasks = users.map(async (u) => {
-      const s = await api<AttendanceMonthlySummary>(
-        "GET",
-        `/attendance/summary/monthly?month=${month}&userId=${u.id}`,
-      );
-      return {
-        userId: u.id,
-        userName: u.displayName || u.username,
-        attendanceDays: s.attendanceDays,
-        restDays: s.restDays,
-        missingSlots: s.missingSlots,
-        overtimeStr: s.overtimeStr,
-        rows: s.rows,
-      } satisfies UserAgg;
-    });
-    return { isAdmin: true, summary: await Promise.all(tasks), pendingMakeupRequests };
+    return { isAdmin: true, summary, pendingMakeupRequests };
   }
 
   const s = await api<AttendanceMonthlySummary>(

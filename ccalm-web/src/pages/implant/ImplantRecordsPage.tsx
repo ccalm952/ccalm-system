@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { toast } from "@/components/ui/sonner";
 
 type Row = {
@@ -1121,16 +1122,12 @@ export function ImplantRecordsPage() {
       return;
     }
     try {
-      for (const row of sel) {
-        try {
-          const q =
-            row.toothId != null ? `?toothId=${encodeURIComponent(String(row.toothId))}` : "";
-          await api("DELETE", `/implant/visits/${row.visitId}${q}`);
-        } catch (e) {
-          toast.error(errorMessage(e));
-        }
-      }
-      toast.success("已删除");
+      const { ok, fail } = await batchDelete(sel, (row) => {
+        const q =
+          row.toothId != null ? `?toothId=${encodeURIComponent(String(row.toothId))}` : "";
+        return api("DELETE", `/implant/visits/${row.visitId}${q}`);
+      });
+      toastBatchDeleteResult(ok, fail);
       await load();
     } finally {
       setDeleteDialogOpen(false);

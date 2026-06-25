@@ -445,6 +445,28 @@ export class AttendanceService {
       rows,
     }
   }
+
+  async monthlySummariesForAll(month: string) {
+    const users = await this.prisma.user.findMany({
+      orderBy: [{ displayName: "asc" }, { username: "asc" }],
+      select: { id: true, displayName: true, username: true },
+    })
+
+    return await Promise.all(
+      users.map(async (u) => {
+        const s = await this.monthlySummary(u.id, month)
+        return {
+          userId: u.id,
+          userName: u.displayName || u.username,
+          attendanceDays: s.attendanceDays,
+          restDays: s.restDays,
+          missingSlots: s.missingSlots,
+          overtimeStr: s.overtimeStr,
+          rows: s.rows,
+        }
+      })
+    )
+  }
 }
 
 function haversineDistanceMeters(

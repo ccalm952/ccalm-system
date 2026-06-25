@@ -44,6 +44,7 @@ import {
 import { SearchIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { toast } from "@/components/ui/sonner";
 
 type PatientRow = {
@@ -136,14 +137,10 @@ export function ImplantPatientPage() {
       return;
     }
     try {
-      for (const row of sel) {
-        try {
-          await api("DELETE", `/implant/patient/${row.id}`);
-        } catch (e) {
-          toast.error(errorMessage(e));
-        }
-      }
-      toast.success("已删除");
+      const { ok, fail } = await batchDelete(sel, (row) =>
+        api("DELETE", `/implant/patient/${row.id}`),
+      );
+      toastBatchDeleteResult(ok, fail);
       await load();
     } finally {
       setDeleteDialogOpen(false);

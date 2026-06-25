@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import {
   BadRequestException,
   Injectable,
@@ -5,6 +6,7 @@ import {
 } from "@nestjs/common"
 import dayjs from "dayjs"
 
+import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import type {
   CreateWarehouseItemDto,
@@ -71,6 +73,23 @@ function resolveTxnDateRange(filters: {
 export class WarehouseService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async lockWarehouseItem(
+    tx: Prisma.TransactionClient,
+    itemId: number
+  ) {
+    const rows = await tx.$queryRaw<
+      Array<{ id: number; currentQty: number; enabled: boolean }>
+    >`
+      SELECT id, "currentQty", enabled
+      FROM "WarehouseItem"
+      WHERE id = ${itemId}
+      FOR UPDATE
+    `
+    const item = rows[0]
+    if (!item) throw new NotFoundException("物料不存在")
+    return item
+  }
+
   async listItems(q?: string) {
     const keyword = q?.trim()
     return await this.prisma.warehouseItem.findMany({
@@ -104,19 +123,26 @@ export class WarehouseService {
     })
     if (duplicated) throw new BadRequestException("编码已存在")
 
-    return await this.prisma.warehouseItem.create({
-      data: {
-        code,
-        name,
-        category: cleanText(dto.category),
-        spec: cleanText(dto.spec),
-        unit: cleanText(dto.unit, "个"),
-        brand: cleanText(dto.brand),
-        manufacturer: cleanText(dto.manufacturer),
-        supplierName: cleanText(dto.supplierName),
-        enabled: dto.enabled ?? true,
-      },
-    })
+    try {
+      return await this.prisma.warehouseItem.create({
+        data: {
+          code,
+          name,
+          category: cleanText(dto.category),
+          spec: cleanText(dto.spec),
+          unit: cleanText(dto.unit, "个"),
+          brand: cleanText(dto.brand),
+          manufacturer: cleanText(dto.manufacturer),
+          supplierName: cleanText(dto.supplierName),
+          enabled: dto.enabled ?? true,
+        },
+      })
+    } catch (error) {
+      if (isPrismaUniqueViolation(error)) {
+        throw new BadRequestException("编码已存在")
+      }
+      throw error
+    }
   }
 
   async updateItem(
@@ -157,13 +183,14 @@ export class WarehouseService {
       if (duplicated) throw new BadRequestException("编码已存在")
     }
 
-    const nextQty =
-      dto.currentQty != null ? Math.round(dto.currentQty) : existing.currentQty
-    if (nextQty < 0) throw new BadRequestException("库存不能为负数")
-
-    const qtyDelta = nextQty - existing.currentQty
-
     await this.prisma.$transaction(async (tx) => {
+      const locked = await this.lockWarehouseItem(tx, id)
+      const nextQty =
+        dto.currentQty != null ? Math.round(dto.currentQty) : locked.currentQty
+      if (nextQty < 0) throw new BadRequestException("库存不能为负数")
+
+      const qtyDelta = nextQty - locked.currentQty
+
       if (qtyDelta !== 0) {
         await tx.warehouseTxn.create({
           data: {
@@ -207,20 +234,18 @@ export class WarehouseService {
 
   async createTxn(dto: CreateWarehouseTxnDto, operatorUserId: string) {
     const occurDate = requireDate(dto.occurDate)
-    const item = await this.prisma.warehouseItem.findUnique({
-      where: { id: dto.itemId },
-    })
-    if (!item) throw new NotFoundException("物料不存在")
-    if (!item.enabled)
-      throw new BadRequestException("物料已停用，不能继续出入库")
-
-    const qtyDelta = txnQtyDelta(dto.type, dto.bizType, dto.qty)
-    const nextQty = item.currentQty + qtyDelta
-    if (nextQty < 0) throw new BadRequestException("出库后库存不能为负数")
-
-    const amount = Number((dto.qty * dto.unitPrice).toFixed(2))
 
     await this.prisma.$transaction(async (tx) => {
+      const item = await this.lockWarehouseItem(tx, dto.itemId)
+      if (!item.enabled)
+        throw new BadRequestException("物料已停用，不能继续出入库")
+
+      const qtyDelta = txnQtyDelta(dto.type, dto.bizType, dto.qty)
+      const nextQty = item.currentQty + qtyDelta
+      if (nextQty < 0) throw new BadRequestException("出库后库存不能为负数")
+
+      const amount = Number((dto.qty * dto.unitPrice).toFixed(2))
+
       await tx.warehouseTxn.create({
         data: {
           itemId: dto.itemId,
@@ -249,19 +274,19 @@ export class WarehouseService {
   }
 
   async deleteTxn(id: number) {
-    const txn = await this.prisma.warehouseTxn.findUnique({
-      where: { id },
-      include: { item: true },
-    })
-    if (!txn) throw new NotFoundException("流水不存在")
-
-    const qtyDelta = txnQtyDelta(txn.type, txn.bizType, txn.qty)
-    const nextQty = txn.item.currentQty - qtyDelta
-    if (nextQty < 0) {
-      throw new BadRequestException("删除后库存不能为负数")
-    }
-
     await this.prisma.$transaction(async (tx) => {
+      const txn = await tx.warehouseTxn.findUnique({
+        where: { id },
+      })
+      if (!txn) throw new NotFoundException("流水不存在")
+
+      const item = await this.lockWarehouseItem(tx, txn.itemId)
+      const qtyDelta = txnQtyDelta(txn.type, txn.bizType, txn.qty)
+      const nextQty = item.currentQty - qtyDelta
+      if (nextQty < 0) {
+        throw new BadRequestException("删除后库存不能为负数")
+      }
+
       await tx.warehouseTxn.delete({ where: { id } })
 
       const latestPurchase = await tx.warehouseTxn.findFirst({
@@ -402,69 +427,81 @@ export class WarehouseService {
     for (const row of rows) {
       const code = lichiItemCode(row.code)
 
-      const duplicated = await this.prisma.warehouseTxn.findFirst({
-        where: {
-          type: "in",
-          bizType: "purchase",
-          occurDate: row.occurDate,
-          qty: row.qty,
-          unitPrice: row.unitPrice,
-          item: { code },
-        },
-      })
-      if (duplicated) {
+      try {
+        const imported = await this.prisma.$transaction(async (tx) => {
+          const duplicated = await tx.warehouseTxn.findFirst({
+            where: {
+              type: "in",
+              bizType: "purchase",
+              occurDate: row.occurDate,
+              qty: row.qty,
+              unitPrice: row.unitPrice,
+              item: { code },
+            },
+          })
+          if (duplicated) return "skip" as const
+
+          let item = await tx.warehouseItem.findUnique({ where: { code } })
+          let createdNew = false
+          if (!item) {
+            try {
+              item = await tx.warehouseItem.create({
+                data: {
+                  code,
+                  name: row.name,
+                  category: "",
+                  spec: row.spec,
+                  unit: row.unit,
+                  brand: row.brand,
+                  manufacturer: "",
+                  supplierName: LICHI_SUPPLIER,
+                  enabled: true,
+                },
+              })
+              createdNew = true
+            } catch (error) {
+              if (!isPrismaUniqueViolation(error)) throw error
+              item = await tx.warehouseItem.findUnique({ where: { code } })
+              if (!item) throw error
+            }
+          }
+
+          await this.lockWarehouseItem(tx, item.id)
+
+          const amount = Number((row.qty * row.unitPrice).toFixed(2))
+          await tx.warehouseTxn.create({
+            data: {
+              itemId: item.id,
+              type: "in",
+              bizType: "purchase",
+              qty: row.qty,
+              unitPrice: row.unitPrice,
+              amount,
+              occurDate: row.occurDate,
+              operatorUserId,
+            },
+          })
+
+          await tx.warehouseItem.update({
+            where: { id: item.id },
+            data: {
+              currentQty: { increment: row.qty },
+              lastPurchasePrice: row.unitPrice,
+            },
+          })
+
+          return createdNew ? ("newItem" as const) : ("txn" as const)
+        })
+
+        if (imported === "skip") {
+          skippedTxns += 1
+          continue
+        }
+        if (imported === "newItem") createdItems += 1
+        createdTxns += 1
+      } catch {
         skippedTxns += 1
-        continue
       }
-
-      let item = await this.prisma.warehouseItem.findUnique({
-        where: { code },
-      })
-
-      if (!item) {
-        item = await this.prisma.warehouseItem.create({
-          data: {
-            code,
-            name: row.name,
-            category: "",
-            spec: row.spec,
-            unit: row.unit,
-            brand: row.brand,
-            manufacturer: "",
-            supplierName: LICHI_SUPPLIER,
-            enabled: true,
-          },
-        })
-        createdItems += 1
-      }
-
-      const itemId = item.id
-      const amount = Number((row.qty * row.unitPrice).toFixed(2))
-
-      await this.prisma.$transaction(async (tx) => {
-        await tx.warehouseTxn.create({
-          data: {
-            itemId,
-            type: "in",
-            bizType: "purchase",
-            qty: row.qty,
-            unitPrice: row.unitPrice,
-            amount,
-            occurDate: row.occurDate,
-            operatorUserId,
-          },
-        })
-
-        await tx.warehouseItem.update({
-          where: { id: itemId },
-          data: {
-            currentQty: { increment: row.qty },
-            lastPurchasePrice: row.unitPrice,
-          },
-        })
-      })
-
-      createdTxns += 1
     }
 
     return {

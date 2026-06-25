@@ -105,6 +105,15 @@ export class UsersService {
 
     if (role && !isAdmin) throw new ForbiddenException("仅管理员可修改角色")
 
+    if (role === "user" && existing.role === "admin" && isAdmin) {
+      const adminCount = await this.prisma.user.count({
+        where: { role: "admin" },
+      })
+      if (adminCount <= 1) {
+        throw new BadRequestException("至少保留一个管理员")
+      }
+    }
+
     const data: Record<string, unknown> = {}
     if (typeof displayName === "string") data.displayName = displayName
     if (typeof password === "string" && password.length >= 6)

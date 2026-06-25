@@ -441,12 +441,17 @@ export function AttendancePage() {
     let cancelled = false;
     (async () => {
       try {
-        const monthly = await api<AttendanceMonthlySummary>(
-          "GET",
-          `/attendance/summary/monthly?month=${currentMonth}`,
-        );
+        const [todayRes, monthly] = await Promise.all([
+          api<AttendanceRecord[]>("GET", "/attendance/today"),
+          api<AttendanceMonthlySummary>(
+            "GET",
+            `/attendance/summary/monthly?month=${currentMonth}`,
+          ),
+        ]);
         if (cancelled) return;
+        setRecords(todayRes);
         setMonthSummary(monthly);
+        void reloadMakeupRequests();
       } catch {
         // ignore
       }
@@ -454,7 +459,7 @@ export function AttendancePage() {
     return () => {
       cancelled = true;
     };
-  }, [me?.id, currentMonth]);
+  }, [me?.id, currentMonth, reloadMakeupRequests]);
 
   async function refreshLocation() {
     const session = ++autoPunchEpochRef.current;

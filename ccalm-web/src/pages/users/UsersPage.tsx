@@ -82,6 +82,7 @@ function parseLeaveBalance(raw: string): number | null {
 export function UsersPage() {
   const { me } = useAuth();
   const [rows, setRows] = React.useState<UserRow[] | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const roleItems = React.useMemo(
     () => [
@@ -117,9 +118,11 @@ export function UsersPage() {
   const load = React.useCallback(async () => {
     if (!me) return;
     if (me.role === "admin") {
+      setLoadError(null);
       const list = await api<UserRow[]>("GET", "/users");
       setRows(list);
     } else {
+      setLoadError(null);
       setRows([]);
     }
   }, [me]);
@@ -130,8 +133,10 @@ export function UsersPage() {
       try {
         await load();
         if (cancelled) return;
-      } catch {
-        // 401 由 api.ts 全局处理
+      } catch (e) {
+        if (cancelled) return;
+        setRows([]);
+        setLoadError(errorMessage(e));
       }
     })();
     return () => {
@@ -155,6 +160,8 @@ export function UsersPage() {
           <CardContent>
             {me?.role !== "admin" ? (
               <div className="text-sm text-muted-foreground">仅管理员可管理人员。</div>
+            ) : loadError ? (
+              <div className="text-sm text-destructive">{loadError}</div>
             ) : rows === null ? (
               <div className="text-sm text-muted-foreground">加载中…</div>
             ) : (
@@ -527,6 +534,15 @@ export function UsersPage() {
                 onClick={() => {
                   const u = editUser;
                   if (!u) return;
+                  const original = rows?.find((r) => r.id === u.id);
+                  if (
+                    original?.role === "admin" &&
+                    u.role === "user" &&
+                    adminCount <= 1
+                  ) {
+                    toast.error("至少保留一个管理员");
+                    return;
+                  }
                   void (async () => {
                     try {
                       setEditSubmitting(true);

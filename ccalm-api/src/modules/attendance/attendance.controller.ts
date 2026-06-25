@@ -84,6 +84,12 @@ export class AttendanceController {
     return await this.attendance.records(authUserId(req), startDate, endDate)
   }
 
+  @Get("summary/monthly-all")
+  async monthlyAll(@Req() req: Request, @Query("month") month: string) {
+    requireAdmin(req, "仅管理员可查看全员考勤统计")
+    return await this.attendance.monthlySummariesForAll(month)
+  }
+
   @Get("summary/monthly")
   async monthly(
     @Req() req: Request,

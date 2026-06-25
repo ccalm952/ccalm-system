@@ -130,6 +130,46 @@ export class AttendanceScheduleService {
     return null
   }
 
+  private leaveByUserMonthFromEntries(
+    entries: Array<{
+      userId: string
+      date: string
+      shiftType: ScheduleShiftType
+    }>
+  ): Map<string, number> {
+    const map = new Map<string, number>()
+    for (const e of entries) {
+      const month = e.date.slice(0, 7)
+      const key = `${e.userId}:${month}`
+      map.set(key, (map.get(key) ?? 0) + leaveDaysForShift(e.shiftType))
+    }
+    return map
+  }
+
+  private remainingLeaveFromPrefetch(
+    userId: string,
+    month: string,
+    initialBalance: number,
+    createdAt: Date,
+    configMap: Map<string, number>,
+    leaveByUserMonth: Map<string, number>
+  ): number {
+    let balance = initialBalance
+    let cursor = dayjs(createdAt).startOf("month")
+    const target = dayjs(`${month}-01`, "YYYY-MM-DD")
+
+    while (cursor.isBefore(target, "month")) {
+      const m = cursor.format("YYYY-MM")
+      balance += configMap.get(m) ?? 0
+      balance -= leaveByUserMonth.get(`${userId}:${m}`) ?? 0
+      cursor = cursor.add(1, "month")
+    }
+
+    const allowance = configMap.get(month) ?? 0
+    const leave = leaveByUserMonth.get(`${userId}:${month}`) ?? 0
+    return balance + allowance - leave
+  }
+
   async getMonth(month: string) {
     const { start, end, daysInMonth } = monthBounds(month)
     const monthAllowance = await this.getMonthAllowance(month)
@@ -160,43 +200,75 @@ export class AttendanceScheduleService {
       entryMap.set(`${e.userId}:${e.date}`, e.shiftType)
     }
 
-    const userRows = await Promise.all(
-      users.map(async (u) => {
-        const days: Record<string, ScheduleShiftType | null> = {}
-        let fullCount = 0
-        let morningCount = 0
-        let afternoonCount = 0
+    const earliestMonth = users.reduce((min, u) => {
+      const m = dayjs(u.createdAt).startOf("month").format("YYYY-MM")
+      return m < min ? m : min
+    }, month)
 
-        for (let d = 1; d <= daysInMonth; d += 1) {
-          const date = start.date(d).format("YYYY-MM-DD")
-          const key = `${u.id}:${date}`
-          const shift = entryMap.get(key) ?? null
-          days[String(d)] = shift
-          if (shift === "full_rest") fullCount += 1
-          if (shift === "morning_rest") morningCount += 1
-          if (shift === "afternoon_rest") afternoonCount += 1
-        }
+    const monthKeys: string[] = []
+    let monthCursor = dayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
+    const targetMonth = dayjs(`${month}-01`, "YYYY-MM-DD")
+    while (!monthCursor.isAfter(targetMonth, "month")) {
+      monthKeys.push(monthCursor.format("YYYY-MM"))
+      monthCursor = monthCursor.add(1, "month")
+    }
 
-        const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5
-        const remainingLeave = await this.remainingLeaveForMonth(
-          u.id,
-          month,
-          u.leaveInitialBalance,
-          u.createdAt
-        )
-
-        return {
-          userId: u.id,
-          userName: u.displayName || u.username,
-          days,
-          fullCount,
-          morningCount,
-          afternoonCount,
-          monthLeave,
-          remainingLeave,
-        }
-      })
+    const configs = await this.prisma.scheduleMonthConfig.findMany({
+      where: { month: { in: monthKeys } },
+    })
+    const configMap = new Map(
+      configs.map((c) => [c.month, c.monthAllowance] as const)
     )
+
+    const historyEntries = await this.prisma.scheduleEntry.findMany({
+      where: {
+        userId: { in: users.map((u) => u.id) },
+        date: {
+          gte: dayjs(`${earliestMonth}-01`).format("YYYY-MM-DD"),
+          lte: end.format("YYYY-MM-DD"),
+        },
+      },
+      select: { userId: true, date: true, shiftType: true },
+    })
+    const leaveByUserMonth = this.leaveByUserMonthFromEntries(historyEntries)
+
+    const userRows = users.map((u) => {
+      const days: Record<string, ScheduleShiftType | null> = {}
+      let fullCount = 0
+      let morningCount = 0
+      let afternoonCount = 0
+
+      for (let d = 1; d <= daysInMonth; d += 1) {
+        const date = start.date(d).format("YYYY-MM-DD")
+        const key = `${u.id}:${date}`
+        const shift = entryMap.get(key) ?? null
+        days[String(d)] = shift
+        if (shift === "full_rest") fullCount += 1
+        if (shift === "morning_rest") morningCount += 1
+        if (shift === "afternoon_rest") afternoonCount += 1
+      }
+
+      const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5
+      const remainingLeave = this.remainingLeaveFromPrefetch(
+        u.id,
+        month,
+        u.leaveInitialBalance,
+        u.createdAt,
+        configMap,
+        leaveByUserMonth
+      )
+
+      return {
+        userId: u.id,
+        userName: u.displayName || u.username,
+        days,
+        fullCount,
+        morningCount,
+        afternoonCount,
+        monthLeave,
+        remainingLeave,
+      }
+    })
 
     const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => {
       const d = start.date(i + 1)

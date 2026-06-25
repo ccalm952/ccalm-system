@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import {
   BadRequestException,
   Injectable,
@@ -6,6 +7,7 @@ import {
 import dayjs from "dayjs"
 import customParseFormat from "dayjs/plugin/customParseFormat"
 
+import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
 import { punchDateFromTime } from "./punch-date"
@@ -58,6 +60,47 @@ export class AttendanceMakeupService {
       address: "补卡",
       source: "makeup" as const,
     }
+  }
+
+  private async createMakeupRecord(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    type: AdminMakeupType,
+    punchTime: Date
+  ) {
+    try {
+      return await tx.attendanceRecord.create({
+        data: this.createMakeupRecordData(userId, type, punchTime),
+      })
+    } catch (error) {
+      if (isPrismaUniqueViolation(error)) {
+        throw new BadRequestException("该打卡记录已存在")
+      }
+      throw error
+    }
+  }
+
+  private async createAutoOutIfNeeded(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    dateStr: string,
+    type: MakeupInType
+  ) {
+    const autoOut = this.buildAutoOutRecord(userId, dateStr, type)
+    if (!autoOut) return
+
+    const existing = await tx.attendanceRecord.findUnique({
+      where: {
+        userId_type_punchDate: {
+          userId,
+          type: autoOut.type,
+          punchDate: dateStr,
+        },
+      },
+    })
+    if (existing) return
+
+    await this.createMakeupRecord(tx, userId, autoOut.type, autoOut.punchTime)
   }
 
   private shouldAutoMakeupOut(dateStr: string, type: MakeupRequestType) {
@@ -355,31 +398,43 @@ export class AttendanceMakeupService {
     const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
       ? this.buildAutoOutRecord(req.userId, req.date, type as MakeupInType)
       : null
+    if (autoOut) {
+      const map = await this.dayRecordMap(req.userId, req.date)
+      if (map.get(autoOut.type)) {
+        throw new BadRequestException("该下班卡已存在，无需补卡")
+      }
+    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.attendanceRecord.create({
-        data: this.createMakeupRecordData(req.userId, req.type, req.punchTime),
-      })
-
-      if (autoOut) {
-        await tx.attendanceRecord.create({
-          data: this.createMakeupRecordData(
-            req.userId,
-            autoOut.type,
-            autoOut.punchTime
-          ),
-        })
-      }
-
-      return await tx.attendanceMakeupRequest.update({
-        where: { id: requestId },
+      const claimed = await tx.attendanceMakeupRequest.updateMany({
+        where: { id: requestId, status: "pending" },
         data: {
           status: "approved",
           reviewedBy: adminId,
           reviewedAt: new Date(),
         },
+      })
+      if (claimed.count === 0) {
+        throw new BadRequestException("该申请已处理")
+      }
+
+      await this.createMakeupRecord(tx, req.userId, req.type, req.punchTime)
+
+      if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
+        await this.createAutoOutIfNeeded(
+          tx,
+          req.userId,
+          req.date,
+          type as MakeupInType
+        )
+      }
+
+      const row = await tx.attendanceMakeupRequest.findUnique({
+        where: { id: requestId },
         include: this.includeUser(),
       })
+      if (!row) throw new NotFoundException("补卡申请不存在")
+      return row
     })
 
     return this.serializeRequest(updated)
@@ -390,20 +445,25 @@ export class AttendanceMakeupService {
       where: { id: requestId },
     })
     if (!req) throw new NotFoundException("补卡申请不存在")
-    if (req.status !== "pending") {
-      throw new BadRequestException("该申请已处理")
-    }
 
-    const updated = await this.prisma.attendanceMakeupRequest.update({
-      where: { id: requestId },
+    const { count } = await this.prisma.attendanceMakeupRequest.updateMany({
+      where: { id: requestId, status: "pending" },
       data: {
         status: "rejected",
         reviewedBy: adminId,
         reviewedAt: new Date(),
         rejectReason: "",
       },
+    })
+    if (count === 0) {
+      throw new BadRequestException("该申请已处理")
+    }
+
+    const updated = await this.prisma.attendanceMakeupRequest.findUnique({
+      where: { id: requestId },
       include: this.includeUser(),
     })
+    if (!updated) throw new NotFoundException("补卡申请不存在")
     return this.serializeRequest(updated)
   }
 
@@ -425,10 +485,6 @@ export class AttendanceMakeupService {
       throw new BadRequestException("补卡时间不合法")
     }
 
-    const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
-      ? this.buildAutoOutRecord(dto.userId, dto.date, type as MakeupInType)
-      : null
-
     const record = await this.prisma.$transaction(async (tx) => {
       await tx.attendanceMakeupRequest.deleteMany({
         where: {
@@ -439,18 +495,20 @@ export class AttendanceMakeupService {
         },
       })
 
-      const created = await tx.attendanceRecord.create({
-        data: this.createMakeupRecordData(dto.userId, type, punchTime.toDate()),
-      })
+      const created = await this.createMakeupRecord(
+        tx,
+        dto.userId,
+        type,
+        punchTime.toDate()
+      )
 
-      if (autoOut) {
-        await tx.attendanceRecord.create({
-          data: this.createMakeupRecordData(
-            dto.userId,
-            autoOut.type,
-            autoOut.punchTime
-          ),
-        })
+      if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
+        await this.createAutoOutIfNeeded(
+          tx,
+          dto.userId,
+          dto.date,
+          type as MakeupInType
+        )
       }
 
       return created
