@@ -21,13 +21,16 @@ type AttendanceOutCellProps =
     };
 
 export function AttendanceOutCell(props: AttendanceOutCellProps) {
-  const { row, type, time, makeupRequests = [], onApply } = props;
+  const { row, time, makeupRequests = [], onApply } = props;
 
   if (time) return <span>{time}</span>;
 
-  const slotState = props.adminDirect
-    ? adminMakeupSlotState(row, type)
-    : makeupSlotState(row, type, makeupRequests);
+  let slotState: "apply" | "pending" | null;
+  if (props.adminDirect) {
+    slotState = adminMakeupSlotState(row, props.type);
+  } else {
+    slotState = makeupSlotState(row, props.type, makeupRequests);
+  }
 
   if (slotState === "pending") {
     return <span className="text-sm text-muted-foreground">审批中</span>;
