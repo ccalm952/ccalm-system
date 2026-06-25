@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Param,
   ParseIntPipe,
@@ -18,6 +17,8 @@ import { FileInterceptor } from "@nestjs/platform-express"
 import { memoryStorage } from "multer"
 import type { Request } from "express"
 
+import { requireAdmin } from "../../common/request-auth"
+
 import {
   CreateWarehouseItemDto,
   CreateWarehouseTxnDto,
@@ -29,18 +30,6 @@ import { WarehouseService } from "./warehouse.service"
 export class WarehouseController {
   constructor(private readonly warehouse: WarehouseService) {}
 
-  private actor(req: Request): { userId: string; role: "user" | "admin" } {
-    const u = req.user
-    if (!u?.sub || !u.role) throw new ForbiddenException()
-    return { userId: u.sub, role: u.role }
-  }
-
-  private requireAdmin(req: Request) {
-    const a = this.actor(req)
-    if (a.role !== "admin") throw new ForbiddenException("仅管理员可管理库房")
-    return a
-  }
-
   @Get("items")
   listItems(@Query("q") q?: string) {
     return this.warehouse.listItems(q)
@@ -48,7 +37,7 @@ export class WarehouseController {
 
   @Post("items")
   createItem(@Req() req: Request, @Body() dto: CreateWarehouseItemDto) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可管理库房")
     return this.warehouse.createItem(dto)
   }
 
@@ -58,13 +47,13 @@ export class WarehouseController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateWarehouseItemDto
   ) {
-    const a = this.requireAdmin(req)
+    const a = requireAdmin(req, "仅管理员可管理库房")
     return this.warehouse.updateItem(id, dto, a.userId)
   }
 
   @Delete("items/:id")
   deleteItem(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可管理库房")
     return this.warehouse.deleteItem(id)
   }
 
@@ -103,13 +92,13 @@ export class WarehouseController {
 
   @Post("txns")
   createTxn(@Req() req: Request, @Body() dto: CreateWarehouseTxnDto) {
-    const a = this.requireAdmin(req)
+    const a = requireAdmin(req, "仅管理员可管理库房")
     return this.warehouse.createTxn(dto, a.userId)
   }
 
   @Delete("txns/:id")
   deleteTxn(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可管理库房")
     return this.warehouse.deleteTxn(id)
   }
 
@@ -128,7 +117,7 @@ export class WarehouseController {
     })
   )
   importLichi(@Req() req: Request, @UploadedFile() file?: Express.Multer.File) {
-    const a = this.requireAdmin(req)
+    const a = requireAdmin(req, "仅管理员可管理库房")
     if (!file?.buffer?.length) {
       throw new BadRequestException("请上传 Excel 文件")
     }

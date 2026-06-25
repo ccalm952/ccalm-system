@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { api, setToken } from "@/lib/api";
 import { ROUTES } from "@/config/routes";
 import { errorMessage } from "@/lib/errorMessage";
-import type { AuthMe } from "@/lib/auth";
+import type { AuthMe, UserRole } from "@/lib/auth";
 import { EllipsisVerticalIcon } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
@@ -47,7 +47,7 @@ export function NavUser({
     /** 登录用户名，可选展示在副标题 */
     username?: string;
     avatar: string;
-    role: string;
+    role: UserRole;
   };
   /** sidebar：侧栏底栏；header：页顶右上角 */
   variant?: "sidebar" | "header";

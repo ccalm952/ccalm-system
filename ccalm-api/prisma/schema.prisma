@@ -106,6 +106,7 @@ model AttendanceRecord {
   userId    String
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      AttendancePunchType
+  punchDate String
   punchTime DateTime               @default(now())
   latitude  Float
   longitude Float
@@ -113,7 +114,9 @@ model AttendanceRecord {
   source    AttendanceRecordSource @default(normal)
   createdAt DateTime               @default(now())
 
+  @@unique([userId, type, punchDate])
   @@index([userId, punchTime])
+  @@index([userId, punchDate])
   @@index([type, punchTime])
 }
 

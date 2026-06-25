@@ -48,6 +48,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { UserRole } from "@/lib/auth";
+import { useAuth } from "@/lib/use-auth";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "@/components/ui/sonner";
@@ -56,7 +58,7 @@ type UserRow = {
   id: string;
   username: string;
   displayName: string;
-  role: "user" | "admin";
+  role: UserRole;
   leaveInitialBalance?: number;
   createdAt: string;
 };
@@ -78,7 +80,7 @@ function parseLeaveBalance(raw: string): number | null {
 }
 
 export function UsersPage() {
-  const [me, setMe] = React.useState<{ id: string; role: "user" | "admin" } | null>(null);
+  const { me } = useAuth();
   const [rows, setRows] = React.useState<UserRow[] | null>(null);
 
   const roleItems = React.useMemo(
@@ -94,7 +96,7 @@ export function UsersPage() {
     username: "",
     displayName: "",
     password: "",
-    role: "user" as "user" | "admin",
+    role: "user" satisfies UserRole,
     leaveInitialBalance: "0",
   });
 
@@ -112,20 +114,15 @@ export function UsersPage() {
     return null;
   }
 
-  async function load() {
-    const meRes = await api<{ id: string; role: "user" | "admin"; displayName: string }>(
-      "GET",
-      "/auth/me",
-    );
-    setMe({ id: meRes.id, role: meRes.role });
-
-    if (meRes.role === "admin") {
+  const load = React.useCallback(async () => {
+    if (!me) return;
+    if (me.role === "admin") {
       const list = await api<UserRow[]>("GET", "/users");
       setRows(list);
     } else {
       setRows([]);
     }
-  }
+  }, [me]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -134,14 +131,13 @@ export function UsersPage() {
         await load();
         if (cancelled) return;
       } catch {
-        if (cancelled) return;
-        window.location.href = "/login";
+        // 401 由 api.ts 全局处理
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [load]);
 
   return (
     <div className="min-h-svh bg-background p-4">
@@ -305,7 +301,7 @@ export function UsersPage() {
                         value={newUser.role}
                         onValueChange={(v: string | null) => {
                           if (!v) return;
-                          setNewUser((s) => ({ ...s, role: v as "user" | "admin" }));
+                          setNewUser((s) => ({ ...s, role: v as UserRole }));
                         }}
                         items={roleItems}
                       >
@@ -471,7 +467,7 @@ export function UsersPage() {
                           value={editUser.role}
                           onValueChange={(v: string | null) => {
                             if (!v) return;
-                            setEditUser((s) => (s ? { ...s, role: v as "user" | "admin" } : s));
+                            setEditUser((s) => (s ? { ...s, role: v as UserRole } : s));
                           }}
                           items={roleItems}
                         >

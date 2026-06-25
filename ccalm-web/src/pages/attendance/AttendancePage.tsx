@@ -40,9 +40,10 @@ import {
   type AttendanceRecord,
   type GeofenceConfig,
 } from "@/lib/attendance/types";
-import { isWallClockInInclusiveRange } from "@/lib/attendance/shift";
+import { isWallClockInInclusiveRange, type BackendShiftDto } from "@/lib/attendance/shift";
 import { todayKey, formatDayCount } from "@/lib/attendance/summary";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
@@ -62,25 +63,6 @@ const punchTypes: AttendancePunchType[] = [
   "afternoon_in",
   "afternoon_out",
 ];
-
-type BackendShiftDto = {
-  morningLabel: string;
-  morningRangeStart: string;
-  morningRangeEnd: string;
-  afternoonLabel: string;
-  afternoonRangeStart: string;
-  afternoonRangeEnd: string;
-  morningInWindowStart: string;
-  morningInWindowEnd: string;
-  morningOutWindowStart: string;
-  morningOutWindowEnd: string;
-  afternoonInWindowStart: string;
-  afternoonInWindowEnd: string;
-  afternoonOutWindowStart: string;
-  afternoonOutWindowEnd: string;
-  overtimeMorningNormalEnd: string;
-  overtimeAfternoonNormalEnd: string;
-};
 
 function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -228,8 +210,27 @@ function notifyPunchAttempt(result: PunchAttemptResult | null) {
   else if (result === "outside_time") toast("不在打卡时间内", { icon: failIcon });
 }
 
-export function AttendancePage() {
+function LiveClock() {
   const [now, setNow] = React.useState(() => dayjs());
+
+  React.useEffect(() => {
+    const id = window.setInterval(() => setNow(dayjs()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <>
+      <div className="text-5xl font-semibold tabular-nums text-pink-400">
+        {now.format("HH:mm:ss")}
+      </div>
+      <div className="text-sm text-muted-foreground">
+        {now.locale("zh-cn").format("YYYY年M月D日 dddd")}
+      </div>
+    </>
+  );
+}
+
+export function AttendancePage() {
   const [loc, setLoc] = React.useState<LocationState>(() => {
     try {
       const raw = sessionStorage.getItem("attendance_last_loc");
@@ -250,16 +251,17 @@ export function AttendancePage() {
     }
   });
   const [recordsVersion, bumpRecordsVersion] = React.useState(0);
+  const [currentMonth, setCurrentMonth] = React.useState(() => dayjs().format("YYYY-MM"));
 
   React.useEffect(() => {
-    const id = window.setInterval(() => setNow(dayjs()), 1000);
+    const id = window.setInterval(() => {
+      const next = dayjs().format("YYYY-MM");
+      setCurrentMonth((prev) => (prev === next ? prev : next));
+    }, 60_000);
     return () => window.clearInterval(id);
   }, []);
 
-  const timeText = now.format("HH:mm:ss");
-  const dateText = now.locale("zh-cn").format("YYYY年M月D日 dddd");
-
-  const [me, setMe] = React.useState<{ id: string; role: "user" | "admin" } | null>(null);
+  const { me } = useAuth();
   const [records, setRecords] = React.useState<AttendanceRecord[]>([]);
   const [monthSummary, setMonthSummary] = React.useState<AttendanceMonthlySummary | null>(null);
   const [makeupRequests, setMakeupRequests] = React.useState<AttendanceMakeupRequest[]>([]);
@@ -356,9 +358,6 @@ export function AttendancePage() {
     let cancelled = false;
     (async () => {
       try {
-        const meRes = await api<{ id: string; role: "user" | "admin" }>("GET", "/auth/me");
-        if (cancelled) return;
-        setMe(meRes);
         const [geofenceRes, shiftRes, todayRes] = await Promise.all([
           api<GeofenceConfig>("GET", "/attendance/geofence"),
           api<BackendShiftDto>("GET", "/attendance/shift"),
@@ -418,7 +417,7 @@ export function AttendancePage() {
           }
         })();
       } catch {
-        window.location.href = "/login";
+        // 401 由 api.ts 全局处理；其他错误不强制跳转登录
       }
     })();
     return () => {
@@ -444,7 +443,7 @@ export function AttendancePage() {
       try {
         const monthly = await api<AttendanceMonthlySummary>(
           "GET",
-          `/attendance/summary/monthly?month=${now.format("YYYY-MM")}`,
+          `/attendance/summary/monthly?month=${currentMonth}`,
         );
         if (cancelled) return;
         setMonthSummary(monthly);
@@ -455,7 +454,7 @@ export function AttendancePage() {
     return () => {
       cancelled = true;
     };
-  }, [me?.id, now]);
+  }, [me?.id, currentMonth]);
 
   async function refreshLocation() {
     const session = ++autoPunchEpochRef.current;
@@ -497,8 +496,7 @@ export function AttendancePage() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardContent className="flex flex-col items-center gap-2">
-              <div className="text-5xl font-semibold tabular-nums text-pink-400">{timeText}</div>
-              <div className="text-sm text-muted-foreground">{dateText}</div>
+              <LiveClock />
               <div className="text-center text-sm">
                 {loc.lat ? (
                   <div className="text-muted-foreground">{formatCurrentLocation(loc)}</div>

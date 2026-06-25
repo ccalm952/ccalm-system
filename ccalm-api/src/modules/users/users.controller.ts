@@ -19,6 +19,8 @@ import path from "node:path"
 import { diskStorage } from "multer"
 import type { Request } from "express"
 
+import { actor } from "../../common/request-auth"
+
 import { CreateUserDto } from "./dto/create-user.dto"
 import { UpdateUserDto } from "./dto/update-user.dto"
 import { UsersService } from "./users.service"
@@ -41,15 +43,9 @@ const avatarMimeExtensions = new Map([
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
-  private actor(req: Request): { userId: string; role: "user" | "admin" } {
-    const u = req.user
-    if (!u?.sub || !u.role) throw new ForbiddenException()
-    return { userId: u.sub, role: u.role }
-  }
-
   @Get()
   async list(@Req() req: Request) {
-    const a = this.actor(req)
+    const a = actor(req)
     if (a.role !== "admin") throw new ForbiddenException("仅管理员可管理人员")
     return await this.users.listAll()
   }
@@ -61,7 +57,7 @@ export class UsersController {
 
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateUserDto) {
-    const a = this.actor(req)
+    const a = actor(req)
     if (a.role !== "admin") throw new ForbiddenException("仅管理员可创建用户")
     return await this.users.createByAdmin(dto)
   }
@@ -93,7 +89,7 @@ export class UsersController {
     @Req() req: Request,
     @UploadedFile() file?: Express.Multer.File
   ) {
-    const a = this.actor(req)
+    const a = actor(req)
     if (!file) throw new BadRequestException("请选择头像图片")
     return await this.users.updateAvatar(
       a.userId,
@@ -107,7 +103,7 @@ export class UsersController {
     @Param("id") id: string,
     @Body() dto: UpdateUserDto
   ) {
-    const a = this.actor(req)
+    const a = actor(req)
     return await this.users.update({
       actor: a,
       targetUserId: id,
@@ -120,7 +116,7 @@ export class UsersController {
 
   @Delete(":id")
   async remove(@Req() req: Request, @Param("id") id: string) {
-    const a = this.actor(req)
+    const a = actor(req)
     if (a.role !== "admin") throw new ForbiddenException("仅管理员可删除用户")
     return await this.users.deleteByAdmin({
       actorUserId: a.userId,

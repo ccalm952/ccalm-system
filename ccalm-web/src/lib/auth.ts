@@ -1,11 +1,13 @@
 import * as React from "react";
 
+export type UserRole = "admin" | "user";
+
 export type AuthMe = {
   id: string;
   username: string;
   displayName: string;
   avatarUrl: string;
-  role: string;
+  role: UserRole;
 };
 
 export type AuthContextValue = {

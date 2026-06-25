@@ -22,30 +22,18 @@ import {
 } from "@/components/ui/table";
 import type { AdminMakeupType } from "@/lib/attendance/makeup";
 import { punchSlotState } from "@/lib/attendance/makeup";
+import { monthKey, previousMonthKey } from "@/lib/attendance/shift";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type {
   AttendanceMakeupRequest,
   AttendanceMonthlySummary,
   AttendancePunchDayRow,
 } from "@/lib/attendance/types";
-import { api, type ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import type { AuthMe } from "@/lib/auth";
+import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function currentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
-}
-
-function lastMonth(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 1);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
-}
 
 function dayOfMonth(date: string): string {
   const d = dayjs(date);
@@ -101,18 +89,14 @@ async function loadPendingMakeupRequests(isAdmin: boolean): Promise<AttendanceMa
   return list.filter((item) => item.status === "pending");
 }
 
-async function loadSummary(month: string): Promise<{
+async function loadSummary(
+  month: string,
+  me: AuthMe,
+): Promise<{
   isAdmin: boolean;
   summary: UserAgg[];
   pendingMakeupRequests: AttendanceMakeupRequest[];
 }> {
-  const me = await api<{
-    id: string;
-    role: "user" | "admin";
-    displayName: string;
-    username: string;
-  }>("GET", "/auth/me");
-
   const pendingMakeupRequests = await loadPendingMakeupRequests(me.role === "admin");
 
   if (me.role === "admin") {
@@ -185,7 +169,8 @@ function StatsPunchCell(props: {
 }
 
 export function AttendanceStatsPage() {
-  const [month, setMonth] = React.useState(() => currentMonth());
+  const { me } = useAuth();
+  const [month, setMonth] = React.useState(() => monthKey());
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [summary, setSummary] = React.useState<UserAgg[] | null>(null);
   const [pendingMakeupRequests, setPendingMakeupRequests] = React.useState<
@@ -201,22 +186,17 @@ export function AttendanceStatsPage() {
   } | null>(null);
 
   const reload = React.useCallback(async () => {
+    if (!me) return;
     try {
       setError(null);
-      const result = await loadSummary(month);
+      const result = await loadSummary(month, me);
       setIsAdmin(result.isAdmin);
       setSummary(result.summary);
       setPendingMakeupRequests(result.pendingMakeupRequests);
     } catch (e) {
-      const msg = errorMessage(e);
-      setError(msg);
-      const status =
-        typeof e === "object" && e && "status" in e ? (e as ApiError).status : undefined;
-      if (status === 401) {
-        window.location.href = "/login";
-      }
+      setError(errorMessage(e));
     }
-  }, [month]);
+  }, [month, me]);
 
   React.useEffect(() => {
     void reload();
@@ -284,15 +264,15 @@ export function AttendanceStatsPage() {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
-            variant={month === currentMonth() ? "secondary" : "ghost"}
-            onClick={() => setMonth(currentMonth())}
+            variant={month === monthKey() ? "secondary" : "ghost"}
+            onClick={() => setMonth(monthKey())}
           >
             本月
           </Button>
           <Button
             type="button"
-            variant={month === lastMonth() ? "secondary" : "ghost"}
-            onClick={() => setMonth(lastMonth())}
+            variant={month === previousMonthKey() ? "secondary" : "ghost"}
+            onClick={() => setMonth(previousMonthKey())}
           >
             上个月
           </Button>

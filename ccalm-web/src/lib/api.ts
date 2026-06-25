@@ -1,8 +1,16 @@
 const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
 
+export const AUTH_TOKEN_KEY = "auth:token";
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export type ApiError = Error & { status?: number; body?: unknown };
+
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
 
 function messageFromFailedResponse(data: unknown, res: Response, rawText: string): string {
   if (data && typeof data === "object") {
@@ -18,13 +26,13 @@ function messageFromFailedResponse(data: unknown, res: Response, rawText: string
   return `HTTP ${res.status}`;
 }
 
-function getToken(): string | null {
-  return localStorage.getItem("auth:token");
+export function getToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 export function setToken(token: string | null) {
-  if (!token) localStorage.removeItem("auth:token");
-  else localStorage.setItem("auth:token", token);
+  if (!token) localStorage.removeItem(AUTH_TOKEN_KEY);
+  else localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
 export async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
@@ -43,6 +51,10 @@ export async function api<T>(method: HttpMethod, path: string, body?: unknown): 
   const data = text ? (JSON.parse(text) as unknown) : null;
 
   if (!res.ok) {
+    if (res.status === 401) {
+      setToken(null);
+      onUnauthorized?.();
+    }
     const err = new Error(messageFromFailedResponse(data, res, text)) as ApiError;
     err.status = res.status;
     err.body = data;

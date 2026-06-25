@@ -8,6 +8,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 
 import { PrismaService } from "../../prisma/prisma.service"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
+import { punchDateFromTime } from "./punch-date"
 
 dayjs.extend(customParseFormat)
 
@@ -50,6 +51,7 @@ export class AttendanceMakeupService {
     return {
       userId,
       type,
+      punchDate: punchDateFromTime(punchTime),
       punchTime,
       latitude: 0,
       longitude: 0,
@@ -90,13 +92,8 @@ export class AttendanceMakeupService {
   }
 
   private async dayRecordMap(userId: string, dateStr: string) {
-    const start = dayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
-    const end = dayjs(dateStr, "YYYY-MM-DD")
-      .add(1, "day")
-      .startOf("day")
-      .toDate()
     const records = await this.prisma.attendanceRecord.findMany({
-      where: { userId, punchTime: { gte: start, lt: end } },
+      where: { userId, punchDate: dateStr },
     })
     return new Map(records.map((r) => [r.type, r]))
   }

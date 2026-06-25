@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { pad2 } from "@/lib/attendance/shift";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type { ChinaHolidayYear } from "@/lib/attendance/holidays";
 import { formatHolidayRange } from "@/lib/attendance/holidays";
@@ -27,13 +28,10 @@ import {
   scheduleMonthRange,
 } from "@/lib/attendance/schedule";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
 
 function nextShift(current: ScheduleShiftType | null): ScheduleShiftType | null {
   const idx = SCHEDULE_SHIFT_CYCLE.indexOf(current);
@@ -42,8 +40,8 @@ function nextShift(current: ScheduleShiftType | null): ScheduleShiftType | null 
 }
 
 export function SchedulePage() {
+  const { me } = useAuth();
   const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
-  const [me, setMe] = React.useState<{ role: "user" | "admin" } | null>(null);
   const [month, setMonth] = React.useState(() => clampScheduleMonth(dayjs().format("YYYY-MM")));
   const [data, setData] = React.useState<ScheduleMonthData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -79,10 +77,6 @@ export function SchedulePage() {
         setLoading(false);
       }
     }
-  }, []);
-
-  React.useEffect(() => {
-    void api<{ role: "user" | "admin" }>("GET", "/auth/me").then(setMe);
   }, []);
 
   React.useEffect(() => {

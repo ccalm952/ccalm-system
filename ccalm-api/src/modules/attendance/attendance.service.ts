@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
 import dayjs from "dayjs"
+import type { AttendancePunchType, Prisma } from "@prisma/client"
 
+import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
@@ -8,6 +10,7 @@ import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
 import type { PunchDto } from "./dto/punch.dto"
 import { countMakeupButtonSlots, applyDayAttendanceRest } from "./makeup-slots"
+import { punchDateFromTime } from "./punch-date"
 import { minutesFromMidnight } from "./time"
 
 const GLOBAL_CONFIG_ID = "global" as const
@@ -128,23 +131,62 @@ export class AttendanceService {
     }
 
     const now = new Date()
-    const todayStart = dayjs(now).startOf("day").toDate()
-    const tomorrowStart = dayjs(now).add(1, "day").startOf("day").toDate()
-
-    const todayRecords = await this.prisma.attendanceRecord.findMany({
-      where: { userId, punchTime: { gte: todayStart, lt: tomorrowStart } },
-      orderBy: { punchTime: "asc" },
-    })
-    const map = new Map(todayRecords.map((r) => [r.type, r]))
-
-    const wall = now.getHours() * 60 + now.getMinutes()
-    const inRange = (start: string, end: string) => {
-      const a = minutesFromMidnight(start)
-      const b = minutesFromMidnight(end)
-      return wall >= a && wall <= b
-    }
-
+    const punchDate = punchDateFromTime(now)
     const type = dto.type
+
+    return await this.prisma.$transaction(async (tx) => {
+      const todayRecords = await tx.attendanceRecord.findMany({
+        where: { userId, punchDate },
+        orderBy: { punchTime: "asc" },
+      })
+      const map = new Map(todayRecords.map((r) => [r.type, r]))
+
+      const wall = now.getHours() * 60 + now.getMinutes()
+      const inRange = (start: string, end: string) => {
+        const a = minutesFromMidnight(start)
+        const b = minutesFromMidnight(end)
+        return wall >= a && wall <= b
+      }
+
+      this.assertPunchWindow(type, map, shift, inRange)
+
+      const existing = map.get(type)
+      if (existing) {
+        return await this.updateOutPunch(tx, existing.id, type, now, dto)
+      }
+
+      try {
+        return await tx.attendanceRecord.create({
+          data: {
+            userId,
+            type,
+            punchDate,
+            punchTime: now,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            address: dto.address ?? "",
+          },
+        })
+      } catch (error) {
+        if (!isPrismaUniqueViolation(error)) throw error
+        return await this.resolveConcurrentPunch(
+          tx,
+          userId,
+          type,
+          punchDate,
+          now,
+          dto
+        )
+      }
+    })
+  }
+
+  private assertPunchWindow(
+    type: AttendancePunchType,
+    map: Map<AttendancePunchType, { id: string }>,
+    shift: Awaited<ReturnType<AttendanceService["getShift"]>>,
+    inRange: (start: string, end: string) => boolean
+  ) {
     if (type === "morning_in") {
       if (!inRange(shift.morningInWindowStart, shift.morningInWindowEnd)) {
         throw new BadRequestException(
@@ -179,27 +221,21 @@ export class AttendanceService {
         )
       }
     }
+  }
 
-    const existing = map.get(type)
-    if (existing) {
-      if (type === "morning_in" || type === "afternoon_in") {
-        throw new BadRequestException("今日该上班卡已打过，不可重复打卡")
-      }
-      return await this.prisma.attendanceRecord.update({
-        where: { id: existing.id },
-        data: {
-          punchTime: now,
-          latitude: dto.latitude,
-          longitude: dto.longitude,
-          address: dto.address ?? "",
-        },
-      })
+  private async updateOutPunch(
+    tx: Prisma.TransactionClient,
+    recordId: string,
+    type: AttendancePunchType,
+    now: Date,
+    dto: PunchDto
+  ) {
+    if (type === "morning_in" || type === "afternoon_in") {
+      throw new BadRequestException("今日该上班卡已打过，不可重复打卡")
     }
-
-    return await this.prisma.attendanceRecord.create({
+    return await tx.attendanceRecord.update({
+      where: { id: recordId },
       data: {
-        userId,
-        type,
         punchTime: now,
         latitude: dto.latitude,
         longitude: dto.longitude,
@@ -208,12 +244,27 @@ export class AttendanceService {
     })
   }
 
+  private async resolveConcurrentPunch(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    type: AttendancePunchType,
+    punchDate: string,
+    now: Date,
+    dto: PunchDto
+  ) {
+    const existing = await tx.attendanceRecord.findUnique({
+      where: { userId_type_punchDate: { userId, type, punchDate } },
+    })
+    if (!existing) {
+      throw new BadRequestException("打卡冲突，请重试")
+    }
+    return await this.updateOutPunch(tx, existing.id, type, now, dto)
+  }
+
   async today(userId: string) {
-    const now = new Date()
-    const todayStart = dayjs(now).startOf("day").toDate()
-    const tomorrowStart = dayjs(now).add(1, "day").startOf("day").toDate()
+    const punchDate = punchDateFromTime(new Date())
     return await this.prisma.attendanceRecord.findMany({
-      where: { userId, punchTime: { gte: todayStart, lt: tomorrowStart } },
+      where: { userId, punchDate },
       orderBy: { punchTime: "asc" },
     })
   }

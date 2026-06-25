@@ -5,7 +5,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import { MainLayout } from "@/components/main-layout";
 import { ROUTES } from "@/config/routes";
 import { Spinner } from "@/components/ui/spinner";
-import { api, type ApiError, setToken } from "@/lib/api";
+import { api, getToken, setToken, setUnauthorizedHandler, type ApiError } from "@/lib/api";
 import type { AuthMe } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
 
@@ -75,7 +75,15 @@ function ProtectedRoute() {
   const [me, setMe] = React.useState<AuthMe | null>(null);
 
   React.useEffect(() => {
-    const token = localStorage.getItem("auth:token");
+    setUnauthorizedHandler(() => {
+      setMe(null);
+      setState("unauth");
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
+  React.useEffect(() => {
+    const token = getToken();
     if (!token) {
       setState("unauth");
       return;

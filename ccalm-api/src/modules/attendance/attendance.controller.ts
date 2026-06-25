@@ -11,6 +11,12 @@ import {
 } from "@nestjs/common"
 import type { Request } from "express"
 
+import {
+  isAdmin,
+  requireAdmin,
+  userId as authUserId,
+} from "../../common/request-auth"
+
 import { UpsertGeofenceDto } from "./dto/geofence.dto"
 import {
   CreateMakeupRequestDto,
@@ -37,23 +43,6 @@ export class AttendanceController {
     private readonly holidays: ChinaHolidaysService
   ) {}
 
-  private userId(req: Request): string {
-    const u = req.user
-    return String(u?.sub || "")
-  }
-
-  private requireAdmin(req: Request) {
-    const u = req.user
-    if (u?.role !== "admin") {
-      throw new ForbiddenException("仅管理员可修改全站考勤范围与班次")
-    }
-  }
-
-  private isAdmin(req: Request): boolean {
-    const u = req.user
-    return u?.role === "admin"
-  }
-
   @Get("geofence")
   async getGeofence() {
     return await this.attendance.getGeofence()
@@ -61,7 +50,7 @@ export class AttendanceController {
 
   @Put("geofence")
   async putGeofence(@Req() req: Request, @Body() dto: UpsertGeofenceDto) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.attendance.upsertGeofence(dto)
   }
 
@@ -72,18 +61,18 @@ export class AttendanceController {
 
   @Put("shift")
   async putShift(@Req() req: Request, @Body() dto: UpsertShiftDto) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.attendance.upsertShift(dto)
   }
 
   @Post("punch")
   async punch(@Req() req: Request, @Body() dto: PunchDto) {
-    return await this.attendance.punch(this.userId(req), dto)
+    return await this.attendance.punch(authUserId(req), dto)
   }
 
   @Get("today")
   async today(@Req() req: Request) {
-    return await this.attendance.today(this.userId(req))
+    return await this.attendance.today(authUserId(req))
   }
 
   @Get("records")
@@ -92,7 +81,7 @@ export class AttendanceController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string
   ) {
-    return await this.attendance.records(this.userId(req), startDate, endDate)
+    return await this.attendance.records(authUserId(req), startDate, endDate)
   }
 
   @Get("summary/monthly")
@@ -101,8 +90,8 @@ export class AttendanceController {
     @Query("month") month: string,
     @Query("userId") userId?: string
   ) {
-    const targetUserId = userId ? String(userId) : this.userId(req)
-    if (userId && !this.isAdmin(req)) {
+    const targetUserId = userId ? String(userId) : authUserId(req)
+    if (userId && !isAdmin(req)) {
       throw new ForbiddenException("仅管理员可查看他人考勤统计")
     }
     return await this.attendance.monthlySummary(targetUserId, month)
@@ -113,24 +102,24 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: CreateMakeupRequestDto
   ) {
-    return await this.makeup.createRequest(this.userId(req), dto)
+    return await this.makeup.createRequest(authUserId(req), dto)
   }
 
   @Post("makeup")
   async directMakeup(@Req() req: Request, @Body() dto: AdminMakeupDto) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.makeup.directMakeup(dto)
   }
 
   @Post("rest")
   async declareRest(@Req() req: Request, @Body() dto: DeclareRestDto) {
-    return await this.schedule.declareRest(this.userId(req), dto.date, dto.half)
+    return await this.schedule.declareRest(authUserId(req), dto.date, dto.half)
   }
 
   @Post("rest/clear")
   async clearRest(@Req() req: Request, @Body() dto: ClearRestDto) {
     return await this.schedule.clearRestHalf(
-      this.userId(req),
+      authUserId(req),
       dto.date,
       dto.half
     )
@@ -138,12 +127,12 @@ export class AttendanceController {
 
   @Get("makeup-requests/mine")
   async listMyMakeupRequests(@Req() req: Request) {
-    return await this.makeup.listMine(this.userId(req))
+    return await this.makeup.listMine(authUserId(req))
   }
 
   @Get("makeup-requests/pending-count")
   async makeupPendingCount(@Req() req: Request) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     const count = await this.makeup.pendingCount()
     return { count }
   }
@@ -153,20 +142,20 @@ export class AttendanceController {
     @Req() req: Request,
     @Query("status") status?: string
   ) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.makeup.listForAdmin(status)
   }
 
   @Post("makeup-requests/:id/approve")
   async approveMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    this.requireAdmin(req)
-    return await this.makeup.approve(id, this.userId(req))
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
+    return await this.makeup.approve(id, authUserId(req))
   }
 
   @Post("makeup-requests/:id/reject")
   async rejectMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    this.requireAdmin(req)
-    return await this.makeup.reject(id, this.userId(req))
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
+    return await this.makeup.reject(id, authUserId(req))
   }
 
   @Get("schedule")
@@ -185,7 +174,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: UpsertScheduleMonthConfigDto
   ) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.schedule.upsertMonthConfig(dto)
   }
 
@@ -194,13 +183,13 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: UpsertScheduleEntriesDto
   ) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.schedule.upsertEntries(dto.month, dto.entries)
   }
 
   @Post("schedule/auto-fill")
   async autoFillSchedule(@Req() req: Request, @Query("month") month: string) {
-    this.requireAdmin(req)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.schedule.autoFillFromPunches(month)
   }
 }

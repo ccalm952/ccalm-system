@@ -4,64 +4,26 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { DEFAULT_SHIFT, isValidHHMM, minutesFromMidnight } from "@/lib/attendance/shift";
+import {
+  DEFAULT_SHIFT,
+  isValidHHMM,
+  minutesFromMidnight,
+  shiftFromBackend,
+  type BackendShiftDto,
+} from "@/lib/attendance/shift";
 import type { AttendanceShiftFullConfig } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "@/components/ui/sonner";
-
-type BackendShiftDto = {
-  morningLabel: string;
-  morningRangeStart: string;
-  morningRangeEnd: string;
-  afternoonLabel: string;
-  afternoonRangeStart: string;
-  afternoonRangeEnd: string;
-  morningInWindowStart: string;
-  morningInWindowEnd: string;
-  morningOutWindowStart: string;
-  morningOutWindowEnd: string;
-  afternoonInWindowStart: string;
-  afternoonInWindowEnd: string;
-  afternoonOutWindowStart: string;
-  afternoonOutWindowEnd: string;
-  overtimeMorningNormalEnd: string;
-  overtimeAfternoonNormalEnd: string;
-};
-
-function shiftFromBackend(d: BackendShiftDto): AttendanceShiftFullConfig {
-  return {
-    morning: {
-      label: d.morningLabel,
-      rangeStart: d.morningRangeStart,
-      rangeEnd: d.morningRangeEnd,
-    },
-    afternoon: {
-      label: d.afternoonLabel,
-      rangeStart: d.afternoonRangeStart,
-      rangeEnd: d.afternoonRangeEnd,
-    },
-    morningInWindowStart: d.morningInWindowStart,
-    morningInWindowEnd: d.morningInWindowEnd,
-    morningOutWindowStart: d.morningOutWindowStart,
-    morningOutWindowEnd: d.morningOutWindowEnd,
-    afternoonInWindowStart: d.afternoonInWindowStart,
-    afternoonInWindowEnd: d.afternoonInWindowEnd,
-    afternoonOutWindowStart: d.afternoonOutWindowStart,
-    afternoonOutWindowEnd: d.afternoonOutWindowEnd,
-    overtimeMorningNormalEnd: d.overtimeMorningNormalEnd,
-    overtimeAfternoonNormalEnd: d.overtimeAfternoonNormalEnd,
-  };
-}
 
 function cloneShift(v: AttendanceShiftFullConfig): AttendanceShiftFullConfig {
   return JSON.parse(JSON.stringify(v)) as AttendanceShiftFullConfig;
 }
 
-type MeRole = { role: "user" | "admin" };
-
 export function AttendanceShiftSettingsPage() {
   const navigate = useNavigate();
+  const { me } = useAuth();
   const [ready, setReady] = React.useState(false);
   const [form, setForm] = React.useState<AttendanceShiftFullConfig>(() =>
     cloneShift(DEFAULT_SHIFT),
@@ -71,7 +33,7 @@ export function AttendanceShiftSettingsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const me = await api<MeRole>("GET", "/auth/me");
+        if (!me) return;
         if (cancelled) return;
         if (me.role !== "admin") {
           navigate("/attendance", { replace: true });
@@ -82,13 +44,13 @@ export function AttendanceShiftSettingsPage() {
         setForm(cloneShift(shiftFromBackend(d)));
         setReady(true);
       } catch {
-        window.location.href = "/login";
+        // 401 由 api.ts 全局处理
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, me]);
 
   function update<K extends keyof AttendanceShiftFullConfig>(
     k: K,

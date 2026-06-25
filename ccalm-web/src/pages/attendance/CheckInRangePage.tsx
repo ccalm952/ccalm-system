@@ -14,6 +14,7 @@ import {
 } from "@/lib/amap-regeo";
 import type { GeofenceConfig } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "@/components/ui/sonner";
 
@@ -26,10 +27,10 @@ const DEFAULT_GEOFENCE: GeofenceConfig = {
   label: "门诊大楼",
 };
 
-type MeRole = { role: "user" | "admin" };
 
 export function CheckInRangePage() {
   const navigate = useNavigate();
+  const { me } = useAuth();
   const [ready, setReady] = React.useState(false);
   const [shouldAutoRefreshLocation, setShouldAutoRefreshLocation] = React.useState(false);
   const [radius, setRadius] = React.useState(DEFAULT_GEOFENCE.radiusM);
@@ -51,7 +52,7 @@ export function CheckInRangePage() {
     let cancelled = false;
     (async () => {
       try {
-        const me = await api<MeRole>("GET", "/auth/me");
+        if (!me) return;
         if (cancelled) return;
         if (me.role !== "admin") {
           navigate("/attendance", { replace: true });
@@ -69,13 +70,13 @@ export function CheckInRangePage() {
         setShouldAutoRefreshLocation(!geofence.enabled);
         setReady(true);
       } catch {
-        window.location.href = "/login";
+        // 401 由 api.ts 全局处理
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, me]);
 
   const updateCenterWithAddress = React.useCallback(
     async (nextCenter: { lat: number; lng: number }) => {

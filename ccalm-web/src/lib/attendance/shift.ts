@@ -59,6 +59,61 @@ export function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+/** `YYYY-MM` */
+export function monthKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+export function previousMonthKey(d: Date = new Date()): string {
+  const copy = new Date(d);
+  copy.setMonth(copy.getMonth() - 1);
+  return monthKey(copy);
+}
+
+export type BackendShiftDto = {
+  morningLabel: string;
+  morningRangeStart: string;
+  morningRangeEnd: string;
+  afternoonLabel: string;
+  afternoonRangeStart: string;
+  afternoonRangeEnd: string;
+  morningInWindowStart: string;
+  morningInWindowEnd: string;
+  morningOutWindowStart: string;
+  morningOutWindowEnd: string;
+  afternoonInWindowStart: string;
+  afternoonInWindowEnd: string;
+  afternoonOutWindowStart: string;
+  afternoonOutWindowEnd: string;
+  overtimeMorningNormalEnd: string;
+  overtimeAfternoonNormalEnd: string;
+};
+
+export function shiftFromBackend(d: BackendShiftDto): AttendanceShiftFullConfig {
+  return {
+    morning: {
+      label: d.morningLabel,
+      rangeStart: d.morningRangeStart,
+      rangeEnd: d.morningRangeEnd,
+    },
+    afternoon: {
+      label: d.afternoonLabel,
+      rangeStart: d.afternoonRangeStart,
+      rangeEnd: d.afternoonRangeEnd,
+    },
+    morningInWindowStart: d.morningInWindowStart,
+    morningInWindowEnd: d.morningInWindowEnd,
+    morningOutWindowStart: d.morningOutWindowStart,
+    morningOutWindowEnd: d.morningOutWindowEnd,
+    afternoonInWindowStart: d.afternoonInWindowStart,
+    afternoonInWindowEnd: d.afternoonInWindowEnd,
+    afternoonOutWindowStart: d.afternoonOutWindowStart,
+    afternoonOutWindowEnd: d.afternoonOutWindowEnd,
+    overtimeMorningNormalEnd: d.overtimeMorningNormalEnd,
+    overtimeAfternoonNormalEnd: d.overtimeAfternoonNormalEnd,
+  };
+}
+
 export function ymd(d: Date): string {
   return dayjs(d).format("YYYY-MM-DD");
 }
