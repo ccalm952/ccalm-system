@@ -30,7 +30,7 @@ import { AttendanceHalfOutCell } from "@/components/attendance-half-out-cell";
 import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { RestActionDialog } from "@/components/rest-action-dialog";
-import type { MakeupOutType } from "@/lib/attendance/makeup";
+import type { EmployeeMakeupType } from "@/lib/attendance/makeup";
 import {
   canDeclareRest,
   isHalfScheduleRest,
@@ -265,7 +265,7 @@ export function AttendancePage() {
   const [makeupRequests, setMakeupRequests] = React.useState<AttendanceMakeupRequest[]>([]);
   const [makeupDialog, setMakeupDialog] = React.useState<{
     date: string;
-    type: MakeupOutType;
+    type: EmployeeMakeupType;
   } | null>(null);
   const [restDialog, setRestDialog] = React.useState<{
     date: string;
@@ -615,6 +615,7 @@ export function AttendancePage() {
                               row={r}
                               half="morning"
                               time={r.morningIn}
+                              makeupRequests={makeupRequests}
                               onDeclare={() =>
                                 setRestDialog({
                                   date: r.date,
@@ -630,6 +631,9 @@ export function AttendancePage() {
                                   mode: "clear",
                                   scheduleRest: r.scheduleRest,
                                 })
+                              }
+                              onMakeup={(type) =>
+                                setMakeupDialog({ date: r.date, type })
                               }
                             />
                           </TableCell>
@@ -660,6 +664,7 @@ export function AttendancePage() {
                               row={r}
                               half="afternoon"
                               time={r.afternoonIn}
+                              makeupRequests={makeupRequests}
                               onDeclare={() =>
                                 setRestDialog({
                                   date: r.date,
@@ -675,6 +680,9 @@ export function AttendancePage() {
                                   mode: "clear",
                                   scheduleRest: r.scheduleRest,
                                 })
+                              }
+                              onMakeup={(type) =>
+                                setMakeupDialog({ date: r.date, type })
                               }
                             />
                           </TableCell>

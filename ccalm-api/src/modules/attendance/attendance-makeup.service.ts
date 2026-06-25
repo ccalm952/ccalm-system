@@ -11,8 +11,14 @@ import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
 
 dayjs.extend(customParseFormat)
 
+const MAKEUP_IN_TYPES = ["morning_in", "afternoon_in"] as const
+type MakeupInType = (typeof MAKEUP_IN_TYPES)[number]
+
 const MAKEUP_OUT_TYPES = ["morning_out", "afternoon_out"] as const
 type MakeupOutType = (typeof MAKEUP_OUT_TYPES)[number]
+
+const MAKEUP_REQUEST_TYPES = [...MAKEUP_IN_TYPES, ...MAKEUP_OUT_TYPES] as const
+type MakeupRequestType = (typeof MAKEUP_REQUEST_TYPES)[number]
 
 const ADMIN_MAKEUP_TYPES = [
   "morning_in",
@@ -84,6 +90,82 @@ export class AttendanceMakeupService {
     }
   }
 
+  private async dayScheduleRest(userId: string, dateStr: string) {
+    const entry = await this.prisma.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date: dateStr } },
+    })
+    return entry?.shiftType ?? null
+  }
+
+  private async assertMakeupInSlotAvailable(
+    userId: string,
+    dateStr: string,
+    type: MakeupInType,
+    excludeRequestId?: string,
+    options?: { skipPendingCheck?: boolean }
+  ) {
+    if (!this.isWithinMakeupWindow(dateStr)) {
+      throw new BadRequestException("仅支持补最近 30 天内的缺卡")
+    }
+
+    const map = await this.dayRecordMap(userId, dateStr)
+    if (map.get(type)) {
+      throw new BadRequestException("该上班卡已存在，无需补卡")
+    }
+
+    const scheduleRest = await this.dayScheduleRest(userId, dateStr)
+    if (
+      type === "morning_in" &&
+      (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
+    ) {
+      throw new BadRequestException("该半天已登记休息，无法补上班卡")
+    }
+    if (
+      type === "afternoon_in" &&
+      (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
+    ) {
+      throw new BadRequestException("该半天已登记休息，无法补上班卡")
+    }
+
+    const pending = options?.skipPendingCheck
+      ? null
+      : await this.prisma.attendanceMakeupRequest.findFirst({
+          where: {
+            userId,
+            date: dateStr,
+            type,
+            status: "pending",
+            ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
+          },
+        })
+    if (pending) {
+      throw new BadRequestException("该缺卡已有审批中的补卡申请")
+    }
+  }
+
+  private async assertMakeupRequestAvailable(
+    userId: string,
+    dateStr: string,
+    type: MakeupRequestType,
+    excludeRequestId?: string
+  ) {
+    if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
+      await this.assertMakeupInSlotAvailable(
+        userId,
+        dateStr,
+        type as MakeupInType,
+        excludeRequestId
+      )
+      return
+    }
+    await this.assertMakeupSlotAvailable(
+      userId,
+      dateStr,
+      type as MakeupOutType,
+      excludeRequestId
+    )
+  }
+
   private async assertAdminMakeupSlotAvailable(
     userId: string,
     dateStr: string,
@@ -147,11 +229,11 @@ export class AttendanceMakeupService {
 
   async createRequest(userId: string, dto: CreateMakeupRequestDto) {
     const type = dto.type
-    if (!MAKEUP_OUT_TYPES.includes(type)) {
-      throw new BadRequestException("仅支持补上午下班或下午下班")
+    if (!MAKEUP_REQUEST_TYPES.includes(type)) {
+      throw new BadRequestException("补卡类型不合法")
     }
 
-    await this.assertMakeupSlotAvailable(userId, dto.date, type)
+    await this.assertMakeupRequestAvailable(userId, dto.date, type)
 
     const punchTime = dayjs(
       `${dto.date} ${dto.time}`,
@@ -218,12 +300,12 @@ export class AttendanceMakeupService {
       throw new BadRequestException("该申请已处理")
     }
 
-    const type = req.type as MakeupOutType
-    if (!MAKEUP_OUT_TYPES.includes(type)) {
+    const type = req.type as MakeupRequestType
+    if (!MAKEUP_REQUEST_TYPES.includes(type)) {
       throw new BadRequestException("申请类型不合法")
     }
 
-    await this.assertMakeupSlotAvailable(req.userId, req.date, type, requestId)
+    await this.assertMakeupRequestAvailable(req.userId, req.date, type, requestId)
 
     const [, updated] = await this.prisma.$transaction([
       this.prisma.attendanceRecord.create({

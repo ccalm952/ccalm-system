@@ -21,7 +21,10 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "@/components/ui/sonner";
 
-type MakeupOutPunchType = Extract<AttendancePunchType, "morning_out" | "afternoon_out">;
+type EmployeeMakeupPunchType = Extract<
+  AttendancePunchType,
+  "morning_in" | "morning_out" | "afternoon_in" | "afternoon_out"
+>;
 type AdminDirectPunchType = AttendancePunchType;
 
 const DEFAULT_MAKEUP_TIME: Record<AdminDirectPunchType, string> = {
@@ -35,7 +38,7 @@ export function MakeupRequestDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: string;
-  type: MakeupOutPunchType | AdminDirectPunchType;
+  type: EmployeeMakeupPunchType | AdminDirectPunchType;
   mode?: "request" | "direct";
   userId?: string;
   userName?: string;

@@ -2,7 +2,9 @@ import dayjs from "dayjs";
 
 import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType, ScheduleRestType } from "./types";
 
+export type MakeupInType = "morning_in" | "afternoon_in";
 export type MakeupOutType = "morning_out" | "afternoon_out";
+export type EmployeeMakeupType = MakeupInType | MakeupOutType;
 export type AdminMakeupType = AttendancePunchType;
 
 const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
@@ -72,6 +74,28 @@ export function makeupSlotState(
     (r) => r.date === row.date && r.type === type && r.status === "pending",
   );
   return pending ? "pending" : "apply";
+}
+
+export function makeupInSlotState(
+  row: AttendancePunchDayRow,
+  type: MakeupInType,
+  requests: AttendanceMakeupRequest[],
+): "apply" | "pending" | null {
+  if (!isWithinMakeupWindow(row.date)) return null;
+
+  if (type === "morning_in" && isMorningScheduleRest(row.scheduleRest)) return null;
+  if (type === "afternoon_in" && isAfternoonScheduleRest(row.scheduleRest)) return null;
+
+  if (slotTime(row, type)) return null;
+
+  const pending = requests.some(
+    (r) => r.date === row.date && r.type === type && r.status === "pending",
+  );
+  return pending ? "pending" : "apply";
+}
+
+export function inTypeForHalf(half: "morning" | "afternoon"): MakeupInType {
+  return half === "morning" ? "morning_in" : "afternoon_in";
 }
 
 export function formatMakeupTime(iso: string): string {
