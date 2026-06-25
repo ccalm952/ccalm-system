@@ -5,6 +5,11 @@ import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchTyp
 export type MakeupOutType = "morning_out" | "afternoon_out";
 export type AdminMakeupType = AttendancePunchType;
 
+const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
+  morning_out: "morning_in",
+  afternoon_out: "afternoon_in",
+};
+
 export function slotTime(
   row: AttendancePunchDayRow,
   type: AttendancePunchType,
@@ -28,7 +33,13 @@ export function adminMakeupSlotState(
   type: AdminMakeupType,
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
-  if (slotTime(row, type)) return null;
+
+  if (type === "morning_in" || type === "afternoon_in") {
+    return slotTime(row, type) ? null : "apply";
+  }
+
+  const inType = IN_TYPE_BY_OUT[type];
+  if (!slotTime(row, inType) || slotTime(row, type)) return null;
   return "apply";
 }
 
@@ -39,9 +50,8 @@ export function makeupSlotState(
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
 
-  const hasIn = type === "morning_out" ? !!row.morningIn : !!row.afternoonIn;
-  const hasOut = type === "morning_out" ? !!row.morningOut : !!row.afternoonOut;
-  if (!hasIn || hasOut) return null;
+  const inType = IN_TYPE_BY_OUT[type];
+  if (!slotTime(row, inType) || slotTime(row, type)) return null;
 
   const pending = requests.some(
     (r) => r.date === row.date && r.type === type && r.status === "pending",

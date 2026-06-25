@@ -274,6 +274,7 @@ export class AttendanceScheduleService {
 
   async autoFillFromPunches(month: string) {
     const { start, end } = monthBounds(month)
+    const today = dayjs().startOf("day")
 
     const users = await this.prisma.user.findMany({
       where: { role: "user" },
@@ -316,6 +317,16 @@ export class AttendanceScheduleService {
       for (let d = start; !d.isAfter(end, "day"); d = d.add(1, "day")) {
         const date = d.format("YYYY-MM-DD")
         const key = `${user.id}:${date}`
+
+        if (d.isAfter(today, "day")) {
+          if (!manualKeys.has(key)) {
+            await this.prisma.scheduleEntry.deleteMany({
+              where: { userId: user.id, date, isManual: false },
+            })
+          }
+          continue
+        }
+
         if (manualKeys.has(key)) continue
 
         const dayRecords = byUserDay.get(key) ?? []

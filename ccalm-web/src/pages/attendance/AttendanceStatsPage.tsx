@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import type { AdminMakeupType } from "@/lib/attendance/makeup";
 import { formatDayCount } from "@/lib/attendance/summary";
-import type { AttendanceMonthlySummary } from "@/lib/attendance/types";
+import type { AttendanceMonthlySummary, AttendancePunchDayRow } from "@/lib/attendance/types";
 import { api, type ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,16 @@ type UserAgg = {
   overtimeStr: string;
   rows: AttendanceMonthlySummary["rows"];
 };
+
+const PUNCH_DETAIL_COLUMNS: Array<{
+  type: AdminMakeupType;
+  getTime: (row: AttendancePunchDayRow) => string | null;
+}> = [
+  { type: "morning_in", getTime: (row) => row.morningIn },
+  { type: "morning_out", getTime: (row) => row.morningOut },
+  { type: "afternoon_in", getTime: (row) => row.afternoonIn },
+  { type: "afternoon_out", getTime: (row) => row.afternoonOut },
+];
 
 async function loadSummary(month: string): Promise<{ isAdmin: boolean; summary: UserAgg[] }> {
   const me = await api<{
@@ -271,106 +281,37 @@ export function AttendanceStatsPage() {
                               {row.original.rows.map((r) => (
                                 <TableRow key={r.date} className="border-t border-border">
                                   <TableCell className="w-1/6 px-3 py-2">{dayOfMonth(r.date)}</TableCell>
-                                  <TableCell
-                                    className={cn(
-                                      "w-1/6 px-3 py-2 text-center",
-                                      r.morningIn ? "" : "text-destructive",
-                                    )}
-                                  >
-                                    {isAdmin ? (
-                                      <AttendanceOutCell
-                                        row={r}
-                                        type="morning_in"
-                                        time={r.morningIn}
-                                        adminDirect
-                                        onApply={() =>
-                                          setMakeupDialog({
-                                            userId: row.original.userId,
-                                            userName: row.original.userName,
-                                            date: r.date,
-                                            type: "morning_in",
-                                          })
-                                        }
-                                      />
-                                    ) : (
-                                      (r.morningIn ?? "")
-                                    )}
-                                  </TableCell>
-                                  <TableCell
-                                    className={cn(
-                                      "w-1/6 px-3 py-2 text-center",
-                                      r.morningOut ? "" : "text-destructive",
-                                    )}
-                                  >
-                                    {isAdmin ? (
-                                      <AttendanceOutCell
-                                        row={r}
-                                        type="morning_out"
-                                        time={r.morningOut}
-                                        adminDirect
-                                        onApply={() =>
-                                          setMakeupDialog({
-                                            userId: row.original.userId,
-                                            userName: row.original.userName,
-                                            date: r.date,
-                                            type: "morning_out",
-                                          })
-                                        }
-                                      />
-                                    ) : (
-                                      (r.morningOut ?? "")
-                                    )}
-                                  </TableCell>
-                                  <TableCell
-                                    className={cn(
-                                      "w-1/6 px-3 py-2 text-center",
-                                      r.afternoonIn ? "" : "text-destructive",
-                                    )}
-                                  >
-                                    {isAdmin ? (
-                                      <AttendanceOutCell
-                                        row={r}
-                                        type="afternoon_in"
-                                        time={r.afternoonIn}
-                                        adminDirect
-                                        onApply={() =>
-                                          setMakeupDialog({
-                                            userId: row.original.userId,
-                                            userName: row.original.userName,
-                                            date: r.date,
-                                            type: "afternoon_in",
-                                          })
-                                        }
-                                      />
-                                    ) : (
-                                      (r.afternoonIn ?? "")
-                                    )}
-                                  </TableCell>
-                                  <TableCell
-                                    className={cn(
-                                      "w-1/6 px-3 py-2 text-center",
-                                      r.afternoonOut ? "" : "text-destructive",
-                                    )}
-                                  >
-                                    {isAdmin ? (
-                                      <AttendanceOutCell
-                                        row={r}
-                                        type="afternoon_out"
-                                        time={r.afternoonOut}
-                                        adminDirect
-                                        onApply={() =>
-                                          setMakeupDialog({
-                                            userId: row.original.userId,
-                                            userName: row.original.userName,
-                                            date: r.date,
-                                            type: "afternoon_out",
-                                          })
-                                        }
-                                      />
-                                    ) : (
-                                      (r.afternoonOut ?? "")
-                                    )}
-                                  </TableCell>
+                                  {PUNCH_DETAIL_COLUMNS.map((col) => {
+                                    const time = col.getTime(r);
+                                    return (
+                                      <TableCell
+                                        key={col.type}
+                                        className={cn(
+                                          "w-1/6 px-3 py-2 text-center",
+                                          time ? "" : "text-destructive",
+                                        )}
+                                      >
+                                        {isAdmin ? (
+                                          <AttendanceOutCell
+                                            row={r}
+                                            type={col.type}
+                                            time={time}
+                                            adminDirect
+                                            onApply={() =>
+                                              setMakeupDialog({
+                                                userId: row.original.userId,
+                                                userName: row.original.userName,
+                                                date: r.date,
+                                                type: col.type,
+                                              })
+                                            }
+                                          />
+                                        ) : (
+                                          (time ?? "")
+                                        )}
+                                      </TableCell>
+                                    );
+                                  })}
                                   <TableCell className="w-1/6 px-3 py-2 text-muted-foreground">
                                     {r.overtimeStr === "-" ? "" : r.overtimeStr}
                                   </TableCell>

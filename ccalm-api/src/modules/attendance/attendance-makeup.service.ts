@@ -97,6 +97,13 @@ export class AttendanceMakeupService {
     if (map.get(type)) {
       throw new BadRequestException("该打卡已存在，无需补卡")
     }
+
+    if (type === "morning_out" && !map.get("morning_in")) {
+      throw new BadRequestException("需先补上午上班，才能补上午下班")
+    }
+    if (type === "afternoon_out" && !map.get("afternoon_in")) {
+      throw new BadRequestException("需先补下午上班，才能补下午下班")
+    }
   }
 
   private serializeRequest(row: {
