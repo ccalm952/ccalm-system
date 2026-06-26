@@ -9,6 +9,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
+import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
 import { punchDateFromTime } from "./punch-date"
 
@@ -127,11 +128,7 @@ export class AttendanceMakeupService {
   }
 
   private isWithinMakeupWindow(dateStr: string): boolean {
-    const d = dayjs(dateStr, "YYYY-MM-DD", true)
-    if (!d.isValid()) return false
-    const today = dayjs().startOf("day")
-    const earliest = today.subtract(29, "day")
-    return !d.isBefore(earliest) && !d.isAfter(today)
+    return isWithinAttendanceEditWindow(dateStr)
   }
 
   private async dayRecordMap(userId: string, dateStr: string) {
@@ -149,7 +146,7 @@ export class AttendanceMakeupService {
     options?: { skipPendingCheck?: boolean }
   ) {
     if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补最近 30 天内的缺卡")
+      throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
 
     const map = await this.dayRecordMap(userId, dateStr)
@@ -192,7 +189,7 @@ export class AttendanceMakeupService {
     options?: { skipPendingCheck?: boolean }
   ) {
     if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补最近 30 天内的缺卡")
+      throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
 
     const map = await this.dayRecordMap(userId, dateStr)
@@ -259,7 +256,7 @@ export class AttendanceMakeupService {
     type: AdminMakeupType
   ) {
     if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补最近 30 天内的缺卡")
+      throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
 
     const map = await this.dayRecordMap(userId, dateStr)

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
 import dayjs from "dayjs"
 
+import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
+
 import { PrismaService } from "../../prisma/prisma.service"
 import type {
   ScheduleEntryChangeDto,
@@ -453,10 +455,8 @@ export class AttendanceScheduleService {
   private assertRestDateAllowed(dateStr: string) {
     const d = dayjs(dateStr, "YYYY-MM-DD", true)
     if (!d.isValid()) throw new BadRequestException("日期不合法")
-    const today = dayjs().startOf("day")
-    const earliest = today.subtract(29, "day")
-    if (d.isBefore(earliest) || d.isAfter(today)) {
-      throw new BadRequestException("仅支持登记最近 30 天内的休息")
+    if (!isWithinAttendanceEditWindow(dateStr)) {
+      throw new BadRequestException("仅支持登记本月或上月的休息")
     }
   }
 

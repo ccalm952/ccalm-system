@@ -23,9 +23,13 @@ export function slotTime(row: AttendancePunchDayRow, type: AttendancePunchType):
 export function isWithinMakeupWindow(dateStr: string): boolean {
   const d = dayjs(dateStr, "YYYY-MM-DD", true);
   if (!d.isValid()) return false;
-  const today = dayjs().startOf("day");
-  const earliest = today.subtract(29, "day");
-  return !d.isBefore(earliest) && !d.isAfter(today);
+  if (d.isAfter(dayjs().startOf("day"))) return false;
+
+  const month = d.format("YYYY-MM");
+  const today = dayjs();
+  const currentMonth = today.format("YYYY-MM");
+  const previousMonth = today.subtract(1, "month").format("YYYY-MM");
+  return month === currentMonth || month === previousMonth;
 }
 
 export function adminMakeupSlotState(

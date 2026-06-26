@@ -1,4 +1,4 @@
-import dayjs from "dayjs"
+import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 
 type ScheduleRest = "full_rest" | "morning_rest" | "afternoon_rest" | null
 
@@ -18,11 +18,7 @@ type PendingMakeup = {
 }
 
 function isWithinMakeupWindow(dateStr: string): boolean {
-  const d = dayjs(dateStr, "YYYY-MM-DD", true)
-  if (!d.isValid()) return false
-  const today = dayjs().startOf("day")
-  const earliest = today.subtract(29, "day")
-  return !d.isBefore(earliest) && !d.isAfter(today)
+  return isWithinAttendanceEditWindow(dateStr)
 }
 
 function isMorningScheduleRest(scheduleRest: ScheduleRest): boolean {
