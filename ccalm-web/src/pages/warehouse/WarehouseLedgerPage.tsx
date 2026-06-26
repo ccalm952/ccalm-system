@@ -60,6 +60,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { api } from "@/lib/api";
+import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
@@ -185,14 +186,12 @@ type ItemSort = {
 };
 
 function compareItems(a: WarehouseItem, b: WarehouseItem, sort: ItemSort): number {
-  let cmp = 0;
-  if (sort.key === "currentQty") {
-    cmp = a.currentQty - b.currentQty;
-  } else {
-    const av = (a[sort.key] ?? "").toString();
-    const bv = (b[sort.key] ?? "").toString();
-    cmp = av.localeCompare(bv, "zh-CN", { numeric: true });
-  }
+  const cmp =
+    sort.key === "currentQty"
+      ? a.currentQty - b.currentQty
+      : (a[sort.key] ?? "").toString().localeCompare((b[sort.key] ?? "").toString(), "zh-CN", {
+          numeric: true,
+        });
   return sort.dir === "asc" ? cmp : -cmp;
 }
 
@@ -689,11 +688,11 @@ export function WarehouseLedgerPage() {
                     <TableCell className="text-center">{item.currentQty}</TableCell>
                     <TableCell className="text-center">
                       {isAdmin ? (
-                        <div className="flex items-center justify-center gap-0.5">
+                        <div className="flex items-center justify-center gap-3">
                           <Button
                             type="button"
-                            size="sm"
-                            variant="ghost"
+                            variant="link"
+                            className={tableActionLinkClass}
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditItem(item);
@@ -703,9 +702,8 @@ export function WarehouseLedgerPage() {
                           </Button>
                           <Button
                             type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
+                            variant="link"
+                            className={tableActionLinkClass}
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteItemTarget(item);
@@ -781,9 +779,8 @@ export function WarehouseLedgerPage() {
                       <TableCell className="text-center">
                         <Button
                           type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
+                          variant="link"
+                          className={tableActionLinkClass}
                           onClick={() => setDeleteTxnId(txn.id)}
                         >
                           删除

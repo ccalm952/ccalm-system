@@ -50,11 +50,11 @@ export function MainLayout() {
       <SidebarInset>
         <header className="sticky top-0 z-40 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b bg-background px-4 py-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <SidebarTrigger className="size-8" />
+            <SidebarTrigger className="size-9" />
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-8">考勤</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>考勤</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {attendanceSubNavItems.map((item) => (
                       <NavigationMenuLink
@@ -68,7 +68,7 @@ export function MainLayout() {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-8">种植</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>种植</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {implantSubNavItems.map((item) => (
                       <NavigationMenuLink
@@ -82,7 +82,7 @@ export function MainLayout() {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-8">库存</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>库存</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {warehouseSubNavItems.map((item) => (
                       <NavigationMenuLink

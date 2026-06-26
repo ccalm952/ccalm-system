@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
@@ -29,7 +30,12 @@ export class AuthService {
   }
 
   async login(username: string, password: string): Promise<string> {
-    const user = await this.prisma.user.findUnique({ where: { username } })
+    let user
+    try {
+      user = await this.prisma.user.findUnique({ where: { username } })
+    } catch {
+      throw new ServiceUnavailableException("服务暂不可用，请检查数据库连接")
+    }
     if (!user) throw new UnauthorizedException("用户名或密码错误")
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) throw new UnauthorizedException("用户名或密码错误")

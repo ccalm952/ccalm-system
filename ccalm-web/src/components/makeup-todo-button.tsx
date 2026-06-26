@@ -214,7 +214,7 @@ export function MakeupTodoButton() {
         render={
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-muted/60"
+            className="inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium text-foreground transition-all hover:bg-muted"
           >
             <span>待办</span>
             {badgeCount > 0 ? (

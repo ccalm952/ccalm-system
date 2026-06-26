@@ -558,16 +558,18 @@ export class AttendanceScheduleService {
     }
 
     const current = existing.shiftType
-    let next: ScheduleShiftType | null = null
+    let next: ScheduleShiftType | null
 
     if (half === "morning") {
       if (current === "morning_rest") next = null
       else if (current === "full_rest") next = "afternoon_rest"
       else throw new BadRequestException("上午未登记休息")
+    } else if (current === "afternoon_rest") {
+      next = null
+    } else if (current === "full_rest") {
+      next = "morning_rest"
     } else {
-      if (current === "afternoon_rest") next = null
-      else if (current === "full_rest") next = "morning_rest"
-      else throw new BadRequestException("下午未登记休息")
+      throw new BadRequestException("下午未登记休息")
     }
 
     if (!next) {

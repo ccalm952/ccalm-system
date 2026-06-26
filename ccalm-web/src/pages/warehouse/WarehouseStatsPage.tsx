@@ -51,14 +51,12 @@ function compareStatsRows(
   b: PurchaseStats["byItem"][number],
   sort: StatsSort,
 ): number {
-  let cmp = 0;
-  if (sort.key === "qty" || sort.key === "unitPrice" || sort.key === "amount") {
-    cmp = a[sort.key] - b[sort.key];
-  } else {
-    const av = (a[sort.key] ?? "").toString();
-    const bv = (b[sort.key] ?? "").toString();
-    cmp = av.localeCompare(bv, "zh-CN", { numeric: true });
-  }
+  const cmp =
+    sort.key === "qty" || sort.key === "unitPrice" || sort.key === "amount"
+      ? a[sort.key] - b[sort.key]
+      : (a[sort.key] ?? "").toString().localeCompare((b[sort.key] ?? "").toString(), "zh-CN", {
+          numeric: true,
+        });
   return sort.dir === "asc" ? cmp : -cmp;
 }
 

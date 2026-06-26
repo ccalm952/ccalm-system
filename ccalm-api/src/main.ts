@@ -6,14 +6,15 @@ import path from "node:path"
 
 import { AppModule } from "./app.module"
 
+/** 编译产物在 dist/src，项目根目录为上两级 */
+const API_ROOT = path.resolve(__dirname, "..", "..")
+
 async function bootstrap() {
-  // Prefer ccalm-api/.env regardless of where the process is started from.
-  dotenv.config({ path: path.resolve(__dirname, "..", ".env") })
-  dotenv.config()
+  dotenv.config({ path: path.join(API_ROOT, ".env") })
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
 
   app.setGlobalPrefix("api")
-  app.useStaticAssets(path.resolve(__dirname, "..", "uploads"), {
+  app.useStaticAssets(path.join(API_ROOT, "uploads"), {
     prefix: "/api/uploads/",
   })
   app.useGlobalPipes(
