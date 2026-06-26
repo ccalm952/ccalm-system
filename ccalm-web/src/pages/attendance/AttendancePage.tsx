@@ -30,7 +30,8 @@ import { AttendanceHalfOutCell } from "@/components/attendance-half-out-cell";
 import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { RestActionDialog } from "@/components/rest-action-dialog";
-import type { EmployeeMakeupType } from "@/lib/attendance/makeup";
+import type { EmployeeMakeupType, MakeupTodayGate } from "@/lib/attendance/makeup";
+import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
 import { canDeclareRest, isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
@@ -275,6 +276,7 @@ export function AttendancePage() {
     mode: "declare" | "clear";
     scheduleRest?: AttendanceMonthlySummary["rows"][number]["scheduleRest"];
   } | null>(null);
+  const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
 
   const reloadMonthSummary = React.useCallback(async () => {
     const monthly = await api<AttendanceMonthlySummary>(
@@ -441,16 +443,18 @@ export function AttendancePage() {
     let cancelled = false;
     (async () => {
       try {
-        const [todayRes, monthly] = await Promise.all([
+        const [todayRes, monthly, shiftRes] = await Promise.all([
           api<AttendanceRecord[]>("GET", "/attendance/today"),
           api<AttendanceMonthlySummary>(
             "GET",
             `/attendance/summary/monthly?month=${currentMonth}`,
           ),
+          api<BackendShiftDto>("GET", "/attendance/shift"),
         ]);
         if (cancelled) return;
         setRecords(todayRes);
         setMonthSummary(monthly);
+        setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
         void reloadMakeupRequests();
       } catch {
         // ignore
@@ -477,6 +481,7 @@ export function AttendancePage() {
       if (session !== autoPunchEpochRef.current) return;
 
       setRecords(todayRes);
+      setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
 
       const punchResult = await autoPunchAfterLocate({
         lat: located.lat,
@@ -621,6 +626,7 @@ export function AttendancePage() {
                               half="morning"
                               time={r.morningIn}
                               makeupRequests={makeupRequests}
+                              makeupTodayGate={makeupTodayGate}
                               onDeclare={() =>
                                 setRestDialog({
                                   date: r.date,
@@ -652,6 +658,7 @@ export function AttendancePage() {
                               type="morning_out"
                               time={r.morningOut}
                               makeupRequests={makeupRequests}
+                              makeupTodayGate={makeupTodayGate}
                               onApply={() => setMakeupDialog({ date: r.date, type: "morning_out" })}
                             />
                           </TableCell>
@@ -666,6 +673,7 @@ export function AttendancePage() {
                               half="afternoon"
                               time={r.afternoonIn}
                               makeupRequests={makeupRequests}
+                              makeupTodayGate={makeupTodayGate}
                               onDeclare={() =>
                                 setRestDialog({
                                   date: r.date,
@@ -697,6 +705,7 @@ export function AttendancePage() {
                               type="afternoon_out"
                               time={r.afternoonOut}
                               makeupRequests={makeupRequests}
+                              makeupTodayGate={makeupTodayGate}
                               onApply={() =>
                                 setMakeupDialog({ date: r.date, type: "afternoon_out" })
                               }

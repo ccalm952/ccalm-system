@@ -1,6 +1,6 @@
 import { AttendanceOutCell } from "@/components/attendance-out-cell";
 import { isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
-import type { MakeupOutType } from "@/lib/attendance/makeup";
+import type { MakeupOutType, MakeupTodayGate } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
 export function AttendanceHalfOutCell(props: {
@@ -9,10 +9,20 @@ export function AttendanceHalfOutCell(props: {
   type: MakeupOutType;
   time: string | null;
   makeupRequests?: AttendanceMakeupRequest[];
+  makeupTodayGate?: MakeupTodayGate;
   adminDirect?: boolean;
   onApply: () => void;
 }) {
-  const { row, half, type, time, makeupRequests = [], adminDirect, onApply } = props;
+  const {
+    row,
+    half,
+    type,
+    time,
+    makeupRequests = [],
+    makeupTodayGate,
+    adminDirect,
+    onApply,
+  } = props;
 
   if (isHalfEffectivelyAtRest(row, half)) {
     return <span className="text-muted-foreground">—</span>;
@@ -26,6 +36,7 @@ export function AttendanceHalfOutCell(props: {
         time={time}
         adminDirect
         makeupRequests={makeupRequests}
+        makeupTodayGate={makeupTodayGate}
         onApply={onApply}
       />
     );
@@ -37,6 +48,7 @@ export function AttendanceHalfOutCell(props: {
       type={type}
       time={time}
       makeupRequests={makeupRequests}
+      makeupTodayGate={makeupTodayGate}
       onApply={onApply}
     />
   );

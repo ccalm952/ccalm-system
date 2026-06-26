@@ -1,7 +1,11 @@
 import dayjs from "dayjs";
 
+import { passesMakeupTodayGate, type MakeupTodayGate } from "./makeup-today-gate";
 import { isHalfEffectivelyAtRest } from "./rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType } from "./types";
+
+export type { MakeupTodayGate } from "./makeup-today-gate";
+export { makeupTodayGateFromShift } from "./makeup-today-gate";
 
 export type MakeupInType = "morning_in" | "afternoon_in";
 export type MakeupOutType = "morning_out" | "afternoon_out";
@@ -35,8 +39,11 @@ export function isWithinMakeupWindow(dateStr: string): boolean {
 export function adminMakeupSlotState(
   row: AttendancePunchDayRow,
   type: AdminMakeupType,
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
+  if (!passesMakeupTodayGate(row.date, type, gate, at)) return null;
 
   if (type === "morning_in" || type === "afternoon_in") {
     return slotTime(row, type) ? null : "apply";
@@ -51,8 +58,10 @@ export function adminMakeupSlotStateWithPending(
   row: AttendancePunchDayRow,
   type: AdminMakeupType,
   requests: AttendanceMakeupRequest[] = [],
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): "apply" | "pending" | null {
-  const base = adminMakeupSlotState(row, type);
+  const base = adminMakeupSlotState(row, type, gate, at);
   if (!base) return null;
   const pending = requests.some(
     (r) => r.date === row.date && r.type === type && r.status === "pending",
@@ -65,22 +74,27 @@ export function punchSlotState(
   type: AdminMakeupType,
   requests: AttendanceMakeupRequest[] = [],
   adminDirect = false,
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): "apply" | "pending" | null {
   if (adminDirect) {
-    return adminMakeupSlotStateWithPending(row, type, requests);
+    return adminMakeupSlotStateWithPending(row, type, requests, gate, at);
   }
   if (type === "morning_in" || type === "afternoon_in") {
-    return makeupInSlotState(row, type, requests);
+    return makeupInSlotState(row, type, requests, gate, at);
   }
-  return makeupSlotState(row, type, requests);
+  return makeupSlotState(row, type, requests, gate, at);
 }
 
 export function makeupSlotState(
   row: AttendancePunchDayRow,
   type: MakeupOutType,
   requests: AttendanceMakeupRequest[],
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
+  if (!passesMakeupTodayGate(row.date, type, gate, at)) return null;
 
   if (type === "morning_out" && isHalfEffectivelyAtRest(row, "morning")) return null;
   if (type === "afternoon_out" && isHalfEffectivelyAtRest(row, "afternoon")) return null;
@@ -98,8 +112,11 @@ export function makeupInSlotState(
   row: AttendancePunchDayRow,
   type: MakeupInType,
   requests: AttendanceMakeupRequest[],
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): "apply" | "pending" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
+  if (!passesMakeupTodayGate(row.date, type, gate, at)) return null;
 
   if (type === "morning_in" && isHalfEffectivelyAtRest(row, "morning")) return null;
   if (type === "afternoon_in" && isHalfEffectivelyAtRest(row, "afternoon")) return null;
@@ -125,11 +142,13 @@ export function formatMakeupTime(iso: string): string {
 export function countMakeupButtonSlots(
   row: AttendancePunchDayRow,
   requests: AttendanceMakeupRequest[] = [],
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): number {
   let count = 0;
-  if (makeupInSlotState(row, "morning_in", requests) === "apply") count += 1;
-  if (makeupInSlotState(row, "afternoon_in", requests) === "apply") count += 1;
-  if (makeupSlotState(row, "morning_out", requests) === "apply") count += 1;
-  if (makeupSlotState(row, "afternoon_out", requests) === "apply") count += 1;
+  if (makeupInSlotState(row, "morning_in", requests, gate, at) === "apply") count += 1;
+  if (makeupInSlotState(row, "afternoon_in", requests, gate, at) === "apply") count += 1;
+  if (makeupSlotState(row, "morning_out", requests, gate, at) === "apply") count += 1;
+  if (makeupSlotState(row, "afternoon_out", requests, gate, at) === "apply") count += 1;
   return count;
 }

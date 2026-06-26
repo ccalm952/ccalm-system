@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { inTypeForHalf, makeupInSlotState, type MakeupInType } from "@/lib/attendance/makeup";
+import {
+  inTypeForHalf,
+  makeupInSlotState,
+  type MakeupInType,
+  type MakeupTodayGate,
+} from "@/lib/attendance/makeup";
 import { canDeclareRest, isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
@@ -10,11 +15,13 @@ export function AttendanceInCell(props: {
   half: RestHalf;
   time: string | null;
   makeupRequests?: AttendanceMakeupRequest[];
+  makeupTodayGate?: MakeupTodayGate;
   onDeclare: () => void;
   onClear: () => void;
   onMakeup: (type: MakeupInType) => void;
 }) {
-  const { row, half, time, makeupRequests = [], onDeclare, onClear, onMakeup } = props;
+  const { row, half, time, makeupRequests = [], makeupTodayGate, onDeclare, onClear, onMakeup } =
+    props;
 
   if (time) return <span>{time}</span>;
 
@@ -32,7 +39,7 @@ export function AttendanceInCell(props: {
   }
 
   const inType = inTypeForHalf(half);
-  const makeupState = makeupInSlotState(row, inType, makeupRequests);
+  const makeupState = makeupInSlotState(row, inType, makeupRequests, makeupTodayGate);
   const showRest = canDeclareRest(row, half);
 
   if (!showRest && !makeupState) return null;

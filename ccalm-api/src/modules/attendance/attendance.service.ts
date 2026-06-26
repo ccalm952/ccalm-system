@@ -399,7 +399,10 @@ export class AttendanceService {
       )
       if (!hasAny && !scheduleRest) {
         restDays += 1
-        missingSlots += countMakeupButtonSlots(row, pendingMakeups)
+        missingSlots += countMakeupButtonSlots(row, pendingMakeups, {
+          morningInWindowEnd: shift.morningInWindowEnd,
+          afternoonInWindowEnd: shift.afternoonInWindowEnd,
+        })
         rows.push(row)
         continue
       }
@@ -408,7 +411,10 @@ export class AttendanceService {
       attendanceDays += dayStats.attendanceDays
       restDays += dayStats.restDays
 
-      missingSlots += countMakeupButtonSlots(row, pendingMakeups)
+      missingSlots += countMakeupButtonSlots(row, pendingMakeups, {
+        morningInWindowEnd: shift.morningInWindowEnd,
+        afternoonInWindowEnd: shift.afternoonInWindowEnd,
+      })
 
       let overtime = 0
       if (row.morningOut && Number.isFinite(normalMorningEnd)) {

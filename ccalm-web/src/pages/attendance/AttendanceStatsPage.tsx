@@ -23,8 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { EmployeeMakeupType } from "@/lib/attendance/makeup";
-import { monthKey, previousMonthKey } from "@/lib/attendance/shift";
+import type { EmployeeMakeupType, MakeupTodayGate } from "@/lib/attendance/makeup";
+import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
+import { monthKey, previousMonthKey, type BackendShiftDto } from "@/lib/attendance/shift";
 import { canDeclareRest, isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type {
@@ -144,15 +145,26 @@ export function AttendanceStatsPage() {
     mode: "declare" | "clear";
     scheduleRest?: AttendancePunchDayRow["scheduleRest"];
   } | null>(null);
+  const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
+  const [, setGateTick] = React.useState(0);
+
+  React.useEffect(() => {
+    const id = window.setInterval(() => setGateTick((t) => t + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const reload = React.useCallback(async () => {
     if (!me) return;
     try {
       setError(null);
-      const result = await loadSummary(month, me);
+      const [result, shiftRes] = await Promise.all([
+        loadSummary(month, me),
+        api<BackendShiftDto>("GET", "/attendance/shift"),
+      ]);
       setIsAdmin(result.isAdmin);
       setSummary(result.summary);
       setPendingMakeupRequests(result.pendingMakeupRequests);
+      setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -313,6 +325,7 @@ export function AttendanceStatsPage() {
                                           half="morning"
                                           time={r.morningIn}
                                           makeupRequests={userRequests}
+                                          makeupTodayGate={makeupTodayGate}
                                           onDeclare={() =>
                                             setRestDialog({
                                               userId: rowUserId,
@@ -359,6 +372,7 @@ export function AttendanceStatsPage() {
                                           type="morning_out"
                                           time={r.morningOut}
                                           makeupRequests={userRequests}
+                                          makeupTodayGate={makeupTodayGate}
                                           adminDirect={adminDirectMakeup}
                                           onApply={() =>
                                             setMakeupDialog({
@@ -385,6 +399,7 @@ export function AttendanceStatsPage() {
                                           half="afternoon"
                                           time={r.afternoonIn}
                                           makeupRequests={userRequests}
+                                          makeupTodayGate={makeupTodayGate}
                                           onDeclare={() =>
                                             setRestDialog({
                                               userId: rowUserId,
@@ -431,6 +446,7 @@ export function AttendanceStatsPage() {
                                           type="afternoon_out"
                                           time={r.afternoonOut}
                                           makeupRequests={userRequests}
+                                          makeupTodayGate={makeupTodayGate}
                                           adminDirect={adminDirectMakeup}
                                           onApply={() =>
                                             setMakeupDialog({

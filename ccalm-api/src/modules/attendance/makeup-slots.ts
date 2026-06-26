@@ -1,4 +1,8 @@
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
+import {
+  passesMakeupTodayGate,
+  type MakeupTodayGate,
+} from "./attendance-makeup-today-gate"
 
 type ScheduleRest = "full_rest" | "morning_rest" | "afternoon_rest" | null
 
@@ -56,9 +60,12 @@ function hasPending(
 function makeupInSlotState(
   row: DayRow,
   type: "morning_in" | "afternoon_in",
-  pending: PendingMakeup[]
+  pending: PendingMakeup[],
+  gate?: MakeupTodayGate,
+  at: Date = new Date()
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null
+  if (!passesMakeupTodayGate(row.date, type, gate, at)) return null
   if (type === "morning_in" && isMorningEffectivelyAtRest(row)) return null
   if (type === "afternoon_in" && isAfternoonEffectivelyAtRest(row)) return null
   if (type === "morning_in" ? row.morningIn : row.afternoonIn) return null
@@ -69,9 +76,12 @@ function makeupInSlotState(
 function makeupOutSlotState(
   row: DayRow,
   type: "morning_out" | "afternoon_out",
-  pending: PendingMakeup[]
+  pending: PendingMakeup[],
+  gate?: MakeupTodayGate,
+  at: Date = new Date()
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null
+  if (!passesMakeupTodayGate(row.date, type, gate, at)) return null
   if (type === "morning_out" && isMorningEffectivelyAtRest(row)) return null
   if (type === "afternoon_out" && isAfternoonEffectivelyAtRest(row)) return null
   const inType = type === "morning_out" ? "morning_in" : "afternoon_in"
@@ -85,13 +95,19 @@ function makeupOutSlotState(
 /** 与打卡页一致：每个可点击的「补/补卡」按钮计 1 次缺卡（审批中不计）。 */
 export function countMakeupButtonSlots(
   row: DayRow,
-  pending: PendingMakeup[] = []
+  pending: PendingMakeup[] = [],
+  gate?: MakeupTodayGate,
+  at: Date = new Date()
 ): number {
   let count = 0
-  if (makeupInSlotState(row, "morning_in", pending) === "apply") count += 1
-  if (makeupInSlotState(row, "afternoon_in", pending) === "apply") count += 1
-  if (makeupOutSlotState(row, "morning_out", pending) === "apply") count += 1
-  if (makeupOutSlotState(row, "afternoon_out", pending) === "apply") count += 1
+  if (makeupInSlotState(row, "morning_in", pending, gate, at) === "apply")
+    count += 1
+  if (makeupInSlotState(row, "afternoon_in", pending, gate, at) === "apply")
+    count += 1
+  if (makeupOutSlotState(row, "morning_out", pending, gate, at) === "apply")
+    count += 1
+  if (makeupOutSlotState(row, "afternoon_out", pending, gate, at) === "apply")
+    count += 1
   return count
 }
 

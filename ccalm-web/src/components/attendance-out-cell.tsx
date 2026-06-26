@@ -4,6 +4,7 @@ import {
   makeupSlotState,
   type AdminMakeupType,
   type MakeupOutType,
+  type MakeupTodayGate,
 } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 
@@ -14,6 +15,7 @@ type AttendanceOutCellProps =
       time: string | null;
       adminDirect: true;
       makeupRequests?: AttendanceMakeupRequest[];
+      makeupTodayGate?: MakeupTodayGate;
       onApply: () => void;
     }
   | {
@@ -22,19 +24,25 @@ type AttendanceOutCellProps =
       time: string | null;
       adminDirect?: false;
       makeupRequests?: AttendanceMakeupRequest[];
+      makeupTodayGate?: MakeupTodayGate;
       onApply: () => void;
     };
 
 export function AttendanceOutCell(props: AttendanceOutCellProps) {
-  const { row, time, makeupRequests = [], onApply } = props;
+  const { row, time, makeupRequests = [], makeupTodayGate, onApply } = props;
 
   if (time) return <span>{time}</span>;
 
   let slotState: "apply" | "pending" | null;
   if (props.adminDirect) {
-    slotState = adminMakeupSlotStateWithPending(row, props.type, makeupRequests);
+    slotState = adminMakeupSlotStateWithPending(
+      row,
+      props.type,
+      makeupRequests,
+      makeupTodayGate,
+    );
   } else {
-    slotState = makeupSlotState(row, props.type, makeupRequests);
+    slotState = makeupSlotState(row, props.type, makeupRequests, makeupTodayGate);
   }
 
   if (slotState === "pending") {

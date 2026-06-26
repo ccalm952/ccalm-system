@@ -10,6 +10,11 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
+import {
+  canMakeupTodaySlot,
+  type MakeupTodayGate,
+} from "./attendance-makeup-today-gate"
+import { DEFAULT_SHIFT_ROW } from "./defaults"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
 import { punchDateFromTime } from "./punch-date"
 
@@ -131,6 +136,30 @@ export class AttendanceMakeupService {
     return isWithinAttendanceEditWindow(dateStr)
   }
 
+  private async getMakeupTodayGate(): Promise<MakeupTodayGate> {
+    const row = await this.prisma.shiftConfig.findUnique({
+      where: { id: "global" },
+    })
+    return {
+      morningInWindowEnd:
+        row?.morningInWindowEnd ?? DEFAULT_SHIFT_ROW.morningInWindowEnd,
+      afternoonInWindowEnd:
+        row?.afternoonInWindowEnd ?? DEFAULT_SHIFT_ROW.afternoonInWindowEnd,
+    }
+  }
+
+  private todayMakeupGateMessage(type: AdminMakeupType): string {
+    const label =
+      type === "morning_in" || type === "morning_out" ? "上午上班" : "下午上班"
+    return `需等今日${label}打卡窗口结束后才能补卡`
+  }
+
+  private async assertTodayMakeupGate(dateStr: string, type: AdminMakeupType) {
+    const gate = await this.getMakeupTodayGate()
+    if (canMakeupTodaySlot(dateStr, type, gate)) return
+    throw new BadRequestException(this.todayMakeupGateMessage(type))
+  }
+
   private async dayRecordMap(userId: string, dateStr: string) {
     const records = await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate: dateStr },
@@ -148,6 +177,7 @@ export class AttendanceMakeupService {
     if (!this.isWithinMakeupWindow(dateStr)) {
       throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
+    await this.assertTodayMakeupGate(dateStr, type)
 
     const map = await this.dayRecordMap(userId, dateStr)
     const inType = IN_TYPE_BY_OUT[type]
@@ -191,6 +221,7 @@ export class AttendanceMakeupService {
     if (!this.isWithinMakeupWindow(dateStr)) {
       throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
+    await this.assertTodayMakeupGate(dateStr, type)
 
     const map = await this.dayRecordMap(userId, dateStr)
     if (map.get(type)) {
@@ -258,6 +289,7 @@ export class AttendanceMakeupService {
     if (!this.isWithinMakeupWindow(dateStr)) {
       throw new BadRequestException("仅支持补本月或上月的缺卡")
     }
+    await this.assertTodayMakeupGate(dateStr, type)
 
     const map = await this.dayRecordMap(userId, dateStr)
     if (map.get(type)) {

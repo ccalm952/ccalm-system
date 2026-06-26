@@ -47,6 +47,13 @@ export function isWallClockAtOrBefore(d: Date, hhmm: string): boolean {
   return wallClockMinutes(d) <= target;
 }
 
+/** 严格晚于 HH:mm（分钟粒度），用于「打卡窗口结束后」才可补卡。 */
+export function isWallClockAfter(d: Date, hhmm: string): boolean {
+  const target = minutesFromMidnight(hhmm);
+  if (!Number.isFinite(target)) return false;
+  return wallClockMinutes(d) > target;
+}
+
 export function isWallClockInInclusiveRange(d: Date, start: string, end: string): boolean {
   const a = minutesFromMidnight(start);
   const b = minutesFromMidnight(end);
