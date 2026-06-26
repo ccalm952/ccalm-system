@@ -1,3 +1,5 @@
+import "./modules/attendance/attendance-dayjs"
+
 import { NestFactory } from "@nestjs/core"
 import type { NestExpressApplication } from "@nestjs/platform-express"
 import dotenv from "dotenv"
@@ -10,6 +12,7 @@ import { AppModule } from "./app.module"
 const API_ROOT = path.resolve(__dirname, "..", "..")
 
 async function bootstrap() {
+  process.env.TZ = "Asia/Shanghai"
   dotenv.config({ path: path.join(API_ROOT, ".env") })
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
 

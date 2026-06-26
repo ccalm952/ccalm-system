@@ -10,7 +10,7 @@
     "build": "pnpm -C ccalm-web build && pnpm -C ccalm-api build",
     "check:web": "pnpm -C ccalm-web check",
     "check:api": "pnpm -C ccalm-api check",
-    "check": "pnpm -C ccalm-web check && pnpm -C ccalm-api check",
+    "check": "pnpm -C packages/attendance-core build && pnpm -C packages/attendance-core test && pnpm -C ccalm-web check && pnpm -C ccalm-api check",
     "lint:web": "pnpm -C ccalm-web lint",
     "lint:api": "pnpm -C ccalm-api lint:check",
     "lint": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint:check",

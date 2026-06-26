@@ -8,14 +8,6 @@ export const SCHEDULE_SHIFT_LABEL: Record<ScheduleShiftType, string> = {
   afternoon_rest: "下",
 };
 
-/** 点击循环：空 → 全 → 上 → 下 → 空 */
-export const SCHEDULE_SHIFT_CYCLE: Array<ScheduleShiftType | null> = [
-  null,
-  "full_rest",
-  "morning_rest",
-  "afternoon_rest",
-];
-
 export { scheduleShiftCellClass as scheduleCellClass } from "./attendance-theme";
 
 /** 排班表仅允许查看去年 1 月 ~ 今年 12 月 */

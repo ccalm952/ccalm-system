@@ -1,26 +1,28 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
+import type { AttendancePunchType } from "@prisma/client"
 import dayjs from "dayjs"
 
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
+import {
+  attendanceDayjs,
+  attendanceTodayStart,
+  formatAttendanceDate,
+} from "./attendance-dayjs"
+import {
+  leaveDaysForShift,
+  resolveShiftForDay,
+  type ScheduleShiftType,
+} from "./schedule-inference"
 
 import { PrismaService } from "../../prisma/prisma.service"
-import type {
-  ScheduleEntryChangeDto,
-  UpsertScheduleMonthConfigDto,
-} from "./dto/schedule.dto"
+import type { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
 
-type ScheduleShiftType = "full_rest" | "morning_rest" | "afternoon_rest"
+type DayRecord = { type: string; punchTime: Date }
 
 const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"] as const
 
-function leaveDaysForShift(type: ScheduleShiftType | null | undefined): number {
-  if (!type) return 0
-  if (type === "full_rest") return 1
-  return 0.5
-}
-
 function monthBounds(month: string) {
-  const base = dayjs(`${month}-01`, "YYYY-MM-DD", true)
+  const base = attendanceDayjs(`${month}-01`, "YYYY-MM-DD")
   if (!base.isValid()) throw new BadRequestException("月份格式不合法")
   assertScheduleMonthAllowed(month)
   const start = base.startOf("month")
@@ -29,7 +31,7 @@ function monthBounds(month: string) {
 }
 
 function assertScheduleMonthAllowed(month: string) {
-  const now = dayjs()
+  const now = attendanceDayjs()
   const minMonth = now.subtract(1, "year").startOf("year").format("YYYY-MM")
   const maxMonth = now.endOf("year").format("YYYY-MM")
   if (month < minMonth || month > maxMonth) {
@@ -48,104 +50,125 @@ export class AttendanceScheduleService {
     return row?.monthAllowance ?? 0
   }
 
-  private async countUserMonthLeave(
-    userId: string,
-    month: string
-  ): Promise<number> {
-    const { start, end } = monthBounds(month)
+  private buildByUserDay(
+    records: Array<{ userId: string; type: string; punchTime: Date }>
+  ): Map<string, DayRecord[]> {
+    const byUserDay = new Map<string, DayRecord[]>()
+    for (const r of records) {
+      const date = formatAttendanceDate(r.punchTime)
+      const key = `${r.userId}:${date}`
+      const arr = byUserDay.get(key) ?? []
+      arr.push({ type: r.type, punchTime: r.punchTime })
+      byUserDay.set(key, arr)
+    }
+    return byUserDay
+  }
+
+  private async fetchDeclaredMap(
+    userIds: string[],
+    rangeStart: dayjs.Dayjs,
+    rangeEnd: dayjs.Dayjs
+  ): Promise<Map<string, ScheduleShiftType>> {
     const entries = await this.prisma.scheduleEntry.findMany({
       where: {
-        userId,
+        userId: { in: userIds },
+        isManual: true,
         date: {
-          gte: start.format("YYYY-MM-DD"),
-          lte: end.format("YYYY-MM-DD"),
+          gte: rangeStart.format("YYYY-MM-DD"),
+          lte: rangeEnd.format("YYYY-MM-DD"),
         },
       },
+      select: { userId: true, date: true, shiftType: true },
     })
-    return entries.reduce((sum, e) => sum + leaveDaysForShift(e.shiftType), 0)
-  }
-
-  private async balanceBeforeMonth(
-    userId: string,
-    month: string,
-    initialBalance: number,
-    createdAt: Date
-  ): Promise<number> {
-    const target = dayjs(`${month}-01`, "YYYY-MM-DD")
-    let cursor = dayjs(createdAt).startOf("month")
-    let balance = initialBalance
-
-    while (cursor.isBefore(target, "month")) {
-      const m = cursor.format("YYYY-MM")
-      const allowance = await this.getMonthAllowance(m)
-      const leave = await this.countUserMonthLeave(userId, m)
-      balance = balance + allowance - leave
-      cursor = cursor.add(1, "month")
-    }
-
-    return balance
-  }
-
-  private async remainingLeaveForMonth(
-    userId: string,
-    month: string,
-    initialBalance: number,
-    createdAt: Date
-  ): Promise<number> {
-    const before = await this.balanceBeforeMonth(
-      userId,
-      month,
-      initialBalance,
-      createdAt
+    return new Map(
+      entries.map((e) => [`${e.userId}:${e.date}`, e.shiftType] as const)
     )
-    const allowance = await this.getMonthAllowance(month)
-    const leave = await this.countUserMonthLeave(userId, month)
-    return before + allowance - leave
   }
 
-  private dayRecordMap(
-    records: Array<{ type: string; punchTime: Date }>
-  ): Map<string, boolean> {
-    const map = new Map<string, boolean>()
-    for (const r of records) {
-      map.set(r.type, true)
+  private async fetchPunchesByUserDay(
+    userIds: string[],
+    rangeStart: dayjs.Dayjs,
+    rangeEnd: dayjs.Dayjs
+  ): Promise<Map<string, DayRecord[]>> {
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: {
+        userId: { in: userIds },
+        punchTime: {
+          gte: rangeStart.startOf("day").toDate(),
+          lte: rangeEnd.endOf("day").toDate(),
+        },
+      },
+      orderBy: { punchTime: "asc" },
+      select: { userId: true, type: true, punchTime: true },
+    })
+    return this.buildByUserDay(records)
+  }
+
+  private accumulateLeaveForMonth(
+    userIds: string[],
+    monthStart: dayjs.Dayjs,
+    monthEnd: dayjs.Dayjs,
+    declaredMap: Map<string, ScheduleShiftType>,
+    byUserDay: Map<string, DayRecord[]>,
+    todayYmd: string,
+    leaveByUserMonth: Map<string, number>
+  ) {
+    for (const userId of userIds) {
+      for (
+        let d = monthStart.startOf("day");
+        !d.isAfter(monthEnd, "day");
+        d = d.add(1, "day")
+      ) {
+        const date = d.format("YYYY-MM-DD")
+        const key = `${userId}:${date}`
+        const shift = resolveShiftForDay(
+          date,
+          declaredMap.get(key),
+          byUserDay.get(key) ?? [],
+          todayYmd
+        )
+        if (!shift) continue
+        const monthKey = `${userId}:${date.slice(0, 7)}`
+        leaveByUserMonth.set(
+          monthKey,
+          (leaveByUserMonth.get(monthKey) ?? 0) + leaveDaysForShift(shift)
+        )
+      }
     }
-    return map
   }
 
-  private inferShiftFromPunches(
-    records: Array<{ type: string; punchTime: Date }>
-  ): ScheduleShiftType | null {
-    const map = this.dayRecordMap(records)
-    const hasMorningIn = map.has("morning_in")
-    const hasAfternoonIn = map.has("afternoon_in")
-    const hasAny =
-      hasMorningIn ||
-      map.has("morning_out") ||
-      hasAfternoonIn ||
-      map.has("afternoon_out")
+  private async computeLeaveByUserMonth(
+    userIds: string[],
+    rangeStart: dayjs.Dayjs,
+    rangeEnd: dayjs.Dayjs,
+    declaredMap: Map<string, ScheduleShiftType>,
+    todayYmd: string
+  ): Promise<Map<string, number>> {
+    const leaveByUserMonth = new Map<string, number>()
+    let monthCursor = rangeStart.startOf("month")
+    const endMonth = rangeEnd.startOf("month")
 
-    if (!hasAny) return "full_rest"
-    if (hasMorningIn && hasAfternoonIn) return null
-    if (hasMorningIn && !hasAfternoonIn) return "afternoon_rest"
-    if (!hasMorningIn && hasAfternoonIn) return "morning_rest"
-    return null
-  }
-
-  private leaveByUserMonthFromEntries(
-    entries: Array<{
-      userId: string
-      date: string
-      shiftType: ScheduleShiftType
-    }>
-  ): Map<string, number> {
-    const map = new Map<string, number>()
-    for (const e of entries) {
-      const month = e.date.slice(0, 7)
-      const key = `${e.userId}:${month}`
-      map.set(key, (map.get(key) ?? 0) + leaveDaysForShift(e.shiftType))
+    while (!monthCursor.isAfter(endMonth, "month")) {
+      const monthStart = monthCursor.startOf("month")
+      const monthEnd = monthCursor.endOf("month")
+      const byUserDay = await this.fetchPunchesByUserDay(
+        userIds,
+        monthStart,
+        monthEnd
+      )
+      this.accumulateLeaveForMonth(
+        userIds,
+        monthStart,
+        monthEnd,
+        declaredMap,
+        byUserDay,
+        todayYmd,
+        leaveByUserMonth
+      )
+      monthCursor = monthCursor.add(1, "month")
     }
-    return map
+
+    return leaveByUserMonth
   }
 
   private remainingLeaveFromPrefetch(
@@ -157,8 +180,8 @@ export class AttendanceScheduleService {
     leaveByUserMonth: Map<string, number>
   ): number {
     let balance = initialBalance
-    let cursor = dayjs(createdAt).startOf("month")
-    const target = dayjs(`${month}-01`, "YYYY-MM-DD")
+    let cursor = attendanceDayjs(createdAt).startOf("month")
+    const target = attendanceDayjs(`${month}-01`, "YYYY-MM-DD")
 
     while (cursor.isBefore(target, "month")) {
       const m = cursor.format("YYYY-MM")
@@ -170,6 +193,48 @@ export class AttendanceScheduleService {
     const allowance = configMap.get(month) ?? 0
     const leave = leaveByUserMonth.get(`${userId}:${month}`) ?? 0
     return balance + allowance - leave
+  }
+
+  private async buildLeaveContext(
+    userIds: string[],
+    targetMonth: string,
+    usersMeta: Array<{ id: string; createdAt: Date }>
+  ) {
+    const { end } = monthBounds(targetMonth)
+    const todayYmd = attendanceTodayStart().format("YYYY-MM-DD")
+
+    const earliestMonth = usersMeta.reduce((min, u) => {
+      const m = attendanceDayjs(u.createdAt).startOf("month").format("YYYY-MM")
+      return m < min ? m : min
+    }, targetMonth)
+
+    const historyStart = attendanceDayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
+    const declaredMap = await this.fetchDeclaredMap(userIds, historyStart, end)
+
+    const monthKeys: string[] = []
+    let monthCursor = historyStart
+    const target = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD")
+    while (!monthCursor.isAfter(target, "month")) {
+      monthKeys.push(monthCursor.format("YYYY-MM"))
+      monthCursor = monthCursor.add(1, "month")
+    }
+
+    const configs = await this.prisma.scheduleMonthConfig.findMany({
+      where: { month: { in: monthKeys } },
+    })
+    const configMap = new Map(
+      configs.map((c) => [c.month, c.monthAllowance] as const)
+    )
+
+    const leaveByUserMonth = await this.computeLeaveByUserMonth(
+      userIds,
+      historyStart,
+      end,
+      declaredMap,
+      todayYmd
+    )
+
+    return { configMap, leaveByUserMonth, todayYmd, declaredMap }
   }
 
   async getMonth(month: string) {
@@ -188,51 +253,11 @@ export class AttendanceScheduleService {
       },
     })
 
-    const entries = await this.prisma.scheduleEntry.findMany({
-      where: {
-        date: {
-          gte: start.format("YYYY-MM-DD"),
-          lte: end.format("YYYY-MM-DD"),
-        },
-      },
-    })
+    const userIds = users.map((u) => u.id)
+    const { configMap, leaveByUserMonth, todayYmd, declaredMap } =
+      await this.buildLeaveContext(userIds, month, users)
 
-    const entryMap = new Map<string, ScheduleShiftType>()
-    for (const e of entries) {
-      entryMap.set(`${e.userId}:${e.date}`, e.shiftType)
-    }
-
-    const earliestMonth = users.reduce((min, u) => {
-      const m = dayjs(u.createdAt).startOf("month").format("YYYY-MM")
-      return m < min ? m : min
-    }, month)
-
-    const monthKeys: string[] = []
-    let monthCursor = dayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
-    const targetMonth = dayjs(`${month}-01`, "YYYY-MM-DD")
-    while (!monthCursor.isAfter(targetMonth, "month")) {
-      monthKeys.push(monthCursor.format("YYYY-MM"))
-      monthCursor = monthCursor.add(1, "month")
-    }
-
-    const configs = await this.prisma.scheduleMonthConfig.findMany({
-      where: { month: { in: monthKeys } },
-    })
-    const configMap = new Map(
-      configs.map((c) => [c.month, c.monthAllowance] as const)
-    )
-
-    const historyEntries = await this.prisma.scheduleEntry.findMany({
-      where: {
-        userId: { in: users.map((u) => u.id) },
-        date: {
-          gte: dayjs(`${earliestMonth}-01`).format("YYYY-MM-DD"),
-          lte: end.format("YYYY-MM-DD"),
-        },
-      },
-      select: { userId: true, date: true, shiftType: true },
-    })
-    const leaveByUserMonth = this.leaveByUserMonthFromEntries(historyEntries)
+    const byUserDay = await this.fetchPunchesByUserDay(userIds, start, end)
 
     const userRows = users.map((u) => {
       const days: Record<string, ScheduleShiftType | null> = {}
@@ -243,7 +268,12 @@ export class AttendanceScheduleService {
       for (let d = 1; d <= daysInMonth; d += 1) {
         const date = start.date(d).format("YYYY-MM-DD")
         const key = `${u.id}:${date}`
-        const shift = entryMap.get(key) ?? null
+        const shift = resolveShiftForDay(
+          date,
+          declaredMap.get(key),
+          byUserDay.get(key) ?? [],
+          todayYmd
+        )
         days[String(d)] = shift
         if (shift === "full_rest") fullCount += 1
         if (shift === "morning_rest") morningCount += 1
@@ -307,136 +337,6 @@ export class AttendanceScheduleService {
     }
   }
 
-  async upsertEntries(month: string, entries: ScheduleEntryChangeDto[]) {
-    const { start, end } = monthBounds(month)
-
-    for (const item of entries) {
-      const d = dayjs(item.date, "YYYY-MM-DD", true)
-      if (!d.isValid() || d.format("YYYY-MM") !== month) {
-        throw new BadRequestException(`日期 ${item.date} 不属于 ${month}`)
-      }
-      if (d.isBefore(start, "day") || d.isAfter(end, "day")) {
-        throw new BadRequestException(`日期 ${item.date} 超出当月范围`)
-      }
-
-      if (!item.shiftType) {
-        await this.prisma.scheduleEntry.deleteMany({
-          where: { userId: item.userId, date: item.date },
-        })
-        continue
-      }
-
-      await this.prisma.scheduleEntry.upsert({
-        where: {
-          userId_date: { userId: item.userId, date: item.date },
-        },
-        create: {
-          userId: item.userId,
-          date: item.date,
-          shiftType: item.shiftType,
-          isManual: true,
-        },
-        update: {
-          shiftType: item.shiftType,
-          isManual: true,
-        },
-      })
-    }
-
-    return await this.getMonth(month)
-  }
-
-  async autoFillFromPunches(month: string) {
-    const { start, end } = monthBounds(month)
-    const today = dayjs().startOf("day")
-
-    const users = await this.prisma.user.findMany({
-      where: { role: "user" },
-      select: { id: true },
-    })
-
-    const records = await this.prisma.attendanceRecord.findMany({
-      where: {
-        userId: { in: users.map((u) => u.id) },
-        punchTime: {
-          gte: start.startOf("day").toDate(),
-          lte: end.endOf("day").toDate(),
-        },
-      },
-      orderBy: { punchTime: "asc" },
-    })
-
-    const byUserDay = new Map<
-      string,
-      Array<{ type: string; punchTime: Date }>
-    >()
-    for (const r of records) {
-      const date = dayjs(r.punchTime).format("YYYY-MM-DD")
-      const key = `${r.userId}:${date}`
-      const arr = byUserDay.get(key) ?? []
-      arr.push(r)
-      byUserDay.set(key, arr)
-    }
-
-    const existing = await this.prisma.scheduleEntry.findMany({
-      where: {
-        date: {
-          gte: start.format("YYYY-MM-DD"),
-          lte: end.format("YYYY-MM-DD"),
-        },
-      },
-    })
-    const manualKeys = new Set(
-      existing.filter((e) => e.isManual).map((e) => `${e.userId}:${e.date}`)
-    )
-
-    for (const user of users) {
-      for (let d = start; !d.isAfter(end, "day"); d = d.add(1, "day")) {
-        const date = d.format("YYYY-MM-DD")
-        const key = `${user.id}:${date}`
-
-        if (d.isAfter(today, "day")) {
-          if (!manualKeys.has(key)) {
-            await this.prisma.scheduleEntry.deleteMany({
-              where: { userId: user.id, date, isManual: false },
-            })
-          }
-          continue
-        }
-
-        if (manualKeys.has(key)) continue
-
-        const dayRecords = byUserDay.get(key) ?? []
-        const inferred = this.inferShiftFromPunches(dayRecords)
-
-        if (!inferred) {
-          await this.prisma.scheduleEntry.deleteMany({
-            where: { userId: user.id, date },
-          })
-          continue
-        }
-
-        await this.prisma.scheduleEntry.upsert({
-          where: {
-            userId_date: { userId: user.id, date },
-          },
-          create: {
-            userId: user.id,
-            date,
-            shiftType: inferred,
-            isManual: false,
-          },
-          update: {
-            shiftType: inferred,
-            isManual: false,
-          },
-        })
-      }
-    }
-
-    return await this.getMonth(month)
-  }
-
   async getRemainingLeave(userId: string, month: string): Promise<number> {
     monthBounds(month)
     const user = await this.prisma.user.findUnique({
@@ -444,16 +344,83 @@ export class AttendanceScheduleService {
       select: { leaveInitialBalance: true, createdAt: true },
     })
     if (!user) throw new BadRequestException("用户不存在")
-    return await this.remainingLeaveForMonth(
+
+    const { configMap, leaveByUserMonth } = await this.buildLeaveContext(
+      [userId],
+      month,
+      [{ id: userId, createdAt: user.createdAt }]
+    )
+
+    return this.remainingLeaveFromPrefetch(
       userId,
       month,
       user.leaveInitialBalance,
-      user.createdAt
+      user.createdAt,
+      configMap,
+      leaveByUserMonth
     )
   }
 
+  async resolveShiftForUserDay(
+    userId: string,
+    dateStr: string
+  ): Promise<ScheduleShiftType | null> {
+    const todayYmd = attendanceTodayStart().format("YYYY-MM-DD")
+    const entry = await this.prisma.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date: dateStr } },
+      select: { shiftType: true, isManual: true },
+    })
+    const declared = entry?.isManual ? entry.shiftType : null
+
+    const dayStart = attendanceDayjs(dateStr, "YYYY-MM-DD")
+      .startOf("day")
+      .toDate()
+    const dayEnd = attendanceDayjs(dateStr, "YYYY-MM-DD")
+      .add(1, "day")
+      .startOf("day")
+      .toDate()
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: { userId, punchTime: { gte: dayStart, lt: dayEnd } },
+      orderBy: { punchTime: "asc" },
+      select: { type: true, punchTime: true },
+    })
+
+    return resolveShiftForDay(
+      dateStr,
+      declared,
+      records.map((r) => ({ type: r.type })),
+      todayYmd
+    )
+  }
+
+  async assertHalfOpenForPunch(
+    userId: string,
+    punchDate: string,
+    type: AttendancePunchType
+  ) {
+    const entry = await this.prisma.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date: punchDate } },
+      select: { shiftType: true, isManual: true },
+    })
+    if (!entry?.isManual) return
+
+    const { shiftType } = entry
+    if (
+      (type === "morning_in" || type === "morning_out") &&
+      (shiftType === "morning_rest" || shiftType === "full_rest")
+    ) {
+      throw new BadRequestException("上午已登记休息，请先取消休息登记后再打卡")
+    }
+    if (
+      (type === "afternoon_in" || type === "afternoon_out") &&
+      (shiftType === "afternoon_rest" || shiftType === "full_rest")
+    ) {
+      throw new BadRequestException("下午已登记休息，请先取消休息登记后再打卡")
+    }
+  }
+
   private assertRestDateAllowed(dateStr: string) {
-    const d = dayjs(dateStr, "YYYY-MM-DD", true)
+    const d = attendanceDayjs(dateStr, "YYYY-MM-DD")
     if (!d.isValid()) throw new BadRequestException("日期不合法")
     if (!isWithinAttendanceEditWindow(dateStr)) {
       throw new BadRequestException("仅支持登记本月或上月的休息")
@@ -461,8 +428,8 @@ export class AttendanceScheduleService {
   }
 
   private async dayPunchTypes(userId: string, dateStr: string) {
-    const start = dayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
-    const end = dayjs(dateStr, "YYYY-MM-DD")
+    const start = attendanceDayjs(dateStr, "YYYY-MM-DD").startOf("day").toDate()
+    const end = attendanceDayjs(dateStr, "YYYY-MM-DD")
       .add(1, "day")
       .startOf("day")
       .toDate()
@@ -471,6 +438,12 @@ export class AttendanceScheduleService {
       select: { type: true },
     })
     return new Set(records.map((r) => r.type))
+  }
+
+  private manualDeclaredShift(
+    entry: { shiftType: ScheduleShiftType; isManual: boolean } | null
+  ): ScheduleShiftType | null {
+    return entry?.isManual ? entry.shiftType : null
   }
 
   private nextRestType(
@@ -509,7 +482,7 @@ export class AttendanceScheduleService {
     const existing = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date } },
     })
-    const current = existing?.shiftType ?? null
+    const current = this.manualDeclaredShift(existing)
 
     if (
       half === "morning" &&
@@ -553,11 +526,11 @@ export class AttendanceScheduleService {
     const existing = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date } },
     })
-    if (!existing) {
+    const current = this.manualDeclaredShift(existing)
+    if (!current) {
       throw new BadRequestException("该日未登记休息")
     }
 
-    const current = existing.shiftType
     let next: ScheduleShiftType | null
 
     if (half === "morning") {
@@ -591,12 +564,48 @@ export class AttendanceScheduleService {
     startDate: string,
     endDate: string
   ): Promise<Map<string, ScheduleShiftType>> {
-    const entries = await this.prisma.scheduleEntry.findMany({
-      where: {
-        userId,
-        date: { gte: startDate, lte: endDate },
-      },
-    })
-    return new Map(entries.map((e) => [e.date, e.shiftType]))
+    const maps = await this.scheduleMapsForUsers([userId], startDate, endDate)
+    return maps.get(userId) ?? new Map()
+  }
+
+  async scheduleMapsForUsers(
+    userIds: string[],
+    startDate: string,
+    endDate: string
+  ): Promise<Map<string, Map<string, ScheduleShiftType>>> {
+    const result = new Map<string, Map<string, ScheduleShiftType>>()
+    if (!userIds.length) return result
+
+    const start = attendanceDayjs(startDate, "YYYY-MM-DD")
+    const end = attendanceDayjs(endDate, "YYYY-MM-DD")
+    if (!start.isValid() || !end.isValid() || end.isBefore(start, "day")) {
+      throw new BadRequestException("日期范围不合法")
+    }
+
+    const todayYmd = attendanceTodayStart().format("YYYY-MM-DD")
+    const declaredMap = await this.fetchDeclaredMap(userIds, start, end)
+    const byUserDay = await this.fetchPunchesByUserDay(userIds, start, end)
+
+    for (const userId of userIds) {
+      const map = new Map<string, ScheduleShiftType>()
+      for (
+        let d = start.startOf("day");
+        !d.isAfter(end, "day");
+        d = d.add(1, "day")
+      ) {
+        const date = d.format("YYYY-MM-DD")
+        const key = `${userId}:${date}`
+        const shift = resolveShiftForDay(
+          date,
+          declaredMap.get(key),
+          byUserDay.get(key) ?? [],
+          todayYmd
+        )
+        if (shift) map.set(date, shift)
+      }
+      result.set(userId, map)
+    }
+
+    return result
   }
 }

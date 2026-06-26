@@ -1,15 +1,18 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
-import dayjs from "dayjs"
 import type { AttendancePunchType, Prisma } from "@prisma/client"
 
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
+import { attendanceDayjs } from "./attendance-dayjs"
 import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
 import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
 import type { PunchDto } from "./dto/punch.dto"
-import { countMakeupButtonSlots, applyDayAttendanceRest } from "./makeup-slots"
+import {
+  computeMonthlySummaryAggregate,
+  monthSummaryBounds,
+} from "./monthly-summary-compute"
 import { punchDateFromTime } from "./punch-date"
 import { minutesFromMidnight } from "./time"
 
@@ -134,6 +137,8 @@ export class AttendanceService {
     const punchDate = punchDateFromTime(now)
     const type = dto.type
 
+    await this.schedule.assertHalfOpenForPunch(userId, punchDate, type)
+
     return await this.prisma.$transaction(async (tx) => {
       const todayRecords = await tx.attendanceRecord.findMany({
         where: { userId, punchDate },
@@ -141,7 +146,8 @@ export class AttendanceService {
       })
       const map = new Map(todayRecords.map((r) => [r.type, r]))
 
-      const wall = now.getHours() * 60 + now.getMinutes()
+      const wall =
+        attendanceDayjs(now).hour() * 60 + attendanceDayjs(now).minute()
       const inRange = (start: string, end: string) => {
         const a = minutesFromMidnight(start)
         const b = minutesFromMidnight(end)
@@ -270,8 +276,10 @@ export class AttendanceService {
   }
 
   async records(userId: string, startDate: string, endDate: string) {
-    const start = dayjs(startDate, "YYYY-MM-DD").startOf("day")
-    const end = dayjs(endDate, "YYYY-MM-DD").add(1, "day").startOf("day")
+    const start = attendanceDayjs(startDate, "YYYY-MM-DD").startOf("day")
+    const end = attendanceDayjs(endDate, "YYYY-MM-DD")
+      .add(1, "day")
+      .startOf("day")
     if (!start.isValid() || !end.isValid() || end.isBefore(start)) {
       throw new BadRequestException("日期范围不合法")
     }
@@ -282,159 +290,43 @@ export class AttendanceService {
   }
 
   async monthlySummary(userId: string, month: string) {
-    const base = dayjs(`${month}-01`, "YYYY-MM-DD")
-    if (!base.isValid()) throw new BadRequestException("月份不合法")
-    const start = base.startOf("month")
-    const end = base.isSame(dayjs(), "month") ? dayjs() : base.endOf("month")
+    const bounds = monthSummaryBounds(month)
+    if (!bounds) throw new BadRequestException("月份不合法")
 
-    const startDate = start.format("YYYY-MM-DD")
-    const rangeEnd = end.format("YYYY-MM-DD")
+    const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const scheduleMap = await this.schedule.scheduleMapForUser(
-      userId,
-      startDate,
-      rangeEnd
-    )
-
-    const list = await this.prisma.attendanceRecord.findMany({
-      where: {
-        userId,
-        punchTime: {
-          gte: start.toDate(),
-          lt: end.add(1, "day").startOf("day").toDate(),
+    const [scheduleMap, list, shift, pendingMakeups] = await Promise.all([
+      this.schedule.scheduleMapForUser(userId, startDate, rangeEnd),
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          userId,
+          punchTime: {
+            gte: bounds.rangeStart,
+            lt: bounds.rangeEndExclusive,
+          },
         },
-      },
-      orderBy: { punchTime: "asc" },
+        orderBy: { punchTime: "asc" },
+      }),
+      this.getShift(),
+      this.prisma.attendanceMakeupRequest.findMany({
+        where: {
+          userId,
+          status: "pending",
+          date: { gte: startDate, lte: rangeEnd },
+        },
+        select: { date: true, type: true, status: true },
+      }),
+    ])
+
+    const aggregate = computeMonthlySummaryAggregate({
+      start,
+      end,
+      todayYmd,
+      scheduleMap,
+      records: list,
+      shift,
+      pendingMakeups,
     })
-
-    const byDate = new Map<string, typeof list>()
-    for (const r of list) {
-      const key = dayjs(r.punchTime).format("YYYY-MM-DD")
-      const arr = byDate.get(key) ?? []
-      arr.push(r)
-      byDate.set(key, arr)
-    }
-
-    const shift = await this.getShift()
-    const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd)
-    const normalAfternoonEnd = minutesFromMidnight(
-      shift.overtimeAfternoonNormalEnd
-    )
-
-    const pendingMakeups = await this.prisma.attendanceMakeupRequest.findMany({
-      where: {
-        userId,
-        status: "pending",
-        date: { gte: startDate, lte: rangeEnd },
-      },
-      select: { date: true, type: true, status: true },
-    })
-
-    let attendanceDays = 0
-    let restDays = 0
-    let missingSlots = 0
-    let overtimeMinutes = 0
-    const rows: Array<{
-      date: string
-      morningIn: string | null
-      morningOut: string | null
-      afternoonIn: string | null
-      afternoonOut: string | null
-      morningOutIsMakeup: boolean
-      afternoonOutIsMakeup: boolean
-      scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-      overtimeMinutes: number
-      overtimeStr: string
-    }> = []
-
-    const fmtOvertime = (m: number) => {
-      if (m <= 0) return "-"
-      const h = Math.floor(m / 60)
-      const mm = m % 60
-      if (h <= 0) return `${mm}分钟`
-      if (mm <= 0) return `${h}小时`
-      return `${h}小时${mm}分钟`
-    }
-
-    for (
-      let d = end;
-      d.isAfter(start, "day") || d.isSame(start, "day");
-      d = d.subtract(1, "day")
-    ) {
-      const ymd = d.format("YYYY-MM-DD")
-      const scheduleRest = scheduleMap.get(ymd) ?? null
-      const dayRecords = (byDate.get(ymd) ?? []).slice()
-      const row = {
-        date: ymd,
-        morningIn: null as string | null,
-        morningOut: null as string | null,
-        afternoonIn: null as string | null,
-        afternoonOut: null as string | null,
-        morningOutIsMakeup: false,
-        afternoonOutIsMakeup: false,
-        scheduleRest,
-        overtimeMinutes: 0,
-        overtimeStr: "-",
-      }
-
-      for (const r of dayRecords) {
-        const hm = dayjs(r.punchTime).format("HH:mm")
-        if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm
-        if (r.type === "morning_out") {
-          row.morningOut = hm
-          row.morningOutIsMakeup = r.source === "makeup"
-        }
-        if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm
-        if (r.type === "afternoon_out") {
-          row.afternoonOut = hm
-          row.afternoonOutIsMakeup = r.source === "makeup"
-        }
-      }
-
-      const hasAny = !!(
-        row.morningIn ||
-        row.morningOut ||
-        row.afternoonIn ||
-        row.afternoonOut
-      )
-      if (!hasAny && !scheduleRest) {
-        restDays += 1
-        missingSlots += countMakeupButtonSlots(row, pendingMakeups, {
-          morningInWindowEnd: shift.morningInWindowEnd,
-          afternoonInWindowEnd: shift.afternoonInWindowEnd,
-        })
-        rows.push(row)
-        continue
-      }
-
-      const dayStats = applyDayAttendanceRest(row)
-      attendanceDays += dayStats.attendanceDays
-      restDays += dayStats.restDays
-
-      missingSlots += countMakeupButtonSlots(row, pendingMakeups, {
-        morningInWindowEnd: shift.morningInWindowEnd,
-        afternoonInWindowEnd: shift.afternoonInWindowEnd,
-      })
-
-      let overtime = 0
-      if (row.morningOut && Number.isFinite(normalMorningEnd)) {
-        overtime += Math.max(
-          0,
-          minutesFromMidnight(row.morningOut) - normalMorningEnd
-        )
-      }
-      if (row.afternoonOut && Number.isFinite(normalAfternoonEnd)) {
-        overtime += Math.max(
-          0,
-          minutesFromMidnight(row.afternoonOut) - normalAfternoonEnd
-        )
-      }
-      row.overtimeMinutes = overtime
-      row.overtimeStr = fmtOvertime(overtime)
-      overtimeMinutes += overtime
-
-      rows.push(row)
-    }
 
     const remainingLeave = await this.schedule.getRemainingLeave(userId, month)
 
@@ -442,36 +334,87 @@ export class AttendanceService {
       month,
       startDate,
       rangeEnd,
-      attendanceDays,
-      restDays,
-      missingSlots,
-      overtimeMinutes,
-      overtimeStr: fmtOvertime(overtimeMinutes),
+      ...aggregate,
       remainingLeave,
-      rows,
     }
   }
 
   async monthlySummariesForAll(month: string) {
+    const bounds = monthSummaryBounds(month)
+    if (!bounds) throw new BadRequestException("月份不合法")
+
     const users = await this.prisma.user.findMany({
       orderBy: [{ displayName: "asc" }, { username: "asc" }],
       select: { id: true, displayName: true, username: true },
     })
+    if (!users.length) return []
 
-    return await Promise.all(
-      users.map(async (u) => {
-        const s = await this.monthlySummary(u.id, month)
-        return {
-          userId: u.id,
-          userName: u.displayName || u.username,
-          attendanceDays: s.attendanceDays,
-          restDays: s.restDays,
-          missingSlots: s.missingSlots,
-          overtimeStr: s.overtimeStr,
-          rows: s.rows,
-        }
+    const userIds = users.map((u) => u.id)
+    const { start, end, todayYmd, startDate, rangeEnd } = bounds
+
+    const [scheduleMaps, allRecords, shift, allPending] = await Promise.all([
+      this.schedule.scheduleMapsForUsers(userIds, startDate, rangeEnd),
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          userId: { in: userIds },
+          punchTime: {
+            gte: bounds.rangeStart,
+            lt: bounds.rangeEndExclusive,
+          },
+        },
+        orderBy: { punchTime: "asc" },
+      }),
+      this.getShift(),
+      this.prisma.attendanceMakeupRequest.findMany({
+        where: {
+          userId: { in: userIds },
+          status: "pending",
+          date: { gte: startDate, lte: rangeEnd },
+        },
+        select: { userId: true, date: true, type: true, status: true },
+      }),
+    ])
+
+    const recordsByUser = new Map<string, typeof allRecords>()
+    for (const r of allRecords) {
+      const arr = recordsByUser.get(r.userId) ?? []
+      arr.push(r)
+      recordsByUser.set(r.userId, arr)
+    }
+
+    const pendingByUser = new Map<
+      string,
+      Array<{ date: string; type: string; status: string }>
+    >()
+    for (const p of allPending) {
+      const arr = pendingByUser.get(p.userId) ?? []
+      arr.push({ date: p.date, type: p.type, status: p.status })
+      pendingByUser.set(p.userId, arr)
+    }
+
+    return users.map((u) => {
+      const userScheduleMap =
+        scheduleMaps.get(u.id) ??
+        new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
+      const aggregate = computeMonthlySummaryAggregate({
+        start,
+        end,
+        todayYmd,
+        scheduleMap: userScheduleMap,
+        records: recordsByUser.get(u.id) ?? [],
+        shift,
+        pendingMakeups: pendingByUser.get(u.id) ?? [],
       })
-    )
+      return {
+        userId: u.id,
+        userName: u.displayName || u.username,
+        attendanceDays: aggregate.attendanceDays,
+        restDays: aggregate.restDays,
+        missingSlots: aggregate.missingSlots,
+        overtimeStr: aggregate.overtimeStr,
+        rows: aggregate.rows,
+      }
+    })
   }
 }
 

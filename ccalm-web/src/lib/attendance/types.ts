@@ -82,7 +82,6 @@ export type AttendanceMakeupRequest = {
   reason: string;
   status: AttendanceMakeupRequestStatus;
   reviewedAt: string | null;
-  rejectReason: string;
   createdAt: string;
   reviewerName: string | null;
 };

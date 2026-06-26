@@ -111,6 +111,7 @@ export function countMakeupButtonSlots(
   return count
 }
 
+/** 按半天统计出勤/休息：有上班卡 +0.5 出勤，否则 +0.5 休息。 */
 export function applyDayAttendanceRest(row: DayRow): {
   attendanceDays: number
   restDays: number
@@ -119,12 +120,17 @@ export function applyDayAttendanceRest(row: DayRow): {
   let restDays = 0
 
   if (row.morningIn) attendanceDays += 0.5
-  else if (isMorningEffectivelyAtRest(row)) restDays += 0.5
   else restDays += 0.5
 
   if (row.afternoonIn) attendanceDays += 0.5
-  else if (isAfternoonEffectivelyAtRest(row)) restDays += 0.5
   else restDays += 0.5
 
   return { attendanceDays, restDays }
+}
+
+export {
+  isMorningEffectivelyAtRest,
+  isAfternoonEffectivelyAtRest,
+  isMorningScheduleRest,
+  isAfternoonScheduleRest,
 }

@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@ccalm/attendance-core": path.resolve(
+        __dirname,
+        "../packages/attendance-core/src/index.ts",
+      ),
     },
   },
   build: {

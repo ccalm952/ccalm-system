@@ -1,7 +1,12 @@
 import dayjs from "dayjs";
+import {
+  buildEditWindowContext,
+  isWithinAttendanceEditWindow as isWithinAttendanceEditWindowCore,
+} from "@ccalm/attendance-core";
 
+import { attendanceTodayStart } from "./dayjs";
 import { passesMakeupTodayGate, type MakeupTodayGate } from "./makeup-today-gate";
-import { isHalfEffectivelyAtRest } from "./rest";
+import { isHalfEffectivelyAtRest, isHalfScheduleRest } from "./rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchType } from "./types";
 
 export type { MakeupTodayGate } from "./makeup-today-gate";
@@ -25,15 +30,11 @@ export function slotTime(row: AttendancePunchDayRow, type: AttendancePunchType):
 }
 
 export function isWithinMakeupWindow(dateStr: string): boolean {
-  const d = dayjs(dateStr, "YYYY-MM-DD", true);
-  if (!d.isValid()) return false;
-  if (d.isAfter(dayjs().startOf("day"))) return false;
-
-  const month = d.format("YYYY-MM");
-  const today = dayjs();
-  const currentMonth = today.format("YYYY-MM");
-  const previousMonth = today.subtract(1, "month").format("YYYY-MM");
-  return month === currentMonth || month === previousMonth;
+  const today = attendanceTodayStart();
+  return isWithinAttendanceEditWindowCore(
+    dateStr,
+    buildEditWindowContext(today.format("YYYY-MM-DD")),
+  );
 }
 
 export function adminMakeupSlotState(
@@ -44,6 +45,19 @@ export function adminMakeupSlotState(
 ): "apply" | null {
   if (!isWithinMakeupWindow(row.date)) return null;
   if (!passesMakeupTodayGate(row.date, type, gate, at)) return null;
+
+  if (
+    (type === "morning_in" || type === "morning_out") &&
+    isHalfScheduleRest(row.scheduleRest, "morning")
+  ) {
+    return null;
+  }
+  if (
+    (type === "afternoon_in" || type === "afternoon_out") &&
+    isHalfScheduleRest(row.scheduleRest, "afternoon")
+  ) {
+    return null;
+  }
 
   if (type === "morning_in" || type === "afternoon_in") {
     return slotTime(row, type) ? null : "apply";

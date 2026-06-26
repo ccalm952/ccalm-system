@@ -1,5 +1,5 @@
-import dayjs from "dayjs"
+import { formatAttendanceDate } from "./attendance-dayjs"
 
 export function punchDateFromTime(date: Date): string {
-  return dayjs(date).format("YYYY-MM-DD")
+  return formatAttendanceDate(date)
 }

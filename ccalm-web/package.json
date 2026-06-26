@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "check": "pnpm lint && pnpm typecheck && pnpm build",
+    "check": "pnpm -C ../packages/attendance-core build && pnpm lint && pnpm typecheck && pnpm build",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ccalm/attendance-core": "workspace:*",
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@base-ui/react": "^1.6.0",
     "@fontsource-variable/geist-mono": "^5.2.8",

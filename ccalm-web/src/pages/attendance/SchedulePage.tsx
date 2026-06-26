@@ -19,9 +19,8 @@ import { pad2 } from "@/lib/attendance/shift";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type { ChinaHolidayYear } from "@/lib/attendance/holidays";
 import { formatHolidayRange } from "@/lib/attendance/holidays";
-import type { ScheduleMonthData, ScheduleShiftType } from "@/lib/attendance/schedule";
+import type { ScheduleMonthData } from "@/lib/attendance/schedule";
 import {
-  SCHEDULE_SHIFT_CYCLE,
   SCHEDULE_SHIFT_LABEL,
   clampScheduleMonth,
   scheduleCellClass,
@@ -39,12 +38,6 @@ import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
-function nextShift(current: ScheduleShiftType | null): ScheduleShiftType | null {
-  const idx = SCHEDULE_SHIFT_CYCLE.indexOf(current);
-  const next = SCHEDULE_SHIFT_CYCLE[(idx + 1) % SCHEDULE_SHIFT_CYCLE.length];
-  return next;
-}
-
 export function SchedulePage() {
   const { me } = useAuth();
   const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
@@ -55,7 +48,6 @@ export function SchedulePage() {
   const hasDataRef = React.useRef(false);
   const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
   const [savingAllowance, setSavingAllowance] = React.useState(false);
-  const [autoFilling, setAutoFilling] = React.useState(false);
   const [holidaysByYear, setHolidaysByYear] = React.useState<Record<string, ChinaHolidayYear>>({});
 
   const isAdmin = me?.role === "admin";
@@ -141,38 +133,6 @@ export function SchedulePage() {
     }
   }
 
-  async function autoFill() {
-    setAutoFilling(true);
-    try {
-      const res = await api<ScheduleMonthData>(
-        "POST",
-        `/attendance/schedule/auto-fill?month=${month}`,
-      );
-      setData(res);
-      setMonthAllowanceInput(String(res.monthAllowance));
-      toast.success("已根据打卡记录自动填写");
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setAutoFilling(false);
-    }
-  }
-
-  async function onCellClick(userId: string, day: number, current: ScheduleShiftType | null) {
-    if (!isAdmin || !data) return;
-    const date = `${month}-${pad2(day)}`;
-    const shiftType = nextShift(current);
-    try {
-      const res = await api<ScheduleMonthData>("PUT", "/attendance/schedule/entries", {
-        month,
-        entries: [{ userId, date, shiftType }],
-      });
-      setData(res);
-    } catch (e) {
-      toast.error(errorMessage(e));
-    }
-  }
-
   const [yearLabel, mon] = month.split("-");
   const canGoPrev = month > minMonth;
   const canGoNext = month < maxMonth;
@@ -235,9 +195,6 @@ export function SchedulePage() {
               >
                 保存假期
               </Button>
-              <Button type="button" disabled={autoFilling} onClick={() => void autoFill()}>
-                根据打卡填写
-              </Button>
             </div>
           ) : null}
         </CardHeader>
@@ -288,19 +245,14 @@ export function SchedulePage() {
                         const shift = user.days[String(h.day)] ?? null;
                         return (
                           <TableCell key={h.day} className="w-9 p-0.5 text-center">
-                            <button
-                              type="button"
-                              disabled={!isAdmin}
+                            <span
                               className={cn(
                                 "mx-auto flex h-8 w-8 items-center justify-center rounded text-sm",
                                 scheduleCellClass(shift),
-                                isAdmin && "cursor-pointer hover:ring-1 hover:ring-ring",
-                                !isAdmin && "cursor-default",
                               )}
-                              onClick={() => void onCellClick(user.userId, h.day, shift)}
                             >
                               {shift ? SCHEDULE_SHIFT_LABEL[shift] : ""}
-                            </button>
+                            </span>
                           </TableCell>
                         );
                       })}
@@ -365,11 +317,9 @@ export function SchedulePage() {
             ))}
           </div>
 
-          {isAdmin ? (
-            <p className={cn("mt-2 text-xs", attendanceMutedTextClass)}>
-              点击格子切换：空 → 全 → 上 → 下 → 空。
-            </p>
-          ) : null}
+          <p className={cn("mt-2 text-xs", attendanceMutedTextClass)}>
+            排班由打卡记录自动推算；员工在考勤页登记的休息优先显示。当天尚未结束时不推断全休。
+          </p>
         </CardContent>
       </Card>
     </div>

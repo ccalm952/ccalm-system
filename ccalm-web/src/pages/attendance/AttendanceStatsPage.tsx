@@ -28,6 +28,7 @@ import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
 import {
   attendanceInCellClass,
   attendanceOutCellClass,
+  type AttendanceCellClassOptions,
 } from "@/lib/attendance/cell-class";
 import {
   attendanceErrorTextClass,
@@ -43,7 +44,7 @@ import {
 } from "@/lib/attendance/attendance-theme";
 import { monthKey, previousMonthKey, type BackendShiftDto } from "@/lib/attendance/shift";
 import type { RestHalf } from "@/lib/attendance/rest";
-import { formatDayCount } from "@/lib/attendance/summary";
+import { formatDayCount, todayKey } from "@/lib/attendance/summary";
 import type {
   AttendanceMakeupRequest,
   AttendanceMonthlySummary,
@@ -93,33 +94,31 @@ async function loadSummary(
   summary: UserAgg[];
   pendingMakeupRequests: AttendanceMakeupRequest[];
 }> {
-  const pendingMakeupRequests = await loadPendingMakeupRequests(me.role === "admin");
+  const isAdmin = me.role === "admin";
 
-  if (me.role === "admin") {
-    const summary = await api<UserAgg[]>(
-      "GET",
-      `/attendance/summary/monthly-all?month=${month}`,
-    );
-    return { isAdmin: true, summary, pendingMakeupRequests };
-  }
+  const [pendingMakeupRequests, summaryResult] = await Promise.all([
+    loadPendingMakeupRequests(isAdmin),
+    isAdmin
+      ? api<UserAgg[]>("GET", `/attendance/summary/monthly-all?month=${month}`)
+      : api<AttendanceMonthlySummary>(
+          "GET",
+          `/attendance/summary/monthly?month=${month}`,
+        ).then((s) => [
+          {
+            userId: me.id,
+            userName: me.displayName || me.username,
+            attendanceDays: s.attendanceDays,
+            restDays: s.restDays,
+            missingSlots: s.missingSlots,
+            overtimeStr: s.overtimeStr,
+            rows: s.rows,
+          },
+        ]),
+  ]);
 
-  const s = await api<AttendanceMonthlySummary>(
-    "GET",
-    `/attendance/summary/monthly?month=${month}`,
-  );
   return {
-    isAdmin: false,
-    summary: [
-      {
-        userId: me.id,
-        userName: me.displayName || me.username,
-        attendanceDays: s.attendanceDays,
-        restDays: s.restDays,
-        missingSlots: s.missingSlots,
-        overtimeStr: s.overtimeStr,
-        rows: s.rows,
-      },
-    ],
+    isAdmin,
+    summary: summaryResult,
     pendingMakeupRequests,
   };
 }
@@ -149,12 +148,32 @@ export function AttendanceStatsPage() {
     scheduleRest?: AttendancePunchDayRow["scheduleRest"];
   } | null>(null);
   const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
-  const [, setGateTick] = React.useState(0);
+  const [shift, setShift] = React.useState<BackendShiftDto | null>(null);
+  const [gateTick, setGateTick] = React.useState(0);
 
   React.useEffect(() => {
     const id = window.setInterval(() => setGateTick((t) => t + 1), 60_000);
     return () => window.clearInterval(id);
   }, []);
+
+  const cellClassOptions = React.useMemo((): AttendanceCellClassOptions => {
+    void gateTick;
+    return {
+      todayYmd: todayKey(),
+      at: new Date(),
+      shift: shift ?? undefined,
+    };
+  }, [shift, gateTick]);
+
+  const pendingByUserId = React.useMemo(() => {
+    const map = new Map<string, AttendanceMakeupRequest[]>();
+    for (const item of pendingMakeupRequests) {
+      const list = map.get(item.userId) ?? [];
+      list.push(item);
+      map.set(item.userId, list);
+    }
+    return map;
+  }, [pendingMakeupRequests]);
 
   const reload = React.useCallback(async () => {
     if (!me) return;
@@ -167,6 +186,7 @@ export function AttendanceStatsPage() {
       setIsAdmin(result.isAdmin);
       setSummary(result.summary);
       setPendingMakeupRequests(result.pendingMakeupRequests);
+      setShift(shiftRes);
       setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
     } catch (e) {
       setError(errorMessage(e));
@@ -315,9 +335,7 @@ export function AttendanceStatsPage() {
                                 const rowUserName = row.original.userName;
                                 const manageable = canManageRow(me, rowUserId, isAdmin);
                                 const adminDirectMakeup = isAdmin;
-                                const userRequests = pendingMakeupRequests.filter(
-                                  (item) => item.userId === rowUserId,
-                                );
+                                const userRequests = pendingByUserId.get(rowUserId) ?? [];
 
                                 return (
                                   <TableRow key={r.date} className="border-t border-border">
@@ -373,7 +391,7 @@ export function AttendanceStatsPage() {
                                     <TableCell
                                       className={cn(
                                         attendanceStatsTableColumnClass,
-                                        attendanceOutCellClass(r, "morning", r.morningOut),
+                                        attendanceOutCellClass(r, "morning", r.morningOut, cellClassOptions),
                                       )}
                                     >
                                       {manageable ? (
@@ -447,7 +465,7 @@ export function AttendanceStatsPage() {
                                     <TableCell
                                       className={cn(
                                         attendanceStatsTableColumnClass,
-                                        attendanceOutCellClass(r, "afternoon", r.afternoonOut),
+                                        attendanceOutCellClass(r, "afternoon", r.afternoonOut, cellClassOptions),
                                       )}
                                     >
                                       {manageable ? (
@@ -496,9 +514,8 @@ export function AttendanceStatsPage() {
           </Table>
         </div>
 
-        <div className={cn("flex flex-col gap-2 text-xs", attendanceMutedTextClass)}>
+        <div className={cn("text-xs", attendanceMutedTextClass)}>
           <span>当前月份：{month}</span>
-          <span>渲染时间：{dayjs().format("YYYY-MM-DD HH:mm:ss")}</span>
         </div>
       </div>
 

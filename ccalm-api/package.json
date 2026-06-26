@@ -9,18 +9,20 @@
     "build": "pnpm prisma:generate && nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "pnpm -C ../packages/attendance-core build && nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main.js",
-    "check": "pnpm prisma:generate && pnpm lint:check && pnpm typecheck && pnpm build",
+    "check": "pnpm prisma:generate && pnpm -C ../packages/attendance-core build && pnpm lint:check && pnpm typecheck && pnpm test && pnpm build",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "lint:check": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm -C ../packages/attendance-core test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@ccalm/attendance-core": "workspace:*",
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
     "@nestjs/jwt": "^11.0.2",
@@ -60,6 +62,7 @@
     "prisma": "^7.8.0",
     "ts-loader": "^9.6.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0"
+    "typescript-eslint": "^8.62.0",
+    "vitest": "^3.2.4"
   }
 }

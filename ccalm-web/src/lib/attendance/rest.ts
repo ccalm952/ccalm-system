@@ -1,19 +1,14 @@
 import dayjs from "dayjs";
 
+import {
+  isAfternoonScheduleRest,
+  isMorningScheduleRest,
+} from "@ccalm/attendance-core";
+
 import { isWithinMakeupWindow } from "./makeup";
 import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 
 export type RestHalf = "morning" | "afternoon";
-
-export function isMorningScheduleRest(scheduleRest: ScheduleRestType | null | undefined): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "morning_rest";
-}
-
-export function isAfternoonScheduleRest(
-  scheduleRest: ScheduleRestType | null | undefined,
-): boolean {
-  return scheduleRest === "full_rest" || scheduleRest === "afternoon_rest";
-}
 
 export function isHalfScheduleRest(
   scheduleRest: ScheduleRestType | null | undefined,

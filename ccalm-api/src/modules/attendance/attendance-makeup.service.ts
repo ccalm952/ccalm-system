@@ -9,6 +9,8 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
+import { AttendanceScheduleService } from "./attendance-schedule.service"
+import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 import {
   canMakeupTodaySlot,
@@ -49,7 +51,10 @@ const OUT_TYPE_BY_IN: Record<MakeupInType, MakeupOutType> = {
 
 @Injectable()
 export class AttendanceMakeupService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly schedule: AttendanceScheduleService
+  ) {}
 
   private createMakeupRecordData(
     userId: string,
@@ -92,7 +97,7 @@ export class AttendanceMakeupService {
     dateStr: string,
     type: MakeupInType
   ) {
-    const autoOut = this.buildAutoOutRecord(userId, dateStr, type)
+    const autoOut = await this.buildAutoOutRecord(userId, dateStr, type)
     if (!autoOut) return
 
     const existing = await tx.attendanceRecord.findUnique({
@@ -111,19 +116,27 @@ export class AttendanceMakeupService {
 
   private shouldAutoMakeupOut(dateStr: string, type: MakeupRequestType) {
     if (!MAKEUP_IN_TYPES.includes(type as MakeupInType)) return false
-    return dateStr !== dayjs().format("YYYY-MM-DD")
+    return dateStr !== attendanceTodayStart().format("YYYY-MM-DD")
   }
 
-  private buildAutoOutRecord(
+  private async buildAutoOutRecord(
     _userId: string,
     dateStr: string,
     type: MakeupInType
   ) {
     if (!this.shouldAutoMakeupOut(dateStr, type)) return null
 
+    const shift = await this.prisma.shiftConfig.findUnique({
+      where: { id: "global" },
+    })
     const outType = OUT_TYPE_BY_IN[type]
-    const time = type === "morning_in" ? "12:00" : "18:00"
-    const punchTime = dayjs(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm", true)
+    const time =
+      type === "morning_in"
+        ? (shift?.overtimeMorningNormalEnd ??
+          DEFAULT_SHIFT_ROW.overtimeMorningNormalEnd)
+        : (shift?.overtimeAfternoonNormalEnd ??
+          DEFAULT_SHIFT_ROW.overtimeAfternoonNormalEnd)
+    const punchTime = attendanceDayjs(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm")
     if (!punchTime.isValid()) return null
 
     return {
@@ -205,10 +218,7 @@ export class AttendanceMakeupService {
   }
 
   private async dayScheduleRest(userId: string, dateStr: string) {
-    const entry = await this.prisma.scheduleEntry.findUnique({
-      where: { userId_date: { userId, date: dateStr } },
-    })
-    return entry?.shiftType ?? null
+    return await this.schedule.resolveShiftForUserDay(userId, dateStr)
   }
 
   private async assertMakeupInSlotAvailable(
@@ -302,6 +312,20 @@ export class AttendanceMakeupService {
     if (type === "afternoon_out" && !map.get("afternoon_in")) {
       throw new BadRequestException("需先补下午上班，才能补下午下班")
     }
+
+    const scheduleRest = await this.dayScheduleRest(userId, dateStr)
+    if (
+      (type === "morning_in" || type === "morning_out") &&
+      (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
+    ) {
+      throw new BadRequestException("该半天已登记休息，无法补卡")
+    }
+    if (
+      (type === "afternoon_in" || type === "afternoon_out") &&
+      (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
+    ) {
+      throw new BadRequestException("该半天已登记休息，无法补卡")
+    }
   }
 
   private serializeRequest(row: {
@@ -313,7 +337,6 @@ export class AttendanceMakeupService {
     reason: string
     status: string
     reviewedAt: Date | null
-    rejectReason: string
     createdAt: Date
     user: { displayName: string; username: string }
     reviewer: { displayName: string; username: string } | null
@@ -328,7 +351,6 @@ export class AttendanceMakeupService {
       reason: row.reason,
       status: row.status,
       reviewedAt: row.reviewedAt?.toISOString() ?? null,
-      rejectReason: row.rejectReason,
       createdAt: row.createdAt.toISOString(),
       reviewerName: row.reviewer
         ? row.reviewer.displayName || row.reviewer.username
@@ -425,7 +447,11 @@ export class AttendanceMakeupService {
     )
 
     const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
-      ? this.buildAutoOutRecord(req.userId, req.date, type as MakeupInType)
+      ? await this.buildAutoOutRecord(
+          req.userId,
+          req.date,
+          type as MakeupInType
+        )
       : null
     if (autoOut) {
       const map = await this.dayRecordMap(req.userId, req.date)
@@ -481,7 +507,6 @@ export class AttendanceMakeupService {
         status: "rejected",
         reviewedBy: adminId,
         reviewedAt: new Date(),
-        rejectReason: "",
       },
     })
     if (count === 0) {

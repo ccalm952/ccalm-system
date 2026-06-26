@@ -25,10 +25,7 @@ import {
 import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
 import { PunchDto } from "./dto/punch.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
-import {
-  UpsertScheduleEntriesDto,
-  UpsertScheduleMonthConfigDto,
-} from "./dto/schedule.dto"
+import type { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
 import { AttendanceMakeupService } from "./attendance-makeup.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"
@@ -186,20 +183,5 @@ export class AttendanceController {
   ) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
     return await this.schedule.upsertMonthConfig(dto)
-  }
-
-  @Put("schedule/entries")
-  async putScheduleEntries(
-    @Req() req: Request,
-    @Body() dto: UpsertScheduleEntriesDto
-  ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.schedule.upsertEntries(dto.month, dto.entries)
-  }
-
-  @Post("schedule/auto-fill")
-  async autoFillSchedule(@Req() req: Request, @Query("month") month: string) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.schedule.autoFillFromPunches(month)
   }
 }

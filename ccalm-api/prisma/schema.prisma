@@ -132,7 +132,6 @@ model AttendanceMakeupRequest {
   reviewedBy   String?
   reviewer     User?                         @relation("MakeupReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
   reviewedAt   DateTime?
-  rejectReason String                        @default("")
   createdAt    DateTime                      @default(now())
   updatedAt    DateTime                      @updatedAt
 

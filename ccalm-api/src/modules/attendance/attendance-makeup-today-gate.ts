@@ -1,33 +1,23 @@
-import dayjs from "dayjs"
+import {
+  canMakeupTodaySlot as canMakeupTodaySlotCore,
+  passesMakeupTodayGate as passesMakeupTodayGateCore,
+  type MakeupSlotType,
+  type MakeupTodayGate,
+} from "@ccalm/attendance-core"
 
-import { minutesFromMidnight } from "./time"
+import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 
-export type MakeupTodayGate = {
-  morningInWindowEnd: string
-  afternoonInWindowEnd: string
+export type { MakeupTodayGate } from "@ccalm/attendance-core"
+
+function wallClockMinutes(d: Date): number {
+  return attendanceDayjs(d).hour() * 60 + attendanceDayjs(d).minute()
 }
-
-type MakeupSlotType =
-  | "morning_in"
-  | "morning_out"
-  | "afternoon_in"
-  | "afternoon_out"
 
 export function isAttendanceDateToday(dateStr: string): boolean {
   return (
-    dayjs(dateStr, "YYYY-MM-DD", true).format("YYYY-MM-DD") ===
-    dayjs().format("YYYY-MM-DD")
+    attendanceDayjs(dateStr, "YYYY-MM-DD").format("YYYY-MM-DD") ===
+    attendanceTodayStart().format("YYYY-MM-DD")
   )
-}
-
-function wallClockMinutes(d: Date): number {
-  return d.getHours() * 60 + d.getMinutes()
-}
-
-function isWallClockAfter(d: Date, hhmm: string): boolean {
-  const target = minutesFromMidnight(hhmm)
-  if (!Number.isFinite(target)) return false
-  return wallClockMinutes(d) > target
 }
 
 export function canMakeupTodaySlot(
@@ -36,13 +26,12 @@ export function canMakeupTodaySlot(
   gate: MakeupTodayGate,
   at: Date = new Date()
 ): boolean {
-  if (!isAttendanceDateToday(dateStr)) return true
-
-  const endHhmm =
-    type === "morning_in" || type === "morning_out"
-      ? gate.morningInWindowEnd
-      : gate.afternoonInWindowEnd
-  return isWallClockAfter(at, endHhmm)
+  return canMakeupTodaySlotCore(
+    isAttendanceDateToday(dateStr),
+    wallClockMinutes(at),
+    type,
+    gate
+  )
 }
 
 export function passesMakeupTodayGate(
@@ -51,7 +40,10 @@ export function passesMakeupTodayGate(
   gate: MakeupTodayGate | undefined,
   at: Date = new Date()
 ): boolean {
-  if (!isAttendanceDateToday(dateStr)) return true
-  if (!gate) return false
-  return canMakeupTodaySlot(dateStr, type, gate, at)
+  return passesMakeupTodayGateCore(
+    isAttendanceDateToday(dateStr),
+    wallClockMinutes(at),
+    type,
+    gate
+  )
 }

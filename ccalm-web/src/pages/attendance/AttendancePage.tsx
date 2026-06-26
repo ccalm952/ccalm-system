@@ -1,6 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
+import { isPunchBlockedByScheduleRest } from "@ccalm/attendance-core";
 import { CircleXIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { RestActionDialog } from "@/components/rest-action-dialog";
 import type { EmployeeMakeupType, MakeupTodayGate } from "@/lib/attendance/makeup";
 import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
-import { attendanceInCellClass, attendanceOutCellClass } from "@/lib/attendance/cell-class";
+import { attendanceInCellClass, attendanceOutCellClass, type AttendanceCellClassOptions } from "@/lib/attendance/cell-class";
 import { attendanceBrandTextClass, attendanceErrorTextClass, attendanceMutedTextClass, attendanceTableHeaderClass, summaryMissingSlotsClass, summaryOvertimeClass } from "@/lib/attendance/attendance-theme";
 import type { RestHalf } from "@/lib/attendance/rest";
 import {
@@ -42,6 +43,7 @@ import {
   type AttendanceMakeupRequest,
   type AttendanceRecord,
   type GeofenceConfig,
+  type ScheduleRestType,
 } from "@/lib/attendance/types";
 import { isWallClockInInclusiveRange, type BackendShiftDto } from "@/lib/attendance/shift";
 import { todayKey, formatDayCount } from "@/lib/attendance/summary";
@@ -118,11 +120,13 @@ function isManualPunchDisabledPure(
       afternoonOutWindowEnd: string;
     };
     map: Partial<Record<AttendancePunchType, AttendanceRecord>>;
+    scheduleRest: ScheduleRestType | null;
     at: Date;
   },
 ): boolean {
   if (!opts.lat) return true;
   if (opts.fence.enabled && !insideFenceFor(opts.lat, opts.lng, opts.fence)) return true;
+  if (isPunchBlockedByScheduleRest(t, opts.scheduleRest)) return true;
   const { shift, map, at } = opts;
 
   if (t === "morning_in") {
@@ -232,7 +236,6 @@ export function AttendancePage() {
       return { locating: false, attempted: false, lat: 0, lng: 0 };
     }
   });
-  const [recordsVersion, bumpRecordsVersion] = React.useState(0);
   const [currentMonth, setCurrentMonth] = React.useState(() => dayjs().format("YYYY-MM"));
 
   React.useEffect(() => {
@@ -246,6 +249,7 @@ export function AttendancePage() {
   const { me } = useAuth();
   const [records, setRecords] = React.useState<AttendanceRecord[]>([]);
   const [monthSummary, setMonthSummary] = React.useState<AttendanceMonthlySummary | null>(null);
+  const [shift, setShift] = React.useState<BackendShiftDto | null>(null);
   const [makeupRequests, setMakeupRequests] = React.useState<AttendanceMakeupRequest[]>([]);
   const [makeupDialog, setMakeupDialog] = React.useState<{
     date: string;
@@ -258,14 +262,21 @@ export function AttendancePage() {
     scheduleRest?: AttendanceMonthlySummary["rows"][number]["scheduleRest"];
   } | null>(null);
   const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
+  const [gateTick, setGateTick] = React.useState(0);
 
-  const reloadMonthSummary = React.useCallback(async () => {
-    const monthly = await api<AttendanceMonthlySummary>(
-      "GET",
-      `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
-    );
-    setMonthSummary(monthly);
+  React.useEffect(() => {
+    const id = window.setInterval(() => setGateTick((t) => t + 1), 60_000);
+    return () => window.clearInterval(id);
   }, []);
+
+  const cellClassOptions = React.useMemo((): AttendanceCellClassOptions => {
+    void gateTick;
+    return {
+      todayYmd: todayKey(),
+      at: new Date(),
+      shift: shift ?? undefined,
+    };
+  }, [shift, gateTick]);
 
   const reloadMakeupRequests = React.useCallback(async () => {
     try {
@@ -276,7 +287,25 @@ export function AttendancePage() {
     }
   }, []);
 
+  const loadAttendanceBundle = React.useCallback(async (month: string) => {
+    const [todayRes, monthly, shiftRes] = await Promise.all([
+      api<AttendanceRecord[]>("GET", "/attendance/today"),
+      api<AttendanceMonthlySummary>("GET", `/attendance/summary/monthly?month=${month}`),
+      api<BackendShiftDto>("GET", "/attendance/shift"),
+    ]);
+    setRecords(todayRes);
+    setMonthSummary(monthly);
+    setShift(shiftRes);
+    setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
+    return { todayRes, monthly, shiftRes };
+  }, []);
+
+  const reloadAfterMutation = React.useCallback(async () => {
+    await Promise.all([loadAttendanceBundle(currentMonth), reloadMakeupRequests()]);
+  }, [currentMonth, loadAttendanceBundle, reloadMakeupRequests]);
+
   const autoPunchEpochRef = React.useRef(0);
+  const autoLocateDoneRef = React.useRef(false);
   const didSessionAutoLocateRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -294,10 +323,11 @@ export function AttendancePage() {
     geofenceRes: GeofenceConfig;
     shiftRes: BackendShiftDto;
     recordsSnapshot: AttendanceRecord[];
+    scheduleRest: ScheduleRestType | null;
     cancelled?: () => boolean;
     session?: number;
   }): Promise<PunchAttemptResult | null> {
-    const { lat, lng, address, geofenceRes, shiftRes, recordsSnapshot, cancelled, session } = opts;
+    const { lat, lng, address, geofenceRes, shiftRes, recordsSnapshot, scheduleRest, cancelled, session } = opts;
 
     if (geofenceRes.enabled && !insideFenceFor(lat, lng, geofenceRes)) {
       return "outside_fence";
@@ -310,6 +340,7 @@ export function AttendancePage() {
       fence: geofenceRes,
       shift: shiftRes,
       map,
+      scheduleRest,
       at: new Date(),
     });
     if (!quick) return "outside_time";
@@ -323,92 +354,94 @@ export function AttendancePage() {
     if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
       return null;
 
-    const todayRes2 = await api<AttendanceRecord[]>("GET", "/attendance/today");
-    const monthly2 = await api<AttendanceMonthlySummary>(
-      "GET",
-      `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
-    );
+    const [todayRes2, monthly2] = await Promise.all([
+      api<AttendanceRecord[]>("GET", "/attendance/today"),
+      api<AttendanceMonthlySummary>(
+        "GET",
+        `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
+      ),
+    ]);
     if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
       return null;
 
     setRecords(todayRes2);
     setMonthSummary(monthly2);
-    bumpRecordsVersion((x) => x + 1);
     return "success";
   }
 
   React.useEffect(() => {
+    if (!me?.id) return;
     let cancelled = false;
-    (async () => {
+
+    void (async () => {
       try {
-        const [geofenceRes, shiftRes, todayRes] = await Promise.all([
-          api<GeofenceConfig>("GET", "/attendance/geofence"),
-          api<BackendShiftDto>("GET", "/attendance/shift"),
-          api<AttendanceRecord[]>("GET", "/attendance/today"),
+        const tryAutoLocate = (() => {
+          if (autoLocateDoneRef.current) return false;
+          const navEntry = performance.getEntriesByType?.("navigation")?.[0] as
+            | PerformanceNavigationTiming
+            | undefined;
+          const isReload = navEntry?.type === "reload";
+          if (!didSessionAutoLocateRef.current) {
+            didSessionAutoLocateRef.current =
+              sessionStorage.getItem("attendance_auto_located") === "1";
+          }
+          if (!isReload && didSessionAutoLocateRef.current) return false;
+          return true;
+        })();
+
+        const [bundle, geofenceRes] = await Promise.all([
+          loadAttendanceBundle(currentMonth),
+          tryAutoLocate
+            ? api<GeofenceConfig>("GET", "/attendance/geofence")
+            : Promise.resolve(null),
         ]);
         if (cancelled) return;
-        setRecords(todayRes);
 
-        const monthly = await api<AttendanceMonthlySummary>(
-          "GET",
-          `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
-        );
-        if (cancelled) return;
-        setMonthSummary(monthly);
         void reloadMakeupRequests();
 
-        const navEntry = performance.getEntriesByType?.("navigation")?.[0] as
-          | PerformanceNavigationTiming
-          | undefined;
-        const navType = navEntry?.type;
-        const isReload = navType === "reload";
+        if (!tryAutoLocate || !geofenceRes) return;
 
-        if (!didSessionAutoLocateRef.current) {
-          didSessionAutoLocateRef.current =
-            sessionStorage.getItem("attendance_auto_located") === "1";
-        }
-        if (!isReload && didSessionAutoLocateRef.current) return;
-
+        autoLocateDoneRef.current = true;
         didSessionAutoLocateRef.current = true;
         sessionStorage.setItem("attendance_auto_located", "1");
 
-        if (recordsVersion !== 0) return;
         const session = ++autoPunchEpochRef.current;
+        const scheduleRest =
+          bundle.monthly.rows.find((r) => r.date === todayKey())?.scheduleRest ?? null;
 
-        void (async () => {
-          try {
-            setLoc((s) => ({ ...s, attempted: true, locating: true }));
-            const located = await locateWithAddress();
-            if (cancelled || session !== autoPunchEpochRef.current) return;
-            setLoc({ attempted: true, locating: false, ...located });
+        try {
+          setLoc((s) => ({ ...s, attempted: true, locating: true }));
+          const located = await locateWithAddress();
+          if (cancelled || session !== autoPunchEpochRef.current) return;
+          setLoc({ attempted: true, locating: false, ...located });
 
-            const punchResult = await autoPunchAfterLocate({
-              lat: located.lat,
-              lng: located.lng,
-              address: located.address,
-              geofenceRes,
-              shiftRes,
-              recordsSnapshot: todayRes,
-              cancelled: () => cancelled,
-              session,
-            });
-            notifyPunchAttempt(punchResult);
-          } catch {
-            if (!cancelled && session === autoPunchEpochRef.current) {
-              setLoc((s) => ({ ...s, locating: false, attempted: true }));
-            }
+          const punchResult = await autoPunchAfterLocate({
+            lat: located.lat,
+            lng: located.lng,
+            address: located.address,
+            geofenceRes,
+            shiftRes: bundle.shiftRes,
+            recordsSnapshot: bundle.todayRes,
+            scheduleRest,
+            cancelled: () => cancelled,
+            session,
+          });
+          notifyPunchAttempt(punchResult);
+        } catch {
+          if (!cancelled && session === autoPunchEpochRef.current) {
+            setLoc((s) => ({ ...s, locating: false, attempted: true }));
           }
-        })();
+        }
       } catch {
-        // 401 由 api.ts 全局处理；其他错误不强制跳转登录
+        // 401 由 api.ts 全局处理
       }
     })();
+
     return () => {
       cancelled = true;
       autoPunchEpochRef.current += 1;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载一轮；不依赖 recordsVersion，避免返回本页重复自动定位
-  }, []);
+  }, [me?.id, currentMonth, loadAttendanceBundle, reloadMakeupRequests]);
 
   const todayTypeMap = React.useMemo(() => todayTypeMapFromRecords(records), [records]);
 
@@ -419,33 +452,6 @@ export function AttendancePage() {
 
   const showLocationFailed = loc.attempted && !loc.locating && !loc.lat;
 
-  React.useEffect(() => {
-    if (!me?.id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [todayRes, monthly, shiftRes] = await Promise.all([
-          api<AttendanceRecord[]>("GET", "/attendance/today"),
-          api<AttendanceMonthlySummary>(
-            "GET",
-            `/attendance/summary/monthly?month=${currentMonth}`,
-          ),
-          api<BackendShiftDto>("GET", "/attendance/shift"),
-        ]);
-        if (cancelled) return;
-        setRecords(todayRes);
-        setMonthSummary(monthly);
-        setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
-        void reloadMakeupRequests();
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [me?.id, currentMonth, reloadMakeupRequests]);
-
   async function refreshLocation() {
     const session = ++autoPunchEpochRef.current;
     setLoc((s) => ({ ...s, attempted: true, locating: true }));
@@ -454,23 +460,23 @@ export function AttendancePage() {
       if (session !== autoPunchEpochRef.current) return;
       setLoc({ attempted: true, locating: false, ...located });
 
-      const [geofenceRes, shiftRes, todayRes] = await Promise.all([
+      const [geofenceRes, bundle] = await Promise.all([
         api<GeofenceConfig>("GET", "/attendance/geofence"),
-        api<BackendShiftDto>("GET", "/attendance/shift"),
-        api<AttendanceRecord[]>("GET", "/attendance/today"),
+        loadAttendanceBundle(dayjs().format("YYYY-MM")),
       ]);
       if (session !== autoPunchEpochRef.current) return;
 
-      setRecords(todayRes);
-      setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
+      const scheduleRest =
+        bundle.monthly.rows.find((r) => r.date === todayKey())?.scheduleRest ?? null;
 
       const punchResult = await autoPunchAfterLocate({
         lat: located.lat,
         lng: located.lng,
         address: located.address,
         geofenceRes,
-        shiftRes,
-        recordsSnapshot: todayRes,
+        shiftRes: bundle.shiftRes,
+        recordsSnapshot: bundle.todayRes,
+        scheduleRest,
         session,
       });
       notifyPunchAttempt(punchResult);
@@ -563,7 +569,7 @@ export function AttendancePage() {
                 <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                     <div className="text-center">
                       <div className="text-sm">{formatDayCount(monthSummary.attendanceDays)}</div>
                       <div className="text-sm">出勤天数</div>
@@ -583,6 +589,10 @@ export function AttendancePage() {
                         {monthSummary.overtimeStr === "-" ? "" : monthSummary.overtimeStr}
                       </div>
                       <div className="text-sm">加班</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm">{formatDayCount(monthSummary.remainingLeave ?? 0)}</div>
+                      <div className="text-sm">剩余假期</div>
                     </div>
                   </div>
 
@@ -634,7 +644,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              attendanceOutCellClass(r, "morning", r.morningOut),
+                              attendanceOutCellClass(r, "morning", r.morningOut, cellClassOptions),
                             )}
                           >
                             <AttendanceHalfOutCell
@@ -681,7 +691,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              attendanceOutCellClass(r, "afternoon", r.afternoonOut),
+                              attendanceOutCellClass(r, "afternoon", r.afternoonOut, cellClassOptions),
                             )}
                           >
                             <AttendanceHalfOutCell
@@ -716,8 +726,7 @@ export function AttendancePage() {
           date={makeupDialog.date}
           type={makeupDialog.type}
           onSuccess={() => {
-            void reloadMakeupRequests();
-            void reloadMonthSummary();
+            void reloadAfterMutation();
           }}
         />
       ) : null}
@@ -733,7 +742,7 @@ export function AttendancePage() {
           mode={restDialog.mode}
           scheduleRest={restDialog.scheduleRest}
           onSuccess={() => {
-            void reloadMonthSummary();
+            void reloadAfterMutation();
           }}
         />
       ) : null}
