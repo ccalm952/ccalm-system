@@ -34,6 +34,9 @@ function CloseSidebarOnNavigate() {
     if (overlaySidebar || isMobile) {
       setOpenMobileRef.current(false);
     }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   }, [pathname, overlaySidebar, isMobile]);
 
   return null;
