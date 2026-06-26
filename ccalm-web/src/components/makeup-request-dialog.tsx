@@ -17,6 +17,7 @@ import {
 } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { useEnterToConfirm } from "@/lib/use-enter-to-confirm";
 import { toast } from "@/components/ui/sonner";
 
 type EmployeeMakeupPunchType = Extract<
@@ -85,6 +86,8 @@ export function MakeupRequestDialog(props: {
     }
   }
 
+  useEnterToConfirm(open, handleSubmit, submitting);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -110,7 +113,7 @@ export function MakeupRequestDialog(props: {
             取消
           </Button>
           <Button type="button" disabled={submitting} onClick={() => void handleSubmit()}>
-            {submitting ? "提交中…" : isDirect ? "确认补卡" : "提交申请"}
+            {submitting ? "提交中…" : "确认"}
           </Button>
         </DialogFooter>
       </DialogContent>
