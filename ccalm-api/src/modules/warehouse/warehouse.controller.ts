@@ -37,7 +37,7 @@ export class WarehouseController {
 
   @Post("items")
   createItem(@Req() req: Request, @Body() dto: CreateWarehouseItemDto) {
-    requireAdmin(req, "仅管理员可管理库房")
+    requireAdmin(req, "仅管理员可管理库存")
     return this.warehouse.createItem(dto)
   }
 
@@ -47,13 +47,13 @@ export class WarehouseController {
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateWarehouseItemDto
   ) {
-    const a = requireAdmin(req, "仅管理员可管理库房")
+    const a = requireAdmin(req, "仅管理员可管理库存")
     return this.warehouse.updateItem(id, dto, a.userId)
   }
 
   @Delete("items/:id")
   deleteItem(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
-    requireAdmin(req, "仅管理员可管理库房")
+    requireAdmin(req, "仅管理员可管理库存")
     return this.warehouse.deleteItem(id)
   }
 
@@ -92,13 +92,13 @@ export class WarehouseController {
 
   @Post("txns")
   createTxn(@Req() req: Request, @Body() dto: CreateWarehouseTxnDto) {
-    const a = requireAdmin(req, "仅管理员可管理库房")
+    const a = requireAdmin(req, "仅管理员可管理库存")
     return this.warehouse.createTxn(dto, a.userId)
   }
 
   @Delete("txns/:id")
   deleteTxn(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
-    requireAdmin(req, "仅管理员可管理库房")
+    requireAdmin(req, "仅管理员可管理库存")
     return this.warehouse.deleteTxn(id)
   }
 
@@ -117,7 +117,7 @@ export class WarehouseController {
     })
   )
   importLichi(@Req() req: Request, @UploadedFile() file?: Express.Multer.File) {
-    const a = requireAdmin(req, "仅管理员可管理库房")
+    const a = requireAdmin(req, "仅管理员可管理库存")
     if (!file?.buffer?.length) {
       throw new BadRequestException("请上传 Excel 文件")
     }

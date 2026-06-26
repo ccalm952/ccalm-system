@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
+  attendanceMutedTextClass,
+  attendancePendingTextClass,
+  tableActionLinkClass,
+} from "@/lib/attendance/attendance-theme";
+import {
   inTypeForHalf,
   makeupInSlotState,
   type MakeupInType,
@@ -7,8 +12,9 @@ import {
 } from "@/lib/attendance/makeup";
 import { canDeclareRest, isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
+import { cn } from "@/lib/utils";
 
-const actionLinkClass = "h-auto px-0 text-sm font-normal underline-offset-2 hover:underline";
+const actionLinkClass = tableActionLinkClass;
 
 export function AttendanceInCell(props: {
   row: AttendancePunchDayRow;
@@ -30,7 +36,7 @@ export function AttendanceInCell(props: {
       <Button
         type="button"
         variant="link"
-        className={`${actionLinkClass} text-muted-foreground`}
+        className={actionLinkClass}
         onClick={onClear}
       >
         休息
@@ -45,7 +51,7 @@ export function AttendanceInCell(props: {
   if (!showRest && !makeupState) return null;
 
   if (makeupState === "pending" && !showRest) {
-    return <span className="text-sm text-muted-foreground">审批中</span>;
+    return <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>;
   }
 
   return (
@@ -54,19 +60,21 @@ export function AttendanceInCell(props: {
         <Button
           type="button"
           variant="link"
-          className={`${actionLinkClass} text-muted-foreground`}
+          className={actionLinkClass}
           onClick={onDeclare}
         >
           休息
         </Button>
       ) : null}
-      {showRest && makeupState ? <span className="text-muted-foreground">/</span> : null}
-      {makeupState === "pending" ? <span className="text-muted-foreground">审批中</span> : null}
+      {showRest && makeupState ? <span className={attendanceMutedTextClass}>/</span> : null}
+      {makeupState === "pending" ? (
+        <span className={attendancePendingTextClass}>审批中</span>
+      ) : null}
       {makeupState === "apply" ? (
         <Button
           type="button"
           variant="link"
-          className={`${actionLinkClass} text-pink-500`}
+          className={actionLinkClass}
           onClick={() => onMakeup(inType)}
         >
           补卡

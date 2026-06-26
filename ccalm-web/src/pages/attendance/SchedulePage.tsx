@@ -27,6 +27,12 @@ import {
   scheduleCellClass,
   scheduleMonthRange,
 } from "@/lib/attendance/schedule";
+import {
+  attendanceMutedTextClass,
+  scheduleHolidayHeaderClass,
+  SCHEDULE_SHIFT_LEGEND,
+  SCHEDULE_SHIFT_SWATCH_CLASS,
+} from "@/lib/attendance/attendance-theme";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
@@ -238,9 +244,9 @@ export function SchedulePage() {
 
         <CardContent>
           {loading ? (
-            <div className="text-sm text-muted-foreground">加载中…</div>
+            <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
           ) : !data ? (
-            <div className="text-sm text-muted-foreground">暂无数据</div>
+            <div className={cn("text-sm", attendanceMutedTextClass)}>暂无数据</div>
           ) : (
             <ScrollArea className="max-w-full whitespace-nowrap [&_[data-slot=table-container]]:w-max">
               <Table className="w-max text-center text-sm">
@@ -257,7 +263,7 @@ export function SchedulePage() {
                         <TableHead
                           key={h.day}
                           title={holidayName}
-                          className={cn("w-9 px-1 text-center", isHoliday && "text-red-600")}
+                          className={cn("w-9 px-1 text-center", isHoliday && scheduleHolidayHeaderClass)}
                         >
                           <div>{h.weekday}</div>
                           <div>{h.day}</div>
@@ -321,7 +327,7 @@ export function SchedulePage() {
           {holidays ? (
             <div className="mt-4 space-y-2 text-sm">
               <div className="font-medium">{holidays.year}年法定节假日</div>
-              <ul className="space-y-1 text-muted-foreground">
+              <ul className={cn("space-y-1", attendanceMutedTextClass)}>
                 {holidays.periods.map((p) => (
                   <li key={`${p.name}-${p.start}`}>
                     <span className="text-foreground">{p.name}</span>
@@ -333,7 +339,7 @@ export function SchedulePage() {
               {holidays.makeupDays.length > 0 ? (
                 <div className="space-y-1">
                   <div className="font-medium">调休上班</div>
-                  <ul className="space-y-1 text-muted-foreground">
+                  <ul className={cn("space-y-1", attendanceMutedTextClass)}>
                     {holidays.makeupDays.map((d) => (
                       <li key={d.date}>
                         {d.date.slice(5).replace("-", "月")}日 {d.name}
@@ -345,10 +351,23 @@ export function SchedulePage() {
             </div>
           ) : null}
 
+          <div className={cn("mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs", attendanceMutedTextClass)}>
+            {SCHEDULE_SHIFT_LEGEND.map((item) => (
+              <span key={item.key} className="inline-flex items-center gap-1.5">
+                <span
+                  className={cn("size-3.5 shrink-0 rounded-sm", SCHEDULE_SHIFT_SWATCH_CLASS[item.key])}
+                  aria-hidden
+                />
+                <span>
+                  {item.label}={item.hint}
+                </span>
+              </span>
+            ))}
+          </div>
+
           {isAdmin ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              点击格子切换：空 → 全 → 上 → 下 →
-              空。全=整天休息，上=上午休息，下=下午休息，空=正常出勤。
+            <p className={cn("mt-2 text-xs", attendanceMutedTextClass)}>
+              点击格子切换：空 → 全 → 上 → 下 → 空。
             </p>
           ) : null}
         </CardContent>

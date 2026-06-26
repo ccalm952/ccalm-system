@@ -1,4 +1,5 @@
 import { AttendanceOutCell } from "@/components/attendance-out-cell";
+import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
 import { isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
 import type { MakeupOutType, MakeupTodayGate } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
@@ -25,7 +26,7 @@ export function AttendanceHalfOutCell(props: {
   } = props;
 
   if (isHalfEffectivelyAtRest(row, half)) {
-    return <span className="text-muted-foreground">—</span>;
+    return <span className={attendanceMutedTextClass}>—</span>;
   }
 
   if (adminDirect) {

@@ -379,7 +379,7 @@ export function ImplantInventoryPage() {
             </AlertDialog>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="w-full min-w-0">
+            <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
               {/*
                 与 max-w-5xl（64rem=1024px）栏宽对齐：表最小宽度 = 1024 − 34 = 990
                 （Card 内容区左右各 16px 共 32px + ring 约 2px，算法同种植记录 1246）
@@ -406,7 +406,10 @@ export function ImplantInventoryPage() {
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className={cn(header.column.id !== "select" && "min-w-0 max-w-0")}
+                          className={cn(
+                            "text-center",
+                            header.column.id !== "select" && "min-w-0 max-w-0",
+                          )}
                         >
                           {header.isPlaceholder
                             ? null

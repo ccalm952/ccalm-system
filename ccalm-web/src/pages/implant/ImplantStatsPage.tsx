@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -71,41 +72,42 @@ export function ImplantStatsPage() {
 
   return (
     <div className="bg-background p-4">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <Card>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm">月份</span>
-              <Select
-                value={month}
-                onValueChange={(v: string | null) => {
-                  if (!v) return;
-                  setMonth(v);
-                  void loadMonthStats(v);
-                }}
-                items={monthItems}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="选择月份" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {monthItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <span className="inline-flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">植体数量</span>
-                <span className="inline-flex h-8 items-center rounded-lg border border-input bg-transparent px-2.5 font-medium tabular-nums text-foreground dark:bg-input/30">
-                  {monthTotal}
-                </span>
+          <CardContent className="flex flex-col gap-4 pt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm">月份</span>
+            <Select
+              value={month}
+              onValueChange={(v: string | null) => {
+                if (!v) return;
+                setMonth(v);
+                void loadMonthStats(v);
+              }}
+              items={monthItems}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="选择月份" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {monthItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <span className="inline-flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">植体数量</span>
+              <span className="inline-flex h-8 items-center rounded-lg border border-input bg-transparent px-2.5 font-medium tabular-nums text-foreground dark:bg-input/30">
+                {monthTotal}
               </span>
-            </div>
+            </span>
+          </div>
 
+          <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
@@ -122,6 +124,8 @@ export function ImplantStatsPage() {
                 ))}
               </TableBody>
             </Table>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
           </CardContent>
         </Card>
       </div>

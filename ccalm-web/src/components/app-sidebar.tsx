@@ -34,7 +34,7 @@ const navMain: {
 }[] = [
   { title: "考勤", icon: CalendarCheck2, items: attendanceSubNavItems },
   { title: "种植", icon: Sprout, items: implantSubNavItems },
-  { title: "库房", icon: Package, items: warehouseSubNavItems },
+  { title: "库存", icon: Package, items: warehouseSubNavItems },
 ];
 
 function SidebarNavCollapsible({

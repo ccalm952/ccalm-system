@@ -9,7 +9,7 @@ export function SortableTableHead<T extends string>({
   activeSort,
   onSort,
   className,
-  align = "left",
+  align = "center",
 }: {
   label: string;
   sortKey: T;
@@ -22,7 +22,7 @@ export function SortableTableHead<T extends string>({
   const dir = active ? activeSort.dir : null;
 
   return (
-    <TableHead className={className}>
+    <TableHead className={cn(align === "center" && "text-center", className)}>
       <button
         type="button"
         className={cn(

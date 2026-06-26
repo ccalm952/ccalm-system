@@ -12,6 +12,7 @@ import {
   type BackendShiftDto,
 } from "@/lib/attendance/shift";
 import type { AttendanceShiftFullConfig } from "@/lib/attendance/types";
+import { attendanceSectionTitleClass } from "@/lib/attendance/attendance-theme";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
@@ -140,7 +141,7 @@ export function AttendanceShiftSettingsPage() {
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col gap-4 text-sm">
           <section className="rounded-lg border border-border p-4">
-            <div className="mb-3 text-sm font-semibold text-muted-foreground">上午班次</div>
+            <div className={attendanceSectionTitleClass}>上午班次</div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">标签</label>
@@ -201,7 +202,7 @@ export function AttendanceShiftSettingsPage() {
           </section>
 
           <section className="rounded-lg border border-border p-4">
-            <div className="mb-3 text-sm font-semibold text-muted-foreground">下午班次</div>
+            <div className={attendanceSectionTitleClass}>下午班次</div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">标签</label>
@@ -262,7 +263,7 @@ export function AttendanceShiftSettingsPage() {
           </section>
 
           <section className="rounded-lg border border-border p-4">
-            <div className="mb-3 text-sm font-semibold text-muted-foreground">加班</div>
+            <div className={attendanceSectionTitleClass}>加班</div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">上午正常下班（加班起算）</label>

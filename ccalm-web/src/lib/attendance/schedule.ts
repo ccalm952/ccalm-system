@@ -16,18 +16,7 @@ export const SCHEDULE_SHIFT_CYCLE: Array<ScheduleShiftType | null> = [
   "afternoon_rest",
 ];
 
-export const SCHEDULE_SHIFT_BG: Record<ScheduleShiftType, string> = {
-  full_rest: "bg-green-200",
-  morning_rest: "bg-red-200",
-  afternoon_rest: "bg-yellow-200",
-};
-
-export function scheduleCellClass(shift: ScheduleShiftType | null): string {
-  if (shift === "full_rest") return `${SCHEDULE_SHIFT_BG.full_rest} text-foreground`;
-  if (shift === "morning_rest") return `${SCHEDULE_SHIFT_BG.morning_rest} text-foreground`;
-  if (shift === "afternoon_rest") return `${SCHEDULE_SHIFT_BG.afternoon_rest} text-foreground`;
-  return "bg-background text-muted-foreground";
-}
+export { scheduleShiftCellClass as scheduleCellClass } from "./attendance-theme";
 
 /** 排班表仅允许查看去年 1 月 ~ 今年 12 月 */
 export function scheduleMonthRange(now = dayjs()) {

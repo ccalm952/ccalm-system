@@ -45,7 +45,11 @@ import { SearchIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
+import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
+
+/** 勾选列固定宽度 40px（与种植库存一致） */
+const IMPLANT_TABLE_SELECT_COL_W = "40px";
 
 type PatientRow = {
   id: number;
@@ -303,6 +307,9 @@ export function ImplantPatientPage() {
     } as TableMeta<PatientRow>,
   });
 
+  const leafCols = table.getVisibleLeafColumns();
+  const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
+
   return (
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
@@ -346,21 +353,37 @@ export function ImplantPatientPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="w-full min-w-0">
+            <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
               {/*
                 与 max-w-7xl（80rem=1280px）栏宽对齐：表最小宽度 = 1280 − 34 = 1246
                 （Card 内容区左右各 16px 共 32px + ring 约 2px，与种植记录一致）
               */}
-              <Table className="w-full min-w-[1246px] table-fixed">
+              <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+                <colgroup>
+                  {leafCols.map((col) => {
+                    if (col.id === "select") {
+                      return <col key={col.id} style={{ width: IMPLANT_TABLE_SELECT_COL_W }} />;
+                    }
+                    return (
+                      <col
+                        key={col.id}
+                        style={{
+                          width: `calc((100% - ${IMPLANT_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
+                        }}
+                      />
+                    );
+                  })}
+                </colgroup>
                 <TableHeader>
                   {table.getHeaderGroups().map((hg) => (
                     <TableRow key={hg.id}>
                       {hg.headers.map((h) => (
                         <TableHead
                           key={h.id}
-                          className={
-                            h.column.id === "select" ? undefined : "w-[calc((100%_-_2.5rem)_/_8)]"
-                          }
+                          className={cn(
+                            "text-center",
+                            h.column.id !== "select" && "min-w-0 max-w-0",
+                          )}
                         >
                           {h.isPlaceholder
                             ? null
@@ -377,11 +400,13 @@ export function ImplantPatientPage() {
                         {row.getVisibleCells().map((cell) => (
                           <TableCell
                             key={cell.id}
-                            className={
-                              cell.column.id === "select"
-                                ? undefined
-                                : "w-[calc((100%_-_2.5rem)_/_8)]"
-                            }
+                            className={cn(
+                              cell.column.id !== "select" &&
+                                cn(
+                                  "min-w-0 max-w-0",
+                                  cell.column.id === "edit" ? "whitespace-nowrap" : "truncate",
+                                ),
+                            )}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>

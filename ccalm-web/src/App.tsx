@@ -1,5 +1,5 @@
 import * as React from "react";
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import { MainLayout } from "@/components/main-layout";
@@ -8,58 +8,20 @@ import { Spinner } from "@/components/ui/spinner";
 import { api, getToken, setToken, setUnauthorizedHandler, type ApiError } from "@/lib/api";
 import type { AuthMe } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
+import { AttendancePage } from "@/pages/attendance/AttendancePage";
+import { AttendanceShiftSettingsPage } from "@/pages/attendance/AttendanceShiftSettingsPage";
+import { AttendanceStatsPage } from "@/pages/attendance/AttendanceStatsPage";
+import { CheckInRangePage } from "@/pages/attendance/CheckInRangePage";
+import { SchedulePage } from "@/pages/attendance/SchedulePage";
+import { ImplantInventoryPage } from "@/pages/implant/ImplantInventoryPage";
+import { ImplantPatientPage } from "@/pages/implant/ImplantPatientPage";
+import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
+import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
+import { UsersPage } from "@/pages/users/UsersPage";
+import { WarehouseSection } from "@/pages/warehouse/WarehouseSection";
 
-type NamedComponentModule = Record<string, ComponentType>;
-
-function lazyNamed<T extends NamedComponentModule, K extends keyof T>(
-  loader: () => Promise<T>,
-  exportName: K,
-) {
-  return lazy(() => loader().then((m) => ({ default: m[exportName] })));
-}
-
-const LoginPage = lazyNamed(() => import("./pages/auth/LoginPage"), "LoginPage");
-const AttendancePage = lazyNamed(
-  () => import("./pages/attendance/AttendancePage"),
-  "AttendancePage",
-);
-const AttendanceShiftSettingsPage = lazyNamed(
-  () => import("./pages/attendance/AttendanceShiftSettingsPage"),
-  "AttendanceShiftSettingsPage",
-);
-const AttendanceStatsPage = lazyNamed(
-  () => import("./pages/attendance/AttendanceStatsPage"),
-  "AttendanceStatsPage",
-);
-const CheckInRangePage = lazyNamed(
-  () => import("./pages/attendance/CheckInRangePage"),
-  "CheckInRangePage",
-);
-const SchedulePage = lazyNamed(() => import("./pages/attendance/SchedulePage"), "SchedulePage");
-const UsersPage = lazyNamed(() => import("./pages/users/UsersPage"), "UsersPage");
-const ImplantInventoryPage = lazyNamed(
-  () => import("./pages/implant/ImplantInventoryPage"),
-  "ImplantInventoryPage",
-);
-const ImplantPatientPage = lazyNamed(
-  () => import("./pages/implant/ImplantPatientPage"),
-  "ImplantPatientPage",
-);
-const ImplantRecordsPage = lazyNamed(
-  () => import("./pages/implant/ImplantRecordsPage"),
-  "ImplantRecordsPage",
-);
-const ImplantStatsPage = lazyNamed(
-  () => import("./pages/implant/ImplantStatsPage"),
-  "ImplantStatsPage",
-);
-const WarehouseLedgerPage = lazyNamed(
-  () => import("./pages/warehouse/WarehouseLedgerPage"),
-  "WarehouseLedgerPage",
-);
-const WarehouseStatsPage = lazyNamed(
-  () => import("./pages/warehouse/WarehouseStatsPage"),
-  "WarehouseStatsPage",
+const LoginPage = lazy(() =>
+  import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
 );
 
 function RouteFallback() {
@@ -131,42 +93,43 @@ function ProtectedRoute() {
 export function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path={ROUTES.auth.login} element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route element={<MainLayout />}>
-              <Route path={ROUTES.home} element={<AttendancePage />} />
+      <Routes>
+        <Route
+          path={ROUTES.auth.login}
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <LoginPage />
+            </Suspense>
+          }
+        />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path={ROUTES.home} element={<AttendancePage />} />
 
-              <Route path="attendance">
-                <Route index element={<AttendancePage />} />
-                <Route path="check-in-range" element={<CheckInRangePage />} />
-                <Route path="shift-settings" element={<AttendanceShiftSettingsPage />} />
-                <Route path="stats" element={<AttendanceStatsPage />} />
-                <Route path="schedule" element={<SchedulePage />} />
-              </Route>
-
-              <Route path={ROUTES.users.root} element={<UsersPage />} />
-
-              <Route path="implant">
-                <Route index element={<Navigate to={ROUTES.implant.records} replace />} />
-                <Route path="records" element={<ImplantRecordsPage />} />
-                <Route path="patients" element={<ImplantPatientPage />} />
-                <Route path="stats" element={<ImplantStatsPage />} />
-                <Route path="inventory" element={<ImplantInventoryPage />} />
-              </Route>
-
-              <Route path="warehouse">
-                <Route index element={<Navigate to={ROUTES.warehouse.ledger} replace />} />
-                <Route path="ledger" element={<WarehouseLedgerPage />} />
-                <Route path="stats" element={<WarehouseStatsPage />} />
-              </Route>
-
-              <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
+            <Route path="attendance">
+              <Route index element={<AttendancePage />} />
+              <Route path="check-in-range" element={<CheckInRangePage />} />
+              <Route path="shift-settings" element={<AttendanceShiftSettingsPage />} />
+              <Route path="stats" element={<AttendanceStatsPage />} />
+              <Route path="schedule" element={<SchedulePage />} />
             </Route>
+
+            <Route path={ROUTES.users.root} element={<UsersPage />} />
+
+            <Route path="implant">
+              <Route index element={<Navigate to={ROUTES.implant.records} replace />} />
+              <Route path="records" element={<ImplantRecordsPage />} />
+              <Route path="patients" element={<ImplantPatientPage />} />
+              <Route path="stats" element={<ImplantStatsPage />} />
+              <Route path="inventory" element={<ImplantInventoryPage />} />
+            </Route>
+
+            <Route path="warehouse/*" element={<WarehouseSection />} />
+
+            <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>
-        </Routes>
-      </Suspense>
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }

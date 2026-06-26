@@ -79,7 +79,7 @@ export function MainLayout() {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-8">库房</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="h-8">库存</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {warehouseSubNavItems.map((item) => (
                       <NavigationMenuLink

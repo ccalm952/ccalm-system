@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -253,6 +254,20 @@ export function WarehouseLedgerPage() {
   const [deleteItemSubmitting, setDeleteItemSubmitting] = React.useState(false);
   const [txnPage, setTxnPage] = React.useState(1);
   const [txnTotal, setTxnTotal] = React.useState(0);
+  const [txnsLoading, setTxnsLoading] = React.useState(false);
+  const [itemsLoading, setItemsLoading] = React.useState(false);
+  const txnRequestRef = React.useRef(0);
+  const itemsRequestRef = React.useRef(0);
+  const selectedIdRef = React.useRef(selectedId);
+  const dateRangeRef = React.useRef(dateRange);
+
+  React.useLayoutEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  React.useLayoutEffect(() => {
+    dateRangeRef.current = dateRange;
+  }, [dateRange]);
 
   const displayItems = React.useMemo(() => {
     if (!itemSort) return items;
@@ -269,28 +284,47 @@ export function WarehouseLedgerPage() {
   }
 
   async function loadItems() {
+    const requestId = ++itemsRequestRef.current;
+    setItemsLoading(true);
     try {
       const data = await api<WarehouseItem[]>(
         "GET",
         `/warehouse/items${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`,
       );
-      setItems(Array.isArray(data) ? data : []);
+      if (requestId !== itemsRequestRef.current) return;
+      const list = Array.isArray(data) ? data : [];
+      setItems(list);
       setSelectedId((prev) =>
-        data.some((item) => item.id === prev) ? prev : (data[0]?.id ?? null),
+        list.some((item) => item.id === prev) ? prev : (list[0]?.id ?? null),
       );
     } catch (e) {
+      if (requestId !== itemsRequestRef.current) return;
       toast.error(errorMessage(e));
-      setItems([]);
-      setSelectedId(null);
+    } finally {
+      if (requestId === itemsRequestRef.current) setItemsLoading(false);
     }
   }
 
-  async function loadTxns(page = txnPage) {
+  const loadTxns = React.useCallback(async (page: number) => {
+    const itemId = selectedIdRef.current;
+    const { from, to } = dateRangeRef.current;
+
+    if (itemId == null) {
+      setTxns([]);
+      setTxnTotal(0);
+      setTxnPage(1);
+      setTxnsLoading(false);
+      return;
+    }
+
+    const requestId = ++txnRequestRef.current;
+    setTxnsLoading(true);
+
     try {
       const params = new URLSearchParams();
-      if (dateRange.from) params.set("startDate", dateRange.from);
-      if (dateRange.to) params.set("endDate", dateRange.to);
-      if (selectedId) params.set("itemId", String(selectedId));
+      if (from) params.set("startDate", from);
+      if (to) params.set("endDate", to);
+      params.set("itemId", String(itemId));
       params.set("page", String(page));
       params.set("pageSize", String(TXN_PAGE_SIZE));
       const data = await api<{
@@ -299,26 +333,51 @@ export function WarehouseLedgerPage() {
         page: number;
         pageSize: number;
       }>("GET", `/warehouse/txns?${params.toString()}`);
+      if (requestId !== txnRequestRef.current) return;
+
+      const latestItemId = selectedIdRef.current;
+      const latestRange = dateRangeRef.current;
+      if (latestItemId !== itemId) return;
+      if (latestRange.from !== from || latestRange.to !== to) return;
+
       setTxns(Array.isArray(data.items) ? data.items : []);
       setTxnTotal(data.total ?? 0);
       setTxnPage(data.page ?? page);
     } catch (e) {
+      if (requestId !== txnRequestRef.current) return;
       toast.error(errorMessage(e));
+    } finally {
+      if (requestId === txnRequestRef.current) setTxnsLoading(false);
+    }
+  }, []);
+
+  const goTxnPage = React.useCallback(
+    (page: number) => {
+      if (selectedId == null) return;
+      const maxPage = Math.max(1, Math.ceil(txnTotal / TXN_PAGE_SIZE));
+      const next = Math.min(Math.max(1, page), maxPage);
+      setTxnPage(next);
+      void loadTxns(next);
+    },
+    [loadTxns, selectedId, txnTotal],
+  );
+
+  React.useEffect(() => {
+    txnRequestRef.current += 1;
+    setTxnPage(1);
+    if (selectedId == null) {
       setTxns([]);
       setTxnTotal(0);
+      setTxnsLoading(false);
+      return;
     }
-  }
+    void loadTxns(1);
+  }, [dateRange.from, dateRange.to, selectedId, loadTxns]);
 
   React.useEffect(() => {
     void loadItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  React.useEffect(() => {
-    setTxnPage(1);
-    void loadTxns(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, selectedId]);
 
   function openCreateItem() {
     setEditingItemId(null);
@@ -395,7 +454,7 @@ export function WarehouseLedgerPage() {
         toast.success("物品已创建");
       }
       setItemDialogOpen(false);
-      await Promise.all([loadItems(), loadTxns()]);
+      await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -418,7 +477,7 @@ export function WarehouseLedgerPage() {
       toast.success(
         `导入完成：${result.createdTxns} 条入库，新增物品 ${result.createdItems} 个，跳过 ${result.skippedTxns} 条`,
       );
-      await Promise.all([loadItems(), loadTxns()]);
+      await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -441,7 +500,7 @@ export function WarehouseLedgerPage() {
       });
       toast.success("流水已登记");
       setTxnDialogOpen(false);
-      await Promise.all([loadItems(), loadTxns()]);
+      await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -473,7 +532,7 @@ export function WarehouseLedgerPage() {
       await api("DELETE", `/warehouse/items/${deleteItemTarget.id}`);
       toast.success("物品已删除");
       setDeleteItemTarget(null);
-      await Promise.all([loadItems(), loadTxns()]);
+      await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -482,8 +541,8 @@ export function WarehouseLedgerPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
-      <Card>
+    <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">
+      <Card className="w-full min-w-0">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div className="flex flex-wrap items-center gap-2">
             <Input
@@ -526,24 +585,31 @@ export function WarehouseLedgerPage() {
             </div>
           ) : null}
         </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Card>
+        <CardContent className="[&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
+          <ScrollArea className="w-full max-w-full">
+          <div className="flex w-max flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="grid w-max shrink-0 grid-cols-1 gap-4 self-start">
+            <div
+              className={cn(
+                "grid w-full grid-cols-2 gap-3",
+                itemsLoading && items.length > 0 && "opacity-60",
+              )}
+            >
+              <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
                   <div className="text-sm text-muted-foreground">物品数</div>
-                  <div className="text-2xl font-semibold">{items.length}</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{items.length}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
                   <div className="text-sm text-muted-foreground">当前总库存</div>
-                  <div className="text-2xl font-semibold">{totalQty}</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{totalQty}</div>
                 </CardContent>
               </Card>
             </div>
 
-            <Table className="w-full table-fixed">
+            <Table className="w-max">
               <TableHeader>
                 <TableRow>
                   <SortableTableHead
@@ -551,52 +617,44 @@ export function WarehouseLedgerPage() {
                     sortKey="code"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[10%]"
                   />
                   <SortableTableHead
                     label="名称"
                     sortKey="name"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[20%]"
                   />
                   <SortableTableHead
                     label="分类"
                     sortKey="category"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[10%]"
                   />
                   <SortableTableHead
                     label="品牌"
                     sortKey="brand"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[10%]"
                   />
                   <SortableTableHead
                     label="规格"
                     sortKey="spec"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[16%]"
                   />
                   <SortableTableHead
                     label="单位"
                     sortKey="unit"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[7%]"
                   />
                   <SortableTableHead
                     label="库存"
                     sortKey="currentQty"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
-                    className="w-[8%]"
-                    align="center"
                   />
-                  <TableHead className="w-[12%] text-center">操作</TableHead>
+                  <TableHead className="text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -606,26 +664,28 @@ export function WarehouseLedgerPage() {
                     className={selectedId === item.id ? "bg-muted/40" : undefined}
                     onClick={() => setSelectedId(item.id)}
                   >
-                    <TableCell className="max-w-0">
+                    <TableCell>
                       <TruncateCell title={item.code}>{item.code}</TruncateCell>
                     </TableCell>
-                    <TableCell className="max-w-0">
+                    <TableCell>
                       <TruncateCell title={item.name}>{item.name}</TruncateCell>
                     </TableCell>
-                    <TableCell className="max-w-0">
+                    <TableCell>
                       <TruncateCell title={item.category || undefined}>
                         {item.category || "-"}
                       </TruncateCell>
                     </TableCell>
-                    <TableCell className="max-w-0">
+                    <TableCell>
                       <TruncateCell title={item.brand || undefined}>
                         {item.brand || "-"}
                       </TruncateCell>
                     </TableCell>
-                    <TableCell className="max-w-0">
+                    <TableCell>
                       <TruncateCell title={item.spec || undefined}>{item.spec || "-"}</TruncateCell>
                     </TableCell>
-                    <TableCell className="text-center">{item.unit}</TableCell>
+                    <TableCell>
+                      <TruncateCell title={item.unit}>{item.unit}</TruncateCell>
+                    </TableCell>
                     <TableCell className="text-center">{item.currentQty}</TableCell>
                     <TableCell className="text-center">
                       {isAdmin ? (
@@ -662,8 +722,8 @@ export function WarehouseLedgerPage() {
             </Table>
           </div>
 
-          <div className="space-y-4">
-            <Card>
+          <div className="grid w-max shrink-0 grid-cols-1 gap-4 self-start">
+            <Card className="w-full border border-border shadow-xs ring-0">
               <CardContent className="pt-6">
                 <div className="mb-2 text-sm font-medium">当前选中物品</div>
                 {selectedItem ? (
@@ -682,17 +742,23 @@ export function WarehouseLedgerPage() {
               </CardContent>
             </Card>
 
-            <Table className="w-full table-fixed">
+            <div
+              className={cn(
+                "min-h-[640px]",
+                txnsLoading && txns.length > 0 && "pointer-events-none opacity-60",
+              )}
+            >
+            <Table className="w-max">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[14%]">日期</TableHead>
-                  <TableHead className="w-[9%]">类型</TableHead>
-                  <TableHead className="w-[15%]">业务</TableHead>
-                  <TableHead className="w-[9%] text-center">数量</TableHead>
-                  <TableHead className="w-[10%] text-center">单价</TableHead>
-                  <TableHead className="w-[12%] text-center">金额</TableHead>
-                  <TableHead className={isAdmin ? "w-[14%]" : "w-[23%]"}>操作人</TableHead>
-                  {isAdmin ? <TableHead className="w-[9%] text-center">操作</TableHead> : null}
+                  <TableHead className="text-center">日期</TableHead>
+                  <TableHead className="text-center">类型</TableHead>
+                  <TableHead className="text-center">业务</TableHead>
+                  <TableHead className="text-center">数量</TableHead>
+                  <TableHead className="text-center">单价</TableHead>
+                  <TableHead className="text-center">金额</TableHead>
+                  <TableHead className="text-center">操作人</TableHead>
+                  {isAdmin ? <TableHead className="text-center">操作</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -728,7 +794,7 @@ export function WarehouseLedgerPage() {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <div className="flex w-full items-center justify-between gap-2 text-sm text-muted-foreground">
               <span>
                 共 {txnTotal} 条
                 {txnTotal > 0
@@ -741,7 +807,7 @@ export function WarehouseLedgerPage() {
                   size="sm"
                   variant="outline"
                   disabled={txnPage <= 1}
-                  onClick={() => void loadTxns(txnPage - 1)}
+                  onClick={() => goTxnPage(txnPage - 1)}
                 >
                   上一页
                 </Button>
@@ -750,13 +816,17 @@ export function WarehouseLedgerPage() {
                   size="sm"
                   variant="outline"
                   disabled={txnPage >= Math.ceil(txnTotal / TXN_PAGE_SIZE)}
-                  onClick={() => void loadTxns(txnPage + 1)}
+                  onClick={() => goTxnPage(txnPage + 1)}
                 >
                   下一页
                 </Button>
               </div>
             </div>
+            </div>
           </div>
+          </div>
+          <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </CardContent>
       </Card>
 
@@ -767,7 +837,7 @@ export function WarehouseLedgerPage() {
             <DialogDescription>
               {editingItemId
                 ? "修改库存时会自动登记一条调整流水。"
-                : "维护库房物品主档，后续出入库都基于这里的物品。"}
+                : "维护库存物品主档，后续出入库都基于这里的物品。"}
             </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">

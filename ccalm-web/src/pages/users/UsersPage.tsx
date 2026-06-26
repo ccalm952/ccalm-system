@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Trash2Icon } from "lucide-react";
 
+import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -192,10 +193,11 @@ export function UsersPage() {
                             {new Date(r.createdAt).toLocaleString()}
                           </TableCell>
                           <TableCell className="w-[18%]">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Button
                                 type="button"
-                                variant="secondary"
+                                variant="link"
+                                className={tableActionLinkClass}
                                 onClick={() => {
                                   setEditUser({
                                     ...r,
@@ -209,7 +211,8 @@ export function UsersPage() {
                               </Button>
                               <Button
                                 type="button"
-                                variant="destructive"
+                                variant="link"
+                                className={tableActionLinkClass}
                                 disabled={!!disabledReason}
                                 title={disabledReason ?? undefined}
                                 onClick={() => setUserPendingDelete(r)}

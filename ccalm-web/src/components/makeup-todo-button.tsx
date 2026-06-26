@@ -18,6 +18,11 @@ import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendanceMakeupRequest,
 } from "@/lib/attendance/types";
+import {
+  attendanceMutedTextClass,
+  makeupRequestStatusTextClass,
+  makeupTodoBadgeClass,
+} from "@/lib/attendance/attendance-theme";
 import { formatMakeupTime } from "@/lib/attendance/makeup";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
@@ -64,12 +69,7 @@ function MakeupRequestCard(props: {
     }
   }
 
-  const statusClass =
-    item.status === "pending"
-      ? "text-amber-600"
-      : item.status === "approved"
-        ? "text-green-600"
-        : "text-muted-foreground";
+  const statusClass = makeupRequestStatusTextClass(item.status);
 
   return (
     <>
@@ -115,7 +115,7 @@ function MakeupRequestCard(props: {
             <DialogHeader>
               <DialogTitle>拒绝补卡申请</DialogTitle>
             </DialogHeader>
-            <div className="text-sm text-muted-foreground">确认拒绝这条补卡申请吗？</div>
+            <div className={cn("text-sm", attendanceMutedTextClass)}>确认拒绝这条补卡申请吗？</div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRejectOpen(false)}>
                 取消
@@ -142,10 +142,10 @@ function RequestList(props: {
   const { loading, items, emptyText, mode, showUser, onChanged } = props;
 
   if (loading) {
-    return <div className="text-sm text-muted-foreground">加载中…</div>;
+    return <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>;
   }
   if (items.length === 0) {
-    return <div className="text-sm text-muted-foreground">{emptyText}</div>;
+    return <div className={cn("text-sm", attendanceMutedTextClass)}>{emptyText}</div>;
   }
   return (
     <>
@@ -218,7 +218,7 @@ export function MakeupTodoButton() {
           >
             <span>待办</span>
             {badgeCount > 0 ? (
-              <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-medium leading-none text-white">
+              <span className={makeupTodoBadgeClass}>
                 {badgeCount > 99 ? "99+" : badgeCount}
               </span>
             ) : null}
@@ -263,7 +263,7 @@ export function MakeupTodoButton() {
                     onChanged={() => void load()}
                   />
                 ) : (
-                  <div className="text-sm text-muted-foreground">暂无待办</div>
+                  <div className={cn("text-sm", attendanceMutedTextClass)}>暂无待办</div>
                 )}
               </div>
             </ScrollArea>

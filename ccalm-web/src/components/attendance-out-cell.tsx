@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { attendancePendingTextClass, tableActionLinkClass } from "@/lib/attendance/attendance-theme";
 import {
   adminMakeupSlotStateWithPending,
   makeupSlotState,
@@ -7,6 +8,7 @@ import {
   type MakeupTodayGate,
 } from "@/lib/attendance/makeup";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
+import { cn } from "@/lib/utils";
 
 type AttendanceOutCellProps =
   | {
@@ -46,12 +48,17 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
   }
 
   if (slotState === "pending") {
-    return <span className="text-sm text-muted-foreground">审批中</span>;
+    return <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>;
   }
 
   if (slotState === "apply") {
     return (
-      <Button type="button" variant="link" className="h-auto px-0 text-sm" onClick={onApply}>
+      <Button
+        type="button"
+        variant="link"
+        className={tableActionLinkClass}
+        onClick={onApply}
+      >
         补卡
       </Button>
     );

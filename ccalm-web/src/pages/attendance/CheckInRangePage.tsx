@@ -13,9 +13,11 @@ import {
   type PlaceSuggestion,
 } from "@/lib/amap-regeo";
 import type { GeofenceConfig } from "@/lib/attendance/types";
+import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
 const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 };
@@ -266,7 +268,7 @@ export function CheckInRangePage() {
                 {placeInputFocused && placeName.trim() ? (
                   <div className="absolute top-full z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
                     {loadingPlaceSuggestions ? (
-                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                      <div className={cn("flex items-center gap-2 px-3 py-2 text-sm", attendanceMutedTextClass)}>
                         <Spinner data-icon="inline-start" />
                         搜索中…
                       </div>
@@ -281,14 +283,14 @@ export function CheckInRangePage() {
                         >
                           <span>{suggestion.name}</span>
                           {suggestion.address ? (
-                            <span className="text-xs text-muted-foreground">
+                            <span className={cn("text-xs", attendanceMutedTextClass)}>
                               {suggestion.address}
                             </span>
                           ) : null}
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">未找到匹配地点</div>
+                      <div className={cn("px-3 py-2 text-sm", attendanceMutedTextClass)}>未找到匹配地点</div>
                     )}
                   </div>
                 ) : null}
@@ -296,7 +298,7 @@ export function CheckInRangePage() {
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className={cn("text-sm", attendanceMutedTextClass)}>
             中心：{center.lat.toFixed(5)}, {center.lng.toFixed(5)}
           </p>
 

@@ -32,7 +32,9 @@ import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
 import { RestActionDialog } from "@/components/rest-action-dialog";
 import type { EmployeeMakeupType, MakeupTodayGate } from "@/lib/attendance/makeup";
 import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
-import { canDeclareRest, isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
+import { attendanceInCellClass, attendanceOutCellClass } from "@/lib/attendance/cell-class";
+import { attendanceBrandTextClass, attendanceErrorTextClass, attendanceMutedTextClass, attendanceTableHeaderClass, summaryMissingSlotsClass, summaryOvertimeClass } from "@/lib/attendance/attendance-theme";
+import type { RestHalf } from "@/lib/attendance/rest";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendancePunchType,
@@ -166,27 +168,6 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
-function inCellClass(
-  row: AttendanceMonthlySummary["rows"][number],
-  half: RestHalf,
-  time: string | null,
-) {
-  if (time) return "";
-  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
-  if (canDeclareRest(row, half)) return "";
-  return "text-destructive";
-}
-
-function outCellClass(
-  row: AttendanceMonthlySummary["rows"][number],
-  half: RestHalf,
-  time: string | null,
-) {
-  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
-  if (time) return "";
-  return "text-destructive";
-}
-
 function formatCurrentLocation(loc: Pick<LocationState, "lat" | "lng" | "address">): string {
   if (loc.address?.trim()) return loc.address.trim();
   if (loc.lat && loc.lng) return `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
@@ -221,10 +202,10 @@ function LiveClock() {
 
   return (
     <>
-      <div className="text-5xl font-semibold tabular-nums text-pink-400">
+      <div className={cn("text-5xl font-semibold tabular-nums", attendanceBrandTextClass)}>
         {now.format("HH:mm:ss")}
       </div>
-      <div className="text-sm text-muted-foreground">
+      <div className={cn("text-sm", attendanceMutedTextClass)}>
         {now.locale("zh-cn").format("YYYY年M月D日 dddd")}
       </div>
     </>
@@ -509,13 +490,13 @@ export function AttendancePage() {
               <LiveClock />
               <div className="text-center text-sm">
                 {loc.lat ? (
-                  <div className="text-muted-foreground">{formatCurrentLocation(loc)}</div>
+                  <div className={attendanceMutedTextClass}>{formatCurrentLocation(loc)}</div>
                 ) : loc.locating ? (
-                  <div className="text-muted-foreground">定位中…</div>
+                  <div className={attendanceMutedTextClass}>定位中…</div>
                 ) : showLocationFailed ? (
-                  <div className="text-destructive">定位失败</div>
+                  <div className={attendanceErrorTextClass}>定位失败</div>
                 ) : (
-                  <div className="text-muted-foreground">尚未获取定位</div>
+                  <div className={attendanceMutedTextClass}>尚未获取定位</div>
                 )}
               </div>
 
@@ -558,7 +539,7 @@ export function AttendancePage() {
                           <TimelineTime>{dayjs(r.punchTime).format("HH:mm")}</TimelineTime>
                           <TimelineIndicator />
                           <TimelineContent>
-                            <TimelineTitle className="text-pink-500">
+                            <TimelineTitle className={attendanceBrandTextClass}>
                               {ATTENDANCE_PUNCH_TYPE_LABEL[t]}
                             </TimelineTitle>
                             <TimelineDescription>
@@ -579,7 +560,7 @@ export function AttendancePage() {
           <Card>
             <CardContent className="flex flex-col gap-4">
               {!monthSummary ? (
-                <div className="text-sm text-muted-foreground">加载中…</div>
+                <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -592,17 +573,21 @@ export function AttendancePage() {
                       <div className="text-sm">休息天数</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-sm">{monthSummary.missingSlots}</div>
+                      <div className={cn("text-sm", summaryMissingSlotsClass(monthSummary.missingSlots))}>
+                        {monthSummary.missingSlots}
+                      </div>
                       <div className="text-sm">缺卡</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-sm">{monthSummary.overtimeStr}</div>
+                      <div className={cn("text-sm", summaryOvertimeClass(monthSummary.overtimeStr))}>
+                        {monthSummary.overtimeStr === "-" ? "" : monthSummary.overtimeStr}
+                      </div>
                       <div className="text-sm">加班</div>
                     </div>
                   </div>
 
                   <Table className="w-full table-fixed">
-                    <TableHeader>
+                    <TableHeader className={attendanceTableHeaderClass}>
                       <TableRow>
                         <TableHead className="w-1/5 text-center">日期</TableHead>
                         <TableHead className="w-1/5 text-center">上午上班</TableHead>
@@ -618,7 +603,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              inCellClass(r, "morning", r.morningIn),
+                              attendanceInCellClass(r, "morning", r.morningIn),
                             )}
                           >
                             <AttendanceInCell
@@ -649,7 +634,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              outCellClass(r, "morning", r.morningOut),
+                              attendanceOutCellClass(r, "morning", r.morningOut),
                             )}
                           >
                             <AttendanceHalfOutCell
@@ -665,7 +650,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              inCellClass(r, "afternoon", r.afternoonIn),
+                              attendanceInCellClass(r, "afternoon", r.afternoonIn),
                             )}
                           >
                             <AttendanceInCell
@@ -696,7 +681,7 @@ export function AttendancePage() {
                           <TableCell
                             className={cn(
                               "w-1/5 text-center",
-                              outCellClass(r, "afternoon", r.afternoonOut),
+                              attendanceOutCellClass(r, "afternoon", r.afternoonOut),
                             )}
                           >
                             <AttendanceHalfOutCell
