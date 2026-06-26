@@ -1,4 +1,4 @@
-import { IsIn, IsString, Matches } from "class-validator"
+import { IsIn, IsOptional, IsString, Matches } from "class-validator"
 
 export class DeclareRestDto {
   @IsString()
@@ -8,6 +8,10 @@ export class DeclareRestDto {
   @IsString()
   @IsIn(["morning", "afternoon"])
   half!: "morning" | "afternoon"
+
+  @IsOptional()
+  @IsString()
+  userId?: string
 }
 
 export class ClearRestDto {
@@ -18,4 +22,8 @@ export class ClearRestDto {
   @IsString()
   @IsIn(["morning", "afternoon"])
   half!: "morning" | "afternoon"
+
+  @IsOptional()
+  @IsString()
+  userId?: string
 }

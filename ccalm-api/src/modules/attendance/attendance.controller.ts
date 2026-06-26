@@ -119,16 +119,20 @@ export class AttendanceController {
 
   @Post("rest")
   async declareRest(@Req() req: Request, @Body() dto: DeclareRestDto) {
-    return await this.schedule.declareRest(authUserId(req), dto.date, dto.half)
+    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req)
+    if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
+      throw new ForbiddenException("仅管理员可为他人登记休息")
+    }
+    return await this.schedule.declareRest(targetUserId, dto.date, dto.half)
   }
 
   @Post("rest/clear")
   async clearRest(@Req() req: Request, @Body() dto: ClearRestDto) {
-    return await this.schedule.clearRestHalf(
-      authUserId(req),
-      dto.date,
-      dto.half
-    )
+    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req)
+    if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
+      throw new ForbiddenException("仅管理员可为他人取消休息")
+    }
+    return await this.schedule.clearRestHalf(targetUserId, dto.date, dto.half)
   }
 
   @Get("makeup-requests/mine")

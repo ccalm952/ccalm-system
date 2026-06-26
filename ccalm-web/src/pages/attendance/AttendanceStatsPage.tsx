@@ -10,6 +10,9 @@ import {
 } from "@tanstack/react-table";
 
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
+import { AttendanceHalfOutCell } from "@/components/attendance-half-out-cell";
+import { AttendanceInCell } from "@/components/attendance-in-cell";
+import { RestActionDialog } from "@/components/rest-action-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -20,9 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { AdminMakeupType } from "@/lib/attendance/makeup";
-import { punchSlotState } from "@/lib/attendance/makeup";
+import type { EmployeeMakeupType } from "@/lib/attendance/makeup";
 import { monthKey, previousMonthKey } from "@/lib/attendance/shift";
+import { canDeclareRest, isHalfScheduleRest, type RestHalf } from "@/lib/attendance/rest";
 import { formatDayCount } from "@/lib/attendance/summary";
 import type {
   AttendanceMakeupRequest,
@@ -40,22 +43,21 @@ function dayOfMonth(date: string): string {
   return d.isValid() ? String(d.date()) : date;
 }
 
-function slotRestLabel(row: AttendancePunchDayRow, type: AdminMakeupType): string | null {
-  const scheduleRest = row.scheduleRest ?? null;
-  if (!scheduleRest) return null;
-  if (
-    (type === "morning_in" || type === "morning_out") &&
-    (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
-  ) {
-    return type === "morning_out" ? "—" : "休";
-  }
-  if (
-    (type === "afternoon_in" || type === "afternoon_out") &&
-    (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
-  ) {
-    return type === "afternoon_out" ? "—" : "休";
-  }
-  return null;
+function inCellClass(row: AttendancePunchDayRow, half: RestHalf, time: string | null): string {
+  if (time) return "";
+  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
+  if (canDeclareRest(row, half)) return "";
+  return "text-destructive";
+}
+
+function outCellClass(row: AttendancePunchDayRow, half: RestHalf, time: string | null): string {
+  if (isHalfScheduleRest(row.scheduleRest, half)) return "text-muted-foreground";
+  if (time) return "";
+  return "text-destructive";
+}
+
+function canManageRow(me: AuthMe | null, rowUserId: string, isAdmin: boolean): boolean {
+  return !!me && (me.id === rowUserId || isAdmin);
 }
 
 type UserAgg = {
@@ -67,16 +69,6 @@ type UserAgg = {
   overtimeStr: string;
   rows: AttendanceMonthlySummary["rows"];
 };
-
-const PUNCH_DETAIL_COLUMNS: Array<{
-  type: AdminMakeupType;
-  getTime: (row: AttendancePunchDayRow) => string | null;
-}> = [
-  { type: "morning_in", getTime: (row) => row.morningIn },
-  { type: "morning_out", getTime: (row) => row.morningOut },
-  { type: "afternoon_in", getTime: (row) => row.afternoonIn },
-  { type: "afternoon_out", getTime: (row) => row.afternoonOut },
-];
 
 async function loadPendingMakeupRequests(isAdmin: boolean): Promise<AttendanceMakeupRequest[]> {
   if (isAdmin) {
@@ -128,31 +120,6 @@ async function loadSummary(
   };
 }
 
-function StatsPunchCell(props: {
-  row: AttendancePunchDayRow;
-  type: AdminMakeupType;
-  time: string | null;
-  makeupRequests: AttendanceMakeupRequest[];
-  adminDirect: boolean;
-  onApply?: () => void;
-}) {
-  const { row, type, time, makeupRequests, adminDirect, onApply } = props;
-  if (time) return <span>{time}</span>;
-
-  const slotState = punchSlotState(row, type, makeupRequests, adminDirect);
-  if (slotState === "pending") {
-    return <span className="text-sm text-muted-foreground">审批中</span>;
-  }
-  if (slotState === "apply" && onApply) {
-    return (
-      <Button type="button" variant="link" className="h-auto px-0 text-sm" onClick={onApply}>
-        补卡
-      </Button>
-    );
-  }
-  return null;
-}
-
 export function AttendanceStatsPage() {
   const { me } = useAuth();
   const [month, setMonth] = React.useState(() => monthKey());
@@ -167,7 +134,15 @@ export function AttendanceStatsPage() {
     userId: string;
     userName: string;
     date: string;
-    type: AdminMakeupType;
+    type: EmployeeMakeupType;
+  } | null>(null);
+  const [restDialog, setRestDialog] = React.useState<{
+    userId: string;
+    userName: string;
+    date: string;
+    half: RestHalf;
+    mode: "declare" | "clear";
+    scheduleRest?: AttendancePunchDayRow["scheduleRest"];
   } | null>(null);
 
   const reload = React.useCallback(async () => {
@@ -312,59 +287,170 @@ export function AttendanceStatsPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {row.original.rows.map((r) => (
-                                <TableRow key={r.date} className="border-t border-border">
-                                  <TableCell className="w-1/6 px-3 py-2">
-                                    {dayOfMonth(r.date)}
-                                  </TableCell>
-                                  {PUNCH_DETAIL_COLUMNS.map((col) => {
-                                    const time = col.getTime(r);
-                                    const restLabel = slotRestLabel(r, col.type);
-                                    const userRequests = pendingMakeupRequests.filter(
-                                      (item) => item.userId === row.original.userId,
-                                    );
-                                    return (
-                                      <TableCell
-                                        key={col.type}
-                                        className={cn(
-                                          "w-1/6 px-3 py-2 text-center",
-                                          time
-                                            ? ""
-                                            : restLabel
-                                              ? "text-muted-foreground"
-                                              : "text-destructive",
-                                        )}
-                                      >
-                                        {restLabel ? (
-                                          restLabel
-                                        ) : (
-                                          <StatsPunchCell
-                                            row={r}
-                                            type={col.type}
-                                            time={time}
-                                            makeupRequests={userRequests}
-                                            adminDirect={isAdmin}
-                                            onApply={
-                                              isAdmin
-                                                ? () =>
-                                                    setMakeupDialog({
-                                                      userId: row.original.userId,
-                                                      userName: row.original.userName,
-                                                      date: r.date,
-                                                      type: col.type,
-                                                    })
-                                                : undefined
-                                            }
-                                          />
-                                        )}
-                                      </TableCell>
-                                    );
-                                  })}
-                                  <TableCell className="w-1/6 px-3 py-2 text-muted-foreground">
-                                    {r.overtimeStr === "-" ? "" : r.overtimeStr}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {row.original.rows.map((r) => {
+                                const rowUserId = row.original.userId;
+                                const rowUserName = row.original.userName;
+                                const manageable = canManageRow(me, rowUserId, isAdmin);
+                                const adminDirectMakeup = isAdmin;
+                                const userRequests = pendingMakeupRequests.filter(
+                                  (item) => item.userId === rowUserId,
+                                );
+
+                                return (
+                                  <TableRow key={r.date} className="border-t border-border">
+                                    <TableCell className="w-1/6 px-3 py-2">
+                                      {dayOfMonth(r.date)}
+                                    </TableCell>
+                                    <TableCell
+                                      className={cn(
+                                        "w-1/6 px-3 py-2 text-center",
+                                        inCellClass(r, "morning", r.morningIn),
+                                      )}
+                                    >
+                                      {manageable ? (
+                                        <AttendanceInCell
+                                          row={r}
+                                          half="morning"
+                                          time={r.morningIn}
+                                          makeupRequests={userRequests}
+                                          onDeclare={() =>
+                                            setRestDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              half: "morning",
+                                              mode: "declare",
+                                              scheduleRest: r.scheduleRest,
+                                            })
+                                          }
+                                          onClear={() =>
+                                            setRestDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              half: "morning",
+                                              mode: "clear",
+                                              scheduleRest: r.scheduleRest,
+                                            })
+                                          }
+                                          onMakeup={(type) =>
+                                            setMakeupDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              type,
+                                            })
+                                          }
+                                        />
+                                      ) : (
+                                        (r.morningIn ?? "—")
+                                      )}
+                                    </TableCell>
+                                    <TableCell
+                                      className={cn(
+                                        "w-1/6 px-3 py-2 text-center",
+                                        outCellClass(r, "morning", r.morningOut),
+                                      )}
+                                    >
+                                      {manageable ? (
+                                        <AttendanceHalfOutCell
+                                          row={r}
+                                          half="morning"
+                                          type="morning_out"
+                                          time={r.morningOut}
+                                          makeupRequests={userRequests}
+                                          adminDirect={adminDirectMakeup}
+                                          onApply={() =>
+                                            setMakeupDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              type: "morning_out",
+                                            })
+                                          }
+                                        />
+                                      ) : (
+                                        (r.morningOut ?? "—")
+                                      )}
+                                    </TableCell>
+                                    <TableCell
+                                      className={cn(
+                                        "w-1/6 px-3 py-2 text-center",
+                                        inCellClass(r, "afternoon", r.afternoonIn),
+                                      )}
+                                    >
+                                      {manageable ? (
+                                        <AttendanceInCell
+                                          row={r}
+                                          half="afternoon"
+                                          time={r.afternoonIn}
+                                          makeupRequests={userRequests}
+                                          onDeclare={() =>
+                                            setRestDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              half: "afternoon",
+                                              mode: "declare",
+                                              scheduleRest: r.scheduleRest,
+                                            })
+                                          }
+                                          onClear={() =>
+                                            setRestDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              half: "afternoon",
+                                              mode: "clear",
+                                              scheduleRest: r.scheduleRest,
+                                            })
+                                          }
+                                          onMakeup={(type) =>
+                                            setMakeupDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              type,
+                                            })
+                                          }
+                                        />
+                                      ) : (
+                                        (r.afternoonIn ?? "—")
+                                      )}
+                                    </TableCell>
+                                    <TableCell
+                                      className={cn(
+                                        "w-1/6 px-3 py-2 text-center",
+                                        outCellClass(r, "afternoon", r.afternoonOut),
+                                      )}
+                                    >
+                                      {manageable ? (
+                                        <AttendanceHalfOutCell
+                                          row={r}
+                                          half="afternoon"
+                                          type="afternoon_out"
+                                          time={r.afternoonOut}
+                                          makeupRequests={userRequests}
+                                          adminDirect={adminDirectMakeup}
+                                          onApply={() =>
+                                            setMakeupDialog({
+                                              userId: rowUserId,
+                                              userName: rowUserName,
+                                              date: r.date,
+                                              type: "afternoon_out",
+                                            })
+                                          }
+                                        />
+                                      ) : (
+                                        (r.afternoonOut ?? "—")
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="w-1/6 px-3 py-2 text-muted-foreground">
+                                      {r.overtimeStr === "-" ? "" : r.overtimeStr}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                           <ScrollBar orientation="horizontal" />
@@ -387,7 +473,7 @@ export function AttendanceStatsPage() {
       {makeupDialog ? (
         <MakeupRequestDialog
           open
-          mode="direct"
+          mode={isAdmin ? "direct" : "request"}
           userId={makeupDialog.userId}
           userName={makeupDialog.userName}
           onOpenChange={(open) => {
@@ -395,6 +481,28 @@ export function AttendanceStatsPage() {
           }}
           date={makeupDialog.date}
           type={makeupDialog.type}
+          onSuccess={() => {
+            void reload();
+          }}
+        />
+      ) : null}
+
+      {restDialog ? (
+        <RestActionDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setRestDialog(null);
+          }}
+          date={restDialog.date}
+          half={restDialog.half}
+          mode={restDialog.mode}
+          scheduleRest={restDialog.scheduleRest}
+          userId={
+            isAdmin && me?.id !== restDialog.userId ? restDialog.userId : undefined
+          }
+          userName={
+            isAdmin && me?.id !== restDialog.userId ? restDialog.userName : undefined
+          }
           onSuccess={() => {
             void reload();
           }}

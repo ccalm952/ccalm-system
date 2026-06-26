@@ -22,9 +22,21 @@ export function RestActionDialog(props: {
   half: RestHalf;
   mode: "declare" | "clear";
   scheduleRest?: ScheduleRestType | null;
+  userId?: string;
+  userName?: string;
   onSuccess: () => void;
 }) {
-  const { open, onOpenChange, date, half, mode, scheduleRest = null, onSuccess } = props;
+  const {
+    open,
+    onOpenChange,
+    date,
+    half,
+    mode,
+    scheduleRest = null,
+    userId,
+    userName,
+    onSuccess,
+  } = props;
   const [submitting, setSubmitting] = React.useState(false);
 
   const message = restConfirmMessage(date, half, scheduleRest, mode);
@@ -32,12 +44,13 @@ export function RestActionDialog(props: {
   async function handleSubmit() {
     setSubmitting(true);
     try {
+      const body = { date, half, ...(userId ? { userId } : {}) };
       if (mode === "declare") {
-        await api("POST", "/attendance/rest", { date, half });
-        toast.success("休息登记成功");
+        await api("POST", "/attendance/rest", body);
+        toast.success(userName ? `已为 ${userName} 登记休息` : "休息登记成功");
       } else {
-        await api("POST", "/attendance/rest/clear", { date, half });
-        toast.success("已取消休息登记");
+        await api("POST", "/attendance/rest/clear", body);
+        toast.success(userName ? `已取消 ${userName} 的休息登记` : "已取消休息登记");
       }
       onSuccess();
       onOpenChange(false);
@@ -52,7 +65,15 @@ export function RestActionDialog(props: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{mode === "declare" ? "登记休息" : "取消休息"}</DialogTitle>
+          <DialogTitle>
+            {mode === "declare"
+              ? userName
+                ? `为 ${userName} 登记休息`
+                : "登记休息"
+              : userName
+                ? `取消 ${userName} 的休息`
+                : "取消休息"}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 text-sm">
           <p>{message}</p>

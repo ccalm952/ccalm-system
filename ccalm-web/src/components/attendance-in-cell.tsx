@@ -26,7 +26,7 @@ export function AttendanceInCell(props: {
         className={`${actionLinkClass} text-muted-foreground`}
         onClick={onClear}
       >
-        休
+        休息
       </Button>
     );
   }
@@ -50,7 +50,7 @@ export function AttendanceInCell(props: {
           className={`${actionLinkClass} text-muted-foreground`}
           onClick={onDeclare}
         >
-          休
+          休息
         </Button>
       ) : null}
       {showRest && makeupState ? <span className="text-muted-foreground">/</span> : null}
@@ -62,7 +62,7 @@ export function AttendanceInCell(props: {
           className={`${actionLinkClass} text-pink-500`}
           onClick={() => onMakeup(inType)}
         >
-          补
+          补卡
         </Button>
       ) : null}
     </span>
