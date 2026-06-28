@@ -295,9 +295,8 @@ export class AttendanceService {
 
     const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const [scheduleMap, declaredScheduleMap, list, shift, pendingMakeups] =
+    const [declaredScheduleMap, list, shift, pendingMakeups] =
       await Promise.all([
-        this.schedule.scheduleMapForUser(userId, startDate, rangeEnd),
         this.schedule.declaredScheduleMapForUser(userId, startDate, rangeEnd),
         this.prisma.attendanceRecord.findMany({
         where: {
@@ -324,7 +323,6 @@ export class AttendanceService {
       start,
       end,
       todayYmd,
-      scheduleMap,
       declaredScheduleMap,
       records: list,
       shift,
@@ -355,9 +353,8 @@ export class AttendanceService {
     const userIds = users.map((u) => u.id)
     const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const [scheduleMaps, declaredScheduleMaps, allRecords, shift, allPending] =
+    const [declaredScheduleMaps, allRecords, shift, allPending] =
       await Promise.all([
-        this.schedule.scheduleMapsForUsers(userIds, startDate, rangeEnd),
         this.schedule.declaredScheduleMapsForUsers(userIds, startDate, rangeEnd),
         this.prisma.attendanceRecord.findMany({
         where: {
@@ -398,9 +395,6 @@ export class AttendanceService {
     }
 
     return users.map((u) => {
-      const userScheduleMap =
-        scheduleMaps.get(u.id) ??
-        new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
       const userDeclaredScheduleMap =
         declaredScheduleMaps.get(u.id) ??
         new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
@@ -408,7 +402,6 @@ export class AttendanceService {
         start,
         end,
         todayYmd,
-        scheduleMap: userScheduleMap,
         declaredScheduleMap: userDeclaredScheduleMap,
         records: recordsByUser.get(u.id) ?? [],
         shift,

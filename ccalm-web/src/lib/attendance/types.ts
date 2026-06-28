@@ -58,7 +58,6 @@ export type AttendancePunchDayRow = {
   afternoonOut: string | null;
   morningOutIsMakeup?: boolean;
   afternoonOutIsMakeup?: boolean;
-  scheduleRest?: ScheduleRestType | null;
   declaredRest?: ScheduleRestType | null;
   overtimeMinutes: number;
   overtimeStr: string;

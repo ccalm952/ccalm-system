@@ -12,7 +12,6 @@ type DayRow = {
   morningOut: string | null
   afternoonIn: string | null
   afternoonOut: string | null
-  scheduleRest: ScheduleRest
   declaredRest: ScheduleRest
 }
 

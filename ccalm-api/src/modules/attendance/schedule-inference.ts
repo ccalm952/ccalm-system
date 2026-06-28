@@ -1,5 +1,4 @@
 export {
-  inferShiftFromPunches,
   leaveDaysForShift,
   resolveShiftForDay,
   type DayPunchRecord,

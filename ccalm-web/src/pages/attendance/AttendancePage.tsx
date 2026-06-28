@@ -259,7 +259,7 @@ export function AttendancePage() {
     date: string;
     half: RestHalf;
     mode: "declare" | "clear";
-    scheduleRest?: AttendanceMonthlySummary["rows"][number]["scheduleRest"];
+    declaredRest?: ScheduleRestType | null;
   } | null>(null);
   const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
   const [gateTick, setGateTick] = React.useState(0);
@@ -627,7 +627,7 @@ export function AttendancePage() {
                                   date: r.date,
                                   half: "morning",
                                   mode: "declare",
-                                  scheduleRest: r.declaredRest,
+                                  declaredRest: r.declaredRest,
                                 })
                               }
                               onClear={() =>
@@ -635,7 +635,7 @@ export function AttendancePage() {
                                   date: r.date,
                                   half: "morning",
                                   mode: "clear",
-                                  scheduleRest: r.declaredRest,
+                                  declaredRest: r.declaredRest,
                                 })
                               }
                               onMakeup={(type) => setMakeupDialog({ date: r.date, type })}
@@ -674,7 +674,7 @@ export function AttendancePage() {
                                   date: r.date,
                                   half: "afternoon",
                                   mode: "declare",
-                                  scheduleRest: r.declaredRest,
+                                  declaredRest: r.declaredRest,
                                 })
                               }
                               onClear={() =>
@@ -682,7 +682,7 @@ export function AttendancePage() {
                                   date: r.date,
                                   half: "afternoon",
                                   mode: "clear",
-                                  scheduleRest: r.declaredRest,
+                                  declaredRest: r.declaredRest,
                                 })
                               }
                               onMakeup={(type) => setMakeupDialog({ date: r.date, type })}
@@ -740,7 +740,7 @@ export function AttendancePage() {
           date={restDialog.date}
           half={restDialog.half}
           mode={restDialog.mode}
-          scheduleRest={restDialog.scheduleRest}
+          declaredRest={restDialog.declaredRest}
           onSuccess={() => {
             void reloadAfterMutation();
           }}

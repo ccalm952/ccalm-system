@@ -145,7 +145,7 @@ export function AttendanceStatsPage() {
     date: string;
     half: RestHalf;
     mode: "declare" | "clear";
-    scheduleRest?: AttendancePunchDayRow["scheduleRest"];
+    declaredRest?: AttendancePunchDayRow["declaredRest"];
   } | null>(null);
   const [makeupTodayGate, setMakeupTodayGate] = React.useState<MakeupTodayGate | undefined>();
   const [shift, setShift] = React.useState<BackendShiftDto | null>(null);
@@ -362,7 +362,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "morning",
                                               mode: "declare",
-                                              scheduleRest: r.declaredRest,
+                                              declaredRest: r.declaredRest,
                                             })
                                           }
                                           onClear={() =>
@@ -372,7 +372,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "morning",
                                               mode: "clear",
-                                              scheduleRest: r.declaredRest,
+                                              declaredRest: r.declaredRest,
                                             })
                                           }
                                           onMakeup={(type) =>
@@ -436,7 +436,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "afternoon",
                                               mode: "declare",
-                                              scheduleRest: r.declaredRest,
+                                              declaredRest: r.declaredRest,
                                             })
                                           }
                                           onClear={() =>
@@ -446,7 +446,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "afternoon",
                                               mode: "clear",
-                                              scheduleRest: r.declaredRest,
+                                              declaredRest: r.declaredRest,
                                             })
                                           }
                                           onMakeup={(type) =>
@@ -545,7 +545,7 @@ export function AttendanceStatsPage() {
           date={restDialog.date}
           half={restDialog.half}
           mode={restDialog.mode}
-          scheduleRest={restDialog.scheduleRest}
+          declaredRest={restDialog.declaredRest}
           userId={
             isAdmin && me?.id !== restDialog.userId ? restDialog.userId : undefined
           }

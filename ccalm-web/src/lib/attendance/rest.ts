@@ -28,12 +28,8 @@ export function isHalfEffectivelyAtRest(row: AttendancePunchDayRow, half: RestHa
   return isHalfScheduleRest(row.declaredRest, half) && !halfHasPunch(row, half);
 }
 
-export function isHalfManuallyAtRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  return isHalfEffectivelyAtRest(row, half);
-}
-
 export function canClearRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  return isHalfManuallyAtRest(row, half);
+  return isHalfEffectivelyAtRest(row, half);
 }
 
 export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
@@ -44,11 +40,11 @@ export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): bool
 }
 
 export function willBecomeFullRest(
-  scheduleRest: ScheduleRestType | null | undefined,
+  declaredRest: ScheduleRestType | null | undefined,
   half: RestHalf,
 ): boolean {
-  if (half === "morning") return scheduleRest === "afternoon_rest";
-  return scheduleRest === "morning_rest";
+  if (half === "morning") return declaredRest === "afternoon_rest";
+  return declaredRest === "morning_rest";
 }
 
 export function restHalfLabel(half: RestHalf): string {
@@ -58,7 +54,7 @@ export function restHalfLabel(half: RestHalf): string {
 export function restConfirmMessage(
   date: string,
   half: RestHalf,
-  scheduleRest: ScheduleRestType | null | undefined,
+  declaredRest: ScheduleRestType | null | undefined,
   mode: "declare" | "clear",
 ): string {
   const label = restHalfLabel(half);
@@ -66,7 +62,7 @@ export function restConfirmMessage(
   if (mode === "clear") {
     return `确认取消 ${dateText} ${label}休息登记？`;
   }
-  if (willBecomeFullRest(scheduleRest, half)) {
+  if (willBecomeFullRest(declaredRest, half)) {
     return `确认将 ${dateText} 登记为全天休息？`;
   }
   return `确认将 ${dateText} ${label}登记为休息？`;

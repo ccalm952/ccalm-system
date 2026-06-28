@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildEditWindowContext,
-  inferShiftFromPunches,
   isWithinAttendanceEditWindow,
   leaveDaysForShift,
   resolveShiftForDay,
@@ -11,23 +10,10 @@ import {
 describe("schedule-inference", () => {
   const today = "2026-06-26"
 
-  it("无打卡不推断休息", () => {
-    expect(inferShiftFromPunches([])).toBeNull()
+  it("假期天数", () => {
     expect(leaveDaysForShift("full_rest")).toBe(1)
     expect(leaveDaysForShift("morning_rest")).toBe(0.5)
     expect(leaveDaysForShift(null)).toBe(0)
-  })
-
-  it("双上班卡为正常上班", () => {
-    expect(
-      inferShiftFromPunches([{ type: "morning_in" }, { type: "afternoon_in" }])
-    ).toBeNull()
-  })
-
-  it("仅有上午下班卡推断为下休", () => {
-    expect(inferShiftFromPunches([{ type: "morning_out" }])).toBe(
-      "afternoon_rest"
-    )
   })
 
   it("仅返回手动登记休息", () => {

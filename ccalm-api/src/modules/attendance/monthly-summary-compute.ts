@@ -55,8 +55,7 @@ export function computeMonthlySummaryAggregate(params: {
   start: Dayjs
   end: Dayjs
   todayYmd: string
-  scheduleMap: Map<string, "full_rest" | "morning_rest" | "afternoon_rest">
-  declaredScheduleMap?: Map<
+  declaredScheduleMap: Map<
     string,
     "full_rest" | "morning_rest" | "afternoon_rest"
   >
@@ -75,7 +74,6 @@ export function computeMonthlySummaryAggregate(params: {
     start,
     end,
     todayYmd,
-    scheduleMap,
     declaredScheduleMap,
     records,
     shift,
@@ -111,8 +109,7 @@ export function computeMonthlySummaryAggregate(params: {
     d = d.subtract(1, "day")
   ) {
     const ymd = d.format("YYYY-MM-DD")
-    const scheduleRest = scheduleMap.get(ymd) ?? null
-    const declaredRest = declaredScheduleMap?.get(ymd) ?? null
+    const declaredRest = declaredScheduleMap.get(ymd) ?? null
     const dayRecords = (byDate.get(ymd) ?? []).slice()
     const row: MonthlySummaryRow = {
       date: ymd,
@@ -122,7 +119,7 @@ export function computeMonthlySummaryAggregate(params: {
       afternoonOut: null,
       morningOutIsMakeup: false,
       afternoonOutIsMakeup: false,
-      scheduleRest,
+      scheduleRest: declaredRest,
       declaredRest,
       overtimeMinutes: 0,
       overtimeStr: "-",
@@ -148,7 +145,7 @@ export function computeMonthlySummaryAggregate(params: {
       row.afternoonIn ||
       row.afternoonOut
     )
-    if (!hasAny && !scheduleRest) {
+    if (!hasAny && !declaredRest) {
       if (ymd === todayYmd) {
         rows.push(row)
         continue

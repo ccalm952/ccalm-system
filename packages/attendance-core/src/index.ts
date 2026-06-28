@@ -10,7 +10,6 @@ export {
   type MakeupTodayGate,
 } from "./makeup-today-gate"
 export {
-  inferShiftFromPunches,
   leaveDaysForShift,
   resolveShiftForDay,
   type DayPunchRecord,

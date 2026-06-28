@@ -217,7 +217,7 @@ export class AttendanceMakeupService {
     }
   }
 
-  private async dayScheduleRest(userId: string, dateStr: string) {
+  private async dayDeclaredRest(userId: string, dateStr: string) {
     return await this.schedule.resolveShiftForUserDay(userId, dateStr)
   }
 
@@ -238,16 +238,16 @@ export class AttendanceMakeupService {
       throw new BadRequestException("该上班卡已存在，无需补卡")
     }
 
-    const scheduleRest = await this.dayScheduleRest(userId, dateStr)
+    const declaredRest = await this.dayDeclaredRest(userId, dateStr)
     if (
       type === "morning_in" &&
-      (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
+      (declaredRest === "morning_rest" || declaredRest === "full_rest")
     ) {
       throw new BadRequestException("该半天已登记休息，无法补上班卡")
     }
     if (
       type === "afternoon_in" &&
-      (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
+      (declaredRest === "afternoon_rest" || declaredRest === "full_rest")
     ) {
       throw new BadRequestException("该半天已登记休息，无法补上班卡")
     }
@@ -313,16 +313,16 @@ export class AttendanceMakeupService {
       throw new BadRequestException("需先补下午上班，才能补下午下班")
     }
 
-    const scheduleRest = await this.dayScheduleRest(userId, dateStr)
+    const declaredRest = await this.dayDeclaredRest(userId, dateStr)
     if (
       (type === "morning_in" || type === "morning_out") &&
-      (scheduleRest === "morning_rest" || scheduleRest === "full_rest")
+      (declaredRest === "morning_rest" || declaredRest === "full_rest")
     ) {
       throw new BadRequestException("该半天已登记休息，无法补卡")
     }
     if (
       (type === "afternoon_in" || type === "afternoon_out") &&
-      (scheduleRest === "afternoon_rest" || scheduleRest === "full_rest")
+      (declaredRest === "afternoon_rest" || declaredRest === "full_rest")
     ) {
       throw new BadRequestException("该半天已登记休息，无法补卡")
     }

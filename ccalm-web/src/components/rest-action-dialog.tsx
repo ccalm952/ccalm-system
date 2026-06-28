@@ -22,7 +22,7 @@ export function RestActionDialog(props: {
   date: string;
   half: RestHalf;
   mode: "declare" | "clear";
-  scheduleRest?: ScheduleRestType | null;
+  declaredRest?: ScheduleRestType | null;
   userId?: string;
   userName?: string;
   onSuccess: () => void;
@@ -33,14 +33,14 @@ export function RestActionDialog(props: {
     date,
     half,
     mode,
-    scheduleRest = null,
+    declaredRest = null,
     userId,
     userName,
     onSuccess,
   } = props;
   const [submitting, setSubmitting] = React.useState(false);
 
-  const message = restConfirmMessage(date, half, scheduleRest, mode);
+  const message = restConfirmMessage(date, half, declaredRest, mode);
 
   async function handleSubmit() {
     setSubmitting(true);
