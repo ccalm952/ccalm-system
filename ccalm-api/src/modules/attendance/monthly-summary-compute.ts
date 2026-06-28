@@ -6,7 +6,8 @@ import {
   formatAttendanceDate,
   formatAttendanceTime,
 } from "./attendance-dayjs"
-import { countMakeupButtonSlots, applyDayAttendanceRest } from "./makeup-slots"
+import { countMakeupButtonSlots, applyDayAttendance } from "./makeup-slots"
+import { leaveDaysForShift } from "./schedule-inference"
 import { minutesFromMidnight } from "./time"
 
 export type MonthlySummaryRow = {
@@ -150,15 +151,13 @@ export function computeMonthlySummaryAggregate(params: {
         rows.push(row)
         continue
       }
-      restDays += 1
       missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
       rows.push(row)
       continue
     }
 
-    const dayStats = applyDayAttendanceRest(row)
-    attendanceDays += dayStats.attendanceDays
-    restDays += dayStats.restDays
+    restDays += leaveDaysForShift(declaredRest)
+    attendanceDays += applyDayAttendance(row)
 
     missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
 
