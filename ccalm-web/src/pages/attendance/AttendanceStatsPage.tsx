@@ -362,7 +362,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "morning",
                                               mode: "declare",
-                                              scheduleRest: r.scheduleRest,
+                                              scheduleRest: r.declaredRest,
                                             })
                                           }
                                           onClear={() =>
@@ -372,7 +372,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "morning",
                                               mode: "clear",
-                                              scheduleRest: r.scheduleRest,
+                                              scheduleRest: r.declaredRest,
                                             })
                                           }
                                           onMakeup={(type) =>
@@ -436,7 +436,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "afternoon",
                                               mode: "declare",
-                                              scheduleRest: r.scheduleRest,
+                                              scheduleRest: r.declaredRest,
                                             })
                                           }
                                           onClear={() =>
@@ -446,7 +446,7 @@ export function AttendanceStatsPage() {
                                               date: r.date,
                                               half: "afternoon",
                                               mode: "clear",
-                                              scheduleRest: r.scheduleRest,
+                                              scheduleRest: r.declaredRest,
                                             })
                                           }
                                           onMakeup={(type) =>

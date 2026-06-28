@@ -18,6 +18,7 @@ export type MonthlySummaryRow = {
   morningOutIsMakeup: boolean
   afternoonOutIsMakeup: boolean
   scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
+  declaredRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
   overtimeMinutes: number
   overtimeStr: string
 }
@@ -55,6 +56,10 @@ export function computeMonthlySummaryAggregate(params: {
   end: Dayjs
   todayYmd: string
   scheduleMap: Map<string, "full_rest" | "morning_rest" | "afternoon_rest">
+  declaredScheduleMap?: Map<
+    string,
+    "full_rest" | "morning_rest" | "afternoon_rest"
+  >
   records: PunchRecord[]
   shift: ShiftGate
   pendingMakeups: PendingMakeup[]
@@ -66,8 +71,16 @@ export function computeMonthlySummaryAggregate(params: {
   overtimeStr: string
   rows: MonthlySummaryRow[]
 } {
-  const { start, end, todayYmd, scheduleMap, records, shift, pendingMakeups } =
-    params
+  const {
+    start,
+    end,
+    todayYmd,
+    scheduleMap,
+    declaredScheduleMap,
+    records,
+    shift,
+    pendingMakeups,
+  } = params
 
   const byDate = new Map<string, PunchRecord[]>()
   for (const r of records) {
@@ -99,6 +112,7 @@ export function computeMonthlySummaryAggregate(params: {
   ) {
     const ymd = d.format("YYYY-MM-DD")
     const scheduleRest = scheduleMap.get(ymd) ?? null
+    const declaredRest = declaredScheduleMap?.get(ymd) ?? null
     const dayRecords = (byDate.get(ymd) ?? []).slice()
     const row: MonthlySummaryRow = {
       date: ymd,
@@ -109,6 +123,7 @@ export function computeMonthlySummaryAggregate(params: {
       morningOutIsMakeup: false,
       afternoonOutIsMakeup: false,
       scheduleRest,
+      declaredRest,
       overtimeMinutes: 0,
       overtimeStr: "-",
     }

@@ -28,6 +28,14 @@ export function isHalfEffectivelyAtRest(row: AttendancePunchDayRow, half: RestHa
   return isHalfScheduleRest(row.scheduleRest, half) && !halfHasPunch(row, half);
 }
 
+export function isHalfManuallyAtRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
+  return isHalfScheduleRest(row.declaredRest, half) && !halfHasPunch(row, half);
+}
+
+export function canClearRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
+  return isHalfManuallyAtRest(row, half);
+}
+
 export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
   if (!isWithinMakeupWindow(row.date)) return false;
   if (halfHasPunch(row, half)) return false;

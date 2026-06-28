@@ -295,9 +295,11 @@ export class AttendanceService {
 
     const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const [scheduleMap, list, shift, pendingMakeups] = await Promise.all([
-      this.schedule.scheduleMapForUser(userId, startDate, rangeEnd),
-      this.prisma.attendanceRecord.findMany({
+    const [scheduleMap, declaredScheduleMap, list, shift, pendingMakeups] =
+      await Promise.all([
+        this.schedule.scheduleMapForUser(userId, startDate, rangeEnd),
+        this.schedule.declaredScheduleMapForUser(userId, startDate, rangeEnd),
+        this.prisma.attendanceRecord.findMany({
         where: {
           userId,
           punchTime: {
@@ -323,6 +325,7 @@ export class AttendanceService {
       end,
       todayYmd,
       scheduleMap,
+      declaredScheduleMap,
       records: list,
       shift,
       pendingMakeups,
@@ -352,9 +355,11 @@ export class AttendanceService {
     const userIds = users.map((u) => u.id)
     const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const [scheduleMaps, allRecords, shift, allPending] = await Promise.all([
-      this.schedule.scheduleMapsForUsers(userIds, startDate, rangeEnd),
-      this.prisma.attendanceRecord.findMany({
+    const [scheduleMaps, declaredScheduleMaps, allRecords, shift, allPending] =
+      await Promise.all([
+        this.schedule.scheduleMapsForUsers(userIds, startDate, rangeEnd),
+        this.schedule.declaredScheduleMapsForUsers(userIds, startDate, rangeEnd),
+        this.prisma.attendanceRecord.findMany({
         where: {
           userId: { in: userIds },
           punchTime: {
@@ -396,11 +401,15 @@ export class AttendanceService {
       const userScheduleMap =
         scheduleMaps.get(u.id) ??
         new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
+      const userDeclaredScheduleMap =
+        declaredScheduleMaps.get(u.id) ??
+        new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
       const aggregate = computeMonthlySummaryAggregate({
         start,
         end,
         todayYmd,
         scheduleMap: userScheduleMap,
+        declaredScheduleMap: userDeclaredScheduleMap,
         records: recordsByUser.get(u.id) ?? [],
         shift,
         pendingMakeups: pendingByUser.get(u.id) ?? [],

@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "author": "",
   "scripts": {
-    "build": "pnpm prisma:generate && nest build",
+    "build": "pnpm -C ../packages/attendance-core build && pnpm prisma:generate && nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
     "start:dev": "pnpm -C ../packages/attendance-core build && nest start --watch",

@@ -568,6 +568,46 @@ export class AttendanceScheduleService {
     return maps.get(userId) ?? new Map()
   }
 
+  async declaredScheduleMapForUser(
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<Map<string, ScheduleShiftType>> {
+    const maps = await this.declaredScheduleMapsForUsers(
+      [userId],
+      startDate,
+      endDate
+    )
+    return maps.get(userId) ?? new Map()
+  }
+
+  async declaredScheduleMapsForUsers(
+    userIds: string[],
+    startDate: string,
+    endDate: string
+  ): Promise<Map<string, Map<string, ScheduleShiftType>>> {
+    const result = new Map<string, Map<string, ScheduleShiftType>>()
+    for (const userId of userIds) result.set(userId, new Map())
+    if (!userIds.length) return result
+
+    const start = attendanceDayjs(startDate, "YYYY-MM-DD")
+    const end = attendanceDayjs(endDate, "YYYY-MM-DD")
+    if (!start.isValid() || !end.isValid() || end.isBefore(start, "day")) {
+      throw new BadRequestException("日期范围不合法")
+    }
+
+    const declaredMap = await this.fetchDeclaredMap(userIds, start, end)
+    for (const [key, shift] of declaredMap) {
+      const sep = key.indexOf(":")
+      if (sep < 0) continue
+      const userId = key.slice(0, sep)
+      const date = key.slice(sep + 1)
+      const userMap = result.get(userId)
+      if (userMap) userMap.set(date, shift)
+    }
+    return result
+  }
+
   async scheduleMapsForUsers(
     userIds: string[],
     startDate: string,

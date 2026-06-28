@@ -212,6 +212,7 @@ git pull https://github.com/ccalm952/ccalm-system master
 pnpm install
 
 cd ccalm-api
+pnpm -C ../packages/attendance-core build
 pnpm exec prisma generate
 pnpm exec prisma migrate deploy
 pnpm run build
