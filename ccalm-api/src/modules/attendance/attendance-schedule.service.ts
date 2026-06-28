@@ -3,9 +3,10 @@ import type { AttendancePunchType } from "@prisma/client"
 import dayjs from "dayjs"
 
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
-import { attendanceDayjs } from "./attendance-dayjs"
+import { attendanceDayjs, formatAttendanceDate } from "./attendance-dayjs"
 import {
-  leaveDaysForShift,
+  effectiveLeaveDaysForDay,
+  effectiveShiftForDay,
   type ScheduleShiftType,
 } from "./schedule-inference"
 
@@ -64,11 +65,53 @@ export class AttendanceScheduleService {
     )
   }
 
+  private async fetchPunchTypesByUserDay(
+    userIds: string[],
+    rangeStart: dayjs.Dayjs,
+    rangeEnd: dayjs.Dayjs
+  ): Promise<Map<string, Set<string>>> {
+    if (!userIds.length) return new Map()
+
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: {
+        userId: { in: userIds },
+        punchTime: {
+          gte: rangeStart.startOf("day").toDate(),
+          lte: rangeEnd.endOf("day").toDate(),
+        },
+      },
+      select: { userId: true, type: true, punchTime: true },
+    })
+
+    const byUserDay = new Map<string, Set<string>>()
+    for (const r of records) {
+      const date = formatAttendanceDate(r.punchTime)
+      const key = `${r.userId}:${date}`
+      const types = byUserDay.get(key) ?? new Set<string>()
+      types.add(r.type)
+      byUserDay.set(key, types)
+    }
+    return byUserDay
+  }
+
+  private halfPunchFlags(punchTypes: Set<string> | undefined): {
+    hasMorningPunch: boolean
+    hasAfternoonPunch: boolean
+  } {
+    const types = punchTypes ?? new Set<string>()
+    return {
+      hasMorningPunch: types.has("morning_in") || types.has("morning_out"),
+      hasAfternoonPunch:
+        types.has("afternoon_in") || types.has("afternoon_out"),
+    }
+  }
+
   private accumulateLeaveForMonth(
     userIds: string[],
     monthStart: dayjs.Dayjs,
     monthEnd: dayjs.Dayjs,
     declaredMap: Map<string, ScheduleShiftType>,
+    punchTypesByUserDay: Map<string, Set<string>>,
     leaveByUserMonth: Map<string, number>
   ) {
     for (const userId of userIds) {
@@ -79,12 +122,21 @@ export class AttendanceScheduleService {
       ) {
         const date = d.format("YYYY-MM-DD")
         const key = `${userId}:${date}`
-        const shift = declaredMap.get(key)
-        if (!shift) continue
+        const declared = declaredMap.get(key)
+        if (!declared) continue
+        const { hasMorningPunch, hasAfternoonPunch } = this.halfPunchFlags(
+          punchTypesByUserDay.get(key)
+        )
+        const leaveDays = effectiveLeaveDaysForDay(
+          declared,
+          hasMorningPunch,
+          hasAfternoonPunch
+        )
+        if (leaveDays <= 0) continue
         const monthKey = `${userId}:${date.slice(0, 7)}`
         leaveByUserMonth.set(
           monthKey,
-          (leaveByUserMonth.get(monthKey) ?? 0) + leaveDaysForShift(shift)
+          (leaveByUserMonth.get(monthKey) ?? 0) + leaveDays
         )
       }
     }
@@ -94,7 +146,8 @@ export class AttendanceScheduleService {
     userIds: string[],
     rangeStart: dayjs.Dayjs,
     rangeEnd: dayjs.Dayjs,
-    declaredMap: Map<string, ScheduleShiftType>
+    declaredMap: Map<string, ScheduleShiftType>,
+    punchTypesByUserDay: Map<string, Set<string>>
   ): Promise<Map<string, number>> {
     const leaveByUserMonth = new Map<string, number>()
     let monthCursor = rangeStart.startOf("month")
@@ -108,6 +161,7 @@ export class AttendanceScheduleService {
         monthStart,
         monthEnd,
         declaredMap,
+        punchTypesByUserDay,
         leaveByUserMonth
       )
       monthCursor = monthCursor.add(1, "month")
@@ -154,6 +208,11 @@ export class AttendanceScheduleService {
 
     const historyStart = attendanceDayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
     const declaredMap = await this.fetchDeclaredMap(userIds, historyStart, end)
+    const punchTypesByUserDay = await this.fetchPunchTypesByUserDay(
+      userIds,
+      historyStart,
+      end
+    )
 
     const monthKeys: string[] = []
     let monthCursor = historyStart
@@ -174,7 +233,8 @@ export class AttendanceScheduleService {
       userIds,
       historyStart,
       end,
-      declaredMap
+      declaredMap,
+      punchTypesByUserDay
     )
 
     return { configMap, leaveByUserMonth, declaredMap }
@@ -199,6 +259,11 @@ export class AttendanceScheduleService {
     const userIds = users.map((u) => u.id)
     const { configMap, leaveByUserMonth, declaredMap } =
       await this.buildLeaveContext(userIds, month, users)
+    const punchTypesByUserDay = await this.fetchPunchTypesByUserDay(
+      userIds,
+      start,
+      end
+    )
 
     const userRows = users.map((u) => {
       const days: Record<string, ScheduleShiftType | null> = {}
@@ -209,7 +274,15 @@ export class AttendanceScheduleService {
       for (let d = 1; d <= daysInMonth; d += 1) {
         const date = start.date(d).format("YYYY-MM-DD")
         const key = `${u.id}:${date}`
-        const shift = declaredMap.get(key) ?? null
+        const declared = declaredMap.get(key) ?? null
+        const { hasMorningPunch, hasAfternoonPunch } = this.halfPunchFlags(
+          punchTypesByUserDay.get(key)
+        )
+        const shift = effectiveShiftForDay(
+          declared,
+          hasMorningPunch,
+          hasAfternoonPunch
+        )
         days[String(d)] = shift
         if (shift === "full_rest") fullCount += 1
         if (shift === "morning_rest") morningCount += 1
