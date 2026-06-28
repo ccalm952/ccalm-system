@@ -32,30 +32,3 @@ export function isPunchBlockedByScheduleRest(
   }
   return false
 }
-
-/** 某半天有任意的上/下班卡即视为该半天已出勤，不再计休息。 */
-export function effectiveLeaveDaysForDay(
-  declared: ScheduleShiftType | null | undefined,
-  hasMorningPunch: boolean,
-  hasAfternoonPunch: boolean
-): number {
-  let days = 0
-  if (isMorningScheduleRest(declared) && !hasMorningPunch) days += 0.5
-  if (isAfternoonScheduleRest(declared) && !hasAfternoonPunch) days += 0.5
-  return days
-}
-
-/** 去掉已有打卡的半天后，剩余的有效休息登记类型。 */
-export function effectiveShiftForDay(
-  declared: ScheduleShiftType | null | undefined,
-  hasMorningPunch: boolean,
-  hasAfternoonPunch: boolean
-): ScheduleShiftType | null {
-  if (!declared) return null
-  const morning = isMorningScheduleRest(declared) && !hasMorningPunch
-  const afternoon = isAfternoonScheduleRest(declared) && !hasAfternoonPunch
-  if (morning && afternoon) return "full_rest"
-  if (morning) return "morning_rest"
-  if (afternoon) return "afternoon_rest"
-  return null
-}

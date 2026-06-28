@@ -16,8 +16,6 @@ export {
   type ScheduleShiftType,
 } from "./schedule-inference"
 export {
-  effectiveLeaveDaysForDay,
-  effectiveShiftForDay,
   isAfternoonScheduleRest,
   isMorningScheduleRest,
   isPunchBlockedByScheduleRest,

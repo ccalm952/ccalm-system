@@ -186,7 +186,6 @@ export class AttendanceService {
         }
       }
 
-      await this.schedule.reconcileRestEntryForUserDay(userId, punchDate, tx)
       return result
     })
   }

@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildEditWindowContext,
-  effectiveLeaveDaysForDay,
-  effectiveShiftForDay,
   isWithinAttendanceEditWindow,
   leaveDaysForShift,
   resolveShiftForDay,
@@ -28,23 +26,6 @@ describe("schedule-inference", () => {
       "morning_rest"
     )
     expect(resolveShiftForDay("2026-06-20", "afternoon_rest", [], today)).toBe(
-      "afternoon_rest"
-    )
-  })
-})
-
-describe("effective rest", () => {
-  it("有打卡的半天不计休息", () => {
-    expect(
-      effectiveLeaveDaysForDay("afternoon_rest", false, true)
-    ).toBe(0)
-    expect(
-      effectiveShiftForDay("afternoon_rest", false, true)
-    ).toBeNull()
-    expect(
-      effectiveLeaveDaysForDay("full_rest", true, false)
-    ).toBe(0.5)
-    expect(effectiveShiftForDay("full_rest", true, false)).toBe(
       "afternoon_rest"
     )
   })
