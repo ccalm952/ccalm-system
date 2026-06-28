@@ -4,7 +4,7 @@ import type { AttendanceMakeupRequest, ScheduleRestType } from "./types";
  * 考勤四色体系（映射 shadcn 主题 token）：
  * - 正文 foreground：打卡时间、有数据、时钟强调
  * - 次要 muted-foreground：说明、占位、进行中、无数据
- * - 强调 foreground + 字重/下划线：可点击 link（主题下 primary 与正文有区分，表格内操作用 foreground）
+ * - 强调 primary：可点击 link（与薪资表录入色一致）
  * - 警示 destructive：缺卡、错误、节假日、排班「上」
  */
 
@@ -36,7 +36,7 @@ export const attendanceExpandedRowClass = "bg-muted/10";
 
 /** 表格内 link 操作（字重 + 悬停下划线） */
 export const tableActionLinkClass =
-  "h-auto px-0 text-sm font-medium text-foreground underline-offset-4 hover:underline";
+  "h-auto px-0 text-sm font-medium text-primary underline-offset-4 hover:underline";
 
 /** 设置页区块小标题 */
 export const attendanceSectionTitleClass = `mb-3 text-sm font-semibold ${attendanceMutedTextClass}`;
