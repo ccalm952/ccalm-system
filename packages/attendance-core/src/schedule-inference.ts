@@ -39,14 +39,12 @@ export function inferShiftFromPunches(
   return null
 }
 
-/** 登记休息优先；当天与未来不推断；历史日无登记则按打卡推断。 */
+/** 仅使用考勤页手动登记的休息，不根据打卡记录推断。 */
 export function resolveShiftForDay(
-  dateStr: string,
+  _dateStr: string,
   declared: ScheduleShiftType | null | undefined,
-  dayRecords: DayPunchRecord[],
-  todayYmd: string
+  _dayRecords: DayPunchRecord[],
+  _todayYmd: string
 ): ScheduleShiftType | null {
-  if (declared) return declared
-  if (dateStr >= todayYmd) return null
-  return inferShiftFromPunches(dayRecords)
+  return declared ?? null
 }

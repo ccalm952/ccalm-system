@@ -30,26 +30,18 @@ describe("schedule-inference", () => {
     )
   })
 
-  it("登记休息优先于打卡推断", () => {
+  it("仅返回手动登记休息", () => {
+    expect(resolveShiftForDay("2026-06-20", null, [], today)).toBeNull()
     expect(
-      resolveShiftForDay(
-        "2026-06-20",
-        "morning_rest",
-        [{ type: "morning_in" }, { type: "afternoon_in" }],
-        today
-      )
-    ).toBe("morning_rest")
-  })
-
-  it("当天无登记不推断", () => {
+      resolveShiftForDay("2026-06-20", null, [{ type: "morning_in" }], today)
+    ).toBeNull()
     expect(resolveShiftForDay(today, null, [], today)).toBeNull()
     expect(resolveShiftForDay(today, "morning_rest", [], today)).toBe(
       "morning_rest"
     )
-  })
-
-  it("历史日无登记无打卡不推断休息", () => {
-    expect(resolveShiftForDay("2026-06-01", null, [], today)).toBeNull()
+    expect(resolveShiftForDay("2026-06-20", "afternoon_rest", [], today)).toBe(
+      "afternoon_rest"
+    )
   })
 })
 

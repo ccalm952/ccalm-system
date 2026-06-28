@@ -10,7 +10,7 @@ import {
   type MakeupInType,
   type MakeupTodayGate,
 } from "@/lib/attendance/makeup";
-import { canClearRest, canDeclareRest, isHalfEffectivelyAtRest, type RestHalf } from "@/lib/attendance/rest";
+import { canClearRest, canDeclareRest, type RestHalf } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 import { cn } from "@/lib/utils";
 
@@ -42,10 +42,6 @@ export function AttendanceInCell(props: {
         休息
       </Button>
     );
-  }
-
-  if (isHalfEffectivelyAtRest(row, half)) {
-    return <span className={cn("text-sm", attendanceMutedTextClass)}>休息</span>;
   }
 
   const inType = inTypeForHalf(half);
