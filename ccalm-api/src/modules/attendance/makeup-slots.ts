@@ -13,6 +13,7 @@ type DayRow = {
   afternoonIn: string | null
   afternoonOut: string | null
   scheduleRest: ScheduleRest
+  declaredRest: ScheduleRest
 }
 
 type PendingMakeup = {
@@ -35,13 +36,13 @@ function isAfternoonScheduleRest(scheduleRest: ScheduleRest): boolean {
 
 function isMorningEffectivelyAtRest(row: DayRow): boolean {
   return (
-    isMorningScheduleRest(row.scheduleRest) && !row.morningIn && !row.morningOut
+    isMorningScheduleRest(row.declaredRest) && !row.morningIn && !row.morningOut
   )
 }
 
 function isAfternoonEffectivelyAtRest(row: DayRow): boolean {
   return (
-    isAfternoonScheduleRest(row.scheduleRest) &&
+    isAfternoonScheduleRest(row.declaredRest) &&
     !row.afternoonIn &&
     !row.afternoonOut
   )

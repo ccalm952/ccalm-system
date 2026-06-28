@@ -48,13 +48,13 @@ export function adminMakeupSlotState(
 
   if (
     (type === "morning_in" || type === "morning_out") &&
-    isHalfScheduleRest(row.scheduleRest, "morning")
+    isHalfScheduleRest(row.declaredRest, "morning")
   ) {
     return null;
   }
   if (
     (type === "afternoon_in" || type === "afternoon_out") &&
-    isHalfScheduleRest(row.scheduleRest, "afternoon")
+    isHalfScheduleRest(row.declaredRest, "afternoon")
   ) {
     return null;
   }

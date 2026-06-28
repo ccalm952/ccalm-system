@@ -120,13 +120,13 @@ function isManualPunchDisabledPure(
       afternoonOutWindowEnd: string;
     };
     map: Partial<Record<AttendancePunchType, AttendanceRecord>>;
-    scheduleRest: ScheduleRestType | null;
+    declaredRest: ScheduleRestType | null;
     at: Date;
   },
 ): boolean {
   if (!opts.lat) return true;
   if (opts.fence.enabled && !insideFenceFor(opts.lat, opts.lng, opts.fence)) return true;
-  if (isPunchBlockedByScheduleRest(t, opts.scheduleRest)) return true;
+  if (isPunchBlockedByScheduleRest(t, opts.declaredRest)) return true;
   const { shift, map, at } = opts;
 
   if (t === "morning_in") {
@@ -323,11 +323,11 @@ export function AttendancePage() {
     geofenceRes: GeofenceConfig;
     shiftRes: BackendShiftDto;
     recordsSnapshot: AttendanceRecord[];
-    scheduleRest: ScheduleRestType | null;
+    declaredRest: ScheduleRestType | null;
     cancelled?: () => boolean;
     session?: number;
   }): Promise<PunchAttemptResult | null> {
-    const { lat, lng, address, geofenceRes, shiftRes, recordsSnapshot, scheduleRest, cancelled, session } = opts;
+    const { lat, lng, address, geofenceRes, shiftRes, recordsSnapshot, declaredRest, cancelled, session } = opts;
 
     if (geofenceRes.enabled && !insideFenceFor(lat, lng, geofenceRes)) {
       return "outside_fence";
@@ -340,7 +340,7 @@ export function AttendancePage() {
       fence: geofenceRes,
       shift: shiftRes,
       map,
-      scheduleRest,
+      declaredRest,
       at: new Date(),
     });
     if (!quick) return "outside_time";
@@ -406,8 +406,8 @@ export function AttendancePage() {
         sessionStorage.setItem("attendance_auto_located", "1");
 
         const session = ++autoPunchEpochRef.current;
-        const scheduleRest =
-          bundle.monthly.rows.find((r) => r.date === todayKey())?.scheduleRest ?? null;
+        const declaredRest =
+          bundle.monthly.rows.find((r) => r.date === todayKey())?.declaredRest ?? null;
 
         try {
           setLoc((s) => ({ ...s, attempted: true, locating: true }));
@@ -422,7 +422,7 @@ export function AttendancePage() {
             geofenceRes,
             shiftRes: bundle.shiftRes,
             recordsSnapshot: bundle.todayRes,
-            scheduleRest,
+            declaredRest,
             cancelled: () => cancelled,
             session,
           });
@@ -466,8 +466,8 @@ export function AttendancePage() {
       ]);
       if (session !== autoPunchEpochRef.current) return;
 
-      const scheduleRest =
-        bundle.monthly.rows.find((r) => r.date === todayKey())?.scheduleRest ?? null;
+      const declaredRest =
+        bundle.monthly.rows.find((r) => r.date === todayKey())?.declaredRest ?? null;
 
       const punchResult = await autoPunchAfterLocate({
         lat: located.lat,
@@ -476,7 +476,7 @@ export function AttendancePage() {
         geofenceRes,
         shiftRes: bundle.shiftRes,
         recordsSnapshot: bundle.todayRes,
-        scheduleRest,
+        declaredRest,
         session,
       });
       notifyPunchAttempt(punchResult);
