@@ -11,8 +11,8 @@ import {
 describe("schedule-inference", () => {
   const today = "2026-06-26"
 
-  it("无打卡推断为全休", () => {
-    expect(inferShiftFromPunches([])).toBe("full_rest")
+  it("无打卡不推断休息", () => {
+    expect(inferShiftFromPunches([])).toBeNull()
     expect(leaveDaysForShift("full_rest")).toBe(1)
     expect(leaveDaysForShift("morning_rest")).toBe(0.5)
     expect(leaveDaysForShift(null)).toBe(0)
@@ -48,8 +48,8 @@ describe("schedule-inference", () => {
     )
   })
 
-  it("历史日无登记无打卡推断全休", () => {
-    expect(resolveShiftForDay("2026-06-01", null, [], today)).toBe("full_rest")
+  it("历史日无登记无打卡不推断休息", () => {
+    expect(resolveShiftForDay("2026-06-01", null, [], today)).toBeNull()
   })
 })
 

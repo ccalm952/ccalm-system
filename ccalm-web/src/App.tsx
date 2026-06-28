@@ -19,6 +19,7 @@ import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
 import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
 import { UsersPage } from "@/pages/users/UsersPage";
 import { WarehouseSection } from "@/pages/warehouse/WarehouseSection";
+import { SalaryPage } from "@/pages/salary/SalaryPage";
 
 const LoginPage = lazy(() =>
   import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
@@ -125,6 +126,8 @@ export function App() {
             </Route>
 
             <Route path="warehouse/*" element={<WarehouseSection />} />
+
+            <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>

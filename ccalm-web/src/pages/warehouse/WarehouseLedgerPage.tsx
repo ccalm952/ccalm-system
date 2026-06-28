@@ -145,12 +145,10 @@ function WarehouseCategoryCombobox({
   items,
   value,
   onValueChange,
-  className,
 }: {
   items: string[];
   value: string;
   onValueChange: (v: string) => void;
-  className?: string;
 }) {
   return (
     <Combobox
@@ -159,11 +157,7 @@ function WarehouseCategoryCombobox({
       onValueChange={(v) => onValueChange(v ?? "")}
       onInputValueChange={(v) => onValueChange(v)}
     >
-      <ComboboxInput
-        showTrigger={false}
-        placeholder="选择或输入分类"
-        className={cn("w-full min-w-0", className)}
-      />
+      <ComboboxInput placeholder="选择或输入分类" />
       <ComboboxContent>
         <ComboboxEmpty>暂无匹配，可直接输入新分类</ComboboxEmpty>
         <ComboboxList>

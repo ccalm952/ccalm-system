@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarCheck2, ChevronRightIcon, Package, Sprout } from "lucide-react";
+import { CalendarCheck2, ChevronRightIcon, Package, Sprout, Wallet } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -20,6 +20,7 @@ import {
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { warehouseSubNavItems } from "@/config/warehouse-nav";
+import { salaryNavItem } from "@/config/salary-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -121,6 +122,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 pathname={pathname}
               />
             ))}
+            {me?.role === "admin" ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={subPathActive(pathname, salaryNavItem.url)}
+                  render={<Link to={salaryNavItem.url} />}
+                  tooltip={salaryNavItem.title}
+                >
+                  <Wallet className="shrink-0" />
+                  <span>{salaryNavItem.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

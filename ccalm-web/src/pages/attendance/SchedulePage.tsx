@@ -318,7 +318,7 @@ export function SchedulePage() {
           </div>
 
           <p className={cn("mt-2 text-xs", attendanceMutedTextClass)}>
-            排班由打卡记录自动推算；员工在考勤页登记的休息优先显示。当天尚未结束时不推断全休。
+            排班由打卡记录自动推算；员工在考勤页登记的休息优先显示。无打卡记录不推断全休。
           </p>
         </CardContent>
       </Card>

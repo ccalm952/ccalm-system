@@ -10,11 +10,15 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { warehouseSubNavItems } from "@/config/warehouse-nav";
+import { salaryNavItem } from "@/config/salary-nav";
+import { ROUTES } from "@/config/routes";
+import { useAuth } from "@/lib/use-auth";
 
 /** 路由变化后收起 Sheet 侧栏（移动端或 overlaySidebar 桌面模式）。 */
 function CloseSidebarOnNavigate() {
@@ -43,6 +47,8 @@ function CloseSidebarOnNavigate() {
 }
 
 export function MainLayout() {
+  const { me } = useAuth();
+
   return (
     <SidebarProvider defaultOpen={false} overlaySidebar>
       <CloseSidebarOnNavigate />
@@ -95,6 +101,16 @@ export function MainLayout() {
                     ))}
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+                {me?.role === "admin" ? (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      className={navigationMenuTriggerStyle()}
+                      render={<Link to={ROUTES.salary.root} />}
+                    >
+                      {salaryNavItem.title}
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                ) : null}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -102,7 +118,7 @@ export function MainLayout() {
             <MakeupTodoButton />
           </div>
         </header>
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <Outlet />
         </div>
       </SidebarInset>

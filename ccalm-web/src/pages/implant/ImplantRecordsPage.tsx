@@ -179,23 +179,14 @@ function ToothBrandCombobox({
   brands,
   value,
   onValueChange,
-  className,
-  placeholder,
 }: {
   brands: string[];
   value: string;
   onValueChange: (v: string) => void;
-  className?: string;
-  placeholder?: string;
 }) {
   return (
     <Combobox items={brands} value={value || null} onValueChange={(v) => onValueChange(v ?? "")}>
-      <ComboboxInput
-        showTrigger={false}
-        className={className}
-        placeholder={placeholder}
-        aria-label={placeholder}
-      />
+      <ComboboxInput placeholder="品牌" />
       <ComboboxContent>
         <ComboboxEmpty>库存中暂无品牌</ComboboxEmpty>
         <ComboboxList>
@@ -740,7 +731,6 @@ function ImplantRecordsVisitDialog({
                                       rows.map((x, j) => (j === i ? { ...x, implantBrand: v } : x)),
                                     )
                                   }
-                                  className="w-full"
                                 />
                               </FieldContent>
                             </Field>
@@ -973,8 +963,6 @@ function ImplantRecordsVisitDialog({
                                       t.map((x, j) => (j === i ? { ...x, implantBrand: v } : x)),
                                     )
                                   }
-                                  className="w-full"
-                                  placeholder="品牌"
                                 />
                               </FieldContent>
                             </Field>

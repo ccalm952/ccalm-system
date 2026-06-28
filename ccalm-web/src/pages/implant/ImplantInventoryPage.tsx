@@ -84,14 +84,10 @@ function InventoryBrandCombobox({
   items,
   value,
   onValueChange,
-  className,
-  placeholder,
 }: {
   items: string[];
   value: string;
   onValueChange: (v: string) => void;
-  className?: string;
-  placeholder?: string;
 }) {
   return (
     <Combobox
@@ -100,11 +96,7 @@ function InventoryBrandCombobox({
       onValueChange={(v) => onValueChange(v ?? "")}
       onInputValueChange={(v) => onValueChange(v)}
     >
-      <ComboboxInput
-        showTrigger={false}
-        placeholder={placeholder}
-        className={cn("w-full min-w-0", className)}
-      />
+      <ComboboxInput placeholder="品牌" />
       <ComboboxContent>
         <ComboboxEmpty>暂无匹配，可直接输入新品牌</ComboboxEmpty>
         <ComboboxList>
@@ -452,7 +444,6 @@ export function ImplantInventoryPage() {
                 items={addBrandItems}
                 value={addBrand}
                 onValueChange={setAddBrand}
-                placeholder="品牌"
               />
               <Input
                 value={addModel}

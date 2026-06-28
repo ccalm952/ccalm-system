@@ -1,3 +1,15 @@
+"use client"
+
+/**
+ * CCALM 定制说明（基准：shadcn/ui registry `base-vega` combobox）
+ * 官方源码：https://ui.shadcn.com/r/styles/base-vega/combobox.json
+ *
+ * 与官方默认不一致之处均在 `ComboboxInput` 内，搜索 `CCALM:` 可定位全部改动：
+ * 1. `showTrigger` 默认值：官方 `true` → 本项目 `false`
+ * 2. `InputGroupAddon` 条件渲染：官方始终渲染 addon；无 trigger/clear 时不渲染，
+ *    避免 `input-group` 对 input 施加不对称右侧 padding（`pr-1.5`）
+ */
+
 import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
 
@@ -51,32 +63,37 @@ function ComboboxInput({
   className,
   children,
   disabled = false,
-  showTrigger = true,
+  showTrigger = false, // CCALM: 官方默认 true
   showClear = false,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean
   showClear?: boolean
 }) {
+  // CCALM: 官方始终渲染 InputGroupAddon；无按钮时不渲染，保持左右 padding 对称
+  const showAddon = showTrigger || showClear
+
   return (
     <InputGroup className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
         render={<InputGroupInput disabled={disabled} />}
         {...props}
       />
-      <InputGroupAddon align="inline-end">
-        {showTrigger && (
-          <InputGroupButton
-            size="icon-xs"
-            variant="ghost"
-            render={<ComboboxTrigger />}
-            data-slot="input-group-button"
-            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
-            disabled={disabled}
-          />
-        )}
-        {showClear && <ComboboxClear disabled={disabled} />}
-      </InputGroupAddon>
+      {showAddon ? (
+        <InputGroupAddon align="inline-end">
+          {showTrigger && (
+            <InputGroupButton
+              size="icon-xs"
+              variant="ghost"
+              render={<ComboboxTrigger />}
+              data-slot="input-group-button"
+              className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
+              disabled={disabled}
+            />
+          )}
+          {showClear && <ComboboxClear disabled={disabled} />}
+        </InputGroupAddon>
+      ) : null}
       {children}
     </InputGroup>
   )

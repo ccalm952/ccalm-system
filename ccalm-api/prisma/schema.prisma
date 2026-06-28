@@ -250,3 +250,10 @@ model ImplantInventory {
 
   @@unique([brand, model])
 }
+
+model SalarySheet {
+  month     String   @id
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

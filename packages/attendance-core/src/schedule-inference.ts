@@ -29,7 +29,7 @@ export function inferShiftFromPunches(
   const hasAfternoonHalf = hasAfternoonIn || map.has("afternoon_out")
   const hasAny = hasMorningHalf || hasAfternoonHalf
 
-  if (!hasAny) return "full_rest"
+  if (!hasAny) return null
   if (hasMorningIn && hasAfternoonIn) return null
   if (hasMorningIn && !hasAfternoonIn) return "afternoon_rest"
   if (!hasMorningIn && hasAfternoonIn) return "morning_rest"

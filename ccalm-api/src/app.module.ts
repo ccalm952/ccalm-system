@@ -8,6 +8,7 @@ import { UsersModule } from "./modules/users/users.module"
 import { AttendanceModule } from "./modules/attendance/attendance.module"
 import { ImplantModule } from "./modules/implant/implant.module"
 import { WarehouseModule } from "./modules/warehouse/warehouse.module"
+import { SalaryModule } from "./modules/salary/salary.module"
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { WarehouseModule } from "./modules/warehouse/warehouse.module"
     AttendanceModule,
     ImplantModule,
     WarehouseModule,
+    SalaryModule,
   ],
   controllers: [],
   providers: [
