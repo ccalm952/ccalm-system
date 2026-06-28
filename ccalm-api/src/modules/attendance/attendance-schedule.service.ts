@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
-import type { AttendancePunchType } from "@prisma/client"
+import type { AttendancePunchType, Prisma } from "@prisma/client"
 import dayjs from "dayjs"
 
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
@@ -379,6 +379,47 @@ export class AttendanceScheduleService {
       select: { shiftType: true, isManual: true },
     })
     return entry?.isManual ? entry.shiftType : null
+  }
+
+  /** 打卡与休息登记冲突时，删除或缩减休息（与 effectiveShiftForDay 一致）。 */
+  async reconcileRestEntryForUserDay(
+    userId: string,
+    dateStr: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<void> {
+    const db = tx ?? this.prisma
+    const entry = await db.scheduleEntry.findUnique({
+      where: { userId_date: { userId, date: dateStr } },
+    })
+    if (!entry?.isManual) return
+
+    const records = await db.attendanceRecord.findMany({
+      where: { userId, punchDate: dateStr },
+      select: { type: true },
+    })
+    const { hasMorningPunch, hasAfternoonPunch } = this.halfPunchFlags(
+      new Set(records.map((r) => r.type))
+    )
+
+    const next = effectiveShiftForDay(
+      entry.shiftType,
+      hasMorningPunch,
+      hasAfternoonPunch
+    )
+
+    if (next === entry.shiftType) return
+
+    if (!next) {
+      await db.scheduleEntry.delete({
+        where: { userId_date: { userId, date: dateStr } },
+      })
+      return
+    }
+
+    await db.scheduleEntry.update({
+      where: { userId_date: { userId, date: dateStr } },
+      data: { shiftType: next },
+    })
   }
 
   async assertHalfOpenForPunch(

@@ -484,6 +484,12 @@ export class AttendanceMakeupService {
         )
       }
 
+      await this.schedule.reconcileRestEntryForUserDay(
+        req.userId,
+        req.date,
+        tx
+      )
+
       const row = await tx.attendanceMakeupRequest.findUnique({
         where: { id: requestId },
         include: this.includeUser(),
@@ -564,6 +570,12 @@ export class AttendanceMakeupService {
           type as MakeupInType
         )
       }
+
+      await this.schedule.reconcileRestEntryForUserDay(
+        dto.userId,
+        dto.date,
+        tx
+      )
 
       return created
     })

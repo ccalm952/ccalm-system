@@ -157,33 +157,37 @@ export class AttendanceService {
       this.assertPunchWindow(type, map, shift, inRange)
 
       const existing = map.get(type)
+      let result
       if (existing) {
-        return await this.updateOutPunch(tx, existing.id, type, now, dto)
-      }
-
-      try {
-        return await tx.attendanceRecord.create({
-          data: {
+        result = await this.updateOutPunch(tx, existing.id, type, now, dto)
+      } else {
+        try {
+          result = await tx.attendanceRecord.create({
+            data: {
+              userId,
+              type,
+              punchDate,
+              punchTime: now,
+              latitude: dto.latitude,
+              longitude: dto.longitude,
+              address: dto.address ?? "",
+            },
+          })
+        } catch (error) {
+          if (!isPrismaUniqueViolation(error)) throw error
+          result = await this.resolveConcurrentPunch(
+            tx,
             userId,
             type,
             punchDate,
-            punchTime: now,
-            latitude: dto.latitude,
-            longitude: dto.longitude,
-            address: dto.address ?? "",
-          },
-        })
-      } catch (error) {
-        if (!isPrismaUniqueViolation(error)) throw error
-        return await this.resolveConcurrentPunch(
-          tx,
-          userId,
-          type,
-          punchDate,
-          now,
-          dto
-        )
+            now,
+            dto
+          )
+        }
       }
+
+      await this.schedule.reconcileRestEntryForUserDay(userId, punchDate, tx)
+      return result
     })
   }
 
