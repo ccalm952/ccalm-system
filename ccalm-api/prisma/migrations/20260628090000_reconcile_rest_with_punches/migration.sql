@@ -1,4 +1,6 @@
 -- 清理与打卡冲突的手动休息登记：有打卡的半天取消对应休息，全天冲突则删行或降为半天
+-- PostgreSQL 的 CTE 不能跨语句复用，DELETE / UPDATE 各用独立的 WITH
+
 WITH punch_flags AS (
   SELECT
     "userId",
@@ -19,6 +21,19 @@ to_delete AS (
       OR (se."shiftType" = 'morning_rest' AND pf.has_morning)
       OR (se."shiftType" = 'afternoon_rest' AND pf.has_afternoon)
     )
+)
+DELETE FROM "ScheduleEntry" se
+USING to_delete td
+WHERE se."userId" = td."userId" AND se."date" = td."date";
+
+WITH punch_flags AS (
+  SELECT
+    "userId",
+    "punchDate" AS date,
+    BOOL_OR("type" IN ('morning_in', 'morning_out')) AS has_morning,
+    BOOL_OR("type" IN ('afternoon_in', 'afternoon_out')) AS has_afternoon
+  FROM "AttendanceRecord"
+  GROUP BY "userId", "punchDate"
 ),
 to_update AS (
   SELECT
@@ -40,10 +55,6 @@ to_update AS (
       OR (pf.has_afternoon AND NOT pf.has_morning)
     )
 )
-DELETE FROM "ScheduleEntry" se
-USING to_delete td
-WHERE se."userId" = td."userId" AND se."date" = td."date";
-
 UPDATE "ScheduleEntry" se
 SET
   "shiftType" = tu.new_shift,
