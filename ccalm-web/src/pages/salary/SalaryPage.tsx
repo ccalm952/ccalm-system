@@ -48,8 +48,10 @@ import type {
 } from "@/lib/salary/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { hasSalaryUnlockToken, setSalaryUnlockToken } from "@/lib/salary-unlock";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
+import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog";
 
 /** 表格中需突出的数值：红色，不加粗 */
 const SALARY_HIGHLIGHT = "text-destructive";
@@ -824,8 +826,21 @@ function LineItemTable({
   );
 }
 
+const salaryApi = { salary: true as const };
+
+function handleSalaryAccessError(e: unknown, onLocked: () => void): boolean {
+  const err = e as { status?: number };
+  if (err.status === 403) {
+    setSalaryUnlockToken(null);
+    onLocked();
+    return true;
+  }
+  return false;
+}
+
 export function SalaryPage() {
   const { me } = useAuth();
+  const [salaryUnlocked, setSalaryUnlocked] = React.useState(hasSalaryUnlockToken);
   const months = React.useMemo(() => listSalaryMonths(), []);
   const [activeMonth, setActiveMonth] = React.useState(() => months[months.length - 1] ?? "");
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
@@ -834,14 +849,25 @@ export function SalaryPage() {
   const saveTimerRef = React.useRef<number | null>(null);
 
   const fetchMonth = React.useCallback(async (month: string) => {
-    const res = await api<{ month: string; data: SalarySheetData }>("GET", `/salary/${month}`);
+    const res = await api<{ month: string; data: SalarySheetData }>(
+      "GET",
+      `/salary/${month}`,
+      undefined,
+      salaryApi,
+    );
     const data = normalizeSalarySheet(res.data, month);
     const rawDays =
       isSalarySheetData(res.data) ? res.data.summary.daysInMonth : undefined;
     if (!isSalarySheetData(res.data) || rawDays !== calendarDaysForMonth(month)) {
-      await api("PUT", `/salary/${month}`, { data });
+      await api("PUT", `/salary/${month}`, { data }, salaryApi);
     }
     return data;
+  }, []);
+
+  const lockSalary = React.useCallback(() => {
+    setSalaryUnlockToken(null);
+    setSalaryUnlocked(false);
+    setSheets({});
   }, []);
 
   const loadMonth = React.useCallback(
@@ -862,11 +888,12 @@ export function SalaryPage() {
           }
         }
       } catch (e) {
+        if (handleSalaryAccessError(e, lockSalary)) return;
         const err = e as { status?: number };
         if (err.status === 404) {
           const data = createDefaultSalarySheet(month);
           setSheets((prev) => ({ ...prev, [month]: data }));
-          await api("PUT", `/salary/${month}`, { data });
+          await api("PUT", `/salary/${month}`, { data }, salaryApi);
         } else {
           toast.error(errorMessage(e));
         }
@@ -874,12 +901,12 @@ export function SalaryPage() {
         setLoadingMonth((m) => (m === month ? null : m));
       }
     },
-    [fetchMonth, sheets],
+    [fetchMonth, lockSalary, sheets],
   );
 
   React.useEffect(() => {
-    if (activeMonth) void loadMonth(activeMonth);
-  }, [activeMonth, loadMonth]);
+    if (salaryUnlocked && activeMonth) void loadMonth(activeMonth);
+  }, [activeMonth, loadMonth, salaryUnlocked]);
 
   const patchSheet = React.useCallback((month: string, patch: SalarySheetData) => {
     const data = applyMonthCalendar(patch, month);
@@ -887,14 +914,26 @@ export function SalaryPage() {
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
       setSaving(true);
-      void api("PUT", `/salary/${month}`, { data })
-        .catch((e) => toast.error(errorMessage(e)))
+      void api("PUT", `/salary/${month}`, { data }, salaryApi)
+        .catch((e) => {
+          if (handleSalaryAccessError(e, lockSalary)) return;
+          toast.error(errorMessage(e));
+        })
         .finally(() => setSaving(false));
     }, 600);
-  }, []);
+  }, [lockSalary]);
 
   if (me?.role !== "admin") {
     return <Navigate to={ROUTES.home} replace />;
+  }
+
+  if (!salaryUnlocked) {
+    return (
+      <SalaryUnlockDialog
+        open
+        onUnlocked={() => setSalaryUnlocked(true)}
+      />
+    );
   }
 
   const sheet = activeMonth ? sheets[activeMonth] : undefined;

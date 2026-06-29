@@ -118,9 +118,10 @@ VITE_AMAP_SECURITY_JS_CODE=
 PORT=3000
 DATABASE_URL="postgresql://ccalm:<数据库密码>@127.0.0.1:5432/ccalm_system?schema=public"
 JWT_SECRET="<替换为高强度随机字符串>"
+SALARY_PIN="8264"
 ```
 
-不要提交真实 `.env`。`JWT_SECRET` 建议使用至少 32 位随机字符串。
+不要提交真实 `.env`。`JWT_SECRET` 建议使用至少 32 位随机字符串。`SALARY_PIN` 为薪资页二次验证用的 4 位数字 PIN，生产环境务必改成私密值。
 
 ### 5) 初始化数据库
 

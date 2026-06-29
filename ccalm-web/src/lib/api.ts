@@ -1,8 +1,15 @@
+import { getSalaryUnlockToken } from "@/lib/salary-unlock";
+
 const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
 
 export const AUTH_TOKEN_KEY = "auth:token";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export type ApiOptions = {
+  /** 附带薪资二次验证 token（除 /salary/unlock 外的薪资接口） */
+  salary?: boolean;
+};
 
 export type ApiError = Error & { status?: number; body?: unknown };
 
@@ -35,14 +42,21 @@ export function setToken(token: string | null) {
   else localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
-export async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
+export async function api<T>(
+  method: HttpMethod,
+  path: string,
+  body?: unknown,
+  options?: ApiOptions,
+): Promise<T> {
   const token = getToken();
+  const salaryToken = options?.salary ? getSalaryUnlockToken() : null;
   const isFormData = body instanceof FormData;
   const res = await fetch(`${API_BASE}${path.startsWith("/") ? path : `/${path}`}`, {
     method,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(salaryToken ? { "X-Salary-Token": salaryToken } : {}),
     },
     body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
