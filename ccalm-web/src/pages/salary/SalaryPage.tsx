@@ -14,6 +14,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -86,6 +87,9 @@ type BonusModeOption = (typeof BONUS_MODE_OPTIONS)[number];
 const SALARY_EMPLOYEE_COL_COUNT = 17;
 /** 员工薪资汇总表列数 */
 const SALARY_SUMMARY_COL_COUNT = 8;
+/** 横滑表格：ScrollArea 接管滚动，禁用 Table 内置原生横条 */
+const SALARY_TABLE_SCROLL_AREA =
+  "w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible";
 
 type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
@@ -206,10 +210,11 @@ function SalarySummaryTable({
   );
 
   return (
-    <Table
-      className="w-full table-fixed text-center [&_input]:text-center [&_td]:text-center [&_th]:text-center"
-      style={{ minWidth: tableMinWidth }}
-    >
+    <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
+      <Table
+        className="w-full table-fixed text-center [&_input]:text-center [&_td]:text-center [&_th]:text-center"
+        style={{ minWidth: tableMinWidth }}
+      >
       <colgroup>
         {Array.from({ length: SALARY_SUMMARY_COL_COUNT }, (_, i) => (
           <col
@@ -312,7 +317,9 @@ function SalarySummaryTable({
           </TableCell>
         </TableRow>
       </TableBody>
-    </Table>
+      </Table>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
 
@@ -341,10 +348,11 @@ function SalaryEmployeeTable({
   );
 
   return (
-    <Table
-      className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
-      style={{ minWidth: tableMinWidth }}
-    >
+    <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
+      <Table
+        className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
+        style={{ minWidth: tableMinWidth }}
+      >
       <colgroup>
         {Array.from({ length: SALARY_EMPLOYEE_COL_COUNT }, (_, i) => (
           <col
@@ -499,7 +507,9 @@ function SalaryEmployeeTable({
           </TableCell>
         </TableRow>
       </TableBody>
-    </Table>
+      </Table>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
 
