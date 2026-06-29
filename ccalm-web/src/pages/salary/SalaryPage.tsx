@@ -176,13 +176,20 @@ function SalaryEmployeeTable({
     () => computeEmployeeTableColMinCh(computed),
     [computed],
   );
+  const tableMinWidth = React.useMemo(
+    () => `calc(${SALARY_EMPLOYEE_COL_COUNT} * (${colMinCh}ch + 1rem))`,
+    [colMinCh],
+  );
   const actualReceiptTotal = React.useMemo(
     () => sumActualReceiptTotal(computed),
     [computed],
   );
 
   return (
-    <Table className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center">
+    <Table
+      className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
+      style={{ minWidth: tableMinWidth }}
+    >
       <colgroup>
         {Array.from({ length: SALARY_EMPLOYEE_COL_COUNT }, (_, i) => (
           <col
