@@ -14,6 +14,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -86,6 +87,9 @@ type BonusModeOption = (typeof BONUS_MODE_OPTIONS)[number];
 const SALARY_EMPLOYEE_COL_COUNT = 17;
 /** 员工薪资汇总表列数 */
 const SALARY_SUMMARY_COL_COUNT = 8;
+/** 横滑表格：ScrollArea 接管滚动，禁用 Table 内置原生横条 */
+const SALARY_TABLE_SCROLL_AREA =
+  "w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible";
 
 type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
@@ -98,6 +102,37 @@ function sumActualReceiptTotal(computed: SalarySheetComputed): number {
   return round2(
     computed.employees.reduce((sum, row) => sum + row.actualReceipt, 0),
   );
+}
+
+/** 各列表头与内容最大宽度，再取全局最大作为全表统一列 min-width */
+function computeTableColMinCh(columns: { header: string; texts: (string | number)[] }[]): number {
+  const perColumnMax = columns.map((col) => {
+    const widths = [col.header, ...col.texts.map((value) => String(value))].map(
+      textDisplayWidthCh,
+    );
+    return Math.max(...widths);
+  });
+
+  return Math.max(...perColumnMax, 1);
+}
+
+function computeSummaryTableColMinCh(
+  sheet: SalarySheetData,
+  computed: SalarySheetComputed,
+): number {
+  return computeTableColMinCh([
+    { header: "总收入", texts: [sheet.summary.totalIncome] },
+    { header: "实收入", texts: [computed.netIncome] },
+    { header: "纯利润", texts: [computed.remaining] },
+    {
+      header: "利润率",
+      texts: [`${(computed.profitRate * 100).toFixed(2)}%`],
+    },
+    { header: "陈美珍（天）", texts: [sheet.leaveQuotas.chen] },
+    { header: "卢彤（天）", texts: [sheet.leaveQuotas.lu] },
+    { header: "许桦婧（天）", texts: [sheet.leaveQuotas.xu] },
+    { header: "计薪工作日", texts: [sheet.summary.workingDays] },
+  ]);
 }
 
 /** 只读列各自最大内容宽度，再取全局最大作为全表列 min-width */
@@ -151,14 +186,141 @@ function computeEmployeeTableColMinCh(computed: SalarySheetComputed): number {
     },
   ];
 
-  const perColumnMax = readOnlyColumns.map((col) => {
-    const widths = [col.header, ...col.texts.map((value) => String(value))].map(
-      textDisplayWidthCh,
-    );
-    return Math.max(...widths);
-  });
+  return computeTableColMinCh(readOnlyColumns);
+}
 
-  return Math.max(...perColumnMax, 1);
+function SalarySummaryTable({
+  sheet,
+  computed,
+  month,
+  patchSheet,
+}: {
+  sheet: SalarySheetData;
+  computed: SalarySheetComputed;
+  month: string;
+  patchSheet: (month: string, patch: SalarySheetData) => void;
+}) {
+  const colMinCh = React.useMemo(
+    () => computeSummaryTableColMinCh(sheet, computed),
+    [sheet, computed],
+  );
+  const tableMinWidth = React.useMemo(
+    () => `calc(${SALARY_SUMMARY_COL_COUNT} * (${colMinCh}ch + 1rem))`,
+    [colMinCh],
+  );
+
+  return (
+    <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
+      <Table
+        className="w-full table-fixed text-center [&_input]:text-center [&_td]:text-center [&_th]:text-center"
+        style={{ minWidth: tableMinWidth }}
+      >
+      <colgroup>
+        {Array.from({ length: SALARY_SUMMARY_COL_COUNT }, (_, i) => (
+          <col
+            key={i}
+            style={{ minWidth: `calc(${colMinCh}ch + 1rem)` }}
+          />
+        ))}
+      </colgroup>
+      <TableHeader>
+        <TableRow>
+          <TableHead>总收入</TableHead>
+          <TableHead>实收入</TableHead>
+          <TableHead>纯利润</TableHead>
+          <TableHead>利润率</TableHead>
+          <TableHead>陈美珍（天）</TableHead>
+          <TableHead>卢彤（天）</TableHead>
+          <TableHead>许桦婧（天）</TableHead>
+          <TableHead>计薪工作日</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>
+            <Input
+              type="number"
+              value={sheet.summary.totalIncome}
+              onChange={(e) =>
+                patchSheet(month, {
+                  ...sheet,
+                  summary: {
+                    ...sheet.summary,
+                    totalIncome: Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </TableCell>
+          <TableCell>{computed.netIncome}</TableCell>
+          <TableCell>{computed.remaining}</TableCell>
+          <TableCell>{(computed.profitRate * 100).toFixed(2)}%</TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              value={sheet.leaveQuotas.chen}
+              onChange={(e) =>
+                patchSheet(month, {
+                  ...sheet,
+                  leaveQuotas: {
+                    ...sheet.leaveQuotas,
+                    chen: Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              value={sheet.leaveQuotas.lu}
+              onChange={(e) =>
+                patchSheet(month, {
+                  ...sheet,
+                  leaveQuotas: {
+                    ...sheet.leaveQuotas,
+                    lu: Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              value={sheet.leaveQuotas.xu}
+              onChange={(e) =>
+                patchSheet(month, {
+                  ...sheet,
+                  leaveQuotas: {
+                    ...sheet.leaveQuotas,
+                    xu: Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              value={sheet.summary.workingDays}
+              onChange={(e) =>
+                patchSheet(month, {
+                  ...sheet,
+                  summary: {
+                    ...sheet.summary,
+                    workingDays: Number(e.target.value),
+                  },
+                })
+              }
+            />
+          </TableCell>
+        </TableRow>
+      </TableBody>
+      </Table>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
+  );
 }
 
 function SalaryEmployeeTable({
@@ -186,10 +348,11 @@ function SalaryEmployeeTable({
   );
 
   return (
-    <Table
-      className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
-      style={{ minWidth: tableMinWidth }}
-    >
+    <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
+      <Table
+        className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
+        style={{ minWidth: tableMinWidth }}
+      >
       <colgroup>
         {Array.from({ length: SALARY_EMPLOYEE_COL_COUNT }, (_, i) => (
           <col
@@ -344,7 +507,9 @@ function SalaryEmployeeTable({
           </TableCell>
         </TableRow>
       </TableBody>
-    </Table>
+      </Table>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
 
@@ -1035,107 +1200,12 @@ export function SalaryPage() {
                     <CardTitle>员工薪资</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Table className="w-full table-fixed text-center [&_input]:text-center [&_td]:text-center [&_th]:text-center">
-                      <colgroup>
-                        {Array.from({ length: SALARY_SUMMARY_COL_COUNT }, (_, i) => (
-                          <col key={i} />
-                        ))}
-                      </colgroup>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>总收入</TableHead>
-                          <TableHead>实收入</TableHead>
-                          <TableHead>纯利润</TableHead>
-                          <TableHead>利润率</TableHead>
-                          <TableHead>陈美珍（天）</TableHead>
-                          <TableHead>卢彤（天）</TableHead>
-                          <TableHead>许桦婧（天）</TableHead>
-                          <TableHead>计薪工作日</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={sheet.summary.totalIncome}
-                              onChange={(e) =>
-                                patchSheet(month, {
-                                  ...sheet,
-                                  summary: {
-                                    ...sheet.summary,
-                                    totalIncome: Number(e.target.value),
-                                  },
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>{computed.netIncome}</TableCell>
-                          <TableCell>{computed.remaining}</TableCell>
-                          <TableCell>{(computed.profitRate * 100).toFixed(2)}%</TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={sheet.leaveQuotas.chen}
-                              onChange={(e) =>
-                                patchSheet(month, {
-                                  ...sheet,
-                                  leaveQuotas: {
-                                    ...sheet.leaveQuotas,
-                                    chen: Number(e.target.value),
-                                  },
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={sheet.leaveQuotas.lu}
-                              onChange={(e) =>
-                                patchSheet(month, {
-                                  ...sheet,
-                                  leaveQuotas: {
-                                    ...sheet.leaveQuotas,
-                                    lu: Number(e.target.value),
-                                  },
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={sheet.leaveQuotas.xu}
-                              onChange={(e) =>
-                                patchSheet(month, {
-                                  ...sheet,
-                                  leaveQuotas: {
-                                    ...sheet.leaveQuotas,
-                                    xu: Number(e.target.value),
-                                  },
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={sheet.summary.workingDays}
-                              onChange={(e) =>
-                                patchSheet(month, {
-                                  ...sheet,
-                                  summary: {
-                                    ...sheet.summary,
-                                    workingDays: Number(e.target.value),
-                                  },
-                                })
-                              }
-                            />
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                    <SalarySummaryTable
+                      sheet={sheet}
+                      computed={computed}
+                      month={month}
+                      patchSheet={patchSheet}
+                    />
                     <SalaryEmployeeTable
                       computed={computed}
                       updateEmployee={updateEmployee}
