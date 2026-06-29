@@ -173,7 +173,62 @@ type AddSuggestion = {
 
 type InvInventoryRow = {
   brand: string;
+  model: string;
 };
+
+function buildInventoryBrands(rows: InvInventoryRow[]): string[] {
+  const uniq = new Set<string>();
+  for (const r of rows) {
+    const b = r.brand?.trim();
+    if (b) uniq.add(b);
+  }
+  return [...uniq].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+}
+
+function buildModelsByBrand(rows: InvInventoryRow[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const r of rows) {
+    const brand = r.brand?.trim();
+    const model = r.model?.trim();
+    if (!brand || !model) continue;
+    const list = map.get(brand) ?? [];
+    if (!list.includes(model)) list.push(model);
+    map.set(brand, list);
+  }
+  for (const [brand, models] of map) {
+    models.sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+    map.set(brand, models);
+  }
+  return map;
+}
+
+function isModelInInventory(
+  modelsByBrand: Map<string, string[]>,
+  brand: string,
+  model: string,
+): boolean {
+  const b = brand.trim();
+  const m = model.trim();
+  if (!b || !m) return false;
+  return (modelsByBrand.get(b) ?? []).includes(m);
+}
+
+function validateInventoryTeeth(
+  teeth: { implantBrand: string; implantModel: string }[],
+  modelsByBrand: Map<string, string[]>,
+): string | null {
+  for (const t of teeth) {
+    const brand = t.implantBrand.trim();
+    const model = t.implantModel.trim();
+    if (!brand && !model) continue;
+    if (brand && !model) return "请为已选品牌选择植体型号";
+    if (!brand && model) return "请先选择品牌";
+    if (!isModelInInventory(modelsByBrand, brand, model)) {
+      return "植体型号不在库存中，请从下拉列表重新选择";
+    }
+  }
+  return null;
+}
 
 function ToothBrandCombobox({
   brands,
@@ -189,6 +244,39 @@ function ToothBrandCombobox({
       <ComboboxInput placeholder="品牌" />
       <ComboboxContent>
         <ComboboxEmpty>库存中暂无品牌</ComboboxEmpty>
+        <ComboboxList>
+          {(item: string) => (
+            <ComboboxItem key={item} value={item}>
+              {item}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
+
+function ToothModelCombobox({
+  models,
+  brand,
+  value,
+  onValueChange,
+}: {
+  models: string[];
+  brand: string;
+  value: string;
+  onValueChange: (v: string) => void;
+}) {
+  const disabled = !brand.trim();
+  return (
+    <Combobox
+      items={models}
+      value={value || null}
+      onValueChange={(v) => onValueChange(v ?? "")}
+    >
+      <ComboboxInput placeholder={disabled ? "请先选择品牌" : "植体"} disabled={disabled} />
+      <ComboboxContent>
+        <ComboboxEmpty>该品牌暂无库存型号</ComboboxEmpty>
         <ComboboxList>
           {(item: string) => (
             <ComboboxItem key={item} value={item}>
@@ -236,7 +324,9 @@ function ImplantRecordsVisitDialog({
     { toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" },
   ]);
 
-  const [inventoryBrands, setInventoryBrands] = React.useState<string[]>([]);
+  const [inventoryRows, setInventoryRows] = React.useState<InvInventoryRow[]>([]);
+  const inventoryBrands = React.useMemo(() => buildInventoryBrands(inventoryRows), [inventoryRows]);
+  const modelsByBrand = React.useMemo(() => buildModelsByBrand(inventoryRows), [inventoryRows]);
 
   React.useEffect(() => {
     if (!open || (state?.type !== "add" && state?.type !== "edit")) return;
@@ -244,15 +334,9 @@ function ImplantRecordsVisitDialog({
     void (async () => {
       try {
         const rows = await api<InvInventoryRow[]>("GET", "/implant/inventory");
-        const uniq = new Set<string>();
-        for (const r of rows ?? []) {
-          const b = r.brand?.trim();
-          if (b) uniq.add(b);
-        }
-        if (!cancelled)
-          setInventoryBrands([...uniq].sort((a, b) => a.localeCompare(b, "zh-Hans-CN")));
+        if (!cancelled) setInventoryRows(rows ?? []);
       } catch {
-        if (!cancelled) setInventoryBrands([]);
+        if (!cancelled) setInventoryRows([]);
       }
     })();
     return () => {
@@ -334,6 +418,18 @@ function ImplantRecordsVisitDialog({
       })),
     );
   }, [state]);
+
+  React.useEffect(() => {
+    if (!open || !inventoryRows.length || state?.type !== "edit") return;
+    setEditTeeth((rows) =>
+      rows.map((t) => ({
+        ...t,
+        implantModel: isModelInInventory(modelsByBrand, t.implantBrand, t.implantModel)
+          ? t.implantModel
+          : "",
+      })),
+    );
+  }, [open, state?.type, inventoryRows, modelsByBrand]);
 
   /**
    * 仅当焦点仍在姓名「输入框」本身时保持列表；同一块里的清空按钮、cmdk 列表高亮等不算在输入框内。
@@ -458,6 +554,11 @@ function ImplantRecordsVisitDialog({
       toast.warning("请至少填写一条牙位与植体");
       return;
     }
+    const inventoryError = validateInventoryTeeth(payloadTeeth, modelsByBrand);
+    if (inventoryError) {
+      toast.warning(inventoryError);
+      return;
+    }
     if (!patientName.trim()) {
       toast.warning("请填写姓名");
       return;
@@ -535,6 +636,11 @@ function ImplantRecordsVisitDialog({
     );
     if (!payloadTeeth.length) {
       toast.warning("请至少填写一条牙位与植体");
+      return;
+    }
+    const inventoryError = validateInventoryTeeth(payloadTeeth, modelsByBrand);
+    if (inventoryError) {
+      toast.warning(inventoryError);
       return;
     }
     setSaving(true);
@@ -728,7 +834,9 @@ function ImplantRecordsVisitDialog({
                                   value={t.implantBrand}
                                   onValueChange={(v) =>
                                     setEditTeeth((rows) =>
-                                      rows.map((x, j) => (j === i ? { ...x, implantBrand: v } : x)),
+                                      rows.map((x, j) =>
+                                        j === i ? { ...x, implantBrand: v, implantModel: "" } : x,
+                                      ),
                                     )
                                   }
                                 />
@@ -737,13 +845,13 @@ function ImplantRecordsVisitDialog({
                             <Field orientation="vertical">
                               {showToothFieldLabels ? <FieldLabel>植体</FieldLabel> : null}
                               <FieldContent>
-                                <Input
+                                <ToothModelCombobox
+                                  models={modelsByBrand.get(t.implantBrand.trim()) ?? []}
+                                  brand={t.implantBrand}
                                   value={t.implantModel}
-                                  onChange={(e) =>
+                                  onValueChange={(v) =>
                                     setEditTeeth((rows) =>
-                                      rows.map((x, j) =>
-                                        j === i ? { ...x, implantModel: e.target.value } : x,
-                                      ),
+                                      rows.map((x, j) => (j === i ? { ...x, implantModel: v } : x)),
                                     )
                                   }
                                 />
@@ -960,7 +1068,9 @@ function ImplantRecordsVisitDialog({
                                   value={row.implantBrand}
                                   onValueChange={(v) =>
                                     setTeeth((t) =>
-                                      t.map((x, j) => (j === i ? { ...x, implantBrand: v } : x)),
+                                      t.map((x, j) =>
+                                        j === i ? { ...x, implantBrand: v, implantModel: "" } : x,
+                                      ),
                                     )
                                   }
                                 />
@@ -968,15 +1078,13 @@ function ImplantRecordsVisitDialog({
                             </Field>
                             <Field orientation="vertical">
                               <FieldContent>
-                                <Input
-                                  placeholder="植体"
-                                  aria-label="植体"
+                                <ToothModelCombobox
+                                  models={modelsByBrand.get(row.implantBrand.trim()) ?? []}
+                                  brand={row.implantBrand}
                                   value={row.implantModel}
-                                  onChange={(e) =>
+                                  onValueChange={(v) =>
                                     setTeeth((t) =>
-                                      t.map((x, j) =>
-                                        j === i ? { ...x, implantModel: e.target.value } : x,
-                                      ),
+                                      t.map((x, j) => (j === i ? { ...x, implantModel: v } : x)),
                                     )
                                   }
                                 />
