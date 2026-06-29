@@ -1,13 +1,13 @@
 import {
-  canMakeupTodaySlot as canMakeupTodaySlotCore,
+  canMakeupTodaySlot,
   passesMakeupTodayGate as passesMakeupTodayGateCore,
   type MakeupSlotType,
   type MakeupTodayGate,
-} from "@ccalm/attendance-core"
+} from "./makeup-today-gate"
 
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 
-export type { MakeupTodayGate } from "@ccalm/attendance-core"
+export type { MakeupTodayGate, MakeupSlotType } from "./makeup-today-gate"
 
 function wallClockMinutes(d: Date): number {
   return attendanceDayjs(d).hour() * 60 + attendanceDayjs(d).minute()
@@ -20,13 +20,13 @@ export function isAttendanceDateToday(dateStr: string): boolean {
   )
 }
 
-export function canMakeupTodaySlot(
+export function canMakeupTodaySlotForDate(
   dateStr: string,
   type: MakeupSlotType,
   gate: MakeupTodayGate,
   at: Date = new Date()
 ): boolean {
-  return canMakeupTodaySlotCore(
+  return canMakeupTodaySlot(
     isAttendanceDateToday(dateStr),
     wallClockMinutes(at),
     type,

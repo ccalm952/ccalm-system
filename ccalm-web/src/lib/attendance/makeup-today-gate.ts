@@ -1,14 +1,14 @@
 import {
-  canMakeupTodaySlot as canMakeupTodaySlotCore,
+  canMakeupTodaySlot,
   passesMakeupTodayGate as passesMakeupTodayGateCore,
   type MakeupSlotType,
   type MakeupTodayGate,
-} from "@ccalm/attendance-core";
+} from "./makeup-today-gate-core";
 
 import { attendanceDayjs, attendanceTodayStart } from "./dayjs";
-import type { AdminMakeupType } from "./makeup";
+import type { AttendancePunchType } from "./types";
 
-export type { MakeupTodayGate } from "@ccalm/attendance-core";
+export type { MakeupTodayGate, MakeupSlotType } from "./makeup-today-gate-core";
 
 export function makeupTodayGateFromShift(shift: MakeupTodayGate): MakeupTodayGate {
   return {
@@ -28,13 +28,13 @@ export function isAttendanceDateToday(dateStr: string): boolean {
   );
 }
 
-export function canMakeupTodaySlot(
+export function canMakeupTodaySlotForDate(
   dateStr: string,
-  type: AdminMakeupType,
+  type: AttendancePunchType,
   gate: MakeupTodayGate,
   at: Date = new Date(),
 ): boolean {
-  return canMakeupTodaySlotCore(
+  return canMakeupTodaySlot(
     isAttendanceDateToday(dateStr),
     wallClockMinutes(at),
     type as MakeupSlotType,
@@ -44,7 +44,7 @@ export function canMakeupTodaySlot(
 
 export function passesMakeupTodayGate(
   dateStr: string,
-  type: AdminMakeupType,
+  type: AttendancePunchType,
   gate: MakeupTodayGate | undefined,
   at: Date = new Date(),
 ): boolean {

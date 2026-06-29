@@ -145,7 +145,6 @@ model ScheduleEntry {
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      String
   shiftType ScheduleShiftType
-  isManual  Boolean           @default(false)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 

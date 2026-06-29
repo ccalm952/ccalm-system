@@ -11,11 +11,20 @@ import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
-import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 import {
-  canMakeupTodaySlot,
+  adminMakeupSlotDenyReason,
+  buildDayPunchRow,
+  employeeMakeupSlotDenyReason,
+  makeupSlotDenyMessage,
+  makeupSlotsEnv,
+  type MakeupSlotDenyReason,
+  type PendingMakeup,
+} from "./makeup-slots"
+import {
+  canMakeupTodaySlotForDate,
   type MakeupTodayGate,
 } from "./attendance-makeup-today-gate"
+import type { MakeupSlotType } from "./makeup-today-gate"
 import { DEFAULT_SHIFT_ROW } from "./defaults"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
 import { punchDateFromTime } from "./punch-date"
@@ -38,11 +47,6 @@ const ADMIN_MAKEUP_TYPES = [
   "afternoon_out",
 ] as const
 type AdminMakeupType = (typeof ADMIN_MAKEUP_TYPES)[number]
-
-const IN_TYPE_BY_OUT: Record<MakeupOutType, "morning_in" | "afternoon_in"> = {
-  morning_out: "morning_in",
-  afternoon_out: "afternoon_in",
-}
 
 const OUT_TYPE_BY_IN: Record<MakeupInType, MakeupOutType> = {
   morning_in: "morning_out",
@@ -145,10 +149,6 @@ export class AttendanceMakeupService {
     }
   }
 
-  private isWithinMakeupWindow(dateStr: string): boolean {
-    return isWithinAttendanceEditWindow(dateStr)
-  }
-
   private async getMakeupTodayGate(): Promise<MakeupTodayGate> {
     const row = await this.prisma.shiftConfig.findUnique({
       where: { id: "global" },
@@ -161,171 +161,80 @@ export class AttendanceMakeupService {
     }
   }
 
-  private todayMakeupGateMessage(type: AdminMakeupType): string {
-    const label =
-      type === "morning_in" || type === "morning_out" ? "上午上班" : "下午上班"
-    return `需等今日${label}打卡窗口结束后才能补卡`
-  }
-
-  private async assertTodayMakeupGate(dateStr: string, type: AdminMakeupType) {
-    const gate = await this.getMakeupTodayGate()
-    if (canMakeupTodaySlot(dateStr, type, gate)) return
-    throw new BadRequestException(this.todayMakeupGateMessage(type))
-  }
-
-  private async dayRecordMap(userId: string, dateStr: string) {
-    const records = await this.prisma.attendanceRecord.findMany({
+  private async dayRecords(userId: string, dateStr: string) {
+    return await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate: dateStr },
     })
-    return new Map(records.map((r) => [r.type, r]))
   }
 
-  private async assertMakeupSlotAvailable(
+  private async buildMakeupRow(userId: string, dateStr: string) {
+    const [records, declaredRest] = await Promise.all([
+      this.dayRecords(userId, dateStr),
+      this.schedule.resolveShiftForUserDay(userId, dateStr),
+    ])
+    return buildDayPunchRow(dateStr, declaredRest, records)
+  }
+
+  private async pendingForUserDate(
     userId: string,
     dateStr: string,
-    type: MakeupOutType,
-    excludeRequestId?: string,
-    options?: { skipPendingCheck?: boolean }
+    excludeRequestId?: string
+  ): Promise<PendingMakeup[]> {
+    const rows = await this.prisma.attendanceMakeupRequest.findMany({
+      where: {
+        userId,
+        date: dateStr,
+        status: "pending",
+        ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
+      },
+      select: { date: true, type: true, status: true },
+    })
+    return rows
+  }
+
+  private throwIfMakeupDenied(
+    reason: MakeupSlotDenyReason | null,
+    type: MakeupSlotType
   ) {
-    if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补本月或上月的缺卡")
-    }
-    await this.assertTodayMakeupGate(dateStr, type)
-
-    const map = await this.dayRecordMap(userId, dateStr)
-    const inType = IN_TYPE_BY_OUT[type]
-    if (!map.get(inType)) {
-      throw new BadRequestException("需先有对应上班打卡记录，才能补下班卡")
-    }
-    if (map.get(type)) {
-      throw new BadRequestException("该下班卡已存在，无需补卡")
-    }
-
-    const pending = options?.skipPendingCheck
-      ? null
-      : await this.prisma.attendanceMakeupRequest.findFirst({
-          where: {
-            userId,
-            date: dateStr,
-            type,
-            status: "pending",
-            ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
-          },
-        })
-    if (pending) {
-      throw new BadRequestException("该缺卡已有审批中的补卡申请")
-    }
+    if (!reason) return
+    throw new BadRequestException(makeupSlotDenyMessage(reason, type))
   }
 
-  private async dayDeclaredRest(userId: string, dateStr: string) {
-    return await this.schedule.resolveShiftForUserDay(userId, dateStr)
-  }
-
-  private async assertMakeupInSlotAvailable(
+  private async assertEmployeeMakeupSlot(
     userId: string,
     dateStr: string,
-    type: MakeupInType,
-    excludeRequestId?: string,
-    options?: { skipPendingCheck?: boolean }
-  ) {
-    if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补本月或上月的缺卡")
-    }
-    await this.assertTodayMakeupGate(dateStr, type)
-
-    const map = await this.dayRecordMap(userId, dateStr)
-    if (map.get(type)) {
-      throw new BadRequestException("该上班卡已存在，无需补卡")
-    }
-
-    const declaredRest = await this.dayDeclaredRest(userId, dateStr)
-    if (
-      type === "morning_in" &&
-      (declaredRest === "morning_rest" || declaredRest === "full_rest")
-    ) {
-      throw new BadRequestException("该半天已登记休息，无法补上班卡")
-    }
-    if (
-      type === "afternoon_in" &&
-      (declaredRest === "afternoon_rest" || declaredRest === "full_rest")
-    ) {
-      throw new BadRequestException("该半天已登记休息，无法补上班卡")
-    }
-
-    const pending = options?.skipPendingCheck
-      ? null
-      : await this.prisma.attendanceMakeupRequest.findFirst({
-          where: {
-            userId,
-            date: dateStr,
-            type,
-            status: "pending",
-            ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
-          },
-        })
-    if (pending) {
-      throw new BadRequestException("该缺卡已有审批中的补卡申请")
-    }
-  }
-
-  private async assertMakeupRequestAvailable(
-    userId: string,
-    dateStr: string,
-    type: MakeupRequestType,
+    type: MakeupSlotType,
     excludeRequestId?: string
   ) {
-    if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
-      await this.assertMakeupInSlotAvailable(
-        userId,
-        dateStr,
-        type as MakeupInType,
-        excludeRequestId
-      )
-      return
-    }
-    await this.assertMakeupSlotAvailable(
-      userId,
-      dateStr,
-      type as MakeupOutType,
-      excludeRequestId
+    const [row, gate, pending] = await Promise.all([
+      this.buildMakeupRow(userId, dateStr),
+      this.getMakeupTodayGate(),
+      this.pendingForUserDate(userId, dateStr, excludeRequestId),
+    ])
+    const env = makeupSlotsEnv()
+    const reason = employeeMakeupSlotDenyReason(
+      row,
+      type,
+      pending,
+      env,
+      gate,
+      new Date()
     )
+    this.throwIfMakeupDenied(reason, type)
   }
 
-  private async assertAdminMakeupSlotAvailable(
+  private async assertAdminMakeupSlot(
     userId: string,
     dateStr: string,
     type: AdminMakeupType
   ) {
-    if (!this.isWithinMakeupWindow(dateStr)) {
-      throw new BadRequestException("仅支持补本月或上月的缺卡")
-    }
-    await this.assertTodayMakeupGate(dateStr, type)
-
-    const map = await this.dayRecordMap(userId, dateStr)
-    if (map.get(type)) {
-      throw new BadRequestException("该打卡已存在，无需补卡")
-    }
-
-    if (type === "morning_out" && !map.get("morning_in")) {
-      throw new BadRequestException("需先补上午上班，才能补上午下班")
-    }
-    if (type === "afternoon_out" && !map.get("afternoon_in")) {
-      throw new BadRequestException("需先补下午上班，才能补下午下班")
-    }
-
-    const declaredRest = await this.dayDeclaredRest(userId, dateStr)
-    if (
-      (type === "morning_in" || type === "morning_out") &&
-      (declaredRest === "morning_rest" || declaredRest === "full_rest")
-    ) {
-      throw new BadRequestException("该半天已登记休息，无法补卡")
-    }
-    if (
-      (type === "afternoon_in" || type === "afternoon_out") &&
-      (declaredRest === "afternoon_rest" || declaredRest === "full_rest")
-    ) {
-      throw new BadRequestException("该半天已登记休息，无法补卡")
-    }
+    const [row, gate] = await Promise.all([
+      this.buildMakeupRow(userId, dateStr),
+      this.getMakeupTodayGate(),
+    ])
+    const env = makeupSlotsEnv()
+    const reason = adminMakeupSlotDenyReason(row, type, env, gate, new Date())
+    this.throwIfMakeupDenied(reason, type)
   }
 
   private serializeRequest(row: {
@@ -371,7 +280,7 @@ export class AttendanceMakeupService {
       throw new BadRequestException("补卡类型不合法")
     }
 
-    await this.assertMakeupRequestAvailable(userId, dto.date, type)
+    await this.assertEmployeeMakeupSlot(userId, dto.date, type)
 
     const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
     if (!punchTime.isValid()) {
@@ -439,12 +348,7 @@ export class AttendanceMakeupService {
       throw new BadRequestException("申请类型不合法")
     }
 
-    await this.assertMakeupRequestAvailable(
-      req.userId,
-      req.date,
-      type,
-      requestId
-    )
+    await this.assertEmployeeMakeupSlot(req.userId, req.date, type, requestId)
 
     const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
       ? await this.buildAutoOutRecord(
@@ -454,8 +358,8 @@ export class AttendanceMakeupService {
         )
       : null
     if (autoOut) {
-      const map = await this.dayRecordMap(req.userId, req.date)
-      if (map.get(autoOut.type)) {
+      const records = await this.dayRecords(req.userId, req.date)
+      if (records.some((r) => r.type === autoOut.type)) {
         throw new BadRequestException("该下班卡已存在，无需补卡")
       }
     }
@@ -532,7 +436,7 @@ export class AttendanceMakeupService {
       throw new BadRequestException("补卡类型不合法")
     }
 
-    await this.assertAdminMakeupSlotAvailable(dto.userId, dto.date, type)
+    await this.assertAdminMakeupSlot(dto.userId, dto.date, type)
 
     const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
     if (!punchTime.isValid()) {

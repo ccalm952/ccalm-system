@@ -298,18 +298,19 @@ export class AttendanceService {
 
     const { start, end, todayYmd, startDate, rangeEnd } = bounds
 
-    const [declaredScheduleMap, list, shift, pendingMakeups] =
-      await Promise.all([
-        this.schedule.declaredScheduleMapForUser(userId, startDate, rangeEnd),
-        this.prisma.attendanceRecord.findMany({
+    const [leaveBundle, list, shift, pendingMakeups] = await Promise.all([
+      this.schedule.getMonthlyLeaveBundle(
+        userId,
+        month,
+        startDate,
+        rangeEnd
+      ),
+      this.prisma.attendanceRecord.findMany({
         where: {
           userId,
-          punchTime: {
-            gte: bounds.rangeStart,
-            lt: bounds.rangeEndExclusive,
-          },
+          punchDate: { gte: startDate, lte: rangeEnd },
         },
-        orderBy: { punchTime: "asc" },
+        orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
       }),
       this.getShift(),
       this.prisma.attendanceMakeupRequest.findMany({
@@ -326,20 +327,18 @@ export class AttendanceService {
       start,
       end,
       todayYmd,
-      declaredScheduleMap,
+      declaredScheduleMap: leaveBundle.declaredScheduleMap,
       records: list,
       shift,
       pendingMakeups,
     })
-
-    const remainingLeave = await this.schedule.getRemainingLeave(userId, month)
 
     return {
       month,
       startDate,
       rangeEnd,
       ...aggregate,
-      remainingLeave,
+      remainingLeave: leaveBundle.remainingLeave,
     }
   }
 
@@ -348,6 +347,7 @@ export class AttendanceService {
     if (!bounds) throw new BadRequestException("月份不合法")
 
     const users = await this.prisma.user.findMany({
+      where: { role: "user" },
       orderBy: [{ displayName: "asc" }, { username: "asc" }],
       select: { id: true, displayName: true, username: true },
     })
@@ -362,12 +362,9 @@ export class AttendanceService {
         this.prisma.attendanceRecord.findMany({
         where: {
           userId: { in: userIds },
-          punchTime: {
-            gte: bounds.rangeStart,
-            lt: bounds.rangeEndExclusive,
-          },
+          punchDate: { gte: startDate, lte: rangeEnd },
         },
-        orderBy: { punchTime: "asc" },
+        orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
       }),
       this.getShift(),
       this.prisma.attendanceMakeupRequest.findMany({

@@ -1,41 +1,33 @@
 import dayjs from "dayjs";
 
+import { buildEditWindowContext, isWithinAttendanceEditWindow } from "./edit-window";
+import { attendanceTodayStart } from "./dayjs";
 import {
-  isAfternoonScheduleRest,
-  isMorningScheduleRest,
-} from "@ccalm/attendance-core";
-
-import { isWithinMakeupWindow } from "./makeup";
+  halfHasPunch,
+  isHalfDeclaredRest,
+  type RestHalf,
+} from "./schedule-rest";
 import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 
-export type RestHalf = "morning" | "afternoon";
+export type { RestHalf };
+export { halfHasPunch, isHalfDeclaredRest };
 
-export function isHalfScheduleRest(
-  scheduleRest: ScheduleRestType | null | undefined,
-  half: RestHalf,
-): boolean {
-  return half === "morning"
-    ? isMorningScheduleRest(scheduleRest)
-    : isAfternoonScheduleRest(scheduleRest);
-}
-
-export function halfHasPunch(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  if (half === "morning") return !!(row.morningIn || row.morningOut);
-  return !!(row.afternoonIn || row.afternoonOut);
-}
-
-export function isHalfEffectivelyAtRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  return isHalfScheduleRest(row.declaredRest, half) && !halfHasPunch(row, half);
+export function isWithinRestEditWindow(dateStr: string): boolean {
+  const today = attendanceTodayStart();
+  return isWithinAttendanceEditWindow(
+    dateStr,
+    buildEditWindowContext(today.format("YYYY-MM-DD")),
+  );
 }
 
 export function canClearRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  return isHalfEffectivelyAtRest(row, half);
+  return isHalfDeclaredRest(row.declaredRest, half);
 }
 
 export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): boolean {
-  if (!isWithinMakeupWindow(row.date)) return false;
+  if (!isWithinRestEditWindow(row.date)) return false;
   if (halfHasPunch(row, half)) return false;
-  if (isHalfEffectivelyAtRest(row, half)) return false;
+  if (isHalfDeclaredRest(row.declaredRest, half)) return false;
   return true;
 }
 

@@ -2,7 +2,7 @@ import {
   attendanceMissingTextClass,
   attendanceMutedTextClass,
 } from "./attendance-theme";
-import { canDeclareRest, isHalfEffectivelyAtRest, type RestHalf } from "./rest";
+import { canDeclareRest, isHalfDeclaredRest, type RestHalf } from "./rest";
 import { isWallClockAfter, isWallClockAtOrAfter } from "./shift";
 import { todayKey } from "./summary";
 import type { AttendancePunchDayRow } from "./types";
@@ -45,7 +45,7 @@ export function attendanceInCellClass(
   time: string | null,
 ): string {
   if (time) return "";
-  if (isHalfEffectivelyAtRest(row, half)) {
+  if (isHalfDeclaredRest(row.declaredRest, half)) {
     return attendanceMutedTextClass;
   }
   if (canDeclareRest(row, half)) return "";
@@ -60,7 +60,7 @@ export function attendanceOutCellClass(
   options?: AttendanceCellClassOptions,
 ): string {
   if (time) return "";
-  if (isHalfEffectivelyAtRest(row, half)) {
+  if (isHalfDeclaredRest(row.declaredRest, half)) {
     return attendanceMutedTextClass;
   }
   if (isOutMissingDeferredToday(row, half, options)) return "";

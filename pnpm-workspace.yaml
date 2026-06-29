@@ -1,7 +1,6 @@
 packages:
   - ccalm-web
   - ccalm-api
-  - packages/*
 
 allowBuilds:
   "@nestjs/core": true

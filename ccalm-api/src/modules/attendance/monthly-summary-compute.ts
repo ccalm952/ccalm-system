@@ -3,7 +3,6 @@ import type { Dayjs } from "dayjs"
 import {
   attendanceDayjs,
   attendanceTodayStart,
-  formatAttendanceDate,
   formatAttendanceTime,
 } from "./attendance-dayjs"
 import { countMakeupButtonSlots, applyDayAttendance } from "./makeup-slots"
@@ -18,13 +17,13 @@ export type MonthlySummaryRow = {
   afternoonOut: string | null
   morningOutIsMakeup: boolean
   afternoonOutIsMakeup: boolean
-  scheduleRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
   declaredRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
   overtimeMinutes: number
   overtimeStr: string
 }
 
 type PunchRecord = {
+  punchDate: string
   punchTime: Date
   type: string
   source: string
@@ -83,7 +82,7 @@ export function computeMonthlySummaryAggregate(params: {
 
   const byDate = new Map<string, PunchRecord[]>()
   for (const r of records) {
-    const key = formatAttendanceDate(r.punchTime)
+    const key = r.punchDate
     const arr = byDate.get(key) ?? []
     arr.push(r)
     byDate.set(key, arr)
@@ -120,7 +119,6 @@ export function computeMonthlySummaryAggregate(params: {
       afternoonOut: null,
       morningOutIsMakeup: false,
       afternoonOutIsMakeup: false,
-      scheduleRest: declaredRest,
       declaredRest,
       overtimeMinutes: 0,
       overtimeStr: "-",
@@ -203,7 +201,5 @@ export function monthSummaryBounds(month: string) {
     todayYmd: today.format("YYYY-MM-DD"),
     startDate: start.format("YYYY-MM-DD"),
     rangeEnd: end.format("YYYY-MM-DD"),
-    rangeEndExclusive: end.add(1, "day").startOf("day").toDate(),
-    rangeStart: start.toDate(),
   }
 }

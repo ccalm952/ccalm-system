@@ -1,7 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
-import { isPunchBlockedByScheduleRest } from "@ccalm/attendance-core";
+import { isPunchBlockedByScheduleRest } from "@/lib/attendance/schedule-rest";
 import { CircleXIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
