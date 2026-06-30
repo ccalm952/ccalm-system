@@ -86,12 +86,15 @@ type Row = {
 type ImplantRecordsVisitDialogState = { type: "add" } | { type: "edit"; group: Row[] };
 
 type EditTeethLine = {
+  visitId: number;
   toothId: number | null;
   toothNo: string;
   implantBrand: string;
   implantModel: string;
   toothRemark: string;
 };
+
+type PendingToothDelete = { visitId: number; toothId: number };
 
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- 与 TanStack 泛型签名一致
@@ -131,10 +134,41 @@ function computeMergeSpans(rows: Row[]) {
   return span;
 }
 
-/** 编辑弹窗：同一次就诊（visitId）下的全部牙位，不按姓名+日期合并键跨 visit */
-function rowsInSameVisitGroup(allRows: Row[], clicked: Row): Row[] {
-  const group = allRows.filter((r) => r.visitId === clicked.visitId);
-  return group.length > 0 ? group : [clicked];
+/** 与表格合并规则一致：同一姓名+手机+就诊日的连续行，编辑弹窗一次展示全部牙位 */
+function rowsInSameMergeGroup(allRows: Row[], clicked: Row): Row[] {
+  const key = rowMergeKey(clicked);
+  const i = allRows.findIndex(
+    (r) => r.visitId === clicked.visitId && r.toothId === clicked.toothId,
+  );
+  if (i < 0) return [clicked];
+  let start = i;
+  while (start > 0 && rowMergeKey(allRows[start - 1]!) === key) start--;
+  let end = i;
+  while (end + 1 < allRows.length && rowMergeKey(allRows[end + 1]!) === key) end++;
+  return allRows.slice(start, end + 1);
+}
+
+function emptyEditToothLine(visitId: number): EditTeethLine {
+  return {
+    visitId,
+    toothId: null,
+    toothNo: "",
+    implantBrand: "",
+    implantModel: "",
+    toothRemark: "",
+  };
+}
+
+function collectEditVisitIds(
+  teeth: EditTeethLine[],
+  pendingDeletes: PendingToothDelete[],
+  fallbackVisitId: number,
+): number[] {
+  const ids = new Set<number>();
+  for (const t of teeth) ids.add(t.visitId);
+  for (const d of pendingDeletes) ids.add(d.visitId);
+  ids.add(fallbackVisitId);
+  return [...ids];
 }
 
 /** 二期列展示：就诊日期 + remark（月数）→ 预计二期日期 */
@@ -375,7 +409,7 @@ function ImplantRecordsVisitDialog({
     staff: "",
   });
   const [editTeeth, setEditTeeth] = React.useState<EditTeethLine[]>([]);
-  const [editPendingDeletes, setEditPendingDeletes] = React.useState<number[]>([]);
+  const [editPendingDeletes, setEditPendingDeletes] = React.useState<PendingToothDelete[]>([]);
 
   React.useEffect(() => {
     if (!open) {
@@ -402,6 +436,7 @@ function ImplantRecordsVisitDialog({
     });
     setEditTeeth(
       group.map((r) => ({
+        visitId: r.visitId,
         toothId: r.toothId,
         toothNo: r.toothNo ?? "",
         implantBrand: r.implantBrand ?? "",
@@ -594,23 +629,30 @@ function ImplantRecordsVisitDialog({
   }
 
   function addEditToothRow() {
-    setEditTeeth((r) => [
-      ...r,
-      { toothId: null, toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" },
-    ]);
+    const visitId = editRowRef.current?.visitId;
+    if (visitId == null) return;
+    setEditTeeth((r) => [...r, emptyEditToothLine(visitId)]);
   }
 
   function removeEditToothAt(index: number) {
     setEditTeeth((prevRows) => {
       const row = prevRows[index];
       const existingToothId = row?.toothId;
-      if (existingToothId != null) {
-        setEditPendingDeletes((d) => [...new Set([...d, existingToothId])]);
+      const visitId = row?.visitId;
+      if (existingToothId != null && visitId != null) {
+        setEditPendingDeletes((d) => {
+          const key = `${visitId}:${existingToothId}`;
+          if (d.some((x) => `${x.visitId}:${x.toothId}` === key)) return d;
+          return [...d, { visitId, toothId: existingToothId }];
+        });
       }
       const next = prevRows.filter((_, i) => i !== index);
+      const fallbackVisitId = visitId ?? editRowRef.current?.visitId;
       return next.length
         ? next
-        : [{ toothId: null, toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }];
+        : fallbackVisitId != null
+          ? [emptyEditToothLine(fallbackVisitId)]
+          : [];
     });
   }
 
@@ -637,50 +679,56 @@ function ImplantRecordsVisitDialog({
     }
     setSaving(true);
     try {
-      const visitId = row0.visitId;
       const patientId = row0.patientId;
-      for (const t of editTeeth) {
-        if (t.toothId != null) continue;
-        if (
-          !t.toothNo.trim() &&
-          !t.implantModel.trim() &&
-          !t.implantBrand.trim() &&
-          !t.toothRemark.trim()
-        )
-          continue;
-        await api("POST", `/implant/visits/${visitId}/teeth`, {
-          toothNo: t.toothNo.trim() || undefined,
-          implantBrand: t.implantBrand.trim() || undefined,
-          implantModel: t.implantModel.trim() || undefined,
-          toothRemark: t.toothRemark.trim() || undefined,
-        });
-      }
-      for (const tid of new Set(editPendingDeletes)) {
-        const q = `?toothId=${encodeURIComponent(String(tid))}`;
-        await api("DELETE", `/implant/visits/${visitId}${q}`);
-      }
-      for (const t of editTeeth) {
-        if (t.toothId == null) continue;
-        if (
-          !t.toothNo.trim() &&
-          !t.implantModel.trim() &&
-          !t.implantBrand.trim() &&
-          !t.toothRemark.trim()
-        )
-          continue;
-        await api("PUT", `/implant/visits/${visitId}`, {
-          toothId: t.toothId,
-          patientId,
-          patientName: editForm.patientName,
-          phone: editForm.phone,
-          visitDate: editForm.visitDate,
-          remark: editForm.remark || null,
-          staff: editForm.staff || null,
-          toothNo: t.toothNo.trim() || null,
-          implantBrand: t.implantBrand.trim() || null,
-          implantModel: t.implantModel.trim() || null,
-          toothRemark: t.toothRemark.trim() || null,
-        });
+      const visitIds = collectEditVisitIds(editTeeth, editPendingDeletes, row0.visitId);
+
+      for (const visitId of visitIds) {
+        for (const t of editTeeth) {
+          if (t.toothId != null || t.visitId !== visitId) continue;
+          if (
+            !t.toothNo.trim() &&
+            !t.implantModel.trim() &&
+            !t.implantBrand.trim() &&
+            !t.toothRemark.trim()
+          )
+            continue;
+          await api("POST", `/implant/visits/${visitId}/teeth`, {
+            toothNo: t.toothNo.trim() || undefined,
+            implantBrand: t.implantBrand.trim() || undefined,
+            implantModel: t.implantModel.trim() || undefined,
+            toothRemark: t.toothRemark.trim() || undefined,
+          });
+        }
+
+        for (const { visitId: delVisitId, toothId } of editPendingDeletes) {
+          if (delVisitId !== visitId) continue;
+          const q = `?toothId=${encodeURIComponent(String(toothId))}`;
+          await api("DELETE", `/implant/visits/${visitId}${q}`);
+        }
+
+        for (const t of editTeeth) {
+          if (t.toothId == null || t.visitId !== visitId) continue;
+          if (
+            !t.toothNo.trim() &&
+            !t.implantModel.trim() &&
+            !t.implantBrand.trim() &&
+            !t.toothRemark.trim()
+          )
+            continue;
+          await api("PUT", `/implant/visits/${visitId}`, {
+            toothId: t.toothId,
+            patientId,
+            patientName: editForm.patientName,
+            phone: editForm.phone,
+            visitDate: editForm.visitDate,
+            remark: editForm.remark || null,
+            staff: editForm.staff || null,
+            toothNo: t.toothNo.trim() || null,
+            implantBrand: t.implantBrand.trim() || null,
+            implantModel: t.implantModel.trim() || null,
+            toothRemark: t.toothRemark.trim() || null,
+          });
+        }
       }
       toast.success("已保存");
       onSaved();
@@ -700,7 +748,7 @@ function ImplantRecordsVisitDialog({
             <>
               <FieldLegend>编辑种植记录</FieldLegend>
               <FieldDescription>
-                病历号、出生日期、年龄为只读。牙位与植体与新增一致：可添加条目、行内删除；保存时先删已移除的牙位，再更新已有行并提交新行。
+                病历号、出生日期、年龄为只读。同一天同一人合并展示的多条牙位可一并编辑；保存时按各条所属就诊分别提交。
               </FieldDescription>
             </>
           ) : (
@@ -1202,7 +1250,7 @@ export function ImplantRecordsPage() {
 
   const openEdit = React.useCallback(
     (row: Row) => {
-      setVisitDialog({ type: "edit", group: rowsInSameVisitGroup(rows, row) });
+      setVisitDialog({ type: "edit", group: rowsInSameMergeGroup(rows, row) });
     },
     [rows],
   );
