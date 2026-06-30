@@ -27,6 +27,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROUTES } from "@/config/routes";
 import { computeSalarySheet, buildPriorBonusMap, computeInsuranceTable, round2 } from "@/lib/salary/calc";
+import type { InsuranceTableLine } from "@/lib/salary/calc";
 import {
   applyMonthCalendar,
   BONUS_MODE_OPTIONS,
@@ -191,6 +192,55 @@ function computeEmployeeTableColMinCh(computed: SalarySheetComputed): number {
   ];
 
   return computeTableColMinCh(readOnlyColumns);
+}
+
+function computeInsuranceTableColMinCh(
+  lines: InsuranceTableLine[],
+  groupTotals: Record<"social" | "medical" | "housing", number>,
+): number {
+  const rateDisplay = (rate: number | null) =>
+    rate != null ? Math.round(rate * 1000) / 10 : "—";
+
+  return computeTableColMinCh([
+    {
+      header: "类别",
+      texts: [...new Set(lines.map((line) => line.groupLabel))],
+    },
+    {
+      header: "项目",
+      texts: lines.map((line) => line.label),
+    },
+    {
+      header: "缴费基数",
+      texts: lines.map((line) => line.base),
+    },
+    {
+      header: "缴费比例",
+      texts: lines.flatMap((line) => [rateDisplay(line.employerRate), rateDisplay(line.personalRate)]),
+    },
+    {
+      header: "缴费人数",
+      texts: lines.flatMap((line) => [
+        line.employerCount,
+        line.personalCount ?? "—",
+      ]),
+    },
+    {
+      header: "小计",
+      texts: lines.flatMap((line) => [
+        line.employerSubtotal,
+        line.personalSubtotal ?? "—",
+      ]),
+    },
+    {
+      header: "合计",
+      texts: lines.map((line) => line.rowTotal),
+    },
+    {
+      header: "总计",
+      texts: [groupTotals.social, groupTotals.medical, groupTotals.housing],
+    },
+  ]);
 }
 
 function SalarySummaryTable({
@@ -490,9 +540,12 @@ function SalaryEmployeeTable({
             </TableCell>
             <TableCell>{row.leaveOffset}</TableCell>
             <TableCell>
-              <Button type="button" onClick={() => removeEmployee(index)}>
-                <X />
-              </Button>
+              <SalaryOutlineIconButton
+                aria-label="删除员工"
+                onClick={() => removeEmployee(index)}
+              >
+                <X className="size-3.5" />
+              </SalaryOutlineIconButton>
             </TableCell>
           </TableRow>
         ))}
@@ -514,9 +567,9 @@ function SalaryEmployeeTable({
           <TableCell />
           <TableCell />
           <TableCell>
-            <Button type="button" onClick={onAddEmployee}>
-              <Plus />
-            </Button>
+            <SalaryOutlineIconButton aria-label="添加员工" onClick={onAddEmployee}>
+              <Plus className="size-3.5" />
+            </SalaryOutlineIconButton>
           </TableCell>
         </TableRow>
       </TableBody>
@@ -568,11 +621,34 @@ function RatePercentInput(props: {
   );
 }
 
+function SalaryOutlineIconButton({
+  onClick,
+  children,
+  "aria-label": ariaLabel,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+  "aria-label"?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="size-8"
+      aria-label={ariaLabel}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
+}
+
 function RemoveRowButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" onClick={onClick}>
-      <X />
-    </Button>
+    <SalaryOutlineIconButton aria-label="删除项目" onClick={onClick}>
+      <X className="size-3.5" />
+    </SalaryOutlineIconButton>
   );
 }
 
@@ -656,6 +732,14 @@ function InsuranceFundTable({
   onHousingChange: (patch: Partial<SalaryHousingFundInput>) => void;
 }) {
   const { lines, groupTotals } = computeInsuranceTable(insurance, housingFund);
+  const colMinCh = React.useMemo(
+    () => computeInsuranceTableColMinCh(lines, groupTotals),
+    [lines, groupTotals],
+  );
+  const tableMinWidth = React.useMemo(
+    () => `calc(${INSURANCE_COL_COUNT} * (${colMinCh}ch + 1rem))`,
+    [colMinCh],
+  );
   const socialLines = lines.filter((line) => line.group === "social");
   const medicalLines = lines.filter((line) => line.group === "medical");
   const housingLine = lines.find((line) => line.group === "housing")!;
@@ -812,11 +896,20 @@ function InsuranceFundTable({
         <h4 className="text-sm font-medium">五险一金</h4>
         <p className="text-muted-foreground text-xs">与 Excel 缴费表一致，修改后自动重算</p>
       </div>
-      <div className="overflow-x-auto">
-        <Table className="w-full table-fixed [&_input[type=number]]:appearance-textfield [&_input[type=number]::-webkit-inner-spin-button]:appearance-none [&_input[type=number]::-webkit-outer-spin-button]:appearance-none [&_td]:text-center [&_th]:text-center">
+      <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
+        <Table
+          className={cn(
+            SALARY_DATA_TABLE_CLASS,
+            "[&_input[type=number]]:appearance-textfield [&_input[type=number]::-webkit-inner-spin-button]:appearance-none [&_input[type=number]::-webkit-outer-spin-button]:appearance-none",
+          )}
+          style={{ minWidth: tableMinWidth }}
+        >
           <colgroup>
             {Array.from({ length: INSURANCE_COL_COUNT }, (_, i) => (
-              <col key={i} />
+              <col
+                key={i}
+                style={{ minWidth: `calc(${colMinCh}ch + 1rem)` }}
+              />
             ))}
           </colgroup>
           <TableHeader>
@@ -913,7 +1006,8 @@ function InsuranceFundTable({
             </TableRow>
           </TableBody>
         </Table>
-      </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     </div>
   );
 }
