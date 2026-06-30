@@ -131,18 +131,10 @@ function computeMergeSpans(rows: Row[]) {
   return span;
 }
 
-/** 与表格合并规则一致：同一姓名+手机+就诊日的连续行视为同一次就诊的多条牙位 */
-function rowsInSameMergeGroup(allRows: Row[], clicked: Row): Row[] {
-  const key = rowMergeKey(clicked);
-  const i = allRows.findIndex(
-    (r) => r.visitId === clicked.visitId && r.toothId === clicked.toothId,
-  );
-  if (i < 0) return [clicked];
-  let start = i;
-  while (start > 0 && rowMergeKey(allRows[start - 1]!) === key) start--;
-  let end = i;
-  while (end + 1 < allRows.length && rowMergeKey(allRows[end + 1]!) === key) end++;
-  return allRows.slice(start, end + 1);
+/** 编辑弹窗：同一次就诊（visitId）下的全部牙位，不按姓名+日期合并键跨 visit */
+function rowsInSameVisitGroup(allRows: Row[], clicked: Row): Row[] {
+  const group = allRows.filter((r) => r.visitId === clicked.visitId);
+  return group.length > 0 ? group : [clicked];
 }
 
 /** 二期列展示：就诊日期 + remark（月数）→ 预计二期日期 */
@@ -1210,7 +1202,7 @@ export function ImplantRecordsPage() {
 
   const openEdit = React.useCallback(
     (row: Row) => {
-      setVisitDialog({ type: "edit", group: rowsInSameMergeGroup(rows, row) });
+      setVisitDialog({ type: "edit", group: rowsInSameVisitGroup(rows, row) });
     },
     [rows],
   );
