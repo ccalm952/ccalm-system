@@ -72,13 +72,17 @@ function insuranceColAt(extra?: string) {
 const SALARY_TABLE_FIELD =
   "border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent";
 
-function salaryEmpInput(extra?: string) {
+/** 薪资表内可编辑 Input / Combobox：无边框、蓝色文字 */
+function salaryEditableInput(extra?: string) {
   return cn(
     "field-sizing-content h-full w-auto min-w-min text-center text-primary placeholder:text-primary/40",
     SALARY_TABLE_FIELD,
     extra,
   );
 }
+
+const SALARY_DATA_TABLE_CLASS =
+  "w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_[data-slot=input-group]]:text-primary [&_td]:text-center [&_th]:text-center";
 
 /** 表格内奖金类型选项 */
 type BonusModeOption = (typeof BONUS_MODE_OPTIONS)[number];
@@ -212,7 +216,7 @@ function SalarySummaryTable({
   return (
     <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
       <Table
-        className="w-full table-fixed text-center [&_input]:text-center [&_td]:text-center [&_th]:text-center"
+        className={SALARY_DATA_TABLE_CLASS}
         style={{ minWidth: tableMinWidth }}
       >
       <colgroup>
@@ -240,6 +244,7 @@ function SalarySummaryTable({
           <TableCell>
             <Input
               type="number"
+              className={salaryEditableInput()}
               value={sheet.summary.totalIncome}
               onChange={(e) =>
                 patchSheet(month, {
@@ -258,6 +263,7 @@ function SalarySummaryTable({
           <TableCell>
             <Input
               type="number"
+              className={salaryEditableInput()}
               value={sheet.leaveQuotas.chen}
               onChange={(e) =>
                 patchSheet(month, {
@@ -273,6 +279,7 @@ function SalarySummaryTable({
           <TableCell>
             <Input
               type="number"
+              className={salaryEditableInput()}
               value={sheet.leaveQuotas.lu}
               onChange={(e) =>
                 patchSheet(month, {
@@ -288,6 +295,7 @@ function SalarySummaryTable({
           <TableCell>
             <Input
               type="number"
+              className={salaryEditableInput()}
               value={sheet.leaveQuotas.xu}
               onChange={(e) =>
                 patchSheet(month, {
@@ -303,6 +311,7 @@ function SalarySummaryTable({
           <TableCell>
             <Input
               type="number"
+              className={salaryEditableInput()}
               value={sheet.summary.workingDays}
               onChange={(e) =>
                 patchSheet(month, {
@@ -349,10 +358,7 @@ function SalaryEmployeeTable({
 
   return (
     <ScrollArea className={SALARY_TABLE_SCROLL_AREA}>
-      <Table
-        className="w-full table-fixed text-center [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:shadow-none [&_[data-slot=input-group]]:text-center [&_input]:border-0 [&_input]:text-center [&_input]:shadow-none [&_td]:text-center [&_th]:text-center"
-        style={{ minWidth: tableMinWidth }}
-      >
+      <Table className={SALARY_DATA_TABLE_CLASS} style={{ minWidth: tableMinWidth }}>
       <colgroup>
         {Array.from({ length: SALARY_EMPLOYEE_COL_COUNT }, (_, i) => (
           <col
@@ -387,6 +393,7 @@ function SalaryEmployeeTable({
           <TableRow key={row.id}>
             <TableCell>
               <Input
+                className={salaryEditableInput()}
                 value={row.title}
                 placeholder="职称"
                 onChange={(e) => updateEmployee(index, { title: e.target.value })}
@@ -394,6 +401,7 @@ function SalaryEmployeeTable({
             </TableCell>
             <TableCell>
               <Input
+                className={salaryEditableInput()}
                 value={row.name}
                 placeholder="姓名"
                 onChange={(e) => updateEmployee(index, { name: e.target.value })}
@@ -410,7 +418,7 @@ function SalaryEmployeeTable({
                 }}
                 itemToStringValue={(opt: BonusModeOption) => opt.label}
               >
-                <ComboboxInput placeholder="选择类型" />
+                <ComboboxInput className={salaryEditableInput()} placeholder="选择类型" />
                 <ComboboxContent>
                   <ComboboxEmpty>无匹配项</ComboboxEmpty>
                   <ComboboxList>
@@ -426,6 +434,7 @@ function SalaryEmployeeTable({
             <TableCell>
               <Input
                 type="number"
+                className={salaryEditableInput()}
                 value={row.baseSalary}
                 onChange={(e) =>
                   updateEmployee(index, { baseSalary: Number(e.target.value) })
@@ -436,6 +445,7 @@ function SalaryEmployeeTable({
             <TableCell>
               <Input
                 type="number"
+                className={salaryEditableInput()}
                 value={row.shareRatio}
                 onChange={(e) =>
                   updateEmployee(index, { shareRatio: Number(e.target.value) })
@@ -447,6 +457,7 @@ function SalaryEmployeeTable({
             <TableCell>
               <Input
                 type="number"
+                className={salaryEditableInput()}
                 value={row.plantingCount}
                 onChange={(e) =>
                   updateEmployee(index, { plantingCount: Number(e.target.value) })
@@ -460,6 +471,7 @@ function SalaryEmployeeTable({
             <TableCell>
               <Input
                 type="number"
+                className={salaryEditableInput()}
                 value={row.housingFund}
                 onChange={(e) =>
                   updateEmployee(index, { housingFund: Number(e.target.value) })
@@ -469,6 +481,7 @@ function SalaryEmployeeTable({
             <TableCell>
               <Input
                 type="number"
+                className={salaryEditableInput()}
                 value={row.leaveDays}
                 onChange={(e) =>
                   updateEmployee(index, { leaveDays: Number(e.target.value) })
@@ -665,18 +678,18 @@ function InsuranceFundTable({
         ) : null}
         <TableCell className={insuranceColAt()}>{line.label}</TableCell>
         <TableCell className={insuranceColAt()}>
-          <NumInput className={salaryEmpInput()} value={line.base} onChange={patchBase} />
+          <NumInput className={salaryEditableInput()} value={line.base} onChange={patchBase} />
         </TableCell>
         <TableCell className={insuranceColAt()}>
           <RatePercentInput
-            className={salaryEmpInput()}
+            className={salaryEditableInput()}
             value={line.employerRate}
             onChange={(rate) => patchEmployer({ rate })}
           />
         </TableCell>
         <TableCell className={insuranceColAt()}>
           <NumInput
-            className={salaryEmpInput()}
+            className={salaryEditableInput()}
             value={line.employerCount}
             onChange={(count) => patchEmployer({ count })}
           />
@@ -687,7 +700,7 @@ function InsuranceFundTable({
         <TableCell className={insuranceColAt()}>
           {line.personalRate != null ? (
             <RatePercentInput
-              className={salaryEmpInput()}
+              className={salaryEditableInput()}
               value={line.personalRate}
               onChange={(rate) => patchPersonal({ rate })}
             />
@@ -698,7 +711,7 @@ function InsuranceFundTable({
         <TableCell className={insuranceColAt()}>
           {line.personalCount != null ? (
             <NumInput
-              className={salaryEmpInput()}
+              className={salaryEditableInput()}
               value={line.personalCount}
               onChange={(count) => patchPersonal({ count })}
             />
@@ -854,21 +867,21 @@ function InsuranceFundTable({
               <TableCell className={insuranceColAt()}>{housingLine.label}</TableCell>
               <TableCell className={insuranceColAt()}>
                 <NumInput
-                  className={salaryEmpInput()}
+                  className={salaryEditableInput()}
                   value={housingLine.base}
                   onChange={(base) => onHousingChange({ base })}
                 />
               </TableCell>
               <TableCell className={insuranceColAt()}>
                 <RatePercentInput
-                  className={salaryEmpInput()}
+                  className={salaryEditableInput()}
                   value={housingLine.employerRate}
                   onChange={(employerRate) => onHousingChange({ employerRate })}
                 />
               </TableCell>
               <TableCell className={insuranceColAt()}>
                 <NumInput
-                  className={salaryEmpInput()}
+                  className={salaryEditableInput()}
                   value={housingLine.employerCount}
                   onChange={(employerCount) => onHousingChange({ employerCount })}
                 />
@@ -878,14 +891,14 @@ function InsuranceFundTable({
               </TableCell>
               <TableCell className={insuranceColAt()}>
                 <RatePercentInput
-                  className={salaryEmpInput()}
+                  className={salaryEditableInput()}
                   value={housingLine.personalRate!}
                   onChange={(personalRate) => onHousingChange({ personalRate })}
                 />
               </TableCell>
               <TableCell className={insuranceColAt()}>
                 <NumInput
-                  className={salaryEmpInput()}
+                  className={salaryEditableInput()}
                   value={housingLine.personalCount!}
                   onChange={(personalCount) => onHousingChange({ personalCount })}
                 />
@@ -973,7 +986,7 @@ function LineItemTable({
               <TableRow key={line.id} className="border-0">
                 <TableCell colSpan={3} className={lineItemColAt()}>
                   <Input
-                    className={salaryEmpInput()}
+                    className={salaryEditableInput()}
                     value={line.label}
                     placeholder="项目名称"
                     onChange={(e) => onUpdate(idx, { label: e.target.value })}
@@ -981,7 +994,7 @@ function LineItemTable({
                 </TableCell>
                 <TableCell colSpan={2} className={lineItemColAt()}>
                   <NumInput
-                    className={salaryEmpInput()}
+                    className={salaryEditableInput()}
                     value={line.amount}
                     onChange={(amount) => onUpdate(idx, { amount })}
                   />
