@@ -56,10 +56,16 @@ import {
   normalizeSalarySheet,
   previousSalaryMonth,
 } from "@/lib/salary/defaults";
+import {
+  fetchLeaveQuotasFromSchedule,
+  formatScheduleLeaveDays,
+  scheduleLeaveSourceMonthLabel,
+} from "@/lib/salary/schedule-leave";
 import type {
   SalaryEmployeeInput,
   SalaryHousingFundInput,
   SalaryInsuranceInput,
+  SalaryLeaveQuotas,
   SalarySheetData,
 } from "@/lib/salary/types";
 import { api } from "@/lib/api";
@@ -86,6 +92,19 @@ const SUMMARY_DECIMAL_DRAFT = /^\d*(\.\d{0,2})?$/;
 function formatSummaryDecimalValue(n: number): string {
   if (!Number.isFinite(n)) return "0";
   return String(n);
+}
+
+function sameLeaveQuotas(a: SalaryLeaveQuotas, b: SalaryLeaveQuotas): boolean {
+  return a.chen === b.chen && a.lu === b.lu && a.xu === b.xu;
+}
+
+async function applyScheduleLeaveQuotas(
+  month: string,
+  sheet: SalarySheetData,
+): Promise<SalarySheetData> {
+  const quotas = await fetchLeaveQuotasFromSchedule(month);
+  if (sameLeaveQuotas(sheet.leaveQuotas, quotas)) return sheet;
+  return applyMonthCalendar({ ...sheet, leaveQuotas: quotas }, month);
 }
 
 function SummaryDecimalInput({
@@ -177,47 +196,23 @@ function SalarySummaryTable({
           <TableCell>{computed.netIncome}</TableCell>
           <TableCell>{computed.remaining}</TableCell>
           <TableCell>{(computed.profitRate * 100).toFixed(2)}%</TableCell>
-          <TableCell>
-            <Input
-              value={sheet.leaveQuotas.chen}
-              onChange={(e) =>
-                patchSheet(month, {
-                  ...sheet,
-                  leaveQuotas: {
-                    ...sheet.leaveQuotas,
-                    chen: Number(e.target.value),
-                  },
-                })
-              }
-            />
+          <TableCell
+            title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+            className="text-muted-foreground"
+          >
+            {formatScheduleLeaveDays(sheet.leaveQuotas.chen)}
           </TableCell>
-          <TableCell>
-            <Input
-              value={sheet.leaveQuotas.lu}
-              onChange={(e) =>
-                patchSheet(month, {
-                  ...sheet,
-                  leaveQuotas: {
-                    ...sheet.leaveQuotas,
-                    lu: Number(e.target.value),
-                  },
-                })
-              }
-            />
+          <TableCell
+            title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+            className="text-muted-foreground"
+          >
+            {formatScheduleLeaveDays(sheet.leaveQuotas.lu)}
           </TableCell>
-          <TableCell>
-            <Input
-              value={sheet.leaveQuotas.xu}
-              onChange={(e) =>
-                patchSheet(month, {
-                  ...sheet,
-                  leaveQuotas: {
-                    ...sheet.leaveQuotas,
-                    xu: Number(e.target.value),
-                  },
-                })
-              }
-            />
+          <TableCell
+            title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+            className="text-muted-foreground"
+          >
+            {formatScheduleLeaveDays(sheet.leaveQuotas.xu)}
           </TableCell>
           <TableCell>
             <Input
@@ -835,19 +830,44 @@ export function SalaryPage() {
     });
   }, [salaryUnlocked, reloadMonths, lockSalary]);
 
+  const refreshScheduleLeaveQuotas = React.useCallback(
+    async (month: string) => {
+      const quotas = await fetchLeaveQuotasFromSchedule(month);
+      setSheets((prev) => {
+        const sheet = prev[month];
+        if (!sheet || sameLeaveQuotas(sheet.leaveQuotas, quotas)) return prev;
+        const data = applyMonthCalendar({ ...sheet, leaveQuotas: quotas }, month);
+        void api("PUT", `/salary/${month}`, { data }, salaryApi).catch((e) => {
+          if (handleSalaryAccessError(e, lockSalary)) return;
+          toast.error(errorMessage(e));
+        });
+        return { ...prev, [month]: data };
+      });
+    },
+    [lockSalary],
+  );
+
   const loadMonth = React.useCallback(
     async (month: string) => {
       if (!month || sheets[month]) return;
       setLoadingMonth(month);
       try {
         const data = await fetchMonth(month);
-        setSheets((prev) => ({ ...prev, [month]: data }));
+        const withQuotas = await applyScheduleLeaveQuotas(month, data);
+        setSheets((prev) => ({ ...prev, [month]: withQuotas }));
+        if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
+          await api("PUT", `/salary/${month}`, { data: withQuotas }, salaryApi);
+        }
 
         const prev = previousSalaryMonth(month, Object.keys(sheets));
         if (prev && !sheets[prev]) {
           try {
             const prevData = await fetchMonth(prev);
-            setSheets((p) => ({ ...p, [prev]: prevData }));
+            const prevWithQuotas = await applyScheduleLeaveQuotas(prev, prevData);
+            setSheets((p) => ({ ...p, [prev]: prevWithQuotas }));
+            if (!sameLeaveQuotas(prevData.leaveQuotas, prevWithQuotas.leaveQuotas)) {
+              await api("PUT", `/salary/${prev}`, { data: prevWithQuotas }, salaryApi);
+            }
           } catch {
             // 上月无记录时不影响当月
           }
@@ -856,7 +876,8 @@ export function SalaryPage() {
         if (handleSalaryAccessError(e, lockSalary)) return;
         const err = e as { status?: number };
         if (err.status === 404) {
-          const data = createDefaultSalarySheet(month);
+          let data = createDefaultSalarySheet(month);
+          data = await applyScheduleLeaveQuotas(month, data);
           setSheets((prev) => ({ ...prev, [month]: data }));
           await api("PUT", `/salary/${month}`, { data }, salaryApi);
         } else {
@@ -868,6 +889,10 @@ export function SalaryPage() {
     },
     [fetchMonth, lockSalary, sheets],
   );
+
+  React.useEffect(() => {
+    if (salaryUnlocked && activeMonth) void refreshScheduleLeaveQuotas(activeMonth);
+  }, [activeMonth, salaryUnlocked, refreshScheduleLeaveQuotas]);
 
   React.useEffect(() => {
     if (salaryUnlocked && activeMonth) void loadMonth(activeMonth);
@@ -944,7 +969,8 @@ export function SalaryPage() {
       return;
     }
     try {
-      const data = createDefaultSalarySheet(month);
+      let data = createDefaultSalarySheet(month);
+      data = await applyScheduleLeaveQuotas(month, data);
       await api("PUT", `/salary/${month}`, { data }, salaryApi);
       setSheets((prev) => ({ ...prev, [month]: data }));
       setMonths((prev) => [...prev, month].sort());
@@ -1026,9 +1052,12 @@ export function SalaryPage() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const data = createDefaultSalarySheet(activeMonth);
-                  patchSheet(activeMonth, data);
-                  toast.success("已恢复为默认");
+                  void (async () => {
+                    let data = createDefaultSalarySheet(activeMonth);
+                    data = await applyScheduleLeaveQuotas(activeMonth, data);
+                    patchSheet(activeMonth, data);
+                    toast.success("已恢复为默认");
+                  })();
                 }}
               >
                 <RotateCcw className="size-3.5" />
