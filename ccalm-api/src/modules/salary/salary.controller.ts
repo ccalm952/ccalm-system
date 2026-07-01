@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Req } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Post, Put, Req } from "@nestjs/common"
 import type { Request } from "express"
 
 import { requireAdmin } from "../../common/request-auth"
@@ -48,5 +48,11 @@ export class SalaryController {
   ) {
     this.assertSalaryAccess(req)
     return await this.salary.saveMonth({ month, data: body.data })
+  }
+
+  @Delete(":month")
+  async deleteMonth(@Req() req: Request, @Param("month") month: string) {
+    this.assertSalaryAccess(req)
+    return await this.salary.deleteMonth(month)
   }
 }

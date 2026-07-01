@@ -1,10 +1,28 @@
 import * as React from "react";
 import { Navigate } from "react-router-dom";
+import dayjs from "dayjs";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Combobox,
   ComboboxContent,
@@ -35,7 +53,6 @@ import {
   calendarDaysForMonth,
   formatSalaryMonthTab,
   isSalarySheetData,
-  listSalaryMonths,
   normalizeSalarySheet,
   previousSalaryMonth,
 } from "@/lib/salary/defaults";
@@ -50,6 +67,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { hasSalaryUnlockToken, setSalaryUnlockToken } from "@/lib/salary-unlock";
 import { useAuth } from "@/lib/use-auth";
+import { DatePickerField } from "@/components/date-picker-field";
 import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog";
 
 /** 表格内奖金类型选项 */
@@ -443,8 +461,11 @@ function computeWithCarryover(
   sheet: SalarySheetData,
   sheets: Record<string, SalarySheetData>,
 ): ReturnType<typeof computeSalarySheet> {
+  const monthKeys = Object.keys(sheets);
   return computeSalarySheet(sheet, {
-    priorBonusByName: buildPriorBonusMap(month, sheets, previousSalaryMonth),
+    priorBonusByName: buildPriorBonusMap(month, sheets, (m) =>
+      previousSalaryMonth(m, monthKeys),
+    ),
   });
 }
 
@@ -701,8 +722,11 @@ function handleSalaryAccessError(e: unknown, onLocked: () => void): boolean {
 export function SalaryPage() {
   const { me } = useAuth();
   const [salaryUnlocked, setSalaryUnlocked] = React.useState(hasSalaryUnlockToken);
-  const months = React.useMemo(() => listSalaryMonths(), []);
-  const [activeMonth, setActiveMonth] = React.useState(() => months[months.length - 1] ?? "");
+  const [months, setMonths] = React.useState<string[]>([]);
+  const [activeMonth, setActiveMonth] = React.useState("");
+  const [addMonthOpen, setAddMonthOpen] = React.useState(false);
+  const [addMonthValue, setAddMonthValue] = React.useState("");
+  const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
@@ -728,7 +752,27 @@ export function SalaryPage() {
     setSalaryUnlockToken(null);
     setSalaryUnlocked(false);
     setSheets({});
+    setMonths([]);
+    setActiveMonth("");
   }, []);
+
+  const reloadMonths = React.useCallback(async () => {
+    const list = await api<string[]>("GET", "/salary/months", undefined, salaryApi);
+    setMonths(list);
+    setActiveMonth((prev) => {
+      if (prev && list.includes(prev)) return prev;
+      return list[list.length - 1] ?? "";
+    });
+    return list;
+  }, []);
+
+  React.useEffect(() => {
+    if (!salaryUnlocked) return;
+    void reloadMonths().catch((e) => {
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
+    });
+  }, [salaryUnlocked, reloadMonths, lockSalary]);
 
   const loadMonth = React.useCallback(
     async (month: string) => {
@@ -738,7 +782,7 @@ export function SalaryPage() {
         const data = await fetchMonth(month);
         setSheets((prev) => ({ ...prev, [month]: data }));
 
-        const prev = previousSalaryMonth(month);
+        const prev = previousSalaryMonth(month, Object.keys(sheets));
         if (prev && !sheets[prev]) {
           try {
             const prevData = await fetchMonth(prev);
@@ -828,24 +872,93 @@ export function SalaryPage() {
     });
   }
 
+  async function addMonth() {
+    const month = addMonthValue.trim();
+    if (!month) {
+      toast.error("请选择月份");
+      return;
+    }
+    if (months.includes(month)) {
+      toast.error("该月份已存在");
+      return;
+    }
+    try {
+      const data = createDefaultSalarySheet(month);
+      await api("PUT", `/salary/${month}`, { data }, salaryApi);
+      setSheets((prev) => ({ ...prev, [month]: data }));
+      setMonths((prev) => [...prev, month].sort());
+      setActiveMonth(month);
+      setAddMonthOpen(false);
+      setAddMonthValue("");
+      toast.success("已添加月份");
+    } catch (e) {
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
+    }
+  }
+
+  async function deleteMonth() {
+    if (!activeMonth) return;
+    const month = activeMonth;
+    try {
+      await api("DELETE", `/salary/${month}`, undefined, salaryApi);
+      setSheets((prev) => {
+        const next = { ...prev };
+        delete next[month];
+        return next;
+      });
+      const nextMonths = months.filter((m) => m !== month);
+      setMonths(nextMonths);
+      setActiveMonth(nextMonths[nextMonths.length - 1] ?? "");
+      setDeleteMonthOpen(false);
+      toast.success("已删除月份");
+    } catch (e) {
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
+    }
+  }
+
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <Tabs value={activeMonth} onValueChange={setActiveMonth} className="gap-4">
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <TabsList>
-              {months.map((month) => (
-                <TabsTrigger key={month} value={month}>
-                  {formatSalaryMonthTab(month)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="min-w-0">
+            {months.length > 0 ? (
+              <TabsList>
+                {months.map((month) => (
+                  <TabsTrigger key={month} value={month}>
+                    {formatSalaryMonthTab(month)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             {saving ? (
               <span className="text-muted-foreground flex items-center gap-2 text-sm">
                 <Spinner className="size-4" /> 保存中…
               </span>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setAddMonthValue(dayjs().format("YYYY-MM"));
+                setAddMonthOpen(true);
+              }}
+            >
+              <Plus className="size-3.5" />
+              添加月份
+            </Button>
+            {activeMonth ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMonthOpen(true)}
+              >
+                <X className="size-3.5" />
+                删除月份
+              </Button>
             ) : null}
             {sheet && activeMonth ? (
               <Button
@@ -863,6 +976,61 @@ export function SalaryPage() {
             ) : null}
           </div>
         </div>
+
+        <Dialog open={addMonthOpen} onOpenChange={setAddMonthOpen}>
+          <DialogContent
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              void addMonth();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>添加月份</DialogTitle>
+            </DialogHeader>
+            <DatePickerField
+              granularity="month"
+              value={addMonthValue}
+              onValueChange={setAddMonthValue}
+              placeholder="选择月份"
+            />
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setAddMonthOpen(false)}>
+                取消
+              </Button>
+              <Button type="button" onClick={() => void addMonth()}>
+                确定
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={deleteMonthOpen} onOpenChange={setDeleteMonthOpen}>
+          <AlertDialogContent
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              void deleteMonth();
+            }}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>删除月份</AlertDialogTitle>
+              <AlertDialogDescription>
+                将删除 {activeMonth} 的薪资表及全部数据，此操作不可恢复。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={() => void deleteMonth()}>
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {months.length === 0 ? (
+          <div className="text-muted-foreground text-sm">暂无月份，请点击「添加月份」</div>
+        ) : null}
 
         {months.map((month) => (
           <TabsContent key={month} value={month} className="min-h-0 min-w-0 flex-1 space-y-4">

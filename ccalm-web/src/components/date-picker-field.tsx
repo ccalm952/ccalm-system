@@ -16,6 +16,10 @@ function formatCnDate(d: Date) {
   return format(d, "yyyy年M月d日");
 }
 
+function formatCnMonth(d: Date) {
+  return format(d, "yyyy年M月");
+}
+
 export type DatePickerFieldProps = {
   value: string;
   onValueChange: (v: string) => void;
@@ -25,11 +29,11 @@ export type DatePickerFieldProps = {
   placeholder?: string;
   /** 无外侧标签时用于触发按钮的可访问名称 */
   "aria-label"?: string;
-  /**
-   * `"dropdown"`：与 shadcn 文档「Date of birth」一致（年月下拉 + 选毕关弹层）。
-   * 默认 `"label"`：普通月历标题。
-   */
   captionLayout?: "label" | "dropdown";
+  /** `"month"` 时值为 YYYY-MM，展示为 yyyy年M月 */
+  granularity?: "day" | "month";
+  startMonth?: Date;
+  endMonth?: Date;
 };
 
 export function DatePickerField({
@@ -40,36 +44,51 @@ export function DatePickerField({
   id,
   placeholder = "选择日期",
   captionLayout = "label",
+  granularity = "day",
+  startMonth,
+  endMonth,
   "aria-label": ariaLabel,
 }: DatePickerFieldProps) {
+  const isMonth = granularity === "month";
   const selected = React.useMemo(() => {
     if (!value) return undefined;
-    const d = dayjs(value);
+    const d = dayjs(isMonth ? `${value}-01` : value);
     return d.isValid() ? d.toDate() : undefined;
-  }, [value]);
+  }, [value, isMonth]);
 
   const [open, setOpen] = React.useState(false);
   const isDropdown = captionLayout === "dropdown";
+  const now = new Date();
+  const dropdownStart = startMonth ?? (isMonth ? new Date(2020, 0) : new Date(1900, 0));
+  const dropdownEnd =
+    endMonth ?? (isMonth ? new Date(now.getFullYear() + 2, 11) : now);
 
   const calendar = (
     <Calendar
       mode="single"
       selected={selected}
-      defaultMonth={selected ?? new Date(2000, 0)}
+      defaultMonth={selected ?? (isMonth ? now : new Date(2000, 0))}
       captionLayout={captionLayout}
       onSelect={(d) => {
-        onValueChange(d ? format(d, "yyyy-MM-dd") : "");
+        onValueChange(d ? format(d, isMonth ? "yyyy-MM" : "yyyy-MM-dd") : "");
         setOpen(false);
       }}
       locale={zhCN}
       {...(isDropdown
         ? {
-            startMonth: new Date(1900, 0),
-            endMonth: new Date(),
+            startMonth: dropdownStart,
+            endMonth: dropdownEnd,
           }
         : {})}
     />
   );
+
+  const empty = !value;
+  const displayLabel = selected
+    ? isMonth
+      ? formatCnMonth(selected)
+      : formatCnDate(selected)
+    : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -79,7 +98,7 @@ export function DatePickerField({
         render={
           <Button
             variant="outline"
-            data-empty={!value}
+            data-empty={empty}
             aria-label={ariaLabel}
             className={cn(
               "w-full justify-start text-left font-normal data-[empty=true]:text-muted-foreground",
@@ -89,7 +108,7 @@ export function DatePickerField({
         }
       >
         <CalendarIcon data-icon="inline-start" />
-        {selected ? formatCnDate(selected) : <span>{placeholder}</span>}
+        {displayLabel ?? <span>{placeholder}</span>}
       </PopoverTrigger>
       <PopoverContent className={cn("w-auto p-0", isDropdown && "overflow-hidden")} align="start">
         {calendar}

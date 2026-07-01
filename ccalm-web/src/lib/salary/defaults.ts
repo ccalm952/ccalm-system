@@ -335,35 +335,21 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
     month,
   );
 }
-/** 仅去年 1 月至今年当前月 */
-export function listSalaryMonths(now = dayjs()): string[] {
-  const lastYear = now.year() - 1;
-  const thisYear = now.year();
-  const months: string[] = [];
-  for (let m = 1; m <= 12; m += 1) {
-    months.push(`${lastYear}-${String(m).padStart(2, "0")}`);
-  }
-  const endMonth = now.month() + 1;
-  for (let m = 1; m <= endMonth; m += 1) {
-    months.push(`${thisYear}-${String(m).padStart(2, "0")}`);
-  }
-  return months;
+/** 上一自然月；传入已有月份时仅当上月也在列表中才返回 */
+export function previousSalaryMonth(
+  month: string,
+  existingMonths?: Iterable<string>,
+): string | null {
+  const prev = dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM");
+  if (existingMonths === undefined) return prev;
+  const set =
+    existingMonths instanceof Set ? existingMonths : new Set(existingMonths);
+  return set.has(prev) ? prev : null;
 }
 
 export function formatSalaryMonthTab(month: string): string {
   const [y, m] = month.split("-");
   return `${y.slice(2)}${m}`;
-}
-
-export function previousSalaryMonth(month: string): string | null {
-  const prev = dayjs(`${month}-01`).subtract(1, "month");
-  const allowed = new Set(listSalaryMonths());
-  const key = prev.format("YYYY-MM");
-  return allowed.has(key) ? key : null;
-}
-
-export function isSalaryMonthAllowed(month: string, now = dayjs()): boolean {
-  return listSalaryMonths(now).includes(month);
 }
 
 let entitySeq = 0;
