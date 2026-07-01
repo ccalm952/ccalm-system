@@ -399,11 +399,9 @@ function SalaryEmployeeTable({
             </TableCell>
             <TableCell>{row.deductedBase}</TableCell>
             <TableCell>
-              <Input
+              <SummaryDecimalInput
                 value={row.shareRatio}
-                onChange={(e) =>
-                  updateEmployee(index, { shareRatio: Number(e.target.value) })
-                }
+                onCommit={(shareRatio) => updateEmployee(index, { shareRatio })}
               />
             </TableCell>
             <TableCell>{row.actualReceipt}</TableCell>
