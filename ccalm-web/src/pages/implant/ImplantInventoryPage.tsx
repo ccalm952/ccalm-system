@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -459,7 +459,7 @@ export function ImplantInventoryPage() {
                 className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </FieldSet>
-            <DialogFooter className="grid grid-cols-2 gap-2 sm:grid-cols-2 *:w-full">
+            <DialogFooter className="grid grid-cols-2 gap-2 md:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setAddStockOpen(false)}>
                 取消
               </Button>
@@ -507,7 +507,7 @@ export function ImplantInventoryPage() {
                 </FieldContent>
               </Field>
             </FieldSet>
-            <DialogFooter className="grid grid-cols-2 gap-2 sm:grid-cols-2 *:w-full">
+            <DialogFooter className="grid grid-cols-2 gap-2 md:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>
                 取消
               </Button>

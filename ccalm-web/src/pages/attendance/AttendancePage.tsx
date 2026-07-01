@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import { isPunchBlockedByScheduleRest } from "@/lib/attendance/schedule-rest";
@@ -569,7 +569,7 @@ export function AttendancePage() {
                 <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                     <div className="text-center">
                       <div className="text-sm">{formatDayCount(monthSummary.attendanceDays)}</div>
                       <div className="text-sm">出勤天数</div>

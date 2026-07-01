@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export function AttendanceShiftSettingsPage() {
         <div className="flex flex-col gap-4 text-sm">
           <section className="rounded-lg border border-border p-4">
             <div className={attendanceSectionTitleClass}>上午班次</div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">标签</label>
                 <Input
@@ -166,7 +166,7 @@ export function AttendanceShiftSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">上午上班可打开始</label>
                 <Input
@@ -183,7 +183,7 @@ export function AttendanceShiftSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">上午下班可打开始</label>
                 <Input
@@ -203,7 +203,7 @@ export function AttendanceShiftSettingsPage() {
 
           <section className="rounded-lg border border-border p-4">
             <div className={attendanceSectionTitleClass}>下午班次</div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">标签</label>
                 <Input
@@ -227,7 +227,7 @@ export function AttendanceShiftSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">下午上班可打开始</label>
                 <Input
@@ -244,7 +244,7 @@ export function AttendanceShiftSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">下午下班可打开始</label>
                 <Input
@@ -264,7 +264,7 @@ export function AttendanceShiftSettingsPage() {
 
           <section className="rounded-lg border border-border p-4">
             <div className={attendanceSectionTitleClass}>加班</div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium">上午正常下班（加班起算）</label>
                 <Input

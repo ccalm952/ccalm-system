@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 
 import { SortableTableHead } from "@/components/sortable-table-head";
@@ -822,7 +822,7 @@ export function WarehouseLedgerPage() {
       </Card>
 
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="md:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingItemId ? "编辑物品" : "新增物品"}</DialogTitle>
             <DialogDescription>
@@ -832,7 +832,7 @@ export function WarehouseLedgerPage() {
             </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
-            <FieldGroup className="grid gap-3 sm:grid-cols-2">
+            <FieldGroup className="grid gap-3 md:grid-cols-2">
               <Field orientation="vertical">
                 <FieldLabel>
                   <FieldTitle>编码</FieldTitle>
@@ -935,7 +935,7 @@ export function WarehouseLedgerPage() {
       </Dialog>
 
       <Dialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="md:max-w-3xl">
           <DialogHeader>
             <DialogTitle>登记流水</DialogTitle>
             <DialogDescription>为当前选中的物品登记入库或出库。</DialogDescription>
@@ -953,7 +953,7 @@ export function WarehouseLedgerPage() {
                 />
               </FieldContent>
             </Field>
-            <FieldGroup className="grid gap-3 sm:grid-cols-2">
+            <FieldGroup className="grid gap-3 md:grid-cols-2">
               <Field orientation="vertical">
                 <FieldLabel>
                   <FieldTitle>类型</FieldTitle>

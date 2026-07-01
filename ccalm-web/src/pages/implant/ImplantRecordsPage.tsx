@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
@@ -742,7 +742,7 @@ function ImplantRecordsVisitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl" showCloseButton={false}>
+      <DialogContent className="md:max-w-3xl" showCloseButton={false}>
         <FieldSet>
           {isEdit ? (
             <>
@@ -757,7 +757,7 @@ function ImplantRecordsVisitDialog({
           {isEdit ? (
             <div className="flex flex-col gap-4">
               <FieldGroup>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Field orientation="vertical">
                     <FieldLabel>日期</FieldLabel>
                     <FieldContent>
@@ -953,7 +953,7 @@ function ImplantRecordsVisitDialog({
           ) : (
             <div className="flex flex-col gap-4">
               <FieldGroup>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Field orientation="vertical">
                     <FieldContent>
                       <DatePickerField
@@ -1403,9 +1403,9 @@ export function ImplantRecordsPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
-          <CardHeader className="flex min-w-0 flex-col gap-3 space-y-0 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between">
+          <CardHeader className="flex min-w-0 flex-col gap-3 space-y-0 md:flex-row md:flex-nowrap md:items-center md:justify-between">
             <div className="flex min-w-0 w-full flex-1 flex-nowrap items-center gap-2">
-              <InputGroup className="min-w-0 flex-1 sm:max-w-md">
+              <InputGroup className="min-w-0 flex-1 md:max-w-md">
                 <InputGroupAddon align="inline-start">
                   <SearchIcon className="size-4 shrink-0 opacity-50" aria-hidden />
                 </InputGroupAddon>
@@ -1421,10 +1421,10 @@ export function ImplantRecordsPage() {
                   setDateFrom(from);
                   setDateTo(to);
                 }}
-                className="min-w-0 max-w-[min(100%,280px)] shrink-0 sm:max-w-[280px]"
+                className="min-w-0 max-w-[min(100%,280px)] shrink-0 md:max-w-[280px]"
               />
             </div>
-            <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
+            <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end">
               <Button
                 type="button"
                 className="shrink-0"

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
 
   return (
     <Dialog open={open}>
-      <DialogContent showCloseButton={false} className="sm:max-w-sm">
+      <DialogContent showCloseButton={false} className="md:max-w-sm">
         <form onSubmit={(e) => void submit(e)}>
           <DialogHeader>
             <DialogTitle>薪资 PIN 验证</DialogTitle>
@@ -95,7 +95,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             />
             {error ? <p className="text-destructive text-sm">{error}</p> : null}
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 md:gap-0">
             <Button
               type="button"
               variant="outline"

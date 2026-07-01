@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 import {
   type ColumnDef,
@@ -314,8 +314,8 @@ export function ImplantPatientPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
-          <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-            <InputGroup className="min-w-0 w-full sm:max-w-md">
+          <CardHeader className="flex flex-col gap-3 space-y-0 md:flex-row md:items-center md:justify-between">
+            <InputGroup className="min-w-0 w-full md:max-w-md">
               <InputGroupAddon align="inline-start">
                 <SearchIcon className="size-4 shrink-0 opacity-50" aria-hidden />
               </InputGroupAddon>
@@ -324,7 +324,7 @@ export function ImplantPatientPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </InputGroup>
-            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 md:w-auto">
               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogTrigger
                   disabled={!selection.size}

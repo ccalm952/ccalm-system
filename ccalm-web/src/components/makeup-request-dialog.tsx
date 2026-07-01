@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ export function MakeupRequestDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-md">
         <DialogHeader>
           <DialogTitle>{isDirect ? "补卡" : "申请补卡"}</DialogTitle>
         </DialogHeader>

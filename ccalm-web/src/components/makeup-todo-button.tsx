@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ function MakeupRequestCard(props: {
 
       {mode === "review" ? (
         <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="md:max-w-md">
             <DialogHeader>
               <DialogTitle>拒绝补卡申请</DialogTitle>
             </DialogHeader>
@@ -225,7 +225,7 @@ export function MakeupTodoButton() {
           </button>
         }
       />
-      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 md:max-w-md">
         <Tabs
           value={tab}
           onValueChange={(value) => setTab(value as TodoTab)}

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Trash2Icon } from "lucide-react";
 
 import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
@@ -256,7 +256,7 @@ export function UsersPage() {
 
             <FieldSet className="text-sm">
               <div className="flex flex-col gap-4">
-                <FieldGroup className="flex flex-col sm:flex-row">
+                <FieldGroup className="flex flex-col md:flex-row">
                   <Field className="flex-1" orientation="responsive">
                     <FieldLabel>
                       <FieldTitle>用户名</FieldTitle>
@@ -284,7 +284,7 @@ export function UsersPage() {
                   </Field>
                 </FieldGroup>
 
-                <FieldGroup className="flex flex-col sm:flex-row">
+                <FieldGroup className="flex flex-col md:flex-row">
                   <Field className="flex-1" orientation="responsive">
                     <FieldLabel>
                       <FieldTitle>姓名</FieldTitle>
@@ -427,7 +427,7 @@ export function UsersPage() {
             {editUser ? (
               <FieldSet className="text-sm">
                 <div className="flex flex-col gap-4">
-                  <FieldGroup className="flex flex-col sm:flex-row">
+                  <FieldGroup className="flex flex-col md:flex-row">
                     <Field className="flex-1" orientation="responsive">
                       <FieldLabel>
                         <FieldTitle>用户名</FieldTitle>
@@ -453,7 +453,7 @@ export function UsersPage() {
                     </Field>
                   </FieldGroup>
 
-                  <FieldGroup className="flex flex-col sm:flex-row">
+                  <FieldGroup className="flex flex-col md:flex-row">
                     <Field className="flex-1" orientation="responsive">
                       <FieldLabel>
                         <FieldTitle>姓名</FieldTitle>

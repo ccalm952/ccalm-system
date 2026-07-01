@@ -1,6 +1,7 @@
 import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+/** 窄屏断点（px）。与 Tailwind `md:`（768px）及 `useIsMobile()` 保持一致。 */
+export const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
