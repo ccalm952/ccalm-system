@@ -57,7 +57,6 @@ import {
   previousSalaryMonth,
 } from "@/lib/salary/defaults";
 import type {
-  SalaryCostItems,
   SalaryEmployeeInput,
   SalaryHousingFundInput,
   SalaryInsuranceInput,
@@ -81,6 +80,53 @@ function sumActualReceiptTotal(computed: SalarySheetComputed): number {
   );
 }
 
+/** 汇总表金额输入：最多两位小数，失焦时 round2 写入 */
+const SUMMARY_DECIMAL_DRAFT = /^\d*(\.\d{0,2})?$/;
+
+function formatSummaryDecimalValue(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  return String(n);
+}
+
+function SummaryDecimalInput({
+  value,
+  onCommit,
+}: {
+  value: number;
+  onCommit: (n: number) => void;
+}) {
+  const [draft, setDraft] = React.useState(() => formatSummaryDecimalValue(value));
+  const focusedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(formatSummaryDecimalValue(value));
+    }
+  }, [value]);
+
+  return (
+    <Input
+      inputMode="decimal"
+      value={draft}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (next === "" || SUMMARY_DECIMAL_DRAFT.test(next)) {
+          setDraft(next);
+        }
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        const n = round2(Number(draft) || 0);
+        onCommit(n);
+        setDraft(formatSummaryDecimalValue(n));
+      }}
+    />
+  );
+}
+
 function SalarySummaryTable({
   sheet,
   computed,
@@ -92,16 +138,6 @@ function SalarySummaryTable({
   month: string;
   patchSheet: (month: string, patch: SalarySheetData) => void;
 }) {
-  function patchCostItem(key: keyof SalaryCostItems, raw: string) {
-    patchSheet(month, {
-      ...sheet,
-      costItems: {
-        ...sheet.costItems,
-        [key]: Number(raw) || 0,
-      },
-    });
-  }
-
   return (
     <Table className="table-fixed">
       <TableHeader>
@@ -128,15 +164,12 @@ function SalarySummaryTable({
       <TableBody>
         <TableRow>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.summary.totalIncome}
-              onChange={(e) =>
+              onCommit={(totalIncome) =>
                 patchSheet(month, {
                   ...sheet,
-                  summary: {
-                    ...sheet.summary,
-                    totalIncome: Number(e.target.value),
-                  },
+                  summary: { ...sheet.summary, totalIncome },
                 })
               }
             />
@@ -201,39 +234,69 @@ function SalarySummaryTable({
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.utilities}
-              onChange={(e) => patchCostItem("utilities", e.target.value)}
+              onCommit={(utilities) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, utilities },
+                })
+              }
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.rent}
-              onChange={(e) => patchCostItem("rent", e.target.value)}
+              onCommit={(rent) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, rent },
+                })
+              }
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.materials}
-              onChange={(e) => patchCostItem("materials", e.target.value)}
+              onCommit={(materials) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, materials },
+                })
+              }
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.planting}
-              onChange={(e) => patchCostItem("planting", e.target.value)}
+              onCommit={(planting) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, planting },
+                })
+              }
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.processing}
-              onChange={(e) => patchCostItem("processing", e.target.value)}
+              onCommit={(processing) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, processing },
+                })
+              }
             />
           </TableCell>
           <TableCell>
-            <Input
+            <SummaryDecimalInput
               value={sheet.costItems.other}
-              onChange={(e) => patchCostItem("other", e.target.value)}
+              onCommit={(other) =>
+                patchSheet(month, {
+                  ...sheet,
+                  costItems: { ...sheet.costItems, other },
+                })
+              }
             />
           </TableCell>
           <TableCell>{computed.insuranceEmployerTotal}</TableCell>
