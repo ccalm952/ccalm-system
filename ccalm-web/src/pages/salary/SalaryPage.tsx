@@ -620,7 +620,7 @@ function InsuranceFundTable({
   ];
 
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
             <TableRow>
               <TableHead colSpan={2}>险种</TableHead>
