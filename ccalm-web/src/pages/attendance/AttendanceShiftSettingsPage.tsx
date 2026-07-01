@@ -16,7 +16,7 @@ import { attendanceSectionTitleClass } from "@/lib/attendance/attendance-theme";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 function cloneShift(v: AttendanceShiftFullConfig): AttendanceShiftFullConfig {
   return JSON.parse(JSON.stringify(v)) as AttendanceShiftFullConfig;

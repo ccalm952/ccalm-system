@@ -46,7 +46,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */
 const IMPLANT_TABLE_SELECT_COL_W = "40px";

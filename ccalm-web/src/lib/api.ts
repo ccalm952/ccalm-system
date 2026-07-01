@@ -30,7 +30,7 @@ function messageFromFailedResponse(data: unknown, res: Response, rawText: string
   }
   const t = rawText.trim();
   if (t) return t;
-  return `HTTP ${res.status}`;
+  return `请求失败（${res.status}）`;
 }
 
 export function getToken(): string | null {

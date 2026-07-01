@@ -60,7 +60,7 @@ import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 /** 勾选列固定宽度（与 `w-10` 一致） */
 const INV_TABLE_SELECT_COL_W = "2.5rem";
@@ -438,7 +438,7 @@ export function ImplantInventoryPage() {
         </Card>
 
         <Dialog open={addStockOpen} onOpenChange={setAddStockOpen}>
-          <DialogContent>
+          <DialogContent showCloseButton={false}>
             <FieldSet>
               <InventoryBrandCombobox
                 items={addBrandItems}

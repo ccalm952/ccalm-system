@@ -5,7 +5,7 @@ import {
   attendanceTodayStart,
   formatAttendanceTime,
 } from "./attendance-dayjs"
-import { countMakeupButtonSlots, applyDayAttendance } from "./makeup-slots"
+import { applyDayAttendance, countMakeupButtonSlots } from "./makeup-slots"
 import { leaveDaysForShift } from "./schedule-inference"
 import { minutesFromMidnight } from "./time"
 
@@ -35,7 +35,7 @@ type PendingMakeup = {
   status: string
 }
 
-type ShiftGate = {
+type MonthlySummaryShift = {
   morningInWindowEnd: string
   afternoonInWindowEnd: string
   overtimeMorningNormalEnd: string
@@ -60,8 +60,8 @@ export function computeMonthlySummaryAggregate(params: {
     "full_rest" | "morning_rest" | "afternoon_rest"
   >
   records: PunchRecord[]
-  shift: ShiftGate
-  pendingMakeups: PendingMakeup[]
+  shift: MonthlySummaryShift
+  pendingMakeups?: PendingMakeup[]
 }): {
   attendanceDays: number
   restDays: number
@@ -73,11 +73,10 @@ export function computeMonthlySummaryAggregate(params: {
   const {
     start,
     end,
-    todayYmd,
     declaredScheduleMap,
     records,
     shift,
-    pendingMakeups,
+    pendingMakeups = [],
   } = params
 
   const byDate = new Map<string, PunchRecord[]>()
@@ -144,18 +143,12 @@ export function computeMonthlySummaryAggregate(params: {
       row.afternoonIn ||
       row.afternoonOut
     )
-    if (!hasAny && !declaredRest) {
-      if (ymd === todayYmd) {
-        rows.push(row)
-        continue
-      }
-      missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
-      rows.push(row)
-      continue
+    if (declaredRest) {
+      restDays += leaveDaysForShift(declaredRest)
     }
-
-    restDays += leaveDaysForShift(declaredRest)
-    attendanceDays += applyDayAttendance(row)
+    if (hasAny) {
+      attendanceDays += applyDayAttendance(row)
+    }
 
     missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
 

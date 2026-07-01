@@ -96,7 +96,7 @@ export class UsersService {
     const isSelf = actor.userId === targetUserId
     const isAdmin = actor.role === "admin"
 
-    if (!isSelf && !isAdmin) throw new ForbiddenException()
+    if (!isSelf && !isAdmin) throw new ForbiddenException("无权限")
 
     const existing = await this.prisma.user.findUnique({
       where: { id: targetUserId },

@@ -49,7 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { DateRangePickerField, type DateRangeValue } from "@/components/date-range-picker-field";
 import {
   Combobox,

@@ -50,7 +50,7 @@ import { todayKey, formatDayCount } from "@/lib/attendance/summary";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type LocationState = {
   locating: boolean;

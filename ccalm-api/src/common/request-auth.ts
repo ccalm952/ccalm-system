@@ -5,7 +5,7 @@ export type RequestActor = { userId: string; role: "user" | "admin" }
 
 export function actor(req: Request): RequestActor {
   const u = req.user
-  if (!u?.sub || !u.role) throw new ForbiddenException()
+  if (!u?.sub || !u.role) throw new ForbiddenException("无权限")
   return { userId: u.sub, role: u.role }
 }
 

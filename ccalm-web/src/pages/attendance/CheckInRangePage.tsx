@@ -18,7 +18,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 };
 const DEFAULT_GEOFENCE: GeofenceConfig = {

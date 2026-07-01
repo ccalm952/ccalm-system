@@ -53,7 +53,7 @@ import type { UserRole } from "@/lib/auth";
 import { useAuth } from "@/lib/use-auth";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type UserRow = {
   id: string;

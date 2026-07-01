@@ -350,8 +350,9 @@ export function computeSalarySheet(
   data: SalarySheetData,
   context: SalaryComputeContext = {},
 ): SalarySheetComputed {
-  const costsTotal = round2(data.costs.reduce((s, line) => s + line.amount, 0));
-  const processingTotal = round2(data.processing.reduce((s, line) => s + line.amount, 0));
+  const { utilities, rent, materials, planting, processing, other } = data.costItems;
+  const costsTotal = round2(materials + planting + other);
+  const processingTotal = round2(processing);
   const costTotal = round2(costsTotal + processingTotal);
 
   const netIncome = round2(data.summary.totalIncome - costTotal);
@@ -394,13 +395,20 @@ export function computeSalarySheet(
 
   const employeePayrollTotal = round2(totals.monthlySalary);
 
-  const operatingTotal = round2(
-    data.operating.reduce((sum, line) => sum + line.amount, 0),
+  const operatingTotal = round2(utilities + rent);
+
+  const costGrandTotal = round2(
+    utilities +
+      rent +
+      materials +
+      planting +
+      processing +
+      other +
+      insuranceEmployerTotal +
+      employeePayrollTotal,
   );
 
-  const expenseTotal = round2(
-    operatingTotal + employeePayrollTotal + insuranceEmployerTotal + costTotal,
-  );
+  const expenseTotal = costGrandTotal;
 
   const remaining = round2(data.summary.totalIncome - expenseTotal);
 
@@ -423,6 +431,7 @@ export function computeSalarySheet(
     insuranceEmployerTotal,
     insurancePersonalTotal: round2(social + medical),
     expenseTotal,
+    costGrandTotal,
     remaining,
     employeePayrollTotal,
   };

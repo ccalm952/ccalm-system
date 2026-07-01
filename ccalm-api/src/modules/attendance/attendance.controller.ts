@@ -25,7 +25,7 @@ import {
 import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
 import { PunchDto } from "./dto/punch.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
-import type { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
+import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
 import { AttendanceMakeupService } from "./attendance-makeup.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"

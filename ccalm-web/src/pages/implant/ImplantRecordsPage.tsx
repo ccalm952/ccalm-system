@@ -59,7 +59,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
@@ -961,6 +961,7 @@ function ImplantRecordsVisitDialog({
                         onValueChange={setVisitDate}
                         placeholder=""
                         aria-label="日期"
+                        className="border-transparent bg-input/50 hover:bg-input/50 dark:hover:bg-input/50"
                       />
                     </FieldContent>
                   </Field>
@@ -970,7 +971,7 @@ function ImplantRecordsVisitDialog({
                         <Command
                           shouldFilter={false}
                           label="搜索患者"
-                          className="w-full overflow-visible rounded-none bg-transparent p-0 text-foreground shadow-none"
+                          className="w-full overflow-visible rounded-none bg-transparent p-0 text-foreground shadow-none [&_[data-slot=command-input-wrapper]]:p-0"
                         >
                           <CommandInput
                             ref={nameSuggestInputRef}

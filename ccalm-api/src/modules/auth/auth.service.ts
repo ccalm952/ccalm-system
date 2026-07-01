@@ -55,7 +55,7 @@ export class AuthService {
         updatedAt: true,
       },
     })
-    if (!user) throw new UnauthorizedException()
+    if (!user) throw new UnauthorizedException("未登录或登录已失效")
     return user
   }
 

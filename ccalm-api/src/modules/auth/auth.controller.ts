@@ -29,7 +29,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async me(@Req() req: Request) {
     const user = req.user as { sub: string } | undefined
-    if (!user?.sub) throw new UnauthorizedException()
+    if (!user?.sub) throw new UnauthorizedException("未登录或登录已失效")
     const me = await this.auth.getUserSafe(user.sub)
     return me
   }
@@ -37,7 +37,7 @@ export class AuthController {
   @Post("switch-user")
   async switchUser(@Req() req: Request, @Body("userId") userId: string) {
     const user = req.user
-    if (!user?.sub) throw new UnauthorizedException()
+    if (!user?.sub) throw new UnauthorizedException("未登录或登录已失效")
     return await this.auth.switchUser(user, userId)
   }
 }

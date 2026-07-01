@@ -1,4 +1,4 @@
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export async function batchDelete<T>(
   items: T[],

@@ -14,7 +14,7 @@ import type { ScheduleRestType } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { useEnterToConfirm } from "@/lib/use-enter-to-confirm";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export function RestActionDialog(props: {
   open: boolean;

@@ -1,12 +1,14 @@
 import dayjs from "dayjs";
 
-import type { SalaryOperatingExpenses, SalaryOperatingLine, SalarySheetData } from "./types";
-
-let lineId = 0;
-function lineIdNext(prefix: string): string {
-  lineId += 1;
-  return `${prefix}-${lineId}`;
-}
+import { round2 } from "./calc";
+import type {
+  SalaryCostItems,
+  SalaryCostLine,
+  SalaryOperatingExpenses,
+  SalaryOperatingLine,
+  SalaryProcessingLine,
+  SalarySheetData,
+} from "./types";
 
 let employeeId = 0;
 function emp(
@@ -33,17 +35,16 @@ export function applyMonthCalendar(sheet: SalarySheetData, month: string): Salar
 }
 
 export function createDefaultSalarySheet(month: string): SalarySheetData {
-  lineId = 0;
   employeeId = 0;
   const daysInMonth = calendarDaysForMonth(month);
 
   return {
     summary: {
-      totalIncome: 519250,
+      totalIncome: 0,
       daysInMonth,
       workingDays: 25,
     },
-    leaveQuotas: { chen: 4, lu: 2, xu: 6 },
+    leaveQuotas: { chen: 0, lu: 0, xu: 0 },
     tierThresholds: { tier1: 50000, tier2: 100000, tier3: 150000 },
     employees: [
       emp({
@@ -61,7 +62,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         bonusMode: "tiered",
       }),
       emp({
-        title: "",
+        title: "执业医师",
         name: "宁福月",
         baseSalary: 12000,
         shareRatio: 0.28,
@@ -75,10 +76,10 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         bonusMode: "tiered",
       }),
       emp({
-        title: "",
+        title: "执业医师",
         name: "骆群鸿",
         baseSalary: 12000,
-        shareRatio: 0.26,
+        shareRatio: 0.28,
         tier1Rate: 0.1,
         tier2Rate: 0.11,
         tier3Rate: 0.12,
@@ -92,18 +93,18 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         title: "助理医师",
         name: "吴介尘",
         baseSalary: 8000,
-        shareRatio: 0.02,
+        shareRatio: 0.01,
         tier1Rate: 0.07,
         tier2Rate: 0.08,
         tier3Rate: 0.09,
-        plantingCount: 18,
+        plantingCount: 0,
         plantingBonusPerUnit: 500,
         leaveDays: 0,
         housingFund: 0,
         bonusMode: "tiered",
       }),
       emp({
-        title: "",
+        title: "助理医师",
         name: "吴彤",
         baseSalary: 5500,
         shareRatio: 0.01,
@@ -117,7 +118,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         bonusMode: "tiered",
       }),
       emp({
-        title: "",
+        title: "助理医师",
         name: "余煌",
         baseSalary: 5500,
         shareRatio: 0.01,
@@ -138,35 +139,35 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         tier1Rate: 0,
         tier2Rate: 0,
         tier3Rate: 0,
-        plantingCount: 7,
+        plantingCount: 0,
         plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 300,
         bonusMode: "chen_pool",
       }),
       emp({
-        title: "",
+        title: "护士",
         name: "卢彤",
         baseSalary: 5500,
         shareRatio: 0,
         tier1Rate: 0,
         tier2Rate: 0,
         tier3Rate: 0,
-        plantingCount: 8,
+        plantingCount: 0,
         plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 700,
         bonusMode: "lu_pool",
       }),
       emp({
-        title: "",
+        title: "护士",
         name: "许桦婧",
         baseSalary: 4500,
         shareRatio: 0,
         tier1Rate: 0,
         tier2Rate: 0,
         tier3Rate: 0,
-        plantingCount: 8,
+        plantingCount: 0,
         plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 0,
@@ -203,21 +204,14 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
       personalRate: 7 / 12,
       personalCount: 4,
     },
-    costs: [
-      { id: lineIdNext("cost"), label: "奥齿泰", amount: 3475 },
-      { id: lineIdNext("cost"), label: "陈克斌", amount: 0 },
-      { id: lineIdNext("cost"), label: "材料", amount: 15000 },
-      { id: lineIdNext("cost"), label: "种植", amount: 0 },
-    ],
-    processing: [
-      { id: lineIdNext("proc"), label: "深圳", amount: 0 },
-      { id: lineIdNext("proc"), label: "铭冠", amount: 0 },
-      { id: lineIdNext("proc"), label: "致远", amount: 50000 },
-    ],
-    operating: [
-      { id: lineIdNext("op"), label: "水电", amount: 3000 },
-      { id: lineIdNext("op"), label: "租金", amount: 7500 },
-    ],
+    costItems: {
+      utilities: 3000,
+      rent: 7500,
+      materials: 0,
+      planting: 0,
+      processing: 0,
+      other: 0,
+    },
   };
 }
 
@@ -255,34 +249,92 @@ export function normalizeOperatingExpenses(operating: unknown): SalaryOperatingL
   ];
 }
 
-export function isSalarySheetData(data: unknown): data is SalarySheetData {
+function costAmountByLabel(lines: { label: string; amount: number }[], label: string): number {
+  return lines.find((line) => line.label === label)?.amount ?? 0;
+}
+
+export function normalizeCostItems(data: {
+  costItems?: Partial<SalaryCostItems>;
+  costs?: SalaryCostLine[];
+  processing?: SalaryProcessingLine[];
+  operating?: unknown;
+}): SalaryCostItems {
+  if (data.costItems && typeof data.costItems === "object") {
+    const items = data.costItems;
+    const num = (value: unknown) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    };
+    return {
+      utilities: num(items.utilities),
+      rent: num(items.rent),
+      materials: num(items.materials),
+      planting: num(items.planting),
+      processing: num(items.processing),
+      other: num(items.other),
+    };
+  }
+
+  const operating = normalizeOperatingExpenses(data.operating);
+  const costs = Array.isArray(data.costs) ? data.costs : [];
+  const processingLines = Array.isArray(data.processing) ? data.processing : [];
+
+  return {
+    utilities: costAmountByLabel(operating, "水电"),
+    rent: costAmountByLabel(operating, "租金"),
+    materials: costAmountByLabel(costs, "材料"),
+    planting: costAmountByLabel(costs, "种植"),
+    processing: round2(processingLines.reduce((sum, line) => sum + line.amount, 0)),
+    other: round2(
+      costs
+        .filter((line) => line.label !== "材料" && line.label !== "种植")
+        .reduce((sum, line) => sum + line.amount, 0),
+    ),
+  };
+}
+
+type SalarySheetDataLike = SalarySheetData & {
+  costs?: SalaryCostLine[];
+  processing?: SalaryProcessingLine[];
+  operating?: unknown;
+};
+
+export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
   if (!data || typeof data !== "object") return false;
-  const sheet = data as SalarySheetData;
+  const sheet = data as SalarySheetDataLike;
   return (
-    Array.isArray(sheet.costs) &&
-    Array.isArray(sheet.processing) &&
+    sheet.summary != null &&
+    Array.isArray(sheet.employees) &&
     sheet.leaveQuotas != null &&
-    (Array.isArray(sheet.operating) || isLegacyOperatingExpenses(sheet.operating))
+    (sheet.costItems != null ||
+      Array.isArray(sheet.costs) ||
+      Array.isArray(sheet.processing) ||
+      Array.isArray(sheet.operating) ||
+      isLegacyOperatingExpenses(sheet.operating))
   );
 }
 
 export function normalizeSalarySheet(data: unknown, month: string): SalarySheetData {
-  if (isSalarySheetData(data)) {
-    return applyMonthCalendar(
-      {
-        ...data,
-        operating: normalizeOperatingExpenses(data.operating),
-        summary: {
-          ...data.summary,
-          workingDays: data.summary.workingDays || 25,
-        },
-      },
-      month,
-    );
+  if (!isSalarySheetData(data)) {
+    return createDefaultSalarySheet(month);
   }
-  return createDefaultSalarySheet(month);
-}
 
+  return applyMonthCalendar(
+    {
+      summary: {
+        ...data.summary,
+        workingDays: data.summary.workingDays || 25,
+      },
+      leaveQuotas: data.leaveQuotas,
+      tierThresholds: data.tierThresholds,
+      employees: data.employees,
+      insurance: data.insurance,
+      housingFund: data.housingFund,
+      costItems: normalizeCostItems(data),
+    },
+    month,
+  );
+}
 /** 仅去年 1 月至今年当前月 */
 export function listSalaryMonths(now = dayjs()): string[] {
   const lastYear = now.year() - 1;
@@ -336,18 +388,6 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     housingFund: 0,
     bonusMode: "tiered",
   };
-}
-
-export function createCostLine(label = ""): SalarySheetData["costs"][number] {
-  return { id: nextEntityId("cost"), label, amount: 0 };
-}
-
-export function createProcessingLine(label = ""): SalarySheetData["processing"][number] {
-  return { id: nextEntityId("proc"), label, amount: 0 };
-}
-
-export function createOperatingLine(label = ""): SalarySheetData["operating"][number] {
-  return { id: nextEntityId("op"), label, amount: 0 };
 }
 
 export const BONUS_MODE_OPTIONS = [

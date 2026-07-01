@@ -48,6 +48,15 @@ export type SalaryHousingFundInput = {
   personalCount: number;
 };
 
+export type SalaryCostItems = {
+  utilities: number;
+  rent: number;
+  materials: number;
+  planting: number;
+  processing: number;
+  other: number;
+};
+
 export type SalaryCostLine = {
   id: string;
   label: string;
@@ -97,9 +106,7 @@ export type SalarySheetData = {
   employees: SalaryEmployeeInput[];
   insurance: SalaryInsuranceInput;
   housingFund: SalaryHousingFundInput;
-  costs: SalaryCostLine[];
-  processing: SalaryProcessingLine[];
-  operating: SalaryOperatingLine[];
+  costItems: SalaryCostItems;
 };
 
 export type SalaryEmployeeComputed = SalaryEmployeeInput & {
@@ -133,6 +140,7 @@ export type SalarySheetComputed = {
   insuranceEmployerTotal: number;
   insurancePersonalTotal: number;
   expenseTotal: number;
+  costGrandTotal: number;
   remaining: number;
   employeePayrollTotal: number;
 };

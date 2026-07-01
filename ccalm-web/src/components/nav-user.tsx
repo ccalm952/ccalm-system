@@ -17,7 +17,7 @@ import { ROUTES } from "@/config/routes";
 import { errorMessage } from "@/lib/errorMessage";
 import type { AuthMe, UserRole } from "@/lib/auth";
 import { EllipsisVerticalIcon } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 function avatarInitials(displayName: string) {
   const t = displayName.trim();

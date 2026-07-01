@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { api, setToken } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
