@@ -890,7 +890,7 @@ export function SalaryPage() {
       setActiveMonth(month);
       setAddMonthOpen(false);
       setAddMonthValue("");
-      toast.success("已添加月份");
+      toast.success("已添加");
     } catch (e) {
       if (handleSalaryAccessError(e, lockSalary)) return;
       toast.error(errorMessage(e));
@@ -911,7 +911,7 @@ export function SalaryPage() {
       setMonths(nextMonths);
       setActiveMonth(nextMonths[nextMonths.length - 1] ?? "");
       setDeleteMonthOpen(false);
-      toast.success("已删除月份");
+      toast.success("已删除");
     } catch (e) {
       if (handleSalaryAccessError(e, lockSalary)) return;
       toast.error(errorMessage(e));
@@ -948,7 +948,7 @@ export function SalaryPage() {
               }}
             >
               <Plus className="size-3.5" />
-              添加月份
+              添加
             </Button>
             {activeMonth ? (
               <Button
@@ -957,7 +957,7 @@ export function SalaryPage() {
                 onClick={() => setDeleteMonthOpen(true)}
               >
                 <X className="size-3.5" />
-                删除月份
+                删除
               </Button>
             ) : null}
             {sheet && activeMonth ? (
@@ -967,11 +967,11 @@ export function SalaryPage() {
                 onClick={() => {
                   const data = createDefaultSalarySheet(activeMonth);
                   patchSheet(activeMonth, data);
-                  toast.success("已恢复为默认模板");
+                  toast.success("已恢复为默认");
                 }}
               >
                 <RotateCcw className="size-3.5" />
-                恢复模板
+                默认
               </Button>
             ) : null}
           </div>
@@ -986,7 +986,7 @@ export function SalaryPage() {
             }}
           >
             <DialogHeader>
-              <DialogTitle>添加月份</DialogTitle>
+              <DialogTitle>添加</DialogTitle>
             </DialogHeader>
             <DatePickerField
               granularity="month"
@@ -1014,7 +1014,7 @@ export function SalaryPage() {
             }}
           >
             <AlertDialogHeader>
-              <AlertDialogTitle>删除月份</AlertDialogTitle>
+              <AlertDialogTitle>删除</AlertDialogTitle>
               <AlertDialogDescription>
                 将删除 {activeMonth} 的薪资表及全部数据，此操作不可恢复。
               </AlertDialogDescription>
@@ -1029,7 +1029,7 @@ export function SalaryPage() {
         </AlertDialog>
 
         {months.length === 0 ? (
-          <div className="text-muted-foreground text-sm">暂无月份，请点击「添加月份」</div>
+          <div className="text-muted-foreground text-sm">暂无月份，请点击「添加」</div>
         ) : null}
 
         {months.map((month) => (
