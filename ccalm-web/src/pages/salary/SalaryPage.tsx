@@ -1008,7 +1008,7 @@ export function SalaryPage() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <Tabs value={activeMonth} onValueChange={setActiveMonth} className="gap-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-4">
           <div className="min-w-0 w-full">
             {months.length > 0 ? (
               <TabsList>
@@ -1138,7 +1138,7 @@ export function SalaryPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1496px]">
+                      <div className="min-w-[1870px]">
                         <SalarySummaryTable
                           sheet={sheet}
                           computed={computed}
@@ -1163,7 +1163,7 @@ export function SalaryPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1496px]">
+                      <div className="min-w-[1870px]">
                         <InsuranceFundTable
                           insurance={sheet.insurance}
                           housingFund={sheet.housingFund}
