@@ -43,7 +43,8 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DatePickerField, DateRangePickerField } from "@/components/date-picker-field";
+import { DatePickerField } from "@/components/date-picker-field";
+import { DateRangePickerField } from "@/components/date-range-picker-field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -1415,9 +1416,8 @@ export function ImplantRecordsPage() {
                 />
               </InputGroup>
               <DateRangePickerField
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onRangeChange={(from, to) => {
+                value={{ from: dateFrom, to: dateTo }}
+                onValueChange={({ from, to }) => {
                   setDateFrom(from);
                   setDateTo(to);
                 }}

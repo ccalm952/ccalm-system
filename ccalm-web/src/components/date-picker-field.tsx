@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
-import type { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -112,84 +111,6 @@ export function DatePickerField({
       </PopoverTrigger>
       <PopoverContent className={cn("w-auto p-0", isDropdown && "overflow-hidden")} align="start">
         {calendar}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-export type DateRangePickerFieldProps = {
-  dateFrom: string;
-  dateTo: string;
-  onRangeChange: (from: string, to: string) => void;
-  disabled?: boolean;
-  className?: string;
-  id?: string;
-  placeholder?: string;
-};
-
-function stringsToRange(dateFrom: string, dateTo: string): DateRange | undefined {
-  const df = dateFrom ? dayjs(dateFrom) : null;
-  const dt = dateTo ? dayjs(dateTo) : null;
-  if (!df?.isValid() || !dt?.isValid()) return undefined;
-  return { from: df.toDate(), to: dt.toDate() };
-}
-
-export function DateRangePickerField({
-  dateFrom,
-  dateTo,
-  onRangeChange,
-  disabled,
-  className,
-  id,
-  placeholder = "选择日期",
-}: DateRangePickerFieldProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(() =>
-    stringsToRange(dateFrom, dateTo),
-  );
-
-  React.useEffect(() => {
-    setDate(stringsToRange(dateFrom, dateTo));
-  }, [dateFrom, dateTo]);
-
-  return (
-    <Popover>
-      <PopoverTrigger
-        id={id}
-        disabled={disabled}
-        render={
-          <Button
-            variant="outline"
-            className={cn("w-full justify-start px-2.5 font-normal", className)}
-          />
-        }
-      >
-        <CalendarIcon data-icon="inline-start" />
-        {date?.from ? (
-          date.to ? (
-            <>
-              {formatCnDate(date.from)}-{formatCnDate(date.to)}
-            </>
-          ) : (
-            formatCnDate(date.from)
-          )
-        ) : (
-          <span>{placeholder}</span>
-        )}
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="range"
-          defaultMonth={date?.from}
-          selected={date}
-          onSelect={(next) => {
-            setDate(next);
-            if (next?.from && next.to) {
-              onRangeChange(format(next.from, "yyyy-MM-dd"), format(next.to, "yyyy-MM-dd"));
-            }
-          }}
-          numberOfMonths={2}
-          locale={zhCN}
-        />
       </PopoverContent>
     </Popover>
   );
