@@ -1,5 +1,6 @@
 ﻿import * as React from "react";
 import dayjs from "dayjs";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
 import { SortableTableHead } from "@/components/sortable-table-head";
 import { TruncateCell } from "@/components/truncate-cell";
@@ -65,8 +66,20 @@ import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
 
+type WarehouseProduct = {
+  id: number;
+  name: string;
+  category: string;
+  brand: string;
+  manufacturer: string;
+  supplierName: string;
+  defaultUnit: string;
+  enabled: boolean;
+};
+
 type WarehouseItem = {
   id: number;
+  productId: number;
   code: string;
   name: string;
   category: string;
@@ -80,6 +93,14 @@ type WarehouseItem = {
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+type ProductGroup = {
+  productId: number;
+  name: string;
+  category: string;
+  brand: string;
+  items: WarehouseItem[];
 };
 
 type WarehouseTxn = {
@@ -139,6 +160,64 @@ function defaultDateRange(): DateRangeValue {
     from: dayjs().startOf("month").format("YYYY-MM-DD"),
     to: dayjs().format("YYYY-MM-DD"),
   };
+}
+
+function findProductByName(products: WarehouseProduct[], name: string) {
+  const normalized = name.trim();
+  if (!normalized) return null;
+  return products.find((product) => product.name.trim() === normalized) ?? null;
+}
+
+function WarehouseProductNameCombobox({
+  products,
+  value,
+  onValueChange,
+  onProductSelect,
+}: {
+  products: WarehouseProduct[];
+  value: string;
+  onValueChange: (name: string) => void;
+  onProductSelect: (product: WarehouseProduct | null) => void;
+}) {
+  const names = React.useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const product of products) {
+      if (seen.has(product.name)) continue;
+      seen.add(product.name);
+      list.push(product.name);
+    }
+    return list.sort((a, b) => a.localeCompare(b, "zh-CN"));
+  }, [products]);
+
+  const pickProduct = React.useCallback(
+    (name: string) => {
+      onValueChange(name);
+      onProductSelect(findProductByName(products, name));
+    },
+    [onProductSelect, onValueChange, products],
+  );
+
+  return (
+    <Combobox
+      items={names}
+      value={value || null}
+      onValueChange={(v) => pickProduct(v ?? "")}
+      onInputValueChange={pickProduct}
+    >
+      <ComboboxInput placeholder="选择已有产品或输入新名称" />
+      <ComboboxContent>
+        <ComboboxEmpty>暂无匹配，输入新名称将创建产品</ComboboxEmpty>
+        <ComboboxList>
+          {(item: string) => (
+            <ComboboxItem key={item} value={item}>
+              {item}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
 }
 
 function WarehouseCategoryCombobox({
@@ -204,6 +283,7 @@ export function WarehouseLedgerPage() {
   const [itemSubmitting, setItemSubmitting] = React.useState(false);
   const [editingItemId, setEditingItemId] = React.useState<number | null>(null);
   const [itemForm, setItemForm] = React.useState({
+    productId: null as number | null,
     code: "",
     name: "",
     category: "其他",
@@ -213,11 +293,17 @@ export function WarehouseLedgerPage() {
     manufacturer: "",
     supplierName: "",
     currentQty: "0",
+    initialQty: "0",
+    initialUnitPrice: "0",
+    initialOccurDate: dayjs().format("YYYY-MM-DD"),
     enabled: true,
   });
+  const [products, setProducts] = React.useState<WarehouseProduct[]>([]);
+  const [collapsedProducts, setCollapsedProducts] = React.useState<Set<number>>(new Set());
 
   const [txnDialogOpen, setTxnDialogOpen] = React.useState(false);
   const [txnSubmitting, setTxnSubmitting] = React.useState(false);
+  const [txnTargetItem, setTxnTargetItem] = React.useState<WarehouseItem | null>(null);
   const [txnForm, setTxnForm] = React.useState({
     type: "in" as "in" | "out",
     bizType: "purchase",
@@ -228,6 +314,10 @@ export function WarehouseLedgerPage() {
 
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
   const totalQty = items.reduce((sum, item) => sum + item.currentQty, 0);
+  const productCount = React.useMemo(
+    () => new Set(items.map((item) => item.productId)).size,
+    [items],
+  );
   const categoryItems = React.useMemo(() => {
     const set = new Set<string>();
     for (const item of items) {
@@ -239,11 +329,13 @@ export function WarehouseLedgerPage() {
     return [...set].sort((a, b) => a.localeCompare(b, "zh-CN"));
   }, [items, itemForm.category]);
   const importInputRef = React.useRef<HTMLInputElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
   const [importing, setImporting] = React.useState(false);
   const [itemSort, setItemSort] = React.useState<ItemSort | null>(null);
   const [deleteTxnId, setDeleteTxnId] = React.useState<number | null>(null);
   const [deleteTxnSubmitting, setDeleteTxnSubmitting] = React.useState(false);
   const [deleteItemTarget, setDeleteItemTarget] = React.useState<WarehouseItem | null>(null);
+  const [deleteItemOpen, setDeleteItemOpen] = React.useState(false);
   const [deleteItemSubmitting, setDeleteItemSubmitting] = React.useState(false);
   const [txnPage, setTxnPage] = React.useState(1);
   const [txnTotal, setTxnTotal] = React.useState(0);
@@ -267,6 +359,36 @@ export function WarehouseLedgerPage() {
     return [...items].sort((a, b) => compareItems(a, b, itemSort));
   }, [items, itemSort]);
 
+  const productGroups = React.useMemo(() => {
+    const order: number[] = [];
+    const map = new Map<number, ProductGroup>();
+    for (const item of displayItems) {
+      let group = map.get(item.productId);
+      if (!group) {
+        group = {
+          productId: item.productId,
+          name: item.name,
+          category: item.category,
+          brand: item.brand,
+          items: [],
+        };
+        map.set(item.productId, group);
+        order.push(item.productId);
+      }
+      group.items.push(item);
+    }
+    return order.map((productId) => map.get(productId)!);
+  }, [displayItems]);
+
+  function toggleProductCollapse(productId: number) {
+    setCollapsedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }
+
   function toggleItemSort(key: ItemSortKey) {
     setItemSort((prev) => {
       if (prev?.key === key) {
@@ -276,7 +398,7 @@ export function WarehouseLedgerPage() {
     });
   }
 
-  async function loadItems() {
+  const loadItems = React.useCallback(async () => {
     const requestId = ++itemsRequestRef.current;
     setItemsLoading(true);
     try {
@@ -296,7 +418,7 @@ export function WarehouseLedgerPage() {
     } finally {
       if (requestId === itemsRequestRef.current) setItemsLoading(false);
     }
-  }
+  }, [q]);
 
   const loadTxns = React.useCallback(async (page: number) => {
     const itemId = selectedIdRef.current;
@@ -368,13 +490,43 @@ export function WarehouseLedgerPage() {
   }, [dateRange.from, dateRange.to, selectedId, loadTxns]);
 
   React.useEffect(() => {
-    void loadItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const id = window.setTimeout(() => {
+      void loadItems();
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [loadItems]);
+
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (itemDialogOpen || txnDialogOpen || deleteItemOpen || deleteTxnId != null) return;
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [itemDialogOpen, txnDialogOpen, deleteItemOpen, deleteTxnId]);
+
+  React.useEffect(() => {
+    if (!itemDialogOpen) return;
+    void api<WarehouseProduct[]>("GET", "/warehouse/products")
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch((e) => toast.error(errorMessage(e)));
+  }, [itemDialogOpen]);
 
   function openCreateItem() {
     setEditingItemId(null);
     setItemForm({
+      productId: null,
       code: makeWarehouseItemCode(),
       name: "",
       category: "其他",
@@ -384,6 +536,9 @@ export function WarehouseLedgerPage() {
       manufacturer: "",
       supplierName: "",
       currentQty: "0",
+      initialQty: "0",
+      initialUnitPrice: "0",
+      initialOccurDate: dayjs().format("YYYY-MM-DD"),
       enabled: true,
     });
     setItemDialogOpen(true);
@@ -392,31 +547,50 @@ export function WarehouseLedgerPage() {
   function openEditItem(item: WarehouseItem) {
     setEditingItemId(item.id);
     setItemForm({
+      productId: item.productId,
       code: item.code,
       name: item.name,
       category: item.category,
-      spec: item.spec,
+      spec: item.spec || item.name,
       unit: item.unit,
       brand: item.brand,
       manufacturer: item.manufacturer,
       supplierName: item.supplierName,
       currentQty: String(item.currentQty),
+      initialQty: "0",
+      initialUnitPrice: "0",
+      initialOccurDate: dayjs().format("YYYY-MM-DD"),
       enabled: item.enabled,
     });
     setItemDialogOpen(true);
   }
 
-  function openTxn(type: "in" | "out") {
-    if (!selectedItem) {
-      toast.error("请先选择物品");
+  function applySelectedProduct(product: WarehouseProduct | null) {
+    if (!product) {
+      setItemForm((state) => ({ ...state, productId: null }));
       return;
     }
+    setItemForm((state) => ({
+      ...state,
+      productId: product.id,
+      name: product.name,
+      category: product.category || "其他",
+      brand: product.brand,
+      manufacturer: product.manufacturer,
+      supplierName: product.supplierName,
+      unit: product.defaultUnit || state.unit,
+    }));
+  }
+
+  function openTxn(item: WarehouseItem, type: "in" | "out") {
+    setSelectedId(item.id);
+    setTxnTargetItem(item);
     const firstBizType = txnBizOptions[type][0]?.value ?? "purchase";
     setTxnForm({
       type,
       bizType: firstBizType,
       qty: "1",
-      unitPrice: type === "in" ? String(selectedItem.lastPurchasePrice || 0) : "0",
+      unitPrice: type === "in" ? String(item.lastPurchasePrice || 0) : "0",
       occurDate: dayjs().format("YYYY-MM-DD"),
     });
     setTxnDialogOpen(true);
@@ -425,26 +599,54 @@ export function WarehouseLedgerPage() {
   async function submitItem() {
     setItemSubmitting(true);
     try {
-      const payload = {
-        code: itemForm.code.trim(),
+      const productFields = {
         name: itemForm.name.trim(),
         category: itemForm.category.trim(),
-        spec: itemForm.spec.trim(),
-        unit: itemForm.unit.trim(),
         brand: itemForm.brand.trim(),
         manufacturer: itemForm.manufacturer.trim(),
         supplierName: itemForm.supplierName.trim(),
+      };
+      const skuFields = {
+        code: itemForm.code.trim(),
+        spec: itemForm.spec.trim(),
+        unit: itemForm.unit.trim(),
         enabled: itemForm.enabled,
       };
       if (editingItemId) {
         await api("PUT", `/warehouse/items/${editingItemId}`, {
-          ...payload,
+          ...productFields,
+          ...skuFields,
           currentQty: Math.max(0, Math.round(Number(itemForm.currentQty) || 0)),
         });
         toast.success("物品已更新");
       } else {
-        await api("POST", "/warehouse/items", payload);
-        toast.success("物品已创建");
+        const matchedProduct = itemForm.productId
+          ? null
+          : findProductByName(products, itemForm.name);
+        const created = await api<WarehouseItem>("POST", "/warehouse/items", {
+          ...productFields,
+          ...skuFields,
+          ...(itemForm.productId
+            ? { productId: itemForm.productId }
+            : matchedProduct
+              ? { productId: matchedProduct.id }
+              : { name: productFields.name }),
+        });
+        const initialQty = Math.round(Number(itemForm.initialQty) || 0);
+        if (initialQty > 0) {
+          await api("POST", "/warehouse/txns", {
+            itemId: created.id,
+            type: "in",
+            bizType: "purchase",
+            qty: initialQty,
+            unitPrice: Number(itemForm.initialUnitPrice) || 0,
+            occurDate: itemForm.initialOccurDate,
+          });
+          setSelectedId(created.id);
+          toast.success("物品已创建并完成入库");
+        } else {
+          toast.success("物品已创建");
+        }
       }
       setItemDialogOpen(false);
       await Promise.all([loadItems(), loadTxns(txnPage)]);
@@ -480,11 +682,11 @@ export function WarehouseLedgerPage() {
   }
 
   async function submitTxn() {
-    if (!selectedItem) return;
+    if (!txnTargetItem) return;
     setTxnSubmitting(true);
     try {
       await api("POST", "/warehouse/txns", {
-        itemId: selectedItem.id,
+        itemId: txnTargetItem.id,
         type: txnForm.type,
         bizType: txnForm.bizType,
         qty: Number(txnForm.qty),
@@ -493,6 +695,8 @@ export function WarehouseLedgerPage() {
       });
       toast.success("流水已登记");
       setTxnDialogOpen(false);
+      setTxnTargetItem(null);
+      setSelectedId(txnTargetItem.id);
       await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
@@ -524,7 +728,7 @@ export function WarehouseLedgerPage() {
     try {
       await api("DELETE", `/warehouse/items/${deleteItemTarget.id}`);
       toast.success("物品已删除");
-      setDeleteItemTarget(null);
+      setDeleteItemOpen(false);
       await Promise.all([loadItems(), loadTxns(txnPage)]);
     } catch (e) {
       toast.error(errorMessage(e));
@@ -539,14 +743,12 @@ export function WarehouseLedgerPage() {
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div className="flex flex-wrap items-center gap-2">
             <Input
+              ref={searchInputRef}
               className="w-56"
               value={q}
               placeholder="搜索名称、分类、品牌"
               onChange={(e) => setQ(e.target.value)}
             />
-            <Button type="button" variant="outline" onClick={() => void loadItems()}>
-              搜索
-            </Button>
             <DateRangePickerField value={dateRange} onValueChange={setDateRange} />
           </div>
           {isAdmin ? (
@@ -567,13 +769,7 @@ export function WarehouseLedgerPage() {
                 {importing ? "导入中…" : "导入"}
               </Button>
               <Button type="button" variant="outline" onClick={openCreateItem}>
-                新增物品
-              </Button>
-              <Button type="button" variant="outline" onClick={() => openTxn("in")}>
-                入库
-              </Button>
-              <Button type="button" variant="outline" onClick={() => openTxn("out")}>
-                出库
+                新增规格
               </Button>
             </div>
           ) : null}
@@ -584,13 +780,19 @@ export function WarehouseLedgerPage() {
           <div className="grid w-max shrink-0 grid-cols-1 gap-4 self-start">
             <div
               className={cn(
-                "grid w-full grid-cols-2 gap-3",
+                "grid w-full grid-cols-3 gap-3",
                 itemsLoading && items.length > 0 && "opacity-60",
               )}
             >
               <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground">物品数</div>
+                  <div className="text-sm text-muted-foreground">产品数</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{productCount}</div>
+                </CardContent>
+              </Card>
+              <Card className="border border-border shadow-xs ring-0">
+                <CardContent className="pt-6">
+                  <div className="text-sm text-muted-foreground">规格数</div>
                   <div className="min-h-8 text-2xl font-semibold tabular-nums">{items.length}</div>
                 </CardContent>
               </Card>
@@ -651,65 +853,122 @@ export function WarehouseLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayItems.map((item) => (
-                  <TableRow
-                    key={item.id}
-                    className={selectedId === item.id ? "bg-muted/40" : undefined}
-                    onClick={() => setSelectedId(item.id)}
-                  >
-                    <TableCell>
-                      <TruncateCell title={item.code}>{item.code}</TruncateCell>
-                    </TableCell>
-                    <TableCell>
-                      <TruncateCell title={item.name}>{item.name}</TruncateCell>
-                    </TableCell>
-                    <TableCell>
-                      <TruncateCell title={item.category || undefined}>
-                        {item.category || "-"}
-                      </TruncateCell>
-                    </TableCell>
-                    <TableCell>
-                      <TruncateCell title={item.brand || undefined}>
-                        {item.brand || "-"}
-                      </TruncateCell>
-                    </TableCell>
-                    <TableCell>
-                      <TruncateCell title={item.spec || undefined}>{item.spec || "-"}</TruncateCell>
-                    </TableCell>
-                    <TableCell>
-                      <TruncateCell title={item.unit}>{item.unit}</TruncateCell>
-                    </TableCell>
-                    <TableCell className="text-center">{item.currentQty}</TableCell>
-                    <TableCell className="text-center">
-                      {isAdmin ? (
-                        <div className="flex items-center justify-center gap-3">
+                {productGroups.map((group) => {
+                  const collapsed = collapsedProducts.has(group.productId);
+                  const groupQty = group.items.reduce((sum, item) => sum + item.currentQty, 0);
+                  return (
+                    <React.Fragment key={group.productId}>
+                      <TableRow className="bg-muted/20">
+                        <TableCell colSpan={8} className="p-0">
                           <Button
                             type="button"
-                            variant="link"
-                            className={tableActionLinkClass}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditItem(item);
-                            }}
+                            variant="ghost"
+                            className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
+                            onClick={() => toggleProductCollapse(group.productId)}
                           >
-                            编辑
+                            {collapsed ? (
+                              <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                            ) : (
+                              <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+                            )}
+                            <span>
+                              {group.name}
+                              {group.category ? ` · ${group.category}` : ""}
+                              {group.brand ? ` · ${group.brand}` : ""}
+                              {` · ${group.items.length} 个规格 · 库存 ${groupQty}`}
+                            </span>
                           </Button>
-                          <Button
-                            type="button"
-                            variant="link"
-                            className={tableActionLinkClass}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteItemTarget(item);
-                            }}
-                          >
-                            删除
-                          </Button>
-                        </div>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                      </TableRow>
+                      {!collapsed
+                        ? group.items.map((item) => (
+                            <TableRow
+                              key={item.id}
+                              className={selectedId === item.id ? "bg-muted/40" : undefined}
+                              onClick={() => setSelectedId(item.id)}
+                            >
+                              <TableCell>
+                                <TruncateCell title={item.code}>{item.code}</TruncateCell>
+                              </TableCell>
+                              <TableCell>
+                                <TruncateCell title={item.name}>{item.name}</TruncateCell>
+                              </TableCell>
+                              <TableCell>
+                                <TruncateCell title={item.category || undefined}>
+                                  {item.category || "-"}
+                                </TruncateCell>
+                              </TableCell>
+                              <TableCell>
+                                <TruncateCell title={item.brand || undefined}>
+                                  {item.brand || "-"}
+                                </TruncateCell>
+                              </TableCell>
+                              <TableCell>
+                                <TruncateCell title={item.spec || undefined}>
+                                  {item.spec || "-"}
+                                </TruncateCell>
+                              </TableCell>
+                              <TableCell>
+                                <TruncateCell title={item.unit}>{item.unit}</TruncateCell>
+                              </TableCell>
+                              <TableCell className="text-center">{item.currentQty}</TableCell>
+                              <TableCell className="text-center">
+                                {isAdmin ? (
+                                  <div className="flex items-center justify-center gap-3">
+                                    <Button
+                                      type="button"
+                                      variant="link"
+                                      className={tableActionLinkClass}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openTxn(item, "in");
+                                      }}
+                                    >
+                                      入库
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="link"
+                                      className={tableActionLinkClass}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openTxn(item, "out");
+                                      }}
+                                    >
+                                      出库
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="link"
+                                      className={tableActionLinkClass}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditItem(item);
+                                      }}
+                                    >
+                                      编辑
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="link"
+                                      className={tableActionLinkClass}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteItemTarget(item);
+                                        setDeleteItemOpen(true);
+                                      }}
+                                    >
+                                      删除
+                                    </Button>
+                                  </div>
+                                ) : null}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : null}
+                    </React.Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -824,15 +1083,40 @@ export function WarehouseLedgerPage() {
       <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
         <DialogContent className="md:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{editingItemId ? "编辑物品" : "新增物品"}</DialogTitle>
+            <DialogTitle>{editingItemId ? "编辑规格" : "新增规格"}</DialogTitle>
             <DialogDescription>
               {editingItemId
-                ? "修改库存时会自动登记一条调整流水。"
-                : "维护库存物品主档，后续出入库都基于这里的物品。"}
+                ? "改为已有产品名称会并入该产品；改为新名称且同组有多条规格时，仅本条会拆成新产品。仅一条规格时改名会更新整个产品。修改库存时会自动登记调整流水。"
+                : "选择已有产品可新增规格；填写新名称则创建产品及首个规格。填写入库数量后将同时登记采购入库流水。"}
             </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
             <FieldGroup className="grid gap-3 md:grid-cols-2">
+              <Field orientation="vertical">
+                <FieldLabel>
+                  <FieldTitle>产品名称</FieldTitle>
+                </FieldLabel>
+                <FieldContent>
+                  <WarehouseProductNameCombobox
+                    products={products}
+                    value={itemForm.name}
+                    onValueChange={(name) => setItemForm((s) => ({ ...s, name }))}
+                    onProductSelect={editingItemId ? () => {} : applySelectedProduct}
+                  />
+                </FieldContent>
+              </Field>
+              <Field orientation="vertical">
+                <FieldLabel>
+                  <FieldTitle>规格</FieldTitle>
+                </FieldLabel>
+                <FieldContent>
+                  <Input
+                    className="w-full"
+                    value={itemForm.spec}
+                    onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))}
+                  />
+                </FieldContent>
+              </Field>
               <Field orientation="vertical">
                 <FieldLabel>
                   <FieldTitle>编码</FieldTitle>
@@ -842,18 +1126,6 @@ export function WarehouseLedgerPage() {
                     className="w-full"
                     value={itemForm.code}
                     onChange={(e) => setItemForm((s) => ({ ...s, code: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>名称</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    className="w-full"
-                    value={itemForm.name}
-                    onChange={(e) => setItemForm((s) => ({ ...s, name: e.target.value }))}
                   />
                 </FieldContent>
               </Field>
@@ -887,18 +1159,6 @@ export function WarehouseLedgerPage() {
               ) : null}
               <Field orientation="vertical">
                 <FieldLabel>
-                  <FieldTitle>规格</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    className="w-full"
-                    value={itemForm.spec}
-                    onChange={(e) => setItemForm((s) => ({ ...s, spec: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
                   <FieldTitle>单位</FieldTitle>
                 </FieldLabel>
                 <FieldContent>
@@ -921,6 +1181,58 @@ export function WarehouseLedgerPage() {
                   />
                 </FieldContent>
               </Field>
+              {!editingItemId ? (
+                <>
+                  <Field orientation="vertical">
+                    <FieldLabel>
+                      <FieldTitle>入库数量</FieldTitle>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        className="w-full"
+                        type="number"
+                        min={0}
+                        value={itemForm.initialQty}
+                        onChange={(e) =>
+                          setItemForm((s) => ({ ...s, initialQty: e.target.value }))
+                        }
+                      />
+                    </FieldContent>
+                  </Field>
+                  <Field orientation="vertical">
+                    <FieldLabel>
+                      <FieldTitle>单价</FieldTitle>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        className="w-full"
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={itemForm.initialUnitPrice}
+                        onChange={(e) =>
+                          setItemForm((s) => ({ ...s, initialUnitPrice: e.target.value }))
+                        }
+                      />
+                    </FieldContent>
+                  </Field>
+                  <Field orientation="vertical">
+                    <FieldLabel>
+                      <FieldTitle>入库日期</FieldTitle>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        className="w-full"
+                        type="date"
+                        value={itemForm.initialOccurDate}
+                        onChange={(e) =>
+                          setItemForm((s) => ({ ...s, initialOccurDate: e.target.value }))
+                        }
+                      />
+                    </FieldContent>
+                  </Field>
+                </>
+              ) : null}
             </FieldGroup>
           </FieldSet>
           <DialogFooter>
@@ -934,11 +1246,17 @@ export function WarehouseLedgerPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={txnDialogOpen} onOpenChange={setTxnDialogOpen}>
+      <Dialog
+        open={txnDialogOpen}
+        onOpenChange={(open) => {
+          setTxnDialogOpen(open);
+          if (!open) setTxnTargetItem(null);
+        }}
+      >
         <DialogContent className="md:max-w-3xl">
           <DialogHeader>
             <DialogTitle>登记流水</DialogTitle>
-            <DialogDescription>为当前选中的物品登记入库或出库。</DialogDescription>
+            <DialogDescription>为所选物品登记入库或出库。</DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
             <Field orientation="vertical">
@@ -948,7 +1266,9 @@ export function WarehouseLedgerPage() {
               <FieldContent>
                 <Input
                   className="w-full"
-                  value={selectedItem ? `${selectedItem.name} (${selectedItem.code})` : ""}
+                  value={
+                    txnTargetItem ? `${txnTargetItem.name} (${txnTargetItem.code})` : ""
+                  }
                   disabled
                 />
               </FieldContent>
@@ -969,7 +1289,7 @@ export function WarehouseLedgerPage() {
                         type,
                         bizType: txnBizOptions[type][0]?.value ?? s.bizType,
                         unitPrice:
-                          type === "in" ? String(selectedItem?.lastPurchasePrice || 0) : "0",
+                          type === "in" ? String(txnTargetItem?.lastPurchasePrice || 0) : "0",
                       }));
                     }}
                     items={txnTypeOptions}
@@ -1114,8 +1434,13 @@ export function WarehouseLedgerPage() {
       </AlertDialog>
 
       <AlertDialog
-        open={deleteItemTarget != null}
-        onOpenChange={(open) => !open && setDeleteItemTarget(null)}
+        open={deleteItemOpen}
+        onOpenChange={(open) => {
+          setDeleteItemOpen(open);
+          if (!open) {
+            window.setTimeout(() => setDeleteItemTarget(null), 150);
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1123,7 +1448,7 @@ export function WarehouseLedgerPage() {
             <AlertDialogDescription>
               {deleteItemTarget
                 ? `确定删除「${deleteItemTarget.name}」吗？将同时删除其全部出入库流水，且不可恢复。`
-                : null}
+                : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

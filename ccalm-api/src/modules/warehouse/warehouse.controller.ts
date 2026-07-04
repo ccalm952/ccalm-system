@@ -30,6 +30,11 @@ import { WarehouseService } from "./warehouse.service"
 export class WarehouseController {
   constructor(private readonly warehouse: WarehouseService) {}
 
+  @Get("products")
+  listProducts(@Query("q") q?: string) {
+    return this.warehouse.listProducts(q)
+  }
+
   @Get("items")
   listItems(@Query("q") q?: string) {
     return this.warehouse.listItems(q)

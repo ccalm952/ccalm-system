@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Trash2Icon } from "lucide-react";
 
 import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
@@ -107,6 +107,7 @@ export function UsersPage() {
   const [editUser, setEditUser] = React.useState<EditUserForm | null>(null);
 
   const [userPendingDelete, setUserPendingDelete] = React.useState<UserRow | null>(null);
+  const [deleteUserOpen, setDeleteUserOpen] = React.useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
   const adminCount = rows?.filter((row) => row.role === "admin").length ?? 0;
 
@@ -215,7 +216,10 @@ export function UsersPage() {
                                 className={tableActionLinkClass}
                                 disabled={!!disabledReason}
                                 title={disabledReason ?? undefined}
-                                onClick={() => setUserPendingDelete(r)}
+                                onClick={() => {
+                                  setUserPendingDelete(r);
+                                  setDeleteUserOpen(true);
+                                }}
                               >
                                 删除
                               </Button>
@@ -579,11 +583,12 @@ export function UsersPage() {
         </Dialog>
 
         <AlertDialog
-          open={!!userPendingDelete}
+          open={deleteUserOpen}
           onOpenChange={(open) => {
+            setDeleteUserOpen(open);
             if (!open) {
-              setUserPendingDelete(null);
               setDeleteSubmitting(false);
+              window.setTimeout(() => setUserPendingDelete(null), 150);
             }
           }}
         >
@@ -594,9 +599,9 @@ export function UsersPage() {
               </AlertDialogMedia>
               <AlertDialogTitle>删除用户？</AlertDialogTitle>
               <AlertDialogDescription>
-                {userPendingDelete ? (
-                  <>此操作无法撤销，将永久删除用户「{userPendingDelete.username}」及其登录数据。</>
-                ) : null}
+                {userPendingDelete
+                  ? `此操作无法撤销，将永久删除用户「${userPendingDelete.username}」及其登录数据。`
+                  : ""}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -616,7 +621,7 @@ export function UsersPage() {
                       await api("DELETE", `/users/${u.id}`);
                       await load();
                       toast.success(`已删除用户：${u.username}`);
-                      setUserPendingDelete(null);
+                      setDeleteUserOpen(false);
                     } catch (err) {
                       toast.error(errorMessage(err));
                     } finally {

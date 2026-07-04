@@ -20,11 +20,17 @@ const warehouseTxnBizTypes = [
 ] as const
 
 export class CreateWarehouseItemDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  productId?: number
+
+  @IsOptional()
   @IsString()
-  code!: string
+  name?: string
 
   @IsString()
-  name!: string
+  code!: string
 
   @IsOptional()
   @IsString()
@@ -59,11 +65,11 @@ export class CreateWarehouseItemDto {
 export class UpdateWarehouseItemDto {
   @IsOptional()
   @IsString()
-  code?: string
+  name?: string
 
   @IsOptional()
   @IsString()
-  name?: string
+  code?: string
 
   @IsOptional()
   @IsString()

@@ -158,25 +158,39 @@ model ScheduleMonthConfig {
   updatedAt      DateTime @updatedAt
 }
 
-model WarehouseItem {
-  id                Int            @id @default(autoincrement())
-  code              String         @unique
-  name              String
-  category          String         @default("其他")
-  spec              String         @default("")
-  unit              String         @default("个")
-  brand             String         @default("")
-  manufacturer      String         @default("")
-  supplierName      String         @default("")
-  currentQty        Int            @default(0)
-  lastPurchasePrice Float          @default(0)
-  enabled           Boolean        @default(true)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  txns              WarehouseTxn[]
+model WarehouseProduct {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  category       String          @default("其他")
+  brand          String          @default("")
+  manufacturer   String          @default("")
+  supplierName   String          @default("")
+  defaultUnit    String          @default("个")
+  enabled        Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          WarehouseItem[]
 
   @@index([name])
   @@index([category])
+}
+
+model WarehouseItem {
+  id                Int              @id @default(autoincrement())
+  productId         Int
+  product           WarehouseProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  code              String           @unique
+  spec              String           @default("")
+  unit              String           @default("个")
+  currentQty        Int              @default(0)
+  lastPurchasePrice Float            @default(0)
+  enabled           Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  txns              WarehouseTxn[]
+
+  @@unique([productId, spec])
+  @@index([productId])
 }
 
 model WarehouseTxn {
