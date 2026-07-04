@@ -162,52 +162,72 @@ function defaultDateRange(): DateRangeValue {
   };
 }
 
-function findProductByName(products: WarehouseProduct[], name: string) {
-  const normalized = name.trim();
-  if (!normalized) return null;
-  return products.find((product) => product.name.trim() === normalized) ?? null;
+function findProductByIdentity(
+  products: WarehouseProduct[],
+  name: string,
+  brand: string,
+) {
+  const normalizedName = name.trim();
+  if (!normalizedName) return null;
+  const normalizedBrand = brand.trim().toLowerCase();
+  return (
+    products.find(
+      (product) =>
+        product.name.trim().toLowerCase() === normalizedName.toLowerCase() &&
+        product.brand.trim().toLowerCase() === normalizedBrand,
+    ) ?? null
+  );
+}
+
+function formatProductOption(product: WarehouseProduct) {
+  const brand = product.brand.trim();
+  return brand ? `${product.name} · ${brand}` : product.name;
 }
 
 function WarehouseProductNameCombobox({
   products,
   value,
+  brand,
   onValueChange,
   onProductSelect,
 }: {
   products: WarehouseProduct[];
   value: string;
+  brand: string;
   onValueChange: (name: string) => void;
   onProductSelect: (product: WarehouseProduct | null) => void;
 }) {
-  const names = React.useMemo(() => {
-    const seen = new Set<string>();
-    const list: string[] = [];
-    for (const product of products) {
-      if (seen.has(product.name)) continue;
-      seen.add(product.name);
-      list.push(product.name);
-    }
-    return list.sort((a, b) => a.localeCompare(b, "zh-CN"));
-  }, [products]);
+  const options = React.useMemo(
+    () =>
+      [...products]
+        .sort((a, b) => formatProductOption(a).localeCompare(formatProductOption(b), "zh-CN"))
+        .map((product) => formatProductOption(product)),
+    [products],
+  );
 
   const pickProduct = React.useCallback(
-    (name: string) => {
-      onValueChange(name);
-      onProductSelect(findProductByName(products, name));
+    (input: string) => {
+      const matchedOption = products.find((product) => formatProductOption(product) === input);
+      if (matchedOption) {
+        onProductSelect(matchedOption);
+        return;
+      }
+      onValueChange(input);
+      onProductSelect(findProductByIdentity(products, input, brand));
     },
-    [onProductSelect, onValueChange, products],
+    [brand, onProductSelect, onValueChange, products],
   );
 
   return (
     <Combobox
-      items={names}
+      items={options}
       value={value || null}
       onValueChange={(v) => pickProduct(v ?? "")}
       onInputValueChange={pickProduct}
     >
       <ComboboxInput placeholder="选择已有产品或输入新名称" />
       <ComboboxContent>
-        <ComboboxEmpty>暂无匹配，输入新名称将创建产品</ComboboxEmpty>
+        <ComboboxEmpty>暂无匹配，填写名称与品牌可创建新产品</ComboboxEmpty>
         <ComboboxList>
           {(item: string) => (
             <ComboboxItem key={item} value={item}>
@@ -582,6 +602,12 @@ export function WarehouseLedgerPage() {
     }));
   }
 
+  function syncProductIdentity(name: string, brand: string) {
+    const matched = findProductByIdentity(products, name, brand);
+    if (matched) applySelectedProduct(matched);
+    else setItemForm((state) => ({ ...state, productId: null, name, brand }));
+  }
+
   function openTxn(item: WarehouseItem, type: "in" | "out") {
     setSelectedId(item.id);
     setTxnTargetItem(item);
@@ -622,7 +648,7 @@ export function WarehouseLedgerPage() {
       } else {
         const matchedProduct = itemForm.productId
           ? null
-          : findProductByName(products, itemForm.name);
+          : findProductByIdentity(products, itemForm.name, itemForm.brand);
         const created = await api<WarehouseItem>("POST", "/warehouse/items", {
           ...productFields,
           ...skuFields,
@@ -1086,8 +1112,8 @@ export function WarehouseLedgerPage() {
             <DialogTitle>{editingItemId ? "编辑规格" : "新增规格"}</DialogTitle>
             <DialogDescription>
               {editingItemId
-                ? "改为已有产品名称会并入该产品；改为新名称且同组有多条规格时，仅本条会拆成新产品。仅一条规格时改名会更新整个产品。修改库存时会自动登记调整流水。"
-                : "选择已有产品可新增规格；填写新名称则创建产品及首个规格。填写入库数量后将同时登记采购入库流水。"}
+                ? "改为已有「名称+品牌」会并入该产品；改为新的名称或品牌且同组有多条规格时，仅本条会拆成新产品。修改库存时会自动登记调整流水。"
+                : "同一名称可对应不同品牌；选择下拉项或填写相同名称与品牌会归入已有产品。填写入库数量后将同时登记采购入库流水。"}
             </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
@@ -1100,8 +1126,24 @@ export function WarehouseLedgerPage() {
                   <WarehouseProductNameCombobox
                     products={products}
                     value={itemForm.name}
-                    onValueChange={(name) => setItemForm((s) => ({ ...s, name }))}
-                    onProductSelect={editingItemId ? () => {} : applySelectedProduct}
+                    brand={itemForm.brand}
+                    onValueChange={(name) =>
+                      editingItemId
+                        ? setItemForm((state) => ({ ...state, name }))
+                        : syncProductIdentity(name, itemForm.brand)
+                    }
+                    onProductSelect={
+                      editingItemId
+                        ? (product) => {
+                            if (!product) return;
+                            setItemForm((state) => ({
+                              ...state,
+                              name: product.name,
+                              brand: product.brand,
+                            }));
+                          }
+                        : applySelectedProduct
+                    }
                   />
                 </FieldContent>
               </Field>
@@ -1177,7 +1219,11 @@ export function WarehouseLedgerPage() {
                   <Input
                     className="w-full"
                     value={itemForm.brand}
-                    onChange={(e) => setItemForm((s) => ({ ...s, brand: e.target.value }))}
+                    onChange={(e) =>
+                      editingItemId
+                        ? setItemForm((state) => ({ ...state, brand: e.target.value }))
+                        : syncProductIdentity(itemForm.name, e.target.value)
+                    }
                   />
                 </FieldContent>
               </Field>

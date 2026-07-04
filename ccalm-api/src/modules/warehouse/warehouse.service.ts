@@ -75,6 +75,30 @@ function namesEqual(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
+function productIdentityWhere(name: string, brand: string) {
+  return {
+    name: { equals: cleanText(name), mode: "insensitive" as const },
+    brand: { equals: cleanText(brand), mode: "insensitive" as const },
+  }
+}
+
+function productIdentityEqual(
+  a: { name: string; brand: string },
+  b: { name: string; brand: string }
+): boolean {
+  return namesEqual(a.name, b.name) && namesEqual(a.brand, b.brand)
+}
+
+function resolveNextProductIdentity(
+  dto: Pick<UpdateWarehouseItemDto, "name" | "brand">,
+  current: WarehouseProduct
+): { name: string; brand: string } {
+  return {
+    name: dto.name != null ? cleanText(dto.name) : current.name,
+    brand: dto.brand != null ? cleanText(dto.brand) : current.brand,
+  }
+}
+
 function resolveItemSpec(
   dtoSpec: string | undefined,
   existingSpec: string,
@@ -224,9 +248,10 @@ export class WarehouseService {
 
     const name = cleanText(dto.name)
     if (!name) throw new BadRequestException("产品名称不能为空")
+    const brand = cleanText(dto.brand)
 
     const existing = await tx.warehouseProduct.findFirst({
-      where: { name: { equals: name, mode: "insensitive" } },
+      where: productIdentityWhere(name, brand),
     })
     if (existing) return existing.id
 
@@ -234,7 +259,7 @@ export class WarehouseService {
       data: {
         name,
         category: cleanText(dto.category, "其他"),
-        brand: cleanText(dto.brand),
+        brand,
         manufacturer: cleanText(dto.manufacturer),
         supplierName: cleanText(dto.supplierName),
         defaultUnit: cleanText(dto.unit, "个"),
@@ -284,7 +309,7 @@ export class WarehouseService {
     } catch (error) {
       if (error instanceof BadRequestException) throw error
       if (isPrismaUniqueViolation(error)) {
-        throw new BadRequestException("编码已存在或该产品下规格重复")
+        throw new BadRequestException("编码已存在、规格重复或名称与品牌组合已存在")
       }
       throw error
     }
@@ -347,15 +372,17 @@ export class WarehouseService {
       }
     }
 
-    const mergeTarget =
-      dto.name != null
-        ? await this.prisma.warehouseProduct.findFirst({
-            where: {
-              name: { equals: cleanText(dto.name), mode: "insensitive" },
-              NOT: { id: existing.productId },
-            },
-          })
-        : null
+    const nextIdentity = resolveNextProductIdentity(dto, existing.product)
+    const identityChanging = !productIdentityEqual(nextIdentity, existing.product)
+
+    const mergeTarget = identityChanging
+      ? await this.prisma.warehouseProduct.findFirst({
+          where: {
+            ...productIdentityWhere(nextIdentity.name, nextIdentity.brand),
+            NOT: { id: existing.productId },
+          },
+        })
+      : null
 
     if (mergeTarget) {
       const mergeSpec = resolveItemSpec(
@@ -442,11 +469,7 @@ export class WarehouseService {
       return item ? mapItemRow(item) : null
     }
 
-    const newName = dto.name != null ? cleanText(dto.name) : null
-    const nameChanging =
-      newName != null && !namesEqual(newName, existing.product.name)
-
-    if (nameChanging && newName) {
+    if (identityChanging) {
       const siblingCount = await this.prisma.warehouseItem.count({
         where: { productId: existing.productId },
       })
@@ -486,9 +509,9 @@ export class WarehouseService {
 
             const newProduct = await tx.warehouseProduct.create({
               data: {
-                name: newName,
+                name: nextIdentity.name,
                 category: splitFields.category,
-                brand: splitFields.brand,
+                brand: nextIdentity.brand,
                 manufacturer: splitFields.manufacturer,
                 supplierName: splitFields.supplierName,
                 defaultUnit: splitFields.defaultUnit,
@@ -512,7 +535,7 @@ export class WarehouseService {
           })
         } catch (error) {
           if (isPrismaUniqueViolation(error)) {
-            throw new BadRequestException("产品名称已存在")
+            throw new BadRequestException("相同名称与品牌的产品已存在")
           }
           throw error
         }
@@ -794,16 +817,17 @@ export class WarehouseService {
   ) {
     const name = cleanText(row.name)
     if (!name) throw new BadRequestException("导入行缺少名称")
+    const brand = cleanText(row.brand)
 
     let product = await tx.warehouseProduct.findFirst({
-      where: { name: { equals: name, mode: "insensitive" } },
+      where: productIdentityWhere(name, brand),
     })
     if (!product) {
       product = await tx.warehouseProduct.create({
         data: {
           name,
           category: "",
-          brand: cleanText(row.brand),
+          brand,
           manufacturer: "",
           supplierName: LICHI_SUPPLIER,
           defaultUnit: cleanText(row.unit, "个"),

@@ -160,7 +160,7 @@ model ScheduleMonthConfig {
 
 model WarehouseProduct {
   id             Int             @id @default(autoincrement())
-  name           String          @unique
+  name           String
   category       String          @default("其他")
   brand          String          @default("")
   manufacturer   String          @default("")
@@ -171,6 +171,7 @@ model WarehouseProduct {
   updatedAt      DateTime        @updatedAt
   items          WarehouseItem[]
 
+  @@unique([name, brand])
   @@index([name])
   @@index([category])
 }
