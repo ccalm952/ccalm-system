@@ -96,10 +96,8 @@ type WarehouseItem = {
 };
 
 type ProductGroup = {
-  productId: number;
+  key: string;
   name: string;
-  category: string;
-  brand: string;
   items: WarehouseItem[];
 };
 
@@ -151,8 +149,8 @@ function formatMoney(n: number) {
   return n.toFixed(2);
 }
 
-function makeWarehouseItemCode() {
-  return `WP${dayjs().format("YYYYMMDDHHmmss")}`;
+function productGroupKey(name: string) {
+  return name.trim().toLowerCase();
 }
 
 function defaultDateRange(): DateRangeValue {
@@ -319,7 +317,7 @@ export function WarehouseLedgerPage() {
     enabled: true,
   });
   const [products, setProducts] = React.useState<WarehouseProduct[]>([]);
-  const [collapsedProducts, setCollapsedProducts] = React.useState<Set<number>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
 
   const [txnDialogOpen, setTxnDialogOpen] = React.useState(false);
   const [txnSubmitting, setTxnSubmitting] = React.useState(false);
@@ -335,7 +333,7 @@ export function WarehouseLedgerPage() {
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
   const totalQty = items.reduce((sum, item) => sum + item.currentQty, 0);
   const productCount = React.useMemo(
-    () => new Set(items.map((item) => item.productId)).size,
+    () => new Set(items.map((item) => productGroupKey(item.name))).size,
     [items],
   );
   const categoryItems = React.useMemo(() => {
@@ -380,31 +378,30 @@ export function WarehouseLedgerPage() {
   }, [items, itemSort]);
 
   const productGroups = React.useMemo(() => {
-    const order: number[] = [];
-    const map = new Map<number, ProductGroup>();
+    const order: string[] = [];
+    const map = new Map<string, ProductGroup>();
     for (const item of displayItems) {
-      let group = map.get(item.productId);
+      const key = productGroupKey(item.name);
+      let group = map.get(key);
       if (!group) {
         group = {
-          productId: item.productId,
-          name: item.name,
-          category: item.category,
-          brand: item.brand,
+          key,
+          name: item.name.trim(),
           items: [],
         };
-        map.set(item.productId, group);
-        order.push(item.productId);
+        map.set(key, group);
+        order.push(key);
       }
       group.items.push(item);
     }
-    return order.map((productId) => map.get(productId)!);
+    return order.map((key) => map.get(key)!);
   }, [displayItems]);
 
-  function toggleProductCollapse(productId: number) {
-    setCollapsedProducts((prev) => {
+  function toggleGroupCollapse(key: string) {
+    setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(productId)) next.delete(productId);
-      else next.add(productId);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -547,7 +544,7 @@ export function WarehouseLedgerPage() {
     setEditingItemId(null);
     setItemForm({
       productId: null,
-      code: makeWarehouseItemCode(),
+      code: "",
       name: "",
       category: "其他",
       spec: "",
@@ -556,7 +553,7 @@ export function WarehouseLedgerPage() {
       manufacturer: "",
       supplierName: "",
       currentQty: "0",
-      initialQty: "0",
+      initialQty: "1",
       initialUnitPrice: "0",
       initialOccurDate: dayjs().format("YYYY-MM-DD"),
       enabled: true,
@@ -880,29 +877,23 @@ export function WarehouseLedgerPage() {
               </TableHeader>
               <TableBody>
                 {productGroups.map((group) => {
-                  const collapsed = collapsedProducts.has(group.productId);
-                  const groupQty = group.items.reduce((sum, item) => sum + item.currentQty, 0);
+                  const collapsed = collapsedGroups.has(group.key);
                   return (
-                    <React.Fragment key={group.productId}>
+                    <React.Fragment key={group.key}>
                       <TableRow className="bg-muted/20">
                         <TableCell colSpan={8} className="p-0">
                           <Button
                             type="button"
                             variant="ghost"
                             className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
-                            onClick={() => toggleProductCollapse(group.productId)}
+                            onClick={() => toggleGroupCollapse(group.key)}
                           >
                             {collapsed ? (
                               <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
                             ) : (
                               <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
                             )}
-                            <span>
-                              {group.name}
-                              {group.category ? ` · ${group.category}` : ""}
-                              {group.brand ? ` · ${group.brand}` : ""}
-                              {` · ${group.items.length} 个规格 · 库存 ${groupQty}`}
-                            </span>
+                            <span>{group.name}</span>
                           </Button>
                         </TableCell>
                       </TableRow>
