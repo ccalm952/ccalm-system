@@ -137,4 +137,13 @@ export class WarehouseController {
   ) {
     return this.warehouse.purchaseStats({ month, startDate, endDate })
   }
+
+  @Get("stats/consumption")
+  consumptionStats(
+    @Query("month") month?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string
+  ) {
+    return this.warehouse.consumptionStats({ month, startDate, endDate })
+  }
 }

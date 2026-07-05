@@ -156,7 +156,7 @@ function productGroupKey(name: string) {
 
 function defaultDateRange(): DateRangeValue {
   return {
-    from: dayjs().startOf("month").format("YYYY-MM-DD"),
+    from: dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD"),
     to: dayjs().format("YYYY-MM-DD"),
   };
 }

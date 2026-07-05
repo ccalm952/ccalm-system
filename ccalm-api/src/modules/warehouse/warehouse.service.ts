@@ -41,6 +41,44 @@ function txnQtyDelta(
   return qty
 }
 
+function consumptionUnitPrice(
+  unitPrice: number,
+  lastPurchasePrice: number,
+): number {
+  return unitPrice > 0 ? unitPrice : lastPurchasePrice
+}
+
+function consumptionTxnAmount(
+  txn: { qty: number; unitPrice: number; amount: number },
+  lastPurchasePrice: number,
+): number {
+  if (txn.amount > 0) return txn.amount
+  const unitPrice = consumptionUnitPrice(txn.unitPrice, lastPurchasePrice)
+  return Number((txn.qty * unitPrice).toFixed(2))
+}
+
+function buildAdjustTxnCreateData(
+  itemId: number,
+  qtyDelta: number,
+  lastPurchasePrice: number,
+  operatorUserId: string,
+) {
+  const isOut = qtyDelta < 0
+  const qty = Math.abs(qtyDelta)
+  const unitPrice = isOut ? lastPurchasePrice : 0
+  const amount = isOut ? Number((qty * unitPrice).toFixed(2)) : 0
+  return {
+    itemId,
+    type: "adjust" as const,
+    bizType: isOut ? ("adjust_out" as const) : ("adjust_in" as const),
+    qty,
+    unitPrice,
+    amount,
+    occurDate: dayjs().format("YYYY-MM-DD"),
+    operatorUserId,
+  }
+}
+
 function resolveTxnDateRange(filters: {
   month?: string
   startDate?: string
@@ -164,9 +202,9 @@ export class WarehouseService {
     itemId: number
   ) {
     const rows = await tx.$queryRaw<
-      Array<{ id: number; currentQty: number; enabled: boolean }>
+      Array<{ id: number; currentQty: number; enabled: boolean; lastPurchasePrice: number }>
     >`
-      SELECT id, "currentQty", enabled
+      SELECT id, "currentQty", enabled, "lastPurchasePrice"
       FROM "WarehouseItem"
       WHERE id = ${itemId}
       FOR UPDATE
@@ -422,16 +460,12 @@ export class WarehouseService {
         const qtyDelta = nextQty - locked.currentQty
         if (qtyDelta !== 0) {
           await tx.warehouseTxn.create({
-            data: {
-              itemId: id,
-              type: "adjust",
-              bizType: qtyDelta > 0 ? "adjust_in" : "adjust_out",
-              qty: Math.abs(qtyDelta),
-              unitPrice: 0,
-              amount: 0,
-              occurDate: dayjs().format("YYYY-MM-DD"),
+            data: buildAdjustTxnCreateData(
+              id,
+              qtyDelta,
+              locked.lastPurchasePrice,
               operatorUserId,
-            },
+            ),
           })
         }
 
@@ -494,16 +528,12 @@ export class WarehouseService {
             const qtyDelta = nextQty - locked.currentQty
             if (qtyDelta !== 0) {
               await tx.warehouseTxn.create({
-                data: {
-                  itemId: id,
-                  type: "adjust",
-                  bizType: qtyDelta > 0 ? "adjust_in" : "adjust_out",
-                  qty: Math.abs(qtyDelta),
-                  unitPrice: 0,
-                  amount: 0,
-                  occurDate: dayjs().format("YYYY-MM-DD"),
+                data: buildAdjustTxnCreateData(
+                  id,
+                  qtyDelta,
+                  locked.lastPurchasePrice,
                   operatorUserId,
-                },
+                ),
               })
             }
 
@@ -558,16 +588,12 @@ export class WarehouseService {
 
       if (qtyDelta !== 0) {
         await tx.warehouseTxn.create({
-          data: {
-            itemId: id,
-            type: "adjust",
-            bizType: qtyDelta > 0 ? "adjust_in" : "adjust_out",
-            qty: Math.abs(qtyDelta),
-            unitPrice: 0,
-            amount: 0,
-            occurDate: dayjs().format("YYYY-MM-DD"),
+          data: buildAdjustTxnCreateData(
+            id,
+            qtyDelta,
+            locked.lastPurchasePrice,
             operatorUserId,
-          },
+          ),
         })
       }
 
@@ -627,7 +653,11 @@ export class WarehouseService {
       const nextQty = item.currentQty + qtyDelta
       if (nextQty < 0) throw new BadRequestException("出库后库存不能为负数")
 
-      const amount = Number((dto.qty * dto.unitPrice).toFixed(2))
+      const unitPrice =
+        dto.type === "out" && dto.bizType === "use"
+          ? consumptionUnitPrice(dto.unitPrice, item.lastPurchasePrice)
+          : dto.unitPrice
+      const amount = Number((dto.qty * unitPrice).toFixed(2))
 
       await tx.warehouseTxn.create({
         data: {
@@ -635,7 +665,7 @@ export class WarehouseService {
           type: dto.type,
           bizType: dto.bizType,
           qty: dto.qty,
-          unitPrice: dto.unitPrice,
+          unitPrice,
           amount,
           occurDate,
           operatorUserId,
@@ -790,6 +820,75 @@ export class WarehouseService {
       }
       prev.qty += txn.qty
       prev.amount += txn.amount
+      prev.unitPrice =
+        prev.qty > 0 ? Number((prev.amount / prev.qty).toFixed(2)) : 0
+      byItemMap.set(txn.itemId, prev)
+    }
+
+    const byItem = [...byItemMap.values()].sort((a, b) => b.amount - a.amount)
+
+    return {
+      month: filters.month?.trim() || "",
+      totalAmount: Number(totalAmount.toFixed(2)),
+      totalQty,
+      txnCount: txns.length,
+      byItem,
+    }
+  }
+
+  async consumptionStats(filters: {
+    month?: string
+    startDate?: string
+    endDate?: string
+  }) {
+    const occurDate =
+      resolveTxnDateRange(filters) ??
+      resolveTxnDateRange({ month: dayjs().format("YYYY-MM") })!
+
+    const txns = await this.prisma.warehouseTxn.findMany({
+      where: {
+        bizType: { in: ["use", "adjust_out"] },
+        occurDate,
+      },
+      include: { item: { include: itemInclude } },
+      orderBy: [{ occurDate: "desc" }, { id: "desc" }],
+    })
+
+    const byItemMap = new Map<
+      number,
+      {
+        itemId: number
+        productId: number
+        code: string
+        name: string
+        spec: string
+        unit: string
+        qty: number
+        unitPrice: number
+        amount: number
+      }
+    >()
+
+    let totalAmount = 0
+    let totalQty = 0
+    for (const txn of txns) {
+      const row = mapItemRow(txn.item)
+      const lineAmount = consumptionTxnAmount(txn, row.lastPurchasePrice)
+      totalAmount += lineAmount
+      totalQty += txn.qty
+      const prev = byItemMap.get(txn.itemId) ?? {
+        itemId: txn.itemId,
+        productId: row.productId,
+        code: row.code,
+        name: row.name,
+        spec: row.spec,
+        unit: row.unit,
+        qty: 0,
+        unitPrice: 0,
+        amount: 0,
+      }
+      prev.qty += txn.qty
+      prev.amount += lineAmount
       prev.unitPrice =
         prev.qty > 0 ? Number((prev.amount / prev.qty).toFixed(2)) : 0
       byItemMap.set(txn.itemId, prev)
