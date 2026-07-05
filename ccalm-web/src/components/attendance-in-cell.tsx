@@ -27,13 +27,15 @@ export function AttendanceInCell(props: {
 
   if (canClearRest(row, half)) {
     return (
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={onClear}
-      >
-        休息
-      </Button>
+      <div className="flex w-full justify-center">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onClear}
+        >
+          休息
+        </Button>
+      </div>
     );
   }
 
@@ -44,11 +46,15 @@ export function AttendanceInCell(props: {
   if (!showRest && !makeupState) return null;
 
   if (makeupState === "pending" && !showRest) {
-    return <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>;
+    return (
+      <div className="flex w-full justify-center">
+        <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>
+      </div>
+    );
   }
 
   return (
-    <span className="inline-flex items-center justify-center gap-2 text-sm">
+    <div className="flex w-full items-center justify-center gap-2 text-sm">
       {showRest ? (
         <Button
           type="button"
@@ -70,6 +76,6 @@ export function AttendanceInCell(props: {
           补卡
         </Button>
       ) : null}
-    </span>
+    </div>
   );
 }

@@ -26,7 +26,11 @@ export function AttendanceHalfOutCell(props: {
   } = props;
 
   if (isHalfDeclaredRest(row.declaredRest, half)) {
-    return <span className={attendanceMutedTextClass}>—</span>;
+    return (
+      <div className="flex w-full justify-center">
+        <span className={attendanceMutedTextClass}>—</span>
+      </div>
+    );
   }
 
   if (adminDirect) {

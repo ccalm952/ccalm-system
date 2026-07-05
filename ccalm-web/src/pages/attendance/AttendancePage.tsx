@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -35,7 +36,7 @@ import { RestActionDialog } from "@/components/rest-action-dialog";
 import type { EmployeeMakeupType, MakeupTodayGate } from "@/lib/attendance/makeup";
 import { makeupTodayGateFromShift } from "@/lib/attendance/makeup";
 import { attendanceInCellClass, attendanceOutCellClass, type AttendanceCellClassOptions } from "@/lib/attendance/cell-class";
-import { attendanceBrandTextClass, attendanceErrorTextClass, attendanceMutedTextClass, attendanceTableHeaderClass, summaryMissingSlotsClass, summaryOvertimeClass } from "@/lib/attendance/attendance-theme";
+import { attendanceBrandTextClass, attendanceErrorTextClass, attendanceMutedTextClass, attendanceTableHeaderClass, hasOvertime, summaryMissingSlotsClass, summaryOvertimeClass } from "@/lib/attendance/attendance-theme";
 import type { RestHalf } from "@/lib/attendance/rest";
 import {
   ATTENDANCE_PUNCH_TYPE_LABEL,
@@ -567,7 +568,7 @@ export function AttendancePage() {
           <Card>
             <CardContent className="flex flex-col gap-4">
               {!monthSummary ? (
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="space-y-2">
                       <Skeleton className="mx-auto h-5 w-12" />
@@ -577,7 +578,7 @@ export function AttendancePage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                  <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
                     <div className="text-center">
                       <div className="text-sm">{formatDayCount(monthSummary.attendanceDays)}</div>
                       <div className="text-sm">出勤天数</div>
@@ -594,7 +595,7 @@ export function AttendancePage() {
                     </div>
                     <div className="text-center">
                       <div className={cn("text-sm", summaryOvertimeClass(monthSummary.overtimeStr))}>
-                        {monthSummary.overtimeStr === "-" ? "" : monthSummary.overtimeStr}
+                        {hasOvertime(monthSummary.overtimeStr) ? monthSummary.overtimeStr : "0"}
                       </div>
                       <div className="text-sm">加班</div>
                     </div>
@@ -604,7 +605,9 @@ export function AttendancePage() {
                     </div>
                   </div>
 
-                  <Table className="w-full table-fixed">
+                  <ScrollArea>
+                    <div className="min-w-[660px]">
+                      <Table className="w-full table-fixed">
                     <TableHeader className={attendanceTableHeaderClass}>
                       <TableRow>
                         <TableHead className="w-1/5 text-center">日期</TableHead>
@@ -617,10 +620,10 @@ export function AttendancePage() {
                     <TableBody>
                       {monthSummary.rows.map((r) => (
                         <TableRow key={r.date}>
-                          <TableCell className="w-1/5 text-center">{dayOfMonth(r.date)}</TableCell>
+                          <TableCell className="flex w-1/5 items-center justify-center">{dayOfMonth(r.date)}</TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/5 text-center",
+                              "flex w-1/5 items-center justify-center",
                               attendanceInCellClass(r, "morning", r.morningIn),
                             )}
                           >
@@ -651,7 +654,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/5 text-center",
+                              "flex w-1/5 items-center justify-center",
                               attendanceOutCellClass(r, "morning", r.morningOut, cellClassOptions),
                             )}
                           >
@@ -667,7 +670,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/5 text-center",
+                              "flex w-1/5 items-center justify-center",
                               attendanceInCellClass(r, "afternoon", r.afternoonIn),
                             )}
                           >
@@ -698,7 +701,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "w-1/5 text-center",
+                              "flex w-1/5 items-center justify-center",
                               attendanceOutCellClass(r, "afternoon", r.afternoonOut, cellClassOptions),
                             )}
                           >
@@ -717,7 +720,10 @@ export function AttendancePage() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                      </Table>
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
                 </>
               )}
             </CardContent>

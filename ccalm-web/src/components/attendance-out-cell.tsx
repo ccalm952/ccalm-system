@@ -48,18 +48,24 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
   }
 
   if (slotState === "pending") {
-    return <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>;
+    return (
+      <div className="flex w-full justify-center">
+        <span className={cn("text-sm", attendancePendingTextClass)}>审批中</span>
+      </div>
+    );
   }
 
   if (slotState === "apply") {
     return (
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={onApply}
-      >
-        补卡
-      </Button>
+      <div className="flex w-full justify-center">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onApply}
+        >
+          补卡
+        </Button>
+      </div>
     );
   }
 
