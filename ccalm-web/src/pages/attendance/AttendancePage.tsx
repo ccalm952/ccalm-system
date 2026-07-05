@@ -620,10 +620,10 @@ export function AttendancePage() {
                     <TableBody>
                       {monthSummary.rows.map((r) => (
                         <TableRow key={r.date}>
-                          <TableCell className="flex w-1/5 items-center justify-center">{dayOfMonth(r.date)}</TableCell>
+                          <TableCell className="w-1/5 text-center">{dayOfMonth(r.date)}</TableCell>
                           <TableCell
                             className={cn(
-                              "flex w-1/5 items-center justify-center",
+                              "w-1/5 text-center",
                               attendanceInCellClass(r, "morning", r.morningIn),
                             )}
                           >
@@ -654,7 +654,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "flex w-1/5 items-center justify-center",
+                              "w-1/5 text-center",
                               attendanceOutCellClass(r, "morning", r.morningOut, cellClassOptions),
                             )}
                           >
@@ -670,7 +670,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "flex w-1/5 items-center justify-center",
+                              "w-1/5 text-center",
                               attendanceInCellClass(r, "afternoon", r.afternoonIn),
                             )}
                           >
@@ -701,7 +701,7 @@ export function AttendancePage() {
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "flex w-1/5 items-center justify-center",
+                              "w-1/5 text-center",
                               attendanceOutCellClass(r, "afternoon", r.afternoonOut, cellClassOptions),
                             )}
                           >
