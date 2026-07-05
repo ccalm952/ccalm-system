@@ -28,8 +28,8 @@ export const attendancePendingTextClass = attendanceMutedTextClass;
 /** 考勤表格表头 */
 export const attendanceTableHeaderClass = `bg-muted/40 ${attendanceMutedTextClass}`;
 
-/** 统计表列宽与对齐（六等分、水平居中） */
-export const attendanceStatsTableColumnClass = "w-1/6 px-3 py-2 text-center";
+/** 统计表列宽（对齐等分，行高沿用 Table 默认 h-10） */
+export const attendanceStatsTableColumnClass = "w-1/6";
 
 /** 统计页展开明细行 */
 export const attendanceExpandedRowClass = "bg-muted/10";

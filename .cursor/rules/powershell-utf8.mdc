@@ -1,0 +1,14 @@
+# 源码文件编码
+
+## Agent 必须遵守
+
+- **禁止**用 Shell 里的 `Set-Content` / `Get-Content` / `Out-File` / `>` 重定向去读写 `.ts`、`.tsx`、`.css`、`.json`、`.md` 等源码。
+- **必须**用编辑器的 `StrReplace` / `Write` 改源码；这些工具始终按 UTF-8 写入。
+
+上次中文乱码就是因为 PowerShell 默认按系统编码（GBK）写文件，不是项目缺脚本。
+
+## 项目已配置
+
+- `.editorconfig`：`charset = utf-8`
+- `.gitattributes`：文本文件 `eol=lf`
+- `.vscode/settings.json`：`files.encoding = utf8`，终端启动时切 UTF-8

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { attendancePendingTextClass, tableActionLinkClass } from "@/lib/attendance/attendance-theme";
+import { attendancePendingTextClass } from "@/lib/attendance/attendance-theme";
 import {
   adminMakeupSlotStateWithPending,
   makeupSlotState,
@@ -55,8 +55,7 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
     return (
       <Button
         type="button"
-        variant="link"
-        className={tableActionLinkClass}
+        variant="secondary"
         onClick={onApply}
       >
         补卡

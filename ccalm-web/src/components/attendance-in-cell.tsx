@@ -1,9 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  attendanceMutedTextClass,
-  attendancePendingTextClass,
-  tableActionLinkClass,
-} from "@/lib/attendance/attendance-theme";
+import { attendancePendingTextClass } from "@/lib/attendance/attendance-theme";
 import {
   inTypeForHalf,
   makeupInSlotState,
@@ -13,8 +9,6 @@ import {
 import { canClearRest, canDeclareRest, type RestHalf } from "@/lib/attendance/rest";
 import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
 import { cn } from "@/lib/utils";
-
-const actionLinkClass = tableActionLinkClass;
 
 export function AttendanceInCell(props: {
   row: AttendancePunchDayRow;
@@ -35,8 +29,7 @@ export function AttendanceInCell(props: {
     return (
       <Button
         type="button"
-        variant="link"
-        className={actionLinkClass}
+        variant="secondary"
         onClick={onClear}
       >
         休息
@@ -55,26 +48,23 @@ export function AttendanceInCell(props: {
   }
 
   return (
-    <span className="inline-flex items-center justify-center text-sm">
+    <span className="inline-flex items-center justify-center gap-2 text-sm">
       {showRest ? (
         <Button
           type="button"
-          variant="link"
-          className={actionLinkClass}
+          variant="secondary"
           onClick={onDeclare}
         >
           休息
         </Button>
       ) : null}
-      {showRest && makeupState ? <span className={attendanceMutedTextClass}>/</span> : null}
       {makeupState === "pending" ? (
         <span className={attendancePendingTextClass}>审批中</span>
       ) : null}
       {makeupState === "apply" ? (
         <Button
           type="button"
-          variant="link"
-          className={actionLinkClass}
+          variant="secondary"
           onClick={() => onMakeup(inType)}
         >
           补卡

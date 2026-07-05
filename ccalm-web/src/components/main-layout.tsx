@@ -9,7 +9,6 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
@@ -75,10 +74,7 @@ export function MainLayout() {
                 </NavigationMenuItem>
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                      render={<Link to={ROUTES.salary.root} />}
-                    >
+                    <NavigationMenuLink render={<Link to={ROUTES.salary.root} />}>
                       {salaryNavItem.title}
                     </NavigationMenuLink>
                   </NavigationMenuItem>

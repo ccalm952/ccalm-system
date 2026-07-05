@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -142,7 +143,12 @@ function RequestList(props: {
   const { loading, items, emptyText, mode, showUser, onChanged } = props;
 
   if (loading) {
-    return <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>;
+    return (
+      <div className={cn("flex items-center gap-2 text-sm", attendanceMutedTextClass)}>
+        <Spinner data-icon="inline-start" />
+        加载中…
+      </div>
+    );
   }
   if (items.length === 0) {
     return <div className={cn("text-sm", attendanceMutedTextClass)}>{emptyText}</div>;
@@ -214,7 +220,7 @@ export function MakeupTodoButton() {
         render={
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium text-foreground transition-all hover:bg-muted"
+            className="inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground transition-all hover:bg-muted"
           >
             <span>待办</span>
             {badgeCount > 0 ? (

@@ -1,7 +1,8 @@
-﻿import * as React from "react";
+import * as React from "react";
 import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -87,7 +88,14 @@ export function RestActionDialog(props: {
             取消
           </Button>
           <Button type="button" disabled={submitting} onClick={() => void handleSubmit()}>
-            {submitting ? "提交中…" : "确认"}
+            {submitting ? (
+              <>
+                <Spinner data-icon="inline-start" />
+                提交中…
+              </>
+            ) : (
+              "确认"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

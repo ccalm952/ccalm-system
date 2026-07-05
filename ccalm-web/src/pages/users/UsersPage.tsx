@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Trash2Icon } from "lucide-react";
 
-import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -41,6 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -165,7 +166,11 @@ export function UsersPage() {
             ) : loadError ? (
               <div className="text-sm text-destructive">{loadError}</div>
             ) : rows === null ? (
-              <div className="text-sm text-muted-foreground">加载中…</div>
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className="h-8 w-full" />
+                ))}
+              </div>
             ) : (
               <ScrollArea className="w-full">
                 <Table className="w-full min-w-[800px] table-fixed">
@@ -194,11 +199,10 @@ export function UsersPage() {
                             {new Date(r.createdAt).toLocaleString()}
                           </TableCell>
                           <TableCell className="w-[18%]">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <Button
                                 type="button"
-                                variant="link"
-                                className={tableActionLinkClass}
+                                variant="secondary"
                                 onClick={() => {
                                   setEditUser({
                                     ...r,
@@ -212,8 +216,7 @@ export function UsersPage() {
                               </Button>
                               <Button
                                 type="button"
-                                variant="link"
-                                className={tableActionLinkClass}
+                                variant="secondary"
                                 disabled={!!disabledReason}
                                 title={disabledReason ?? undefined}
                                 onClick={() => {
@@ -576,7 +579,14 @@ export function UsersPage() {
                   })();
                 }}
               >
-                {editSubmitting ? "保存中…" : "保存"}
+                {editSubmitting ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    保存中…
+                  </>
+                ) : (
+                  "保存"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

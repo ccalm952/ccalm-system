@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +63,6 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { api } from "@/lib/api";
-import { tableActionLinkClass } from "@/lib/attendance/attendance-theme";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
@@ -789,7 +790,14 @@ export function WarehouseLedgerPage() {
                 disabled={importing}
                 onClick={() => importInputRef.current?.click()}
               >
-                {importing ? "导入中…" : "导入"}
+                {importing ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    导入中…
+                  </>
+                ) : (
+                  "导入"
+                )}
               </Button>
               <Button type="button" variant="outline" onClick={openCreateItem}>
                 新增规格
@@ -810,19 +818,37 @@ export function WarehouseLedgerPage() {
               <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
                   <div className="text-sm text-muted-foreground">产品数</div>
-                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{productCount}</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">
+                    {itemsLoading && items.length === 0 ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      productCount
+                    )}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
                   <div className="text-sm text-muted-foreground">规格数</div>
-                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{items.length}</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">
+                    {itemsLoading && items.length === 0 ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      items.length
+                    )}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="border border-border shadow-xs ring-0">
                 <CardContent className="pt-6">
                   <div className="text-sm text-muted-foreground">当前总库存</div>
-                  <div className="min-h-8 text-2xl font-semibold tabular-nums">{totalQty}</div>
+                  <div className="min-h-8 text-2xl font-semibold tabular-nums">
+                    {itemsLoading && items.length === 0 ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      totalQty
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -876,7 +902,17 @@ export function WarehouseLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productGroups.map((group) => {
+                {itemsLoading && items.length === 0 ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <TableRow key={index}>
+                      {Array.from({ length: 8 }).map((__, cellIndex) => (
+                        <TableCell key={cellIndex}>
+                          <Skeleton className="h-5 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : productGroups.map((group) => {
                   const collapsed = collapsedGroups.has(group.key);
                   return (
                     <React.Fragment key={group.key}>
@@ -931,11 +967,10 @@ export function WarehouseLedgerPage() {
                               <TableCell className="text-center">{item.currentQty}</TableCell>
                               <TableCell className="text-center">
                                 {isAdmin ? (
-                                  <div className="flex items-center justify-center gap-3">
+                                  <div className="flex items-center justify-center gap-2">
                                     <Button
                                       type="button"
-                                      variant="link"
-                                      className={tableActionLinkClass}
+                                      variant="secondary"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openTxn(item, "in");
@@ -945,8 +980,7 @@ export function WarehouseLedgerPage() {
                                     </Button>
                                     <Button
                                       type="button"
-                                      variant="link"
-                                      className={tableActionLinkClass}
+                                      variant="secondary"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openTxn(item, "out");
@@ -956,8 +990,7 @@ export function WarehouseLedgerPage() {
                                     </Button>
                                     <Button
                                       type="button"
-                                      variant="link"
-                                      className={tableActionLinkClass}
+                                      variant="secondary"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openEditItem(item);
@@ -967,8 +1000,7 @@ export function WarehouseLedgerPage() {
                                     </Button>
                                     <Button
                                       type="button"
-                                      variant="link"
-                                      className={tableActionLinkClass}
+                                      variant="secondary"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setDeleteItemTarget(item);
@@ -1030,7 +1062,17 @@ export function WarehouseLedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {txns.map((txn) => (
+                {txnsLoading && txns.length === 0 ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <TableRow key={index}>
+                      {Array.from({ length: isAdmin ? 8 : 7 }).map((__, cellIndex) => (
+                        <TableCell key={cellIndex}>
+                          <Skeleton className="h-5 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : txns.map((txn) => (
                   <TableRow key={txn.id}>
                     <TableCell>{txn.occurDate}</TableCell>
                     <TableCell>{txnTypeLabels[txn.type] ?? txn.type}</TableCell>
@@ -1049,8 +1091,7 @@ export function WarehouseLedgerPage() {
                       <TableCell className="text-center">
                         <Button
                           type="button"
-                          variant="link"
-                          className={tableActionLinkClass}
+                          variant="secondary"
                           onClick={() => setDeleteTxnId(txn.id)}
                         >
                           删除
@@ -1277,7 +1318,14 @@ export function WarehouseLedgerPage() {
               取消
             </Button>
             <Button type="button" disabled={itemSubmitting} onClick={() => void submitItem()}>
-              {itemSubmitting ? "保存中…" : "保存"}
+              {itemSubmitting ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  保存中…
+                </>
+              ) : (
+                "保存"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1440,7 +1488,14 @@ export function WarehouseLedgerPage() {
               取消
             </Button>
             <Button type="button" disabled={txnSubmitting} onClick={() => void submitTxn()}>
-              {txnSubmitting ? "保存中…" : "保存"}
+              {txnSubmitting ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  保存中…
+                </>
+              ) : (
+                "保存"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

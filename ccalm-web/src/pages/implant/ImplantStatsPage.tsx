@@ -101,7 +101,7 @@ export function ImplantStatsPage() {
             </Select>
             <span className="inline-flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">植体数量</span>
-              <span className="inline-flex h-8 items-center rounded-lg border border-input bg-transparent px-2.5 font-medium tabular-nums text-foreground dark:bg-input/30">
+              <span className="inline-flex h-8 items-center rounded-2xl border border-input bg-transparent px-2.5 font-medium tabular-nums text-foreground dark:bg-input/30">
                 {monthTotal}
               </span>
             </span>

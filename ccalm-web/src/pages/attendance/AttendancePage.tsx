@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import { isPunchBlockedByScheduleRest } from "@/lib/attendance/schedule-rest";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -566,7 +567,14 @@ export function AttendancePage() {
           <Card>
             <CardContent className="flex flex-col gap-4">
               {!monthSummary ? (
-                <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="space-y-2">
+                      <Skeleton className="mx-auto h-5 w-12" />
+                      <Skeleton className="mx-auto h-4 w-16" />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-5">

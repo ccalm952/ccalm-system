@@ -48,6 +48,7 @@ import { DateRangePickerField } from "@/components/date-range-picker-field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -947,7 +948,14 @@ function ImplantRecordsVisitDialog({
                   disabled={saving}
                   onClick={() => void saveEdit()}
                 >
-                  {saving ? "保存中…" : "保存"}
+                  {saving ? (
+                    <>
+                      <Spinner data-icon="inline-start" />
+                      保存中…
+                    </>
+                  ) : (
+                    "保存"
+                  )}
                 </Button>
               </div>
             </div>
@@ -1182,7 +1190,14 @@ function ImplantRecordsVisitDialog({
                   disabled={saving}
                   onClick={() => void submit()}
                 >
-                  {saving ? "保存中…" : "保存"}
+                  {saving ? (
+                    <>
+                      <Spinner data-icon="inline-start" />
+                      保存中…
+                    </>
+                  ) : (
+                    "保存"
+                  )}
                 </Button>
               </div>
             </div>
@@ -1368,7 +1383,7 @@ export function ImplantRecordsPage() {
         cell: ({ row }) => (
           <Button
             type="button"
-            variant="link"
+            variant="secondary"
             onClick={(e) => {
               e.stopPropagation();
               openEdit(row.original);

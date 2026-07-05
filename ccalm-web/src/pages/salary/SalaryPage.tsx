@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -1165,9 +1166,16 @@ export function SalaryPage() {
         {months.map((month) => (
           <TabsContent key={month} value={month} className="min-h-0 min-w-0 flex-1 space-y-4">
             {loadingMonth === month && !sheet ? (
-              <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <Spinner className="size-4" /> 加载中…
-              </div>
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-24" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <Skeleton key={index} className="h-8 w-full" />
+                  ))}
+                </CardContent>
+              </Card>
             ) : null}
 
             {sheet && computed && month === activeMonth ? (

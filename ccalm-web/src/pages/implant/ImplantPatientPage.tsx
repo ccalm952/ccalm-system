@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -279,7 +280,7 @@ export function ImplantPatientPage() {
         cell: ({ row }) => (
           <Button
             type="button"
-            variant="link"
+            variant="secondary"
             onClick={(e) => {
               e.stopPropagation();
               openEdit(row.original);
@@ -504,7 +505,14 @@ export function ImplantPatientPage() {
                 取消
               </Button>
               <Button type="button" disabled={saving} onClick={() => void saveEdit()}>
-                {saving ? "保存中…" : "保存"}
+                {saving ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    保存中…
+                  </>
+                ) : (
+                  "保存"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

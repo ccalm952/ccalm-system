@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -193,7 +195,14 @@ export function SchedulePage() {
                 disabled={savingAllowance}
                 onClick={() => void saveMonthAllowance()}
               >
-                保存假期
+                {savingAllowance ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    保存中…
+                  </>
+                ) : (
+                  "保存假期"
+                )}
               </Button>
             </div>
           ) : null}
@@ -201,7 +210,11 @@ export function SchedulePage() {
 
         <CardContent>
           {loading ? (
-            <div className={cn("text-sm", attendanceMutedTextClass)}>加载中…</div>
+            <div className="space-y-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-8 w-full" />
+              ))}
+            </div>
           ) : !data ? (
             <div className={cn("text-sm", attendanceMutedTextClass)}>暂无数据</div>
           ) : (

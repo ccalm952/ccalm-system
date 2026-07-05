@@ -15,6 +15,7 @@ import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { RestActionDialog } from "@/components/rest-action-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -40,7 +41,6 @@ import {
   hasOvertime,
   summaryMissingSlotsClass,
   summaryOvertimeClass,
-  tableActionLinkClass,
 } from "@/lib/attendance/attendance-theme";
 import { monthKey, previousMonthKey, type BackendShiftDto } from "@/lib/attendance/shift";
 import type { RestHalf } from "@/lib/attendance/rest";
@@ -235,8 +235,7 @@ export function AttendanceStatsPage() {
           return (
             <Button
               type="button"
-              variant="link"
-              className={tableActionLinkClass}
+              variant="secondary"
               disabled={!canExpand}
               onClick={(e) => {
                 e.stopPropagation();
@@ -299,7 +298,17 @@ export function AttendanceStatsPage() {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
+              {summary === null ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <TableRow key={index}>
+                    {Array.from({ length: 6 }).map((__, cellIndex) => (
+                      <TableCell key={cellIndex} className={attendanceStatsTableColumnClass}>
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
                   <TableRow
                     className={cn(

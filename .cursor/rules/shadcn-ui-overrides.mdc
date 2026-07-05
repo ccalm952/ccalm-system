@@ -1,0 +1,40 @@
+---
+description: shadcn 组件项目定制与 --overwrite 后恢复清单
+globs: ccalm-web/src/components/ui/**
+alwaysApply: false
+---
+
+# shadcn 组件项目定制
+
+`components.json` 使用 `style: "base-rhea"`。主题变量（`--radius: 0`、Slate 配色等）在 `ccalm-web/src/index.css`，**不受** `npx shadcn add --overwrite` 影响。
+
+## 同步前
+
+```bash
+cd ccalm-web
+npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
+```
+
+## 同步后恢复
+
+1. 在 `components/ui/` 搜索 `CCALM:`，按注释改回
+2. 或对照下表逐项恢复
+
+| 文件 | 定制项 | 恢复为 |
+|------|--------|--------|
+| `table.tsx` | 容器 | `relative w-full`（无 `overflow-x-auto`） |
+| `table.tsx` | `TableBody` | `className={cn(className)}`（无 `[&_tr:last-child]:border-0`） |
+| `table.tsx` | `TableHead` | `text-center`（非 `text-left`） |
+| `table.tsx` | `TableCell` | `h-10 px-2 text-center`（非 `p-2` 左对齐） |
+| `navigation-menu.tsx` | trigger / link | `focus-visible:bg-muted`（非 `focus:bg-muted`）；去掉 `data-open:focus:bg-muted`、`data-[active=true]:focus:bg-muted` |
+| `sidebar.tsx` | `SidebarRail` | `md:flex`（非 `sm:flex`） |
+
+## 已废弃定制（base-rhea 同步后勿恢复）
+
+`combobox.tsx` 曾设 `showTrigger = false` 与条件 `InputGroupAddon`，已在 `c3133cd` 改回官方默认。
+`input.tsx` 曾标注 `text-base md:text-sm` 定制，与官方 base-rhea 一致，已改回纯官方文件。
+`dialog.tsx` / `sheet.tsx` 关闭按钮 `bg-secondary`、`command.tsx` 的 `CommandDialog` 默认 `showCloseButton = false` 均与官方 base-rhea 一致，已改回纯官方文件。
+
+## 非 registry 文件
+
+`timeline.tsx` 为项目自建，不在 shadcn registry。

@@ -6,6 +6,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
+      // CCALM: 无 overflow-x-auto
       className="relative w-full"
     >
       <table
@@ -31,6 +32,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
+      // CCALM: 无 [&_tr:last-child]:border-0
       className={cn(className)}
       {...props}
     />
@@ -68,6 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
+        // CCALM: text-center
         "h-10 px-2 text-center align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
@@ -81,6 +84,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
+        // CCALM: h-10 px-2 text-center
         "h-10 px-2 text-center align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}

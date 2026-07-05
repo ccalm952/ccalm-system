@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { api, setToken } from "@/lib/api";
 import { ROUTES } from "@/config/routes";
@@ -144,7 +145,10 @@ export function NavUser({
     <DropdownMenuContent className="min-w-56 rounded-lg" side={menuSide} align="end" sideOffset={8}>
       <DropdownMenuGroup>
         {loadingUsers ? (
-          <DropdownMenuItem disabled>加载中...</DropdownMenuItem>
+          <DropdownMenuItem disabled>
+            <Spinner data-icon="inline-start" />
+            加载中...
+          </DropdownMenuItem>
         ) : users.length ? (
           users.map((item) => (
             <DropdownMenuItem
@@ -163,7 +167,14 @@ export function NavUser({
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem disabled={uploadingAvatar} onClick={() => fileInputRef.current?.click()}>
-          {uploadingAvatar ? "上传中..." : "更换头像"}
+          {uploadingAvatar ? (
+            <>
+              <Spinner data-icon="inline-start" />
+              上传中...
+            </>
+          ) : (
+            "更换头像"
+          )}
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />

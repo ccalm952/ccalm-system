@@ -1,0 +1,24 @@
+---
+description: 使用 shadcn/ui 官方组件时保持 registry 默认样式
+alwaysApply: true
+---
+
+# shadcn 组件默认样式
+
+添加或修改 UI 时，优先使用 `@/components/ui/*` 官方组件，**保持 registry 默认样式**。
+
+## 默认做法
+
+- 不写 `className`，不改 `variant` / `size`，除非用户明确要求
+- 不包一层自定义 wrapper 只为改外观（如 `salaryEmpInput()`、透明边框 input 等），除非用户明确要求
+- 布局用官方组合（如 `Table` + `TableRow` + `TableCell`），不为表格单元格单独套样式
+
+## 定制官方组件文件时
+
+- 若必须改 `components/ui/*.tsx`，在文件内用 `CCALM:` 注释标出与 registry 的差异
+- 用 `npx shadcn@latest add <组件> --overwrite` 同步官方时，按 `shadcn-ui-overrides.mdc` 恢复项目定制
+
+## 业务页面
+
+- 页面里只组装官方 primitives：`Button`、`Input`、`Label`、`Table`、`Combobox` 等
+- 用户说「先清空样式 / 默认样式」时：只保留 `type`、`value`、`onChange` 等业务 props，不加视觉类名
