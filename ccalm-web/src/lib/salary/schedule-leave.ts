@@ -1,7 +1,7 @@
 import type { ScheduleMonthData } from "@/lib/attendance/schedule";
 import { api } from "@/lib/api";
 
-import { formatSalaryMonthTab, previousSalaryMonth } from "./defaults";
+import { formatSalaryMonthTab } from "./defaults";
 import type { SalaryLeaveQuotas } from "./types";
 
 const SCHEDULE_LEAVE_EMPLOYEES: Record<keyof SalaryLeaveQuotas, string> = {
@@ -10,9 +10,9 @@ const SCHEDULE_LEAVE_EMPLOYEES: Record<keyof SalaryLeaveQuotas, string> = {
   xu: "许桦婧",
 };
 
-/** 薪资月 M 引用排班表 M-1 月的请假天数 */
+/** 薪资月 M 引用排班表 M 月的请假天数 */
 export function scheduleLeaveSourceMonth(salaryMonth: string): string | null {
-  return previousSalaryMonth(salaryMonth);
+  return salaryMonth;
 }
 
 export function scheduleLeaveSourceMonthLabel(salaryMonth: string): string {

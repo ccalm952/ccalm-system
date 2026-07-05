@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Navigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { Plus, RotateCcw, X } from "lucide-react";
@@ -96,6 +96,21 @@ function formatSummaryDecimalValue(n: number): string {
 
 function sameLeaveQuotas(a: SalaryLeaveQuotas, b: SalaryLeaveQuotas): boolean {
   return a.chen === b.chen && a.lu === b.lu && a.xu === b.xu;
+}
+
+function listMissingPriorMonths(
+  month: string,
+  monthList: string[],
+  loaded: Record<string, SalarySheetData>,
+): string[] {
+  const monthSet = new Set(monthList);
+  const missing: string[] = [];
+  let prev = previousSalaryMonth(month, monthSet);
+  while (prev) {
+    if (!loaded[prev]) missing.push(prev);
+    prev = previousSalaryMonth(prev, monthSet);
+  }
+  return missing;
 }
 
 async function applyScheduleLeaveQuotas(
@@ -516,11 +531,11 @@ function computeWithCarryover(
   month: string,
   sheet: SalarySheetData,
   sheets: Record<string, SalarySheetData>,
+  monthList: string[],
 ): ReturnType<typeof computeSalarySheet> {
-  const monthKeys = Object.keys(sheets);
   return computeSalarySheet(sheet, {
     priorBonusByName: buildPriorBonusMap(month, sheets, (m) =>
-      previousSalaryMonth(m, monthKeys),
+      previousSalaryMonth(m, monthList),
     ),
   });
 }
@@ -847,38 +862,61 @@ export function SalaryPage() {
     [lockSalary],
   );
 
+  const loadMissingPriorSheets = React.useCallback(
+    async (month: string, baseSheets: Record<string, SalarySheetData>) => {
+      if (!month || months.length === 0) return baseSheets;
+
+      const monthSet = new Set(months);
+      let merged = { ...baseSheets };
+      let prev = previousSalaryMonth(month, monthSet);
+      while (prev && !merged[prev]) {
+        try {
+          const data = await fetchMonth(prev);
+          const withQuotas = await applyScheduleLeaveQuotas(prev, data);
+          merged = { ...merged, [prev]: withQuotas };
+          if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
+            await api("PUT", `/salary/${prev}`, { data: withQuotas }, salaryApi);
+          }
+        } catch {
+          break;
+        }
+        prev = previousSalaryMonth(prev, monthSet);
+      }
+      return merged;
+    },
+    [fetchMonth, months],
+  );
+
   const loadMonth = React.useCallback(
     async (month: string) => {
-      if (!month || sheets[month]) return;
+      if (!month) return;
+      if (
+        sheets[month] &&
+        listMissingPriorMonths(month, months, sheets).length === 0
+      ) {
+        return;
+      }
       setLoadingMonth(month);
       try {
-        const data = await fetchMonth(month);
-        const withQuotas = await applyScheduleLeaveQuotas(month, data);
-        setSheets((prev) => ({ ...prev, [month]: withQuotas }));
-        if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
-          await api("PUT", `/salary/${month}`, { data: withQuotas }, salaryApi);
-        }
-
-        const prev = previousSalaryMonth(month, Object.keys(sheets));
-        if (prev && !sheets[prev]) {
-          try {
-            const prevData = await fetchMonth(prev);
-            const prevWithQuotas = await applyScheduleLeaveQuotas(prev, prevData);
-            setSheets((p) => ({ ...p, [prev]: prevWithQuotas }));
-            if (!sameLeaveQuotas(prevData.leaveQuotas, prevWithQuotas.leaveQuotas)) {
-              await api("PUT", `/salary/${prev}`, { data: prevWithQuotas }, salaryApi);
-            }
-          } catch {
-            // 上月无记录时不影响当月
+        let merged = { ...sheets };
+        if (!merged[month]) {
+          const data = await fetchMonth(month);
+          const withQuotas = await applyScheduleLeaveQuotas(month, data);
+          merged = { ...merged, [month]: withQuotas };
+          if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
+            await api("PUT", `/salary/${month}`, { data: withQuotas }, salaryApi);
           }
         }
+        merged = await loadMissingPriorSheets(month, merged);
+        setSheets(merged);
       } catch (e) {
         if (handleSalaryAccessError(e, lockSalary)) return;
         const err = e as { status?: number };
         if (err.status === 404) {
           let data = createDefaultSalarySheet(month);
           data = await applyScheduleLeaveQuotas(month, data);
-          setSheets((prev) => ({ ...prev, [month]: data }));
+          const merged = await loadMissingPriorSheets(month, { ...sheets, [month]: data });
+          setSheets(merged);
           await api("PUT", `/salary/${month}`, { data }, salaryApi);
         } else {
           toast.error(errorMessage(e));
@@ -887,7 +925,7 @@ export function SalaryPage() {
         setLoadingMonth((m) => (m === month ? null : m));
       }
     },
-    [fetchMonth, lockSalary, sheets],
+    [fetchMonth, loadMissingPriorSheets, lockSalary, months, sheets],
   );
 
   React.useEffect(() => {
@@ -928,7 +966,9 @@ export function SalaryPage() {
 
   const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =
-    sheet && activeMonth ? computeWithCarryover(activeMonth, sheet, sheets) : null;
+    sheet && activeMonth
+      ? computeWithCarryover(activeMonth, sheet, sheets, months)
+      : null;
 
   function updateEmployee(index: number, patch: Partial<SalaryEmployeeInput>) {
     if (!sheet || !activeMonth) return;
