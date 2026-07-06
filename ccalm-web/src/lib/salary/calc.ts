@@ -30,12 +30,19 @@ function personalMedical(insurance: SalaryInsuranceInput): number {
   return round2(insurance.medicalBase * insurance.medicalPersonalRate);
 }
 
-function employerLineSubtotal(base: number, rate: number, count: number): number {
-  return round2(base * rate * count);
+function insurancePayment(base: number, rate: number): number {
+  return round2(base * rate);
 }
 
-function personalLineSubtotal(base: number, rate: number, count: number): number {
-  return round2(base * rate * count);
+function insuranceRowTotal(
+  employerPayment: number,
+  employerCount: number,
+  personalPayment: number | null,
+  personalCount: number | null,
+): number {
+  const employer = round2(employerPayment * employerCount);
+  if (personalPayment == null || personalCount == null) return employer;
+  return round2(employer + round2(personalPayment * personalCount));
 }
 
 export type InsuranceTableLine = {
@@ -45,68 +52,61 @@ export type InsuranceTableLine = {
   label: string;
   base: number;
   employerRate: number;
+  employerPayment: number;
   employerCount: number;
-  employerSubtotal: number;
   personalRate: number | null;
+  personalPayment: number | null;
   personalCount: number | null;
-  personalSubtotal: number | null;
   rowTotal: number;
+};
+
+export type InsuranceGroupSubtotals = {
+  employer: number;
+  personal: number | null;
 };
 
 export function computeInsuranceTable(
   insurance: SalaryInsuranceInput,
   housing: SalaryHousingFundInput,
-): { lines: InsuranceTableLine[]; groupTotals: Record<"social" | "medical" | "housing", number> } {
-  const pensionEmployer = employerLineSubtotal(
+): {
+  lines: InsuranceTableLine[];
+  groupTotals: Record<"social" | "medical" | "housing", number>;
+  groupSubtotals: Record<"social" | "medical" | "housing", InsuranceGroupSubtotals>;
+} {
+  const pensionEmployerPayment = insurancePayment(
     insurance.pensionBase,
     insurance.pensionEmployerRate,
-    insurance.pensionEmployerCount,
   );
-  const pensionPersonal = personalLineSubtotal(
+  const pensionPersonalPayment = insurancePayment(
     insurance.pensionBase,
     insurance.pensionPersonalRate,
-    insurance.pensionPersonalCount,
   );
-  const unemploymentEmployer = employerLineSubtotal(
+  const unemploymentEmployerPayment = insurancePayment(
     insurance.unemploymentBase,
     insurance.unemploymentEmployerRate,
-    insurance.unemploymentEmployerCount,
   );
-  const unemploymentPersonal = personalLineSubtotal(
+  const unemploymentPersonalPayment = insurancePayment(
     insurance.unemploymentBase,
     insurance.unemploymentPersonalRate,
-    insurance.unemploymentPersonalCount,
   );
-  const injuryEmployer = employerLineSubtotal(
+  const injuryEmployerPayment = insurancePayment(
     insurance.injuryBase,
     insurance.injuryEmployerRate,
-    insurance.injuryEmployerCount,
   );
-  const medicalEmployer = employerLineSubtotal(
+  const medicalEmployerPayment = insurancePayment(
     insurance.medicalBase,
     insurance.medicalEmployerRate,
-    insurance.medicalEmployerCount,
   );
-  const medicalPersonal = personalLineSubtotal(
+  const medicalPersonalPayment = insurancePayment(
     insurance.medicalBase,
     insurance.medicalPersonalRate,
-    insurance.medicalPersonalCount,
   );
-  const maternityEmployer = employerLineSubtotal(
+  const maternityEmployerPayment = insurancePayment(
     insurance.maternityBase,
     insurance.maternityEmployerRate,
-    insurance.maternityEmployerCount,
   );
-  const housingEmployer = employerLineSubtotal(
-    housing.base,
-    housing.employerRate,
-    housing.employerCount,
-  );
-  const housingPersonal = personalLineSubtotal(
-    housing.base,
-    housing.personalRate,
-    housing.personalCount,
-  );
+  const housingEmployerPayment = insurancePayment(housing.base, housing.employerRate);
+  const housingPersonalPayment = insurancePayment(housing.base, housing.personalRate);
 
   const lines: InsuranceTableLine[] = [
     {
@@ -116,12 +116,17 @@ export function computeInsuranceTable(
       label: "养老保险",
       base: insurance.pensionBase,
       employerRate: insurance.pensionEmployerRate,
+      employerPayment: pensionEmployerPayment,
       employerCount: insurance.pensionEmployerCount,
-      employerSubtotal: pensionEmployer,
       personalRate: insurance.pensionPersonalRate,
+      personalPayment: pensionPersonalPayment,
       personalCount: insurance.pensionPersonalCount,
-      personalSubtotal: pensionPersonal,
-      rowTotal: round2(pensionEmployer + pensionPersonal),
+      rowTotal: insuranceRowTotal(
+        pensionEmployerPayment,
+        insurance.pensionEmployerCount,
+        pensionPersonalPayment,
+        insurance.pensionPersonalCount,
+      ),
     },
     {
       key: "unemployment",
@@ -130,12 +135,17 @@ export function computeInsuranceTable(
       label: "失业保险",
       base: insurance.unemploymentBase,
       employerRate: insurance.unemploymentEmployerRate,
+      employerPayment: unemploymentEmployerPayment,
       employerCount: insurance.unemploymentEmployerCount,
-      employerSubtotal: unemploymentEmployer,
       personalRate: insurance.unemploymentPersonalRate,
+      personalPayment: unemploymentPersonalPayment,
       personalCount: insurance.unemploymentPersonalCount,
-      personalSubtotal: unemploymentPersonal,
-      rowTotal: round2(unemploymentEmployer + unemploymentPersonal),
+      rowTotal: insuranceRowTotal(
+        unemploymentEmployerPayment,
+        insurance.unemploymentEmployerCount,
+        unemploymentPersonalPayment,
+        insurance.unemploymentPersonalCount,
+      ),
     },
     {
       key: "injury",
@@ -144,12 +154,17 @@ export function computeInsuranceTable(
       label: "工伤保险",
       base: insurance.injuryBase,
       employerRate: insurance.injuryEmployerRate,
+      employerPayment: injuryEmployerPayment,
       employerCount: insurance.injuryEmployerCount,
-      employerSubtotal: injuryEmployer,
       personalRate: null,
+      personalPayment: null,
       personalCount: null,
-      personalSubtotal: null,
-      rowTotal: injuryEmployer,
+      rowTotal: insuranceRowTotal(
+        injuryEmployerPayment,
+        insurance.injuryEmployerCount,
+        null,
+        null,
+      ),
     },
     {
       key: "medical",
@@ -158,12 +173,17 @@ export function computeInsuranceTable(
       label: "医疗保险",
       base: insurance.medicalBase,
       employerRate: insurance.medicalEmployerRate,
+      employerPayment: medicalEmployerPayment,
       employerCount: insurance.medicalEmployerCount,
-      employerSubtotal: medicalEmployer,
       personalRate: insurance.medicalPersonalRate,
+      personalPayment: medicalPersonalPayment,
       personalCount: insurance.medicalPersonalCount,
-      personalSubtotal: medicalPersonal,
-      rowTotal: round2(medicalEmployer + medicalPersonal),
+      rowTotal: insuranceRowTotal(
+        medicalEmployerPayment,
+        insurance.medicalEmployerCount,
+        medicalPersonalPayment,
+        insurance.medicalPersonalCount,
+      ),
     },
     {
       key: "maternity",
@@ -172,12 +192,17 @@ export function computeInsuranceTable(
       label: "生育保险",
       base: insurance.maternityBase,
       employerRate: insurance.maternityEmployerRate,
+      employerPayment: maternityEmployerPayment,
       employerCount: insurance.maternityEmployerCount,
-      employerSubtotal: maternityEmployer,
       personalRate: null,
+      personalPayment: null,
       personalCount: null,
-      personalSubtotal: null,
-      rowTotal: maternityEmployer,
+      rowTotal: insuranceRowTotal(
+        maternityEmployerPayment,
+        insurance.maternityEmployerCount,
+        null,
+        null,
+      ),
     },
     {
       key: "housing",
@@ -186,12 +211,17 @@ export function computeInsuranceTable(
       label: "公积金",
       base: housing.base,
       employerRate: housing.employerRate,
+      employerPayment: housingEmployerPayment,
       employerCount: housing.employerCount,
-      employerSubtotal: housingEmployer,
       personalRate: housing.personalRate,
+      personalPayment: housingPersonalPayment,
       personalCount: housing.personalCount,
-      personalSubtotal: housingPersonal,
-      rowTotal: round2(housingEmployer + housingPersonal),
+      rowTotal: insuranceRowTotal(
+        housingEmployerPayment,
+        housing.employerCount,
+        housingPersonalPayment,
+        housing.personalCount,
+      ),
     },
   ];
 
@@ -207,7 +237,24 @@ export function computeInsuranceTable(
     ),
   };
 
-  return { lines, groupTotals };
+  const groupSubtotals = {
+    social: {
+      employer: round2(
+        pensionEmployerPayment + unemploymentEmployerPayment + injuryEmployerPayment,
+      ),
+      personal: round2(pensionPersonalPayment + unemploymentPersonalPayment),
+    },
+    medical: {
+      employer: round2(medicalEmployerPayment + maternityEmployerPayment),
+      personal: medicalPersonalPayment,
+    },
+    housing: {
+      employer: housingEmployerPayment,
+      personal: housingPersonalPayment,
+    },
+  };
+
+  return { lines, groupTotals, groupSubtotals };
 }
 
 function employerInsuranceTotal(insurance: SalaryInsuranceInput): number {

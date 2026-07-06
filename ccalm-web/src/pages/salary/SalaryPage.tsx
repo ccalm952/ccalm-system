@@ -552,7 +552,7 @@ function InsuranceFundTable({
   onInsuranceChange: (patch: Partial<SalaryInsuranceInput>) => void;
   onHousingChange: (patch: Partial<SalaryHousingFundInput>) => void;
 }) {
-  const { lines, groupTotals } = computeInsuranceTable(insurance, housingFund);
+  const { lines, groupTotals, groupSubtotals } = computeInsuranceTable(insurance, housingFund);
   const socialLines = lines.filter((line) => line.group === "social");
   const medicalLines = lines.filter((line) => line.group === "medical");
   const housingLine = lines.find((line) => line.group === "housing")!;
@@ -562,6 +562,7 @@ function InsuranceFundTable({
     rowIndex: number,
     groupLines: typeof lines,
     groupTotal: number,
+    groupSubtotal: { employer: number; personal: number | null },
     patchBase: (value: number) => void,
     patchEmployer: (patch: { rate?: number; count?: number }) => void,
     patchPersonal: (patch: { rate?: number; count?: number }) => void,
@@ -581,13 +582,16 @@ function InsuranceFundTable({
             onChange={(rate) => patchEmployer({ rate })}
           />
         </TableCell>
+        <TableCell>{line.employerPayment}</TableCell>
+        {rowIndex === 0 ? (
+          <TableCell rowSpan={groupLines.length}>{groupSubtotal.employer}</TableCell>
+        ) : null}
         <TableCell>
           <NumInput
             value={line.employerCount}
             onChange={(count) => patchEmployer({ count })}
           />
         </TableCell>
-        <TableCell>{line.employerSubtotal}</TableCell>
         <TableCell>
           {line.personalRate != null ? (
             <RatePercentInput
@@ -599,18 +603,27 @@ function InsuranceFundTable({
           )}
         </TableCell>
         <TableCell>
+          {line.personalPayment != null ? (
+            line.personalPayment
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+        {rowIndex === 0 ? (
+          <TableCell rowSpan={groupLines.length}>
+            {groupSubtotal.personal != null ? (
+              groupSubtotal.personal
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+          </TableCell>
+        ) : null}
+        <TableCell>
           {line.personalCount != null ? (
             <NumInput
               value={line.personalCount}
               onChange={(count) => patchPersonal({ count })}
             />
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </TableCell>
-        <TableCell>
-          {line.personalSubtotal != null ? (
-            line.personalSubtotal
           ) : (
             <span className="text-muted-foreground">—</span>
           )}
@@ -697,8 +710,8 @@ function InsuranceFundTable({
             <TableRow>
               <TableHead colSpan={2}>险种</TableHead>
               <TableHead rowSpan={2}>缴费基数</TableHead>
-              <TableHead colSpan={3}>单位</TableHead>
-              <TableHead colSpan={3}>个人</TableHead>
+              <TableHead colSpan={4}>单位</TableHead>
+              <TableHead colSpan={4}>个人</TableHead>
               <TableHead rowSpan={2}>合计</TableHead>
               <TableHead rowSpan={2}>总计</TableHead>
             </TableRow>
@@ -706,11 +719,13 @@ function InsuranceFundTable({
               <TableHead>类别</TableHead>
               <TableHead>项目</TableHead>
               <TableHead>缴费比例</TableHead>
-              <TableHead>缴费人数</TableHead>
+              <TableHead>单位缴费</TableHead>
               <TableHead>小计</TableHead>
+              <TableHead>缴费人数</TableHead>
               <TableHead>缴费比例</TableHead>
-              <TableHead>缴费人数</TableHead>
+              <TableHead>个人缴费</TableHead>
               <TableHead>小计</TableHead>
+              <TableHead>缴费人数</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -720,6 +735,7 @@ function InsuranceFundTable({
                 idx,
                 socialLines,
                 groupTotals.social,
+                groupSubtotals.social,
                 row.base,
                 row.employer,
                 row.personal,
@@ -731,6 +747,7 @@ function InsuranceFundTable({
                 idx,
                 medicalLines,
                 groupTotals.medical,
+                groupSubtotals.medical,
                 row.base,
                 row.employer,
                 row.personal,
@@ -751,26 +768,28 @@ function InsuranceFundTable({
                   onChange={(employerRate) => onHousingChange({ employerRate })}
                 />
               </TableCell>
+              <TableCell>{housingLine.employerPayment}</TableCell>
+              <TableCell>{groupSubtotals.housing.employer}</TableCell>
               <TableCell>
                 <NumInput
                   value={housingLine.employerCount}
                   onChange={(employerCount) => onHousingChange({ employerCount })}
                 />
               </TableCell>
-              <TableCell>{housingLine.employerSubtotal}</TableCell>
               <TableCell>
                 <RatePercentInput
                   value={housingLine.personalRate!}
                   onChange={(personalRate) => onHousingChange({ personalRate })}
                 />
               </TableCell>
+              <TableCell>{housingLine.personalPayment!}</TableCell>
+              <TableCell>{groupSubtotals.housing.personal}</TableCell>
               <TableCell>
                 <NumInput
                   value={housingLine.personalCount!}
                   onChange={(personalCount) => onHousingChange({ personalCount })}
                 />
               </TableCell>
-              <TableCell>{housingLine.personalSubtotal!}</TableCell>
               <TableCell>{housingLine.rowTotal}</TableCell>
               <TableCell>{groupTotals.housing}</TableCell>
             </TableRow>
@@ -1186,7 +1205,7 @@ export function SalaryPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1870px]">
+                      <div className="min-w-[1768px]">
                         <SalarySummaryTable
                           sheet={sheet}
                           computed={computed}
@@ -1211,7 +1230,7 @@ export function SalaryPage() {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1870px]">
+                      <div className="min-w-[1768px]">
                         <InsuranceFundTable
                           insurance={sheet.insurance}
                           housingFund={sheet.housingFund}
