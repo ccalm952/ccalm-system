@@ -20,12 +20,6 @@ export const ROUTES = {
     stats: "/implant/stats",
     inventory: "/implant/inventory",
   },
-  warehouse: {
-    root: "/warehouse",
-    ledger: "/warehouse/ledger",
-    stats: "/warehouse/stats",
-    consumption: "/warehouse/consumption",
-  },
   salary: {
     root: "/salary",
   },

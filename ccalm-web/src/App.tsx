@@ -18,7 +18,6 @@ import { ImplantPatientPage } from "@/pages/implant/ImplantPatientPage";
 import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
 import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
 import { UsersPage } from "@/pages/users/UsersPage";
-import { WarehouseSection } from "@/pages/warehouse/WarehouseSection";
 import { SalaryPage } from "@/pages/salary/SalaryPage";
 
 const LoginPage = lazy(() =>
@@ -124,8 +123,6 @@ export function App() {
               <Route path="stats" element={<ImplantStatsPage />} />
               <Route path="inventory" element={<ImplantInventoryPage />} />
             </Route>
-
-            <Route path="warehouse/*" element={<WarehouseSection />} />
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 
