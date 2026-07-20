@@ -1305,6 +1305,8 @@ export function WarehouseLedgerPage() {
                         onValueChange={(initialOccurDate) =>
                           setItemForm((s) => ({ ...s, initialOccurDate }))
                         }
+                        placeholder=""
+                        className="border-transparent bg-input/50 hover:bg-input/50 dark:hover:bg-input/50"
                       />
                     </FieldContent>
                   </Field>
