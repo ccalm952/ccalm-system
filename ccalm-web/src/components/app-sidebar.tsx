@@ -123,6 +123,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {me?.role === "admin" ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  className="font-medium"
                   isActive={subPathActive(pathname, salaryNavItem.url)}
                   render={<Link to={salaryNavItem.url} />}
                   tooltip={salaryNavItem.title}

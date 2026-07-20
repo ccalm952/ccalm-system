@@ -2,7 +2,6 @@ import {
   ForbiddenException,
   Injectable,
   ServiceUnavailableException,
-  UnauthorizedException,
 } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { timingSafeEqual } from "node:crypto"
@@ -26,10 +25,10 @@ export class SalaryUnlockService {
   verifyPin(pin: string): void {
     const expected = this.configuredPin()
     if (!/^\d{4}$/.test(pin)) {
-      throw new UnauthorizedException("薪资 PIN 错误")
+      throw new ForbiddenException("薪资 PIN 错误")
     }
     const ok = timingSafeEqual(Buffer.from(pin), Buffer.from(expected))
-    if (!ok) throw new UnauthorizedException("薪资 PIN 错误")
+    if (!ok) throw new ForbiddenException("薪资 PIN 错误")
   }
 
   async issueUnlockToken(
