@@ -7,7 +7,6 @@ import { APP_GUARD } from "@nestjs/core"
 import { UsersModule } from "./modules/users/users.module"
 import { AttendanceModule } from "./modules/attendance/attendance.module"
 import { ImplantModule } from "./modules/implant/implant.module"
-import { WarehouseModule } from "./modules/warehouse/warehouse.module"
 import { SalaryModule } from "./modules/salary/salary.module"
 
 @Module({
@@ -17,7 +16,6 @@ import { SalaryModule } from "./modules/salary/salary.module"
     UsersModule,
     AttendanceModule,
     ImplantModule,
-    WarehouseModule,
     SalaryModule,
   ],
   controllers: [],

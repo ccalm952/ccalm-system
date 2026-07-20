@@ -35,21 +35,6 @@ enum ScheduleShiftType {
   afternoon_rest
 }
 
-enum WarehouseTxnType {
-  in
-  out
-  adjust
-}
-
-enum WarehouseTxnBizType {
-  purchase
-  use
-  return_in
-  return_out
-  adjust_in
-  adjust_out
-}
-
 model User {
   id           String             @id @default(uuid())
   username     String             @unique
@@ -65,7 +50,6 @@ model User {
   makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
   reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
   scheduleEntries      ScheduleEntry[]
-  warehouseTxnsOperated WarehouseTxn[]          @relation("WarehouseTxnOperator")
 }
 
 model GeofenceConfig {
@@ -157,60 +141,6 @@ model ScheduleMonthConfig {
   month          String   @id
   monthAllowance Float    @default(0)
   updatedAt      DateTime @updatedAt
-}
-
-model WarehouseProduct {
-  id             Int             @id @default(autoincrement())
-  name           String
-  category       String          @default("其他")
-  brand          String          @default("")
-  manufacturer   String          @default("")
-  supplierName   String          @default("")
-  defaultUnit    String          @default("个")
-  enabled        Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  items          WarehouseItem[]
-
-  @@unique([name, brand])
-  @@index([name])
-  @@index([category])
-}
-
-model WarehouseItem {
-  id                Int              @id @default(autoincrement())
-  productId         Int
-  product           WarehouseProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
-  code              String           @unique
-  spec              String           @default("")
-  unit              String           @default("个")
-  currentQty        Int              @default(0)
-  lastPurchasePrice Float            @default(0)
-  enabled           Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  txns              WarehouseTxn[]
-
-  @@unique([productId, spec])
-  @@index([productId])
-}
-
-model WarehouseTxn {
-  id             Int                 @id @default(autoincrement())
-  itemId         Int
-  item           WarehouseItem       @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  type           WarehouseTxnType
-  bizType        WarehouseTxnBizType
-  qty            Int
-  unitPrice      Float               @default(0)
-  amount         Float               @default(0)
-  occurDate      String
-  operatorUserId String?
-  operatorUser   User?               @relation("WarehouseTxnOperator", fields: [operatorUserId], references: [id], onDelete: SetNull)
-  createdAt      DateTime            @default(now())
-
-  @@index([itemId, occurDate])
-  @@index([type, occurDate])
 }
 
 /// 种植模块：患者（与系统登录 User 无关）
