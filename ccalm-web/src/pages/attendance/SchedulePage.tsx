@@ -30,6 +30,8 @@ import {
 } from "@/lib/attendance/schedule";
 import {
   attendanceMutedTextClass,
+  detailOvertimeClass,
+  hasOvertime,
   scheduleHolidayHeaderClass,
   SCHEDULE_SHIFT_LEGEND,
   SCHEDULE_SHIFT_SWATCH_CLASS,
@@ -246,6 +248,7 @@ export function SchedulePage() {
                     <TableHead className="w-16 text-center">本月请假</TableHead>
                     <TableHead className="w-16 text-center">本月假期</TableHead>
                     <TableHead className="w-16 text-center">剩余假期</TableHead>
+                    <TableHead className="w-20 text-center">加班时长</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -280,6 +283,14 @@ export function SchedulePage() {
                       </TableCell>
                       <TableCell className="w-16 text-center">
                         {formatDayCount(user.remainingLeave)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "w-20 text-center",
+                          detailOvertimeClass(user.overtimeStr),
+                        )}
+                      >
+                        {hasOvertime(user.overtimeStr) ? user.overtimeStr : ""}
                       </TableCell>
                     </TableRow>
                   ))}

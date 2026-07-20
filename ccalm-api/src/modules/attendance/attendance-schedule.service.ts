@@ -5,10 +5,17 @@ import dayjs from "dayjs"
 
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 import { attendanceDayjs } from "./attendance-dayjs"
+import { DEFAULT_SHIFT_ROW } from "./defaults"
+import {
+  computeMonthlySummaryAggregate,
+  monthSummaryBounds,
+} from "./monthly-summary-compute"
 import { leaveDaysForShift, type ScheduleShiftType } from "./schedule-inference"
 
 import { PrismaService } from "../../prisma/prisma.service"
 import type { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
+
+const GLOBAL_CONFIG_ID = "global" as const
 
 const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"] as const
 
@@ -223,8 +230,10 @@ export class AttendanceScheduleService {
   }
 
   async getMonth(month: string) {
-    const { start, end, daysInMonth } = monthBounds(month)
+    const { start, daysInMonth } = monthBounds(month)
     const monthAllowance = await this.getMonthAllowance(month)
+    const summaryBounds = monthSummaryBounds(month)
+    if (!summaryBounds) throw new BadRequestException("月份格式不合法")
 
     const users = await this.prisma.user.findMany({
       where: { role: "user" },
@@ -242,8 +251,39 @@ export class AttendanceScheduleService {
     const { configMap, leaveByUserMonth, declaredMap } =
       await this.buildLeaveContext(userIds, month, users)
 
+    const [shiftRow, allRecords] = await Promise.all([
+      this.prisma.shiftConfig.findUnique({ where: { id: GLOBAL_CONFIG_ID } }),
+      userIds.length
+        ? this.prisma.attendanceRecord.findMany({
+            where: {
+              userId: { in: userIds },
+              punchDate: {
+                gte: summaryBounds.startDate,
+                lte: summaryBounds.rangeEnd,
+              },
+            },
+            orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
+          })
+        : Promise.resolve([]),
+    ])
+
+    const shift = shiftRow ?? {
+      id: GLOBAL_CONFIG_ID,
+      ...DEFAULT_SHIFT_ROW,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    }
+
+    const recordsByUser = new Map<string, typeof allRecords>()
+    for (const r of allRecords) {
+      const arr = recordsByUser.get(r.userId) ?? []
+      arr.push(r)
+      recordsByUser.set(r.userId, arr)
+    }
+
     const userRows = users.map((u) => {
       const days: Record<string, ScheduleShiftType | null> = {}
+      const declaredScheduleMap = new Map<string, ScheduleShiftType>()
       let fullCount = 0
       let morningCount = 0
       let afternoonCount = 0
@@ -251,11 +291,12 @@ export class AttendanceScheduleService {
       for (let d = 1; d <= daysInMonth; d += 1) {
         const date = start.date(d).format("YYYY-MM-DD")
         const key = `${u.id}:${date}`
-        const shift = declaredMap.get(key) ?? null
-        days[String(d)] = shift
-        if (shift === "full_rest") fullCount += 1
-        if (shift === "morning_rest") morningCount += 1
-        if (shift === "afternoon_rest") afternoonCount += 1
+        const shiftType = declaredMap.get(key) ?? null
+        days[String(d)] = shiftType
+        if (shiftType) declaredScheduleMap.set(date, shiftType)
+        if (shiftType === "full_rest") fullCount += 1
+        if (shiftType === "morning_rest") morningCount += 1
+        if (shiftType === "afternoon_rest") afternoonCount += 1
       }
 
       const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5
@@ -268,6 +309,15 @@ export class AttendanceScheduleService {
         leaveByUserMonth
       )
 
+      const aggregate = computeMonthlySummaryAggregate({
+        start: summaryBounds.start,
+        end: summaryBounds.end,
+        todayYmd: summaryBounds.todayYmd,
+        declaredScheduleMap,
+        records: recordsByUser.get(u.id) ?? [],
+        shift,
+      })
+
       return {
         userId: u.id,
         userName: u.displayName || u.username,
@@ -277,6 +327,7 @@ export class AttendanceScheduleService {
         afternoonCount,
         monthLeave,
         remainingLeave,
+        overtimeStr: aggregate.overtimeStr,
       }
     })
 
