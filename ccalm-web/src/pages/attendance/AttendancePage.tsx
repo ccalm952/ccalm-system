@@ -575,7 +575,7 @@ export function AttendancePage() {
           <Card>
             <CardContent className="flex flex-col gap-4">
               {!monthSummary ? (
-                <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
+                <div className="grid grid-cols-3 md:grid-cols-5">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="space-y-2">
                       <Skeleton className="mx-auto h-5 w-12" />
@@ -585,7 +585,7 @@ export function AttendancePage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
+                  <div className="grid grid-cols-3 md:grid-cols-5">
                     <div className="text-center">
                       <div className="text-sm">{formatDayCount(monthSummary.attendanceDays)}</div>
                       <div className="text-sm">出勤天数</div>
