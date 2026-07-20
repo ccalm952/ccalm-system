@@ -167,7 +167,18 @@ export class AttendanceController {
 
   @Get("schedule")
   async getSchedule(@Query("month") month: string) {
-    return await this.schedule.getMonth(month)
+    const data = await this.schedule.getMonth(month)
+    const summaries = await this.attendance.monthlySummariesForAll(month)
+    const overtimeByUser = new Map(
+      summaries.map((s) => [s.userId, s.overtimeStr])
+    )
+    return {
+      ...data,
+      users: data.users.map((u) => ({
+        ...u,
+        overtimeStr: overtimeByUser.get(u.userId) ?? "-",
+      })),
+    }
   }
 
   @Get("holidays")
