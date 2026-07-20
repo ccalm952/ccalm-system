@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
@@ -66,36 +65,32 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
   return (
     <Dialog open={open}>
       <DialogContent showCloseButton={false} className="md:max-w-sm">
-        <form onSubmit={(e) => void submit(e)}>
+        <form className="grid gap-2" onSubmit={(e) => void submit(e)}>
           <DialogHeader>
             <DialogTitle>薪资 PIN 验证</DialogTitle>
             <DialogDescription>
               请输入 4 位薪资 PIN 以查看和编辑薪资数据。验证有效期 30 分钟，关闭浏览器标签后需重新输入。
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 py-2">
-            <Label htmlFor="salary-pin">薪资 PIN</Label>
-            <Input
-              ref={inputRef}
-              id="salary-pin"
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              pattern="\d{4}"
-              placeholder="••••"
-              value={pin}
-              disabled={submitting}
-              className="text-center text-lg tracking-[0.4em]"
-              onChange={(e) => {
-                const next = e.target.value.replace(/\D/g, "").slice(0, 4);
-                setPin(next);
-                setError(null);
-              }}
-            />
-            {error ? <p className="text-destructive text-sm">{error}</p> : null}
-          </div>
-          <DialogFooter className="gap-2 md:gap-0">
+          <Input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            pattern="\d{4}"
+            placeholder="••••"
+            value={pin}
+            disabled={submitting}
+            className="text-center text-lg tracking-[0.4em]"
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, "").slice(0, 4);
+              setPin(next);
+              setError(null);
+            }}
+          />
+          {error ? <p className="text-destructive text-sm">{error}</p> : null}
+          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
