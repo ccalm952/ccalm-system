@@ -72,6 +72,11 @@ export class AttendanceController {
     return await this.attendance.today(authUserId(req))
   }
 
+  @Get("bundle")
+  async bundle(@Req() req: Request, @Query("month") month: string) {
+    return await this.attendance.attendanceBundle(authUserId(req), month)
+  }
+
   @Get("records")
   async records(
     @Req() req: Request,
@@ -82,9 +87,13 @@ export class AttendanceController {
   }
 
   @Get("summary/monthly-all")
-  async monthlyAll(@Req() req: Request, @Query("month") month: string) {
+  async monthlyAll(
+    @Req() req: Request,
+    @Query("month") month: string,
+    @Query("detail") detail?: string
+  ) {
     requireAdmin(req, "仅管理员可查看全员考勤统计")
-    return await this.attendance.monthlySummariesForAll(month)
+    return await this.attendance.monthlySummariesForAll(month, detail !== "0")
   }
 
   @Get("summary/monthly")
@@ -133,8 +142,11 @@ export class AttendanceController {
   }
 
   @Get("makeup-requests/mine")
-  async listMyMakeupRequests(@Req() req: Request) {
-    return await this.makeup.listMine(authUserId(req))
+  async listMyMakeupRequests(
+    @Req() req: Request,
+    @Query("status") status?: string
+  ) {
+    return await this.makeup.listMine(authUserId(req), status)
   }
 
   @Get("makeup-requests/pending-count")
@@ -166,12 +178,18 @@ export class AttendanceController {
   }
 
   @Get("schedule")
-  async getSchedule(@Query("month") month: string) {
+  async getSchedule(
+    @Query("month") month: string,
+    @Query("includeOvertime") includeOvertime?: string
+  ) {
     const data = await this.schedule.getMonth(month)
-    const summaries = await this.attendance.monthlySummariesForAll(month)
-    const overtimeByUser = new Map(
-      summaries.map((s) => [s.userId, s.overtimeStr])
-    )
+    const overtimeByUser =
+      includeOvertime === "0"
+        ? new Map<string, string>()
+        : await this.attendance.monthlyOvertimeForUsers(
+            month,
+            data.users.map((u) => u.userId)
+          )
     return {
       ...data,
       users: data.users.map((u) => ({

@@ -73,6 +73,7 @@ type UserAgg = {
   missingSlots: number;
   overtimeStr: string;
   rows: AttendanceMonthlySummary["rows"];
+  detailLoaded: boolean;
 };
 
 async function loadPendingMakeupRequests(isAdmin: boolean): Promise<AttendanceMakeupRequest[]> {
@@ -82,8 +83,10 @@ async function loadPendingMakeupRequests(isAdmin: boolean): Promise<AttendanceMa
       "/attendance/makeup-requests?status=pending",
     );
   }
-  const list = await api<AttendanceMakeupRequest[]>("GET", "/attendance/makeup-requests/mine");
-  return list.filter((item) => item.status === "pending");
+  return await api<AttendanceMakeupRequest[]>(
+    "GET",
+    "/attendance/makeup-requests/mine?status=pending",
+  );
 }
 
 async function loadSummary(
@@ -99,7 +102,10 @@ async function loadSummary(
   const [pendingMakeupRequests, summaryResult] = await Promise.all([
     loadPendingMakeupRequests(isAdmin),
     isAdmin
-      ? api<UserAgg[]>("GET", `/attendance/summary/monthly-all?month=${month}`)
+      ? api<Omit<UserAgg, "detailLoaded">[]>(
+          "GET",
+          `/attendance/summary/monthly-all?month=${month}&detail=0`,
+        ).then((items) => items.map((item) => ({ ...item, detailLoaded: false })))
       : api<AttendanceMonthlySummary>(
           "GET",
           `/attendance/summary/monthly?month=${month}`,
@@ -112,6 +118,7 @@ async function loadSummary(
             missingSlots: s.missingSlots,
             overtimeStr: s.overtimeStr,
             rows: s.rows,
+            detailLoaded: true,
           },
         ]),
   ]);
@@ -197,6 +204,46 @@ export function AttendanceStatsPage() {
     void reload();
   }, [reload]);
 
+  const expandedRows = React.useMemo(
+    () => (typeof expanded === "object" ? expanded : {}),
+    [expanded],
+  );
+
+  const toggleDetails = React.useCallback(
+    async (rowId: string, user: UserAgg) => {
+      if (expandedRows[rowId]) {
+        setExpanded((current) => ({
+          ...(typeof current === "object" ? current : {}),
+          [rowId]: false,
+        }));
+        return;
+      }
+      if (!user.detailLoaded) {
+        try {
+          const detail = await api<AttendanceMonthlySummary>(
+            "GET",
+            `/attendance/summary/monthly?month=${month}&userId=${user.userId}`,
+          );
+          setSummary((current) =>
+            current?.map((item) =>
+              item.userId === user.userId
+                ? { ...item, rows: detail.rows, detailLoaded: true }
+                : item,
+            ) ?? null,
+          );
+        } catch (e) {
+          setError(errorMessage(e));
+          return;
+        }
+      }
+      setExpanded((current) => ({
+        ...(typeof current === "object" ? current : {}),
+        [rowId]: true,
+      }));
+    },
+    [expandedRows, month],
+  );
+
   const columns = React.useMemo<Array<ColumnDef<UserAgg>>>(() => {
     return [
       { header: "姓名", accessorKey: "userName" },
@@ -231,15 +278,13 @@ export function AttendanceStatsPage() {
         id: "detail",
         header: "明细",
         cell: ({ row }) => {
-          const canExpand = row.original.rows.length > 0;
           return (
             <Button
               type="button"
               variant="secondary"
-              disabled={!canExpand}
               onClick={(e) => {
                 e.stopPropagation();
-                row.toggleExpanded();
+                void toggleDetails(row.id, row.original);
               }}
             >
               {row.getIsExpanded() ? "收起" : "展开"}
@@ -248,7 +293,7 @@ export function AttendanceStatsPage() {
         },
       },
     ];
-  }, []);
+  }, [toggleDetails]);
 
   const table = useReactTable({
     data: summary ?? [],
@@ -257,7 +302,7 @@ export function AttendanceStatsPage() {
     onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
-    getRowCanExpand: (row) => row.original.rows.length > 0,
+    getRowCanExpand: () => true,
   });
 
   return (
@@ -315,7 +360,9 @@ export function AttendanceStatsPage() {
                       "border-t border-border",
                       row.getCanExpand() ? "cursor-pointer" : "",
                     )}
-                    onClick={row.getCanExpand() ? () => row.toggleExpanded() : undefined}
+                    onClick={() => {
+                      void toggleDetails(row.id, row.original);
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className={attendanceStatsTableColumnClass}>

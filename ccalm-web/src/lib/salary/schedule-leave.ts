@@ -40,7 +40,7 @@ export async function fetchLeaveQuotasFromSchedule(
   try {
     const data = await api<ScheduleMonthData>(
       "GET",
-      `/attendance/schedule?month=${encodeURIComponent(scheduleMonth)}`,
+      `/attendance/schedule?month=${encodeURIComponent(scheduleMonth)}&includeOvertime=0`,
     );
     return {
       chen: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.chen),
