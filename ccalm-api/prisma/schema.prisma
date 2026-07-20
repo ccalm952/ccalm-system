@@ -136,6 +136,7 @@ model AttendanceMakeupRequest {
   updatedAt    DateTime                      @updatedAt
 
   @@index([userId, date])
+  @@index([userId, status, createdAt])
   @@index([status, createdAt])
 }
 

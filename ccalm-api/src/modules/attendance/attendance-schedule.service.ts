@@ -1,11 +1,11 @@
 import { isPunchBlockedByScheduleRest } from "./schedule-rest"
 import { BadRequestException, Injectable } from "@nestjs/common"
-import type { AttendancePunchType } from "@prisma/client"
+import { Prisma, type AttendancePunchType } from "@prisma/client"
 import dayjs from "dayjs"
 
 import { isWithinAttendanceEditWindow } from "./attendance-edit-window"
 import { attendanceDayjs } from "./attendance-dayjs"
-import { leaveDaysForShift, type ScheduleShiftType } from "./schedule-inference"
+import type { ScheduleShiftType } from "./schedule-inference"
 
 import { PrismaService } from "../../prisma/prisma.service"
 import type { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
@@ -61,34 +61,34 @@ export class AttendanceScheduleService {
     )
   }
 
-  private computeLeaveByUserMonth(
+  private async fetchLeaveByUserMonth(
     userIds: string[],
     rangeStart: dayjs.Dayjs,
-    rangeEnd: dayjs.Dayjs,
-    declaredMap: Map<string, ScheduleShiftType>
-  ): Map<string, number> {
-    const userIdSet = new Set(userIds)
-    const startYmd = rangeStart.format("YYYY-MM-DD")
-    const endYmd = rangeEnd.format("YYYY-MM-DD")
-    const leaveByUserMonth = new Map<string, number>()
-
-    for (const [key, shift] of declaredMap) {
-      const sep = key.indexOf(":")
-      if (sep < 0) continue
-      const userId = key.slice(0, sep)
-      const date = key.slice(sep + 1)
-      if (!userIdSet.has(userId)) continue
-      if (date < startYmd || date > endYmd) continue
-      const leaveDays = leaveDaysForShift(shift)
-      if (leaveDays <= 0) continue
-      const monthKey = `${userId}:${date.slice(0, 7)}`
-      leaveByUserMonth.set(
-        monthKey,
-        (leaveByUserMonth.get(monthKey) ?? 0) + leaveDays
-      )
-    }
-
-    return leaveByUserMonth
+    rangeEnd: dayjs.Dayjs
+  ): Promise<Map<string, number>> {
+    if (!userIds.length) return new Map()
+    const rows = await this.prisma.$queryRaw<
+      Array<{ userId: string; month: string; leaveDays: number }>
+    >(Prisma.sql`
+      SELECT
+        "userId",
+        SUBSTRING("date", 1, 7) AS "month",
+        SUM(
+          CASE
+            WHEN "shiftType"::text = 'full_rest' THEN 1.0
+            WHEN "shiftType"::text IN ('morning_rest', 'afternoon_rest') THEN 0.5
+            ELSE 0.0
+          END
+        )::float8 AS "leaveDays"
+      FROM "ScheduleEntry"
+      WHERE "userId" IN (${Prisma.join(userIds)})
+        AND "date" >= ${rangeStart.format("YYYY-MM-DD")}
+        AND "date" <= ${rangeEnd.format("YYYY-MM-DD")}
+      GROUP BY "userId", SUBSTRING("date", 1, 7)
+    `)
+    return new Map(
+      rows.map((row) => [`${row.userId}:${row.month}`, row.leaveDays])
+    )
   }
 
   private declaredScheduleMapFromPrefetch(
@@ -121,7 +121,11 @@ export class AttendanceScheduleService {
     }, targetMonth)
 
     const historyStart = attendanceDayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
-    const declaredMap = await this.fetchDeclaredMap(userIds, historyStart, end)
+    const targetStart = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD")
+    const [declaredMap, leaveByUserMonth] = await Promise.all([
+      this.fetchDeclaredMap(userIds, targetStart, end),
+      this.fetchLeaveByUserMonth(userIds, historyStart, end),
+    ])
 
     const monthKeys: string[] = []
     let monthCursor = historyStart
@@ -136,13 +140,6 @@ export class AttendanceScheduleService {
     })
     const configMap = new Map(
       configs.map((c) => [c.month, c.monthAllowance] as const)
-    )
-
-    const leaveByUserMonth = this.computeLeaveByUserMonth(
-      userIds,
-      historyStart,
-      end,
-      declaredMap
     )
 
     return { configMap, leaveByUserMonth, declaredMap }
@@ -223,20 +220,21 @@ export class AttendanceScheduleService {
   }
 
   async getMonth(month: string) {
-    const { start, end, daysInMonth } = monthBounds(month)
-    const monthAllowance = await this.getMonthAllowance(month)
-
-    const users = await this.prisma.user.findMany({
-      where: { role: "user" },
-      orderBy: [{ displayName: "asc" }, { username: "asc" }],
-      select: {
-        id: true,
-        displayName: true,
-        username: true,
-        leaveInitialBalance: true,
-        createdAt: true,
-      },
-    })
+    const { start, daysInMonth } = monthBounds(month)
+    const [monthAllowance, users] = await Promise.all([
+      this.getMonthAllowance(month),
+      this.prisma.user.findMany({
+        where: { role: "user" },
+        orderBy: [{ displayName: "asc" }, { username: "asc" }],
+        select: {
+          id: true,
+          displayName: true,
+          username: true,
+          leaveInitialBalance: true,
+          createdAt: true,
+        },
+      }),
+    ])
 
     const userIds = users.map((u) => u.id)
     const { configMap, leaveByUserMonth, declaredMap } =

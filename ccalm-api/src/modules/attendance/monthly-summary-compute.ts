@@ -51,6 +51,31 @@ export function fmtOvertimeMinutes(m: number): string {
   return `${h}小时${mm}分钟`
 }
 
+export function overtimeMinutesForOutTimes(
+  morningOut: string | null,
+  afternoonOut: string | null,
+  shift: Pick<
+    MonthlySummaryShift,
+    "overtimeMorningNormalEnd" | "overtimeAfternoonNormalEnd"
+  >
+): number {
+  const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd)
+  const normalAfternoonEnd = minutesFromMidnight(
+    shift.overtimeAfternoonNormalEnd
+  )
+  let overtime = 0
+  if (morningOut && Number.isFinite(normalMorningEnd)) {
+    overtime += Math.max(0, minutesFromMidnight(morningOut) - normalMorningEnd)
+  }
+  if (afternoonOut && Number.isFinite(normalAfternoonEnd)) {
+    overtime += Math.max(
+      0,
+      minutesFromMidnight(afternoonOut) - normalAfternoonEnd
+    )
+  }
+  return overtime
+}
+
 export function computeMonthlySummaryAggregate(params: {
   start: Dayjs
   end: Dayjs
@@ -87,10 +112,6 @@ export function computeMonthlySummaryAggregate(params: {
     byDate.set(key, arr)
   }
 
-  const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd)
-  const normalAfternoonEnd = minutesFromMidnight(
-    shift.overtimeAfternoonNormalEnd
-  )
   const gate = {
     morningInWindowEnd: shift.morningInWindowEnd,
     afternoonInWindowEnd: shift.afternoonInWindowEnd,
@@ -152,19 +173,11 @@ export function computeMonthlySummaryAggregate(params: {
 
     missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
 
-    let overtime = 0
-    if (row.morningOut && Number.isFinite(normalMorningEnd)) {
-      overtime += Math.max(
-        0,
-        minutesFromMidnight(row.morningOut) - normalMorningEnd
-      )
-    }
-    if (row.afternoonOut && Number.isFinite(normalAfternoonEnd)) {
-      overtime += Math.max(
-        0,
-        minutesFromMidnight(row.afternoonOut) - normalAfternoonEnd
-      )
-    }
+    const overtime = overtimeMinutesForOutTimes(
+      row.morningOut,
+      row.afternoonOut,
+      shift
+    )
     row.overtimeMinutes = overtime
     row.overtimeStr = fmtOvertimeMinutes(overtime)
     overtimeMinutes += overtime

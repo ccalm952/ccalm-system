@@ -282,19 +282,26 @@ export function AttendancePage() {
 
   const reloadMakeupRequests = React.useCallback(async () => {
     try {
-      const list = await api<AttendanceMakeupRequest[]>("GET", "/attendance/makeup-requests/mine");
-      setMakeupRequests(list.filter((item) => item.status === "pending"));
+      const list = await api<AttendanceMakeupRequest[]>(
+        "GET",
+        "/attendance/makeup-requests/mine?status=pending",
+      );
+      setMakeupRequests(list);
     } catch {
       setMakeupRequests([]);
     }
   }, []);
 
   const loadAttendanceBundle = React.useCallback(async (month: string) => {
-    const [todayRes, monthly, shiftRes] = await Promise.all([
-      api<AttendanceRecord[]>("GET", "/attendance/today"),
-      api<AttendanceMonthlySummary>("GET", `/attendance/summary/monthly?month=${month}`),
-      api<BackendShiftDto>("GET", "/attendance/shift"),
-    ]);
+    const {
+      today: todayRes,
+      monthly,
+      shift: shiftRes,
+    } = await api<{
+      today: AttendanceRecord[];
+      monthly: AttendanceMonthlySummary;
+      shift: BackendShiftDto;
+    }>("GET", `/attendance/bundle?month=${month}`);
     setRecords(todayRes);
     setMonthSummary(monthly);
     setShift(shiftRes);
@@ -347,7 +354,7 @@ export function AttendancePage() {
     });
     if (!quick) return "outside_time";
 
-    await api("POST", "/attendance/punch", {
+    const punched = await api<AttendanceRecord>("POST", "/attendance/punch", {
       type: quick,
       latitude: lat,
       longitude: lng,
@@ -356,17 +363,17 @@ export function AttendancePage() {
     if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
       return null;
 
-    const [todayRes2, monthly2] = await Promise.all([
-      api<AttendanceRecord[]>("GET", "/attendance/today"),
-      api<AttendanceMonthlySummary>(
-        "GET",
-        `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
-      ),
-    ]);
+    const monthly2 = await api<AttendanceMonthlySummary>(
+      "GET",
+      `/attendance/summary/monthly?month=${dayjs().format("YYYY-MM")}`,
+    );
     if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
       return null;
 
-    setRecords(todayRes2);
+    setRecords((current) => [
+      ...current.filter((record) => record.type !== punched.type),
+      punched,
+    ]);
     setMonthSummary(monthly2);
     return "success";
   }

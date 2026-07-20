@@ -300,9 +300,19 @@ export class AttendanceMakeupService {
     return this.serializeRequest(row)
   }
 
-  async listMine(userId: string) {
+  async listMine(userId: string, status?: string) {
     const rows = await this.prisma.attendanceMakeupRequest.findMany({
-      where: { userId },
+      where: {
+        userId,
+        status:
+          status === "pending"
+            ? "pending"
+            : status === "approved"
+              ? "approved"
+              : status === "rejected"
+                ? "rejected"
+                : undefined,
+      },
       orderBy: [{ createdAt: "desc" }],
       include: this.includeUser(),
     })
