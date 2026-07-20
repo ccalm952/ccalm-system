@@ -2,6 +2,7 @@
 import dayjs from "dayjs";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
+import { DatePickerField } from "@/components/date-picker-field";
 import { SortableTableHead } from "@/components/sortable-table-head";
 import { TruncateCell } from "@/components/truncate-cell";
 import { Button } from "@/components/ui/button";
@@ -1299,13 +1300,13 @@ export function WarehouseLedgerPage() {
                       <FieldTitle>入库日期</FieldTitle>
                     </FieldLabel>
                     <FieldContent>
-                      <Input
-                        className="w-full"
-                        type="date"
+                      <DatePickerField
                         value={itemForm.initialOccurDate}
-                        onChange={(e) =>
-                          setItemForm((s) => ({ ...s, initialOccurDate: e.target.value }))
+                        onValueChange={(initialOccurDate) =>
+                          setItemForm((s) => ({ ...s, initialOccurDate }))
                         }
+                        placeholder=""
+                        className="border-transparent bg-input/50 hover:bg-input/50 dark:hover:bg-input/50"
                       />
                     </FieldContent>
                   </Field>
