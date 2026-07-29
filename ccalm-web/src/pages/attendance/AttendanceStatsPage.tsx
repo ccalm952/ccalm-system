@@ -182,16 +182,44 @@ export function AttendanceStatsPage() {
     return map;
   }, [pendingMakeupRequests]);
 
+  const expandedRef = React.useRef(expanded);
+  expandedRef.current = expanded;
+
   const reload = React.useCallback(async () => {
     if (!me) return;
     try {
       setError(null);
+      const expandedMap =
+        typeof expandedRef.current === "object" ? expandedRef.current : {};
+      const expandedUserIds = Object.entries(expandedMap)
+        .filter(([, isOpen]) => !!isOpen)
+        .map(([userId]) => userId);
+
       const [result, shiftRes] = await Promise.all([
         loadSummary(month, me),
         api<BackendShiftDto>("GET", "/attendance/shift"),
       ]);
+
+      let nextSummary = result.summary;
+      if (result.isAdmin && expandedUserIds.length > 0) {
+        const details = await Promise.all(
+          expandedUserIds.map(async (userId) => {
+            const detail = await api<AttendanceMonthlySummary>(
+              "GET",
+              `/attendance/summary/monthly?month=${month}&userId=${userId}`,
+            );
+            return [userId, detail.rows] as const;
+          }),
+        );
+        const rowsByUser = new Map(details);
+        nextSummary = nextSummary.map((item) => {
+          const rows = rowsByUser.get(item.userId);
+          return rows ? { ...item, rows, detailLoaded: true } : item;
+        });
+      }
+
       setIsAdmin(result.isAdmin);
-      setSummary(result.summary);
+      setSummary(nextSummary);
       setPendingMakeupRequests(result.pendingMakeupRequests);
       setShift(shiftRes);
       setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
@@ -210,11 +238,11 @@ export function AttendanceStatsPage() {
   );
 
   const toggleDetails = React.useCallback(
-    async (rowId: string, user: UserAgg) => {
-      if (expandedRows[rowId]) {
+    async (userId: string, user: UserAgg) => {
+      if (expandedRows[userId]) {
         setExpanded((current) => ({
           ...(typeof current === "object" ? current : {}),
-          [rowId]: false,
+          [userId]: false,
         }));
         return;
       }
@@ -238,7 +266,7 @@ export function AttendanceStatsPage() {
       }
       setExpanded((current) => ({
         ...(typeof current === "object" ? current : {}),
-        [rowId]: true,
+        [userId]: true,
       }));
     },
     [expandedRows, month],
@@ -300,6 +328,7 @@ export function AttendanceStatsPage() {
     columns,
     state: { expanded },
     onExpandedChange: setExpanded,
+    getRowId: (row) => row.userId,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => true,
