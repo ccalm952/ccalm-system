@@ -22,14 +22,14 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.27",
-    "@nestjs/core": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/core": "^11.1.28",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/platform-express": "^11.1.28",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
-    "@types/multer": "^2.1.0",
+    "@types/multer": "^2.2.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -43,24 +43,24 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.6",
     "@eslint/js": "^10.0.1",
-    "@nestjs/cli": "^11.0.23",
+    "@nestjs/cli": "^11.0.24",
     "@nestjs/schematics": "^11.1.0",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.1.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
-    "eslint": "^10.5.0",
+    "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
-    "globals": "^17.7.0",
-    "prettier": "^3.8.4",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
     "prisma": "^7.9.1",
     "ts-loader": "^9.6.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0",
-    "vitest": "^3.2.4"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
   }
 }
