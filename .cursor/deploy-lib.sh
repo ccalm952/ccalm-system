@@ -61,9 +61,13 @@ cd ${DEPLOY_PROJECT_DIR}
 git fetch ${DEPLOY_GIT_REMOTE} ${DEPLOY_GIT_BRANCH}
 git checkout -B ${DEPLOY_GIT_BRANCH} FETCH_HEAD
 git reset --hard ${expected_sha}
+if command -v corepack >/dev/null 2>&1; then
+  corepack enable >/dev/null 2>&1 || true
+  corepack prepare pnpm@11.18.0 --activate >/dev/null 2>&1 || true
+fi
 export PATH=\"/root/.local/share/pnpm/bin:\$PATH\"
 pnpm install --frozen-lockfile || pnpm install
-echo \"remote HEAD=\$(git rev-parse HEAD)\"
+echo \"remote HEAD=\$(git rev-parse HEAD) pnpm=\$(pnpm -v)\"
 "
 }
 
