@@ -24,12 +24,7 @@ export type PendingMakeup = {
 }
 
 export type MakeupSlotDenyReason =
-  | "window"
-  | "gate"
-  | "rest"
-  | "exists"
-  | "need_in"
-  | "pending"
+  "window" | "gate" | "rest" | "exists" | "need_in" | "pending"
 
 type MakeupSlotsEnv = {
   editWindowContext: EditWindowContext
