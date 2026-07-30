@@ -430,7 +430,7 @@ export function computeSalarySheet(
     (acc, row) => ({
       deductedBase: acc.deductedBase + row.deductedBase,
       shareRatio: acc.shareRatio + row.shareRatio,
-      bonus: acc.bonus + row.bonus,
+      bonus: acc.bonus + (row.bonus > 0 ? row.bonus : 0),
       monthlySalary: acc.monthlySalary + row.monthlySalary,
     }),
     { deductedBase: 0, shareRatio: 0, bonus: 0, monthlySalary: 0 },
