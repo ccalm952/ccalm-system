@@ -2,6 +2,7 @@
   "name": "ccalm-system",
   "version": "0.0.1",
   "private": true,
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
     "dev:web": "pnpm -C ccalm-web dev",
     "dev:api": "pnpm -C ccalm-api start:dev",
