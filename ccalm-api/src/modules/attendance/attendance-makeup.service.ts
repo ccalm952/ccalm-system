@@ -20,10 +20,7 @@ import {
   type MakeupSlotDenyReason,
   type PendingMakeup,
 } from "./makeup-slots"
-import {
-  canMakeupTodaySlotForDate,
-  type MakeupTodayGate,
-} from "./attendance-makeup-today-gate"
+import { type MakeupTodayGate } from "./attendance-makeup-today-gate"
 import type { MakeupSlotType } from "./makeup-today-gate"
 import { DEFAULT_SHIFT_ROW } from "./defaults"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"

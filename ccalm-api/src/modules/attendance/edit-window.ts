@@ -18,6 +18,7 @@ export function isWithinAttendanceEditWindow(
 export function buildEditWindowContext(todayYmd: string): EditWindowContext {
   const currentMonth = todayYmd.slice(0, 7)
   const [y, m] = currentMonth.split("-").map(Number)
-  const prev = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`
+  const prev =
+    m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`
   return { todayYmd, currentMonth, previousMonth: prev }
 }

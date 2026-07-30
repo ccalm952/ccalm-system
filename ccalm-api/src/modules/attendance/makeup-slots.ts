@@ -3,18 +3,13 @@ import {
   isWithinAttendanceEditWindow,
   type EditWindowContext,
 } from "./edit-window"
-import {
-  formatAttendanceTime,
-} from "./attendance-dayjs"
+import { formatAttendanceTime } from "./attendance-dayjs"
 import {
   passesMakeupTodayGate,
   type MakeupSlotType,
   type MakeupTodayGate,
 } from "./makeup-today-gate"
-import {
-  isPunchBlockedByScheduleRest,
-  type DayPunchRow,
-} from "./schedule-rest"
+import { isPunchBlockedByScheduleRest, type DayPunchRow } from "./schedule-rest"
 import type { ScheduleShiftType } from "./schedule-inference"
 
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
@@ -50,7 +45,7 @@ const IN_TYPE_BY_OUT: Record<
   afternoon_out: "afternoon_in",
 }
 
-function makeupSlotsEnv(at: Date = new Date()): MakeupSlotsEnv {
+function makeupSlotsEnv(): MakeupSlotsEnv {
   const todayYmd = attendanceTodayStart().format("YYYY-MM-DD")
   return {
     editWindowContext: buildEditWindowContext(todayYmd),
@@ -168,7 +163,7 @@ export function employeeMakeupSlotAvailable(
   gate?: MakeupTodayGate,
   at: Date = new Date()
 ): boolean {
-  const env = makeupSlotsEnv(at)
+  const env = makeupSlotsEnv()
   return (
     employeeMakeupSlotDenyReason(row, type, pending, env, gate, at) === null
   )
@@ -180,7 +175,7 @@ export function adminMakeupSlotAvailable(
   gate?: MakeupTodayGate,
   at: Date = new Date()
 ): boolean {
-  const env = makeupSlotsEnv(at)
+  const env = makeupSlotsEnv()
   return adminMakeupSlotDenyReason(row, type, env, gate, at) === null
 }
 
@@ -221,7 +216,9 @@ function employeeMakeupSlotState(
   gate: MakeupTodayGate | undefined,
   at: Date = new Date()
 ): "apply" | null {
-  if (employeeMakeupSlotDenyReason(row, type, pending, env, gate, at) !== null) {
+  if (
+    employeeMakeupSlotDenyReason(row, type, pending, env, gate, at) !== null
+  ) {
     return null
   }
   return "apply"
@@ -234,7 +231,7 @@ export function countMakeupButtonSlots(
   gate?: MakeupTodayGate,
   at: Date = new Date()
 ): number {
-  const env = makeupSlotsEnv(at)
+  const env = makeupSlotsEnv()
   let count = 0
   for (const type of [
     "morning_in",
