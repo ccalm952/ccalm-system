@@ -1,0 +1,61 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "部署范围（auto / web / api / all）"
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - web
+          - api
+          - all
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "${DEPLOY_SSH_KEY:-}" ]; then
+            echo "缺少 GitHub Secret: DEPLOY_SSH_KEY" >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ccalm_deploy
+          chmod 600 ~/.ssh/ccalm_deploy
+          HOST="${{ secrets.DEPLOY_SSH_HOST }}"
+          HOST="${HOST:-106.53.206.11}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy by changed scope
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_EXPECTED_SHA: ${{ github.sha }}
+          DEPLOY_BEFORE_SHA: ${{ github.event.before }}
+          DEPLOY_SCOPE: ${{ github.event.inputs.scope || 'auto' }}
+        run: |
+          export DEPLOY_SSH_KEY_PATH="$HOME/.ssh/ccalm_deploy"
+          export DEPLOY_SSH_TARGET="${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}"
+          chmod +x .cursor/deploy.sh .cursor/deploy-web.sh .cursor/deploy-api.sh .cursor/deploy-all.sh
+          bash .cursor/deploy.sh
