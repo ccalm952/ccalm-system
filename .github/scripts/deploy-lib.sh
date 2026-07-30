@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# 部署脚本公共逻辑：SSH、远程执行、版本校验、健康检查。
-# 由 deploy-web / deploy-api / deploy-all / deploy 引用，勿直接执行。
+# GitHub Actions 专用部署公共逻辑（勿在 Cursor Agent 中调用）。
 
 set -euo pipefail
 
 DEPLOY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEPLOY_ROOT_DIR="$(cd "$DEPLOY_LIB_DIR/.." && pwd)"
+DEPLOY_ROOT_DIR="$(cd "$DEPLOY_LIB_DIR/../.." && pwd)"
 
 DEPLOY_KEY_PATH="${DEPLOY_SSH_KEY_PATH:-${HOME}/.ssh/ccalm_deploy}"
 DEPLOY_TARGET="${DEPLOY_SSH_TARGET:-${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}}"
@@ -17,14 +16,11 @@ DEPLOY_API_HEALTH_URL="${DEPLOY_API_HEALTH_URL:-http://127.0.0.1:3000/api/auth/m
 DEPLOY_PM2_APP="${DEPLOY_PM2_APP:-ccalm-api}"
 
 deploy_setup_ssh() {
-  bash "$DEPLOY_LIB_DIR/setup-deploy-ssh.sh"
-  DEPLOY_KEY_PATH="${DEPLOY_SSH_KEY_PATH:-${HOME}/.ssh/ccalm_deploy}"
-  DEPLOY_TARGET="${DEPLOY_SSH_TARGET:-${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}}"
-
   if [[ ! -f "$DEPLOY_KEY_PATH" ]]; then
-    echo "缺少部署密钥 ${DEPLOY_KEY_PATH}。请在 Cursor Secrets 或 GitHub Secrets 配置 DEPLOY_SSH_KEY。" >&2
+    echo "缺少部署密钥 ${DEPLOY_KEY_PATH}。请在 GitHub Secrets 配置 DEPLOY_SSH_KEY。" >&2
     exit 1
   fi
+  DEPLOY_TARGET="${DEPLOY_SSH_TARGET:-${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}}"
 }
 
 deploy_ssh_opts() {
@@ -50,8 +46,7 @@ deploy_expected_sha() {
     printf '%s\n' "$GITHUB_SHA"
     return
   fi
-  git -C "$DEPLOY_ROOT_DIR" fetch --quiet "$DEPLOY_GIT_REMOTE" "$DEPLOY_GIT_BRANCH"
-  git -C "$DEPLOY_ROOT_DIR" rev-parse "FETCH_HEAD"
+  git -C "$DEPLOY_ROOT_DIR" rev-parse HEAD
 }
 
 deploy_remote_pull() {
@@ -99,20 +94,24 @@ EOF
 }
 
 deploy_healthcheck_api() {
-  local code
-  code="$(deploy_ssh "curl -s -o /dev/null -w '%{http_code}' ${DEPLOY_API_HEALTH_URL} || true")"
-  code="${code//$'\r'/}"
-  # 未登录应为 401；偶发 200 也表示服务可用
-  if [[ "$code" != "401" && "$code" != "200" ]]; then
-    echo "API 健康检查失败：${DEPLOY_API_HEALTH_URL} -> HTTP ${code}" >&2
-    deploy_ssh "pm2 logs ${DEPLOY_PM2_APP} --lines 30 --nostream" || true
-    exit 1
-  fi
-  echo "API 健康检查通过：HTTP ${code}"
+  local code=""
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    code="$(deploy_ssh "curl -s -o /dev/null -w '%{http_code}' ${DEPLOY_API_HEALTH_URL} || true")"
+    code="${code//$'\r'/}"
+    if [[ "$code" == "401" || "$code" == "200" ]]; then
+      echo "API 健康检查通过：HTTP ${code}"
+      return 0
+    fi
+    echo "API 健康检查未就绪（第 ${attempt} 次）：HTTP ${code:-000}，等待重试…"
+    sleep 2
+  done
+  echo "API 健康检查失败：${DEPLOY_API_HEALTH_URL} -> HTTP ${code:-000}" >&2
+  deploy_ssh "pm2 logs ${DEPLOY_PM2_APP} --lines 30 --nostream" || true
+  exit 1
 }
 
 deploy_classify_scope() {
-  # stdin: 变更文件列表（相对仓库根），stdout: web | api | all | none
   local has_web=0
   local has_api=0
   local has_other=0
@@ -127,12 +126,11 @@ deploy_classify_scope() {
       ccalm-api/*|ccalm-api|pnpm-lock.yaml|package.json|pnpm-workspace.yaml)
         has_api=1
         ;;
-      .cursor/deploy*.sh|.cursor/deploy-lib.sh|.github/workflows/*)
-        # 部署脚本变更：默认全量，避免半套脚本
+      .github/workflows/*|.github/scripts/*)
         has_api=1
         has_web=1
         ;;
-      README.md|.cursor/rules/*|.cursor/environment.json|.cursor/install.sh|.cursor/setup-deploy-ssh.sh|.gitignore)
+      README.md|.cursor/*|.gitignore)
         ;;
       *)
         has_other=1
@@ -157,12 +155,8 @@ deploy_changed_files_between() {
   local before_sha="$1"
   local after_sha="$2"
   if [[ -z "$before_sha" || "$before_sha" =~ ^0+$ ]]; then
-    # 无法 diff 时视为全量
     printf 'ccalm-api/\nccalm-web/\n'
     return
-  fi
-  if ! git -C "$DEPLOY_ROOT_DIR" cat-file -e "${before_sha}^{commit}" 2>/dev/null; then
-    git -C "$DEPLOY_ROOT_DIR" fetch --quiet "$DEPLOY_GIT_REMOTE" "$DEPLOY_GIT_BRANCH" || true
   fi
   if ! git -C "$DEPLOY_ROOT_DIR" cat-file -e "${before_sha}^{commit}" 2>/dev/null; then
     printf 'ccalm-api/\nccalm-web/\n'
@@ -195,4 +189,37 @@ test -f ccalm-web/dist/index.html
 rm -rf ${DEPLOY_WEB_ROOT}/*
 cp -r ccalm-web/dist/* ${DEPLOY_WEB_ROOT}/
 "
+}
+
+deploy_run_web() {
+  local expected_sha="$1"
+  echo "部署前端（期望 SHA=${expected_sha}）"
+  deploy_remote_pull "$expected_sha"
+  deploy_verify_remote_sha "$expected_sha"
+  deploy_remote_web
+  deploy_write_version_stamp "$expected_sha" "web"
+  echo "deploy-web ok: $(date -Is) sha=${expected_sha}"
+}
+
+deploy_run_api() {
+  local expected_sha="$1"
+  echo "部署后端（期望 SHA=${expected_sha}）"
+  deploy_remote_pull "$expected_sha"
+  deploy_verify_remote_sha "$expected_sha"
+  deploy_remote_api
+  deploy_healthcheck_api
+  deploy_write_version_stamp "$expected_sha" "api"
+  echo "deploy-api ok: $(date -Is) sha=${expected_sha}"
+}
+
+deploy_run_all() {
+  local expected_sha="$1"
+  echo "全量部署（期望 SHA=${expected_sha}）"
+  deploy_remote_pull "$expected_sha"
+  deploy_verify_remote_sha "$expected_sha"
+  deploy_remote_api
+  deploy_healthcheck_api
+  deploy_remote_web
+  deploy_write_version_stamp "$expected_sha" "all"
+  echo "deploy-all ok: $(date -Is) sha=${expected_sha}"
 }

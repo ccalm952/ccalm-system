@@ -48,7 +48,6 @@ jobs:
 
       - name: Deploy by changed scope
         env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           DEPLOY_EXPECTED_SHA: ${{ github.sha }}
@@ -57,5 +56,5 @@ jobs:
         run: |
           export DEPLOY_SSH_KEY_PATH="$HOME/.ssh/ccalm_deploy"
           export DEPLOY_SSH_TARGET="${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}"
-          chmod +x .cursor/deploy.sh .cursor/deploy-web.sh .cursor/deploy-api.sh .cursor/deploy-all.sh
-          bash .cursor/deploy.sh
+          chmod +x .github/scripts/deploy.sh
+          bash .github/scripts/deploy.sh

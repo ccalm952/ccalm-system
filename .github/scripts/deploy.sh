@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# 按变更范围选择部署：web / api / all
+# GitHub Actions 专用部署入口。
 # 环境变量：
 #   DEPLOY_SCOPE=web|api|all|auto  （默认 auto）
-#   DEPLOY_BEFORE_SHA              （auto 时与期望 SHA 做 diff；未设则读服务器当前 HEAD）
+#   DEPLOY_BEFORE_SHA
 #   DEPLOY_EXPECTED_SHA / GITHUB_SHA
+#   DEPLOY_SSH_KEY_PATH / DEPLOY_SSH_HOST / DEPLOY_SSH_USER
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=.cursor/deploy-lib.sh
-source "$ROOT_DIR/.cursor/deploy-lib.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=.github/scripts/deploy-lib.sh
+source "$ROOT_DIR/.github/scripts/deploy-lib.sh"
 
 SCOPE="${DEPLOY_SCOPE:-auto}"
 
@@ -47,15 +48,9 @@ if [[ "$SCOPE" == "none" ]]; then
 fi
 
 case "$SCOPE" in
-  web)
-    exec bash "$ROOT_DIR/.cursor/deploy-web.sh"
-    ;;
-  api)
-    exec bash "$ROOT_DIR/.cursor/deploy-api.sh"
-    ;;
-  all)
-    exec bash "$ROOT_DIR/.cursor/deploy-all.sh"
-    ;;
+  web) deploy_run_web "$EXPECTED_SHA" ;;
+  api) deploy_run_api "$EXPECTED_SHA" ;;
+  all) deploy_run_all "$EXPECTED_SHA" ;;
   *)
     echo "未知 DEPLOY_SCOPE=${SCOPE}，请使用 web|api|all|auto" >&2
     exit 1

@@ -207,27 +207,17 @@ location /api/ {
 
 ### 9) 更新发布流程
 
-推荐用仓库内脚本发布（含版本校验；后端会清空 `dist` 后全量构建，避免残留旧模块）：
+生产发布由 **GitHub Actions** 工作流 `Deploy` 负责（脚本在 `.github/scripts/`，不经过 Cursor Agent）。
 
-```bash
-# 按变更自动选择 web / api / all
-bash .cursor/deploy.sh
+合并到 `master` 后会自动 SSH 部署；也可在 Actions 里手动 `workflow_dispatch`，并选择 `auto` / `web` / `api` / `all`。
 
-# 或指定范围
-bash .cursor/deploy-web.sh   # 仅前端
-bash .cursor/deploy-api.sh   # 仅后端（migrate + 清 dist 重建 + pm2 restart + 健康检查）
-bash .cursor/deploy-all.sh   # 前后端全量
-```
-
-合并到 `master` 后，GitHub Actions 工作流 `Deploy` 会 SSH 到服务器按变更范围自动部署。需在仓库 Secrets 配置：
+需在仓库 Secrets 配置：
 
 - `DEPLOY_SSH_KEY`（必填）：部署用私钥
 - `DEPLOY_SSH_HOST`（可选，默认 `106.53.206.11`）
 - `DEPLOY_SSH_USER`（可选，默认 `root`）
 
-也可在 Actions 里手动 `workflow_dispatch`，并选择 `auto` / `web` / `api` / `all`。
-
-部署成功后服务器网站根目录会写入 `deploy-version.json`（含 SHA、模式、时间），并校验服务器 `git HEAD` 与目标提交一致；API 部署还会请求 `/api/auth/me`（期望 `401`/`200`）。
+部署成功后网站根目录会写入 `deploy-version.json`（含 SHA、模式、时间），并校验服务器 `git HEAD` 与目标提交一致；API 部署还会请求 `/api/auth/me`（期望 `401`/`200`，含短暂重试）。
 
 若需在服务器上手动执行，等价步骤为：
 
@@ -252,7 +242,7 @@ cp -r dist/* /opt/1panel/www/sites/www.ccalm.xyz/index/
 pm2 save
 ```
 
-如果只改了前端，用 `deploy-web.sh` 即可；改了 `ccalm-api` 或 Prisma，必须走 `deploy-api.sh` / `deploy-all.sh`（含 `prisma migrate deploy`）。
+只改前端时 Actions 会自动选 web；改了 `ccalm-api` 或 Prisma 会走 api / all（含 `prisma migrate deploy`）。
 
 ### 10) 常见排查
 

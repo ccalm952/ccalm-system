@@ -5,4 +5,3 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 pnpm install
-bash "$ROOT_DIR/.cursor/setup-deploy-ssh.sh"
