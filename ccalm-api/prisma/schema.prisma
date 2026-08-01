@@ -202,3 +202,29 @@ model SalarySheet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum OrthodonticsCategory {
+  active
+  appliance
+  removed
+}
+
+/// 正畸随访名单（在治 / 矫治器 / 已拆）
+model OrthodonticsPatient {
+  id              Int                   @id @default(autoincrement())
+  category        OrthodonticsCategory
+  chartNo         String                @default("")
+  name            String
+  phone           String                @default("")
+  applianceModel  String                @default("")
+  lastVisitDate   String?
+  followUp        String                @default("")
+  remark          String                @default("")
+  doctor          String                @default("")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([category])
+  @@index([name])
+  @@index([lastVisitDate])
+}

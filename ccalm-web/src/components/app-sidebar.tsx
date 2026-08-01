@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarCheck2, ChevronRightIcon, Sprout, Wallet } from "lucide-react";
+import { CalendarCheck2, ChevronRightIcon, Smile, Sprout, Wallet } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
@@ -34,6 +35,7 @@ const navMain: {
 }[] = [
   { title: "考勤", icon: CalendarCheck2, items: attendanceSubNavItems },
   { title: "种植", icon: Sprout, items: implantSubNavItems },
+  { title: "正畸", icon: Smile, items: orthodonticsSubNavItems },
 ];
 
 function SidebarNavCollapsible({

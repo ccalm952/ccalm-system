@@ -17,6 +17,7 @@ import { ImplantInventoryPage } from "@/pages/implant/ImplantInventoryPage";
 import { ImplantPatientPage } from "@/pages/implant/ImplantPatientPage";
 import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
 import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
+import { OrthodonticsPage } from "@/pages/orthodontics/OrthodonticsPage";
 import { UsersPage } from "@/pages/users/UsersPage";
 import { SalaryPage } from "@/pages/salary/SalaryPage";
 
@@ -122,6 +123,16 @@ export function App() {
               <Route path="patients" element={<ImplantPatientPage />} />
               <Route path="stats" element={<ImplantStatsPage />} />
               <Route path="inventory" element={<ImplantInventoryPage />} />
+            </Route>
+
+            <Route path="orthodontics">
+              <Route
+                index
+                element={<Navigate to={ROUTES.orthodontics.active} replace />}
+              />
+              <Route path="active" element={<OrthodonticsPage />} />
+              <Route path="appliance" element={<OrthodonticsPage />} />
+              <Route path="removed" element={<OrthodonticsPage />} />
             </Route>
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />

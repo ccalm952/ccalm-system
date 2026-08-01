@@ -20,6 +20,12 @@ export const ROUTES = {
     stats: "/implant/stats",
     inventory: "/implant/inventory",
   },
+  orthodontics: {
+    root: "/orthodontics",
+    active: "/orthodontics/active",
+    appliance: "/orthodontics/appliance",
+    removed: "/orthodontics/removed",
+  },
   salary: {
     root: "/salary",
   },
