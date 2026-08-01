@@ -819,6 +819,16 @@ export function SalaryPage() {
   const [addMonthValue, setAddMonthValue] = React.useState("");
   const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false);
   const [tierRateSettingsOpen, setTierRateSettingsOpen] = React.useState(false);
+  const [tierRateDrafts, setTierRateDrafts] = React.useState<
+    {
+      index: number;
+      name: string;
+      title: string;
+      tier1Rate: number;
+      tier2Rate: number;
+      tier3Rate: number;
+    }[]
+  >([]);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
@@ -1019,6 +1029,44 @@ export function SalaryPage() {
     });
   }
 
+  function openTierRateSettings() {
+    if (!sheet) return;
+    setTierRateDrafts(
+      sheet.employees.flatMap((row, index) =>
+        row.bonusMode === "tiered"
+          ? [
+              {
+                index,
+                name: row.name,
+                title: row.title,
+                tier1Rate: row.tier1Rate,
+                tier2Rate: row.tier2Rate,
+                tier3Rate: row.tier3Rate,
+              },
+            ]
+          : [],
+      ),
+    );
+    setTierRateSettingsOpen(true);
+  }
+
+  function confirmTierRateSettings() {
+    if (!sheet || !activeMonth) return;
+    const byIndex = new Map(tierRateDrafts.map((draft) => [draft.index, draft]));
+    const employees = sheet.employees.map((row, index) => {
+      const draft = byIndex.get(index);
+      if (!draft) return row;
+      return {
+        ...row,
+        tier1Rate: draft.tier1Rate,
+        tier2Rate: draft.tier2Rate,
+        tier3Rate: draft.tier3Rate,
+      };
+    });
+    patchSheet(activeMonth, { ...sheet, employees });
+    setTierRateSettingsOpen(false);
+  }
+
   async function addMonth() {
     const month = addMonthValue.trim();
     if (!month) {
@@ -1091,7 +1139,7 @@ export function SalaryPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setTierRateSettingsOpen(true)}
+                onClick={openTierRateSettings}
               >
                 <Settings className="size-3.5" />
                 设置
@@ -1171,58 +1219,71 @@ export function SalaryPage() {
             <DialogHeader>
               <DialogTitle>阶梯费率</DialogTitle>
             </DialogHeader>
-            {sheet ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>一档</TableHead>
-                    <TableHead>二档</TableHead>
-                    <TableHead>三档</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>一档</TableHead>
+                  <TableHead>二档</TableHead>
+                  <TableHead>三档</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tierRateDrafts.map((draft, draftIndex) => (
+                  <TableRow key={`${draft.name}-${draft.index}`}>
+                    <TableCell>
+                      {draft.name || draft.title || `员工${draft.index + 1}`}
+                    </TableCell>
+                    <TableCell>
+                      <RatePercentInput
+                        value={draft.tier1Rate}
+                        onChange={(tier1Rate) =>
+                          setTierRateDrafts((prev) =>
+                            prev.map((row, i) =>
+                              i === draftIndex ? { ...row, tier1Rate } : row,
+                            ),
+                          )
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <RatePercentInput
+                        value={draft.tier2Rate}
+                        onChange={(tier2Rate) =>
+                          setTierRateDrafts((prev) =>
+                            prev.map((row, i) =>
+                              i === draftIndex ? { ...row, tier2Rate } : row,
+                            ),
+                          )
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <RatePercentInput
+                        value={draft.tier3Rate}
+                        onChange={(tier3Rate) =>
+                          setTierRateDrafts((prev) =>
+                            prev.map((row, i) =>
+                              i === draftIndex ? { ...row, tier3Rate } : row,
+                            ),
+                          )
+                        }
+                      />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sheet.employees.map((row, index) =>
-                    row.bonusMode === "tiered" ? (
-                      <TableRow key={`${row.name}-${index}`}>
-                        <TableCell>{row.name || row.title || `员工${index + 1}`}</TableCell>
-                        <TableCell>
-                          <RatePercentInput
-                            value={row.tier1Rate}
-                            onChange={(tier1Rate) =>
-                              updateEmployee(index, { tier1Rate })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <RatePercentInput
-                            value={row.tier2Rate}
-                            onChange={(tier2Rate) =>
-                              updateEmployee(index, { tier2Rate })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <RatePercentInput
-                            value={row.tier3Rate}
-                            onChange={(tier3Rate) =>
-                              updateEmployee(index, { tier3Rate })
-                            }
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ) : null,
-                  )}
-                </TableBody>
-              </Table>
-            ) : null}
+                ))}
+              </TableBody>
+            </Table>
             <DialogFooter>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => setTierRateSettingsOpen(false)}
               >
-                关闭
+                取消
+              </Button>
+              <Button type="button" onClick={confirmTierRateSettings}>
+                确定
               </Button>
             </DialogFooter>
           </DialogContent>
