@@ -13,6 +13,7 @@ import {
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
@@ -47,6 +48,20 @@ export function MainLayout() {
                   <NavigationMenuTrigger>种植</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     {implantSubNavItems.map((item) => (
+                      <NavigationMenuLink
+                        className="w-62"
+                        key={item.title}
+                        render={<Link to={item.url} />}
+                      >
+                        {item.title}
+                      </NavigationMenuLink>
+                    ))}
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>正畸</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {orthodonticsSubNavItems.map((item) => (
                       <NavigationMenuLink
                         className="w-62"
                         key={item.title}
