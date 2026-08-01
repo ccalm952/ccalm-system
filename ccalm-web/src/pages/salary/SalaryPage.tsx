@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Navigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { Plus, RotateCcw, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -818,6 +818,7 @@ export function SalaryPage() {
   const [addMonthOpen, setAddMonthOpen] = React.useState(false);
   const [addMonthValue, setAddMonthValue] = React.useState("");
   const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false);
+  const [tierRateSettingsOpen, setTierRateSettingsOpen] = React.useState(false);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
@@ -1086,6 +1087,16 @@ export function SalaryPage() {
                 <Spinner className="size-4" /> 保存中…
               </span>
             ) : null}
+            {sheet && activeMonth ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTierRateSettingsOpen(true)}
+              >
+                <Settings className="size-3.5" />
+                设置
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -1150,6 +1161,68 @@ export function SalaryPage() {
               </Button>
               <Button type="button" onClick={() => void addMonth()}>
                 确定
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={tierRateSettingsOpen} onOpenChange={setTierRateSettingsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>阶梯费率</DialogTitle>
+            </DialogHeader>
+            {sheet ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>一档</TableHead>
+                    <TableHead>二档</TableHead>
+                    <TableHead>三档</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sheet.employees.map((row, index) =>
+                    row.bonusMode === "tiered" ? (
+                      <TableRow key={`${row.name}-${index}`}>
+                        <TableCell>{row.name || row.title || `员工${index + 1}`}</TableCell>
+                        <TableCell>
+                          <RatePercentInput
+                            value={row.tier1Rate}
+                            onChange={(tier1Rate) =>
+                              updateEmployee(index, { tier1Rate })
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <RatePercentInput
+                            value={row.tier2Rate}
+                            onChange={(tier2Rate) =>
+                              updateEmployee(index, { tier2Rate })
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <RatePercentInput
+                            value={row.tier3Rate}
+                            onChange={(tier3Rate) =>
+                              updateEmployee(index, { tier3Rate })
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : null,
+                  )}
+                </TableBody>
+              </Table>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setTierRateSettingsOpen(false)}
+              >
+                关闭
               </Button>
             </DialogFooter>
           </DialogContent>
