@@ -128,11 +128,11 @@ export function App() {
             <Route path="orthodontics">
               <Route
                 index
-                element={<Navigate to={ROUTES.orthodontics.active} replace />}
+                element={<Navigate to={ROUTES.orthodontics.treating} replace />}
               />
-              <Route path="active" element={<OrthodonticsPage />} />
+              <Route path="treating" element={<OrthodonticsPage />} />
               <Route path="appliance" element={<OrthodonticsPage />} />
-              <Route path="removed" element={<OrthodonticsPage />} />
+              <Route path="completed" element={<OrthodonticsPage />} />
             </Route>
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />

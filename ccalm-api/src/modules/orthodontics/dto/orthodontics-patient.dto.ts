@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString } from "class-validator"
 
-const CATEGORIES = ["active", "appliance", "removed"] as const
+const CATEGORIES = ["treating", "appliance", "completed"] as const
 
 export class CreateOrthodonticsPatientDto {
   @IsIn(CATEGORIES)

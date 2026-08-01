@@ -22,9 +22,9 @@ export const ROUTES = {
   },
   orthodontics: {
     root: "/orthodontics",
-    active: "/orthodontics/active",
+    treating: "/orthodontics/treating",
     appliance: "/orthodontics/appliance",
-    removed: "/orthodontics/removed",
+    completed: "/orthodontics/completed",
   },
   salary: {
     root: "/salary",

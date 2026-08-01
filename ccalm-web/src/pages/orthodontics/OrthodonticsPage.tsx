@@ -42,7 +42,7 @@ import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 
-export type OrthodonticsCategory = "active" | "appliance" | "removed";
+export type OrthodonticsCategory = "treating" | "appliance" | "completed";
 
 type OrthodonticsRow = {
   id: number;
@@ -71,15 +71,15 @@ type FormState = {
 const OVERDUE_DAYS = 30;
 
 const CATEGORY_BY_PATH: Record<string, OrthodonticsCategory> = {
-  [ROUTES.orthodontics.active]: "active",
+  [ROUTES.orthodontics.treating]: "treating",
   [ROUTES.orthodontics.appliance]: "appliance",
-  [ROUTES.orthodontics.removed]: "removed",
+  [ROUTES.orthodontics.completed]: "completed",
 };
 
 const TITLE_BY_CATEGORY: Record<OrthodonticsCategory, string> = {
-  active: "治疗中",
+  treating: "治疗中",
   appliance: "矫治器",
-  removed: "已完成",
+  completed: "已完成",
 };
 
 function emptyForm(): FormState {
@@ -137,7 +137,7 @@ function patientBody(
 
 export function OrthodonticsPage() {
   const { pathname } = useLocation();
-  const category = CATEGORY_BY_PATH[pathname] ?? "active";
+  const category = CATEGORY_BY_PATH[pathname] ?? "treating";
   const showModel = category === "appliance";
 
   const [searchQuery, setSearchQuery] = React.useState("");
