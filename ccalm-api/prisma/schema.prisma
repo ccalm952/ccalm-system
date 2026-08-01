@@ -204,12 +204,12 @@ model SalarySheet {
 }
 
 enum OrthodonticsCategory {
-  active
+  treating
   appliance
-  removed
+  completed
 }
 
-/// 正畸随访名单（在治 / 矫治器 / 已拆）
+/// 正畸随访名单（治疗中 / 矫治器 / 已完成）
 model OrthodonticsPatient {
   id              Int                   @id @default(autoincrement())
   category        OrthodonticsCategory
