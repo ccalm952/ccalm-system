@@ -77,9 +77,9 @@ const CATEGORY_BY_PATH: Record<string, OrthodonticsCategory> = {
 };
 
 const TITLE_BY_CATEGORY: Record<OrthodonticsCategory, string> = {
-  active: "在治",
+  active: "治疗中",
   appliance: "矫治器",
-  removed: "已拆",
+  removed: "已完成",
 };
 
 function emptyForm(): FormState {
