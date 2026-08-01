@@ -64,12 +64,11 @@ type FormState = {
   phone: string;
   applianceModel: string;
   lastVisitDate: string;
-  followUp: string;
   remark: string;
   doctor: string;
 };
 
-const OVERDUE_DAYS = 90;
+const OVERDUE_DAYS = 30;
 
 const CATEGORY_BY_PATH: Record<string, OrthodonticsCategory> = {
   [ROUTES.orthodontics.active]: "active",
@@ -90,7 +89,6 @@ function emptyForm(): FormState {
     phone: "",
     applianceModel: "",
     lastVisitDate: "",
-    followUp: "",
     remark: "",
     doctor: "",
   };
@@ -103,7 +101,6 @@ function formFromRow(row: OrthodonticsRow): FormState {
     phone: row.phone,
     applianceModel: row.applianceModel,
     lastVisitDate: row.lastVisitDate ?? "",
-    followUp: row.followUp,
     remark: row.remark,
     doctor: row.doctor,
   };
@@ -111,6 +108,31 @@ function formFromRow(row: OrthodonticsRow): FormState {
 
 function isOverdue(days: number | null): boolean {
   return days != null && days > OVERDUE_DAYS;
+}
+
+function patientBody(
+  row: Pick<
+    OrthodonticsRow,
+    | "chartNo"
+    | "name"
+    | "phone"
+    | "applianceModel"
+    | "lastVisitDate"
+    | "followUp"
+    | "remark"
+    | "doctor"
+  >,
+) {
+  return {
+    chartNo: row.chartNo,
+    name: row.name,
+    phone: row.phone,
+    applianceModel: row.applianceModel,
+    lastVisitDate: row.lastVisitDate,
+    followUp: row.followUp,
+    remark: row.remark,
+    doctor: row.doctor,
+  };
 }
 
 export function OrthodonticsPage() {
@@ -163,6 +185,23 @@ export function OrthodonticsPage() {
     setDialogOpen(true);
   }
 
+  async function markVisitedToday(row: OrthodonticsRow) {
+    try {
+      await api(
+        "PUT",
+        `/orthodontics/patients/${row.id}`,
+        patientBody({
+          ...row,
+          lastVisitDate: dayjs().format("YYYY-MM-DD"),
+        }),
+      );
+      toast.success("已更新就诊");
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   async function save() {
     const name = form.name.trim();
     if (!name) {
@@ -171,13 +210,17 @@ export function OrthodonticsPage() {
     }
     setSaving(true);
     try {
+      const existing =
+        editIdRef.current == null
+          ? null
+          : (rows.find((row) => row.id === editIdRef.current) ?? null);
       const body = {
         chartNo: form.chartNo.trim(),
         name,
         phone: form.phone.trim(),
         applianceModel: form.applianceModel.trim(),
         lastVisitDate: form.lastVisitDate.trim() || null,
-        followUp: form.followUp.trim(),
+        followUp: existing?.followUp ?? "",
         remark: form.remark.trim(),
         doctor: form.doctor.trim(),
       };
@@ -276,17 +319,14 @@ export function OrthodonticsPage() {
                   <TableHead>电话</TableHead>
                   <TableHead>上次就诊</TableHead>
                   <TableHead>距离上次就诊</TableHead>
-                  <TableHead>预约回访</TableHead>
                   <TableHead>备注</TableHead>
                   <TableHead>医生</TableHead>
+                  <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((row, index) => (
-                  <TableRow
-                    key={row.id}
-                    onDoubleClick={() => openEdit(row)}
-                  >
+                  <TableRow key={row.id}>
                     <TableCell>
                       <Checkbox
                         checked={selection.has(index)}
@@ -311,9 +351,26 @@ export function OrthodonticsPage() {
                         ? ""
                         : `${row.daysSinceLastVisit} 天`}
                     </TableCell>
-                    <TableCell>{row.followUp}</TableCell>
                     <TableCell>{row.remark}</TableCell>
                     <TableCell>{row.doctor}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => openEdit(row)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => void markVisitedToday(row)}
+                        >
+                          就诊
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -361,11 +418,6 @@ export function OrthodonticsPage() {
                 setForm((f) => ({ ...f, lastVisitDate: v }))
               }
               placeholder="上次就诊时间"
-            />
-            <Input
-              placeholder="预约回访"
-              value={form.followUp}
-              onChange={(e) => setForm((f) => ({ ...f, followUp: e.target.value }))}
             />
             <Input
               placeholder="备注"
