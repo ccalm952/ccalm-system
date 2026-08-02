@@ -34,6 +34,15 @@ export function applyMonthCalendar(sheet: SalarySheetData, month: string): Salar
   };
 }
 
+/** 有自定义模板则按其生成该月表，否则用内置默认模板 */
+export function resolveDefaultSalarySheet(
+  month: string,
+  template: SalarySheetData | null | undefined,
+): SalarySheetData {
+  if (template) return normalizeSalarySheet(template, month);
+  return createDefaultSalarySheet(month);
+}
+
 export function createDefaultSalarySheet(month: string): SalarySheetData {
   employeeId = 0;
   const daysInMonth = calendarDaysForMonth(month);

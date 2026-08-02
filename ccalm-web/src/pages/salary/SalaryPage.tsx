@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Navigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { Plus, RotateCcw, Settings, X } from "lucide-react";
+import { Plus, RotateCcw, Save, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -49,13 +49,13 @@ import { computeSalarySheet, buildPriorBonusMap, computeInsuranceTable, round2 }
 import {
   applyMonthCalendar,
   BONUS_MODE_OPTIONS,
-  createDefaultSalarySheet,
   createEmptyEmployee,
   calendarDaysForMonth,
   formatSalaryMonthTab,
   isSalarySheetData,
   normalizeSalarySheet,
   previousSalaryMonth,
+  resolveDefaultSalarySheet,
 } from "@/lib/salary/defaults";
 import {
   fetchLeaveQuotasFromSchedule,
@@ -830,6 +830,7 @@ export function SalaryPage() {
     }[]
   >([]);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
+  const [defaultTemplate, setDefaultTemplate] = React.useState<SalarySheetData | null>(null);
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
@@ -854,6 +855,7 @@ export function SalaryPage() {
     setSalaryUnlockToken(null);
     setSalaryUnlocked(false);
     setSheets({});
+    setDefaultTemplate(null);
     setMonths([]);
     setActiveMonth("");
   }, []);
@@ -868,13 +870,33 @@ export function SalaryPage() {
     return list;
   }, []);
 
+  const reloadDefaultTemplate = React.useCallback(async () => {
+    const res = await api<{ data: unknown | null }>(
+      "GET",
+      "/salary/default",
+      undefined,
+      salaryApi,
+    );
+    if (res.data == null) {
+      setDefaultTemplate(null);
+      return null;
+    }
+    const template = normalizeSalarySheet(res.data, dayjs().format("YYYY-MM"));
+    setDefaultTemplate(template);
+    return template;
+  }, []);
+
   React.useEffect(() => {
     if (!salaryUnlocked) return;
-    void reloadMonths().catch((e) => {
-      if (handleSalaryAccessError(e, lockSalary)) return;
-      toast.error(errorMessage(e));
-    });
-  }, [salaryUnlocked, reloadMonths, lockSalary]);
+    void (async () => {
+      try {
+        await Promise.all([reloadMonths(), reloadDefaultTemplate()]);
+      } catch (e) {
+        if (handleSalaryAccessError(e, lockSalary)) return;
+        toast.error(errorMessage(e));
+      }
+    })();
+  }, [salaryUnlocked, reloadMonths, reloadDefaultTemplate, lockSalary]);
 
   const refreshScheduleLeaveQuotas = React.useCallback(
     async (month: string) => {
@@ -944,7 +966,7 @@ export function SalaryPage() {
         if (handleSalaryAccessError(e, lockSalary)) return;
         const err = e as { status?: number };
         if (err.status === 404) {
-          let data = createDefaultSalarySheet(month);
+          let data = resolveDefaultSalarySheet(month, defaultTemplate);
           data = await applyScheduleLeaveQuotas(month, data);
           const merged = await loadMissingPriorSheets(month, { ...sheets, [month]: data });
           setSheets(merged);
@@ -956,7 +978,7 @@ export function SalaryPage() {
         setLoadingMonth((m) => (m === month ? null : m));
       }
     },
-    [fetchMonth, loadMissingPriorSheets, lockSalary, months, sheets],
+    [defaultTemplate, fetchMonth, loadMissingPriorSheets, lockSalary, months, sheets],
   );
 
   React.useEffect(() => {
@@ -1078,7 +1100,7 @@ export function SalaryPage() {
       return;
     }
     try {
-      let data = createDefaultSalarySheet(month);
+      let data = resolveDefaultSalarySheet(month, defaultTemplate);
       data = await applyScheduleLeaveQuotas(month, data);
       await api("PUT", `/salary/${month}`, { data }, salaryApi);
       setSheets((prev) => ({ ...prev, [month]: data }));
@@ -1167,21 +1189,52 @@ export function SalaryPage() {
               </Button>
             ) : null}
             {sheet && activeMonth ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  void (async () => {
-                    let data = createDefaultSalarySheet(activeMonth);
-                    data = await applyScheduleLeaveQuotas(activeMonth, data);
-                    patchSheet(activeMonth, data);
-                    toast.success("已恢复为默认");
-                  })();
-                }}
-              >
-                <RotateCcw className="size-3.5" />
-                默认
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        await api(
+                          "PUT",
+                          "/salary/default",
+                          { data: sheet },
+                          salaryApi,
+                        );
+                        setDefaultTemplate(
+                          normalizeSalarySheet(sheet, activeMonth),
+                        );
+                        toast.success("已设为默认");
+                      } catch (e) {
+                        if (handleSalaryAccessError(e, lockSalary)) return;
+                        toast.error(errorMessage(e));
+                      }
+                    })();
+                  }}
+                >
+                  <Save className="size-3.5" />
+                  设为默认
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void (async () => {
+                      let data = resolveDefaultSalarySheet(
+                        activeMonth,
+                        defaultTemplate,
+                      );
+                      data = await applyScheduleLeaveQuotas(activeMonth, data);
+                      patchSheet(activeMonth, data);
+                      toast.success("已恢复为默认");
+                    })();
+                  }}
+                >
+                  <RotateCcw className="size-3.5" />
+                  恢复默认
+                </Button>
+              </>
             ) : null}
           </div>
         </div>
