@@ -43,6 +43,18 @@ export class SalaryController {
     return await this.salary.listMonths()
   }
 
+  @Get("default")
+  async getDefault(@Req() req: Request) {
+    this.assertSalaryAccess(req)
+    return await this.salary.getDefaultTemplate()
+  }
+
+  @Put("default")
+  async saveDefault(@Req() req: Request, @Body() body: SaveSalarySheetBodyDto) {
+    this.assertSalaryAccess(req)
+    return await this.salary.saveDefaultTemplate(body.data)
+  }
+
   @Get(":month")
   async getMonth(@Req() req: Request, @Param("month") month: string) {
     this.assertSalaryAccess(req)

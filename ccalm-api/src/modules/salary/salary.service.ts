@@ -67,4 +67,31 @@ export class SalaryService {
     await this.prisma.salarySheet.delete({ where: { month } })
     return { ok: true }
   }
+
+  async getDefaultTemplate() {
+    const row = await this.prisma.salaryDefaultTemplate.findUnique({
+      where: { id: "global" },
+    })
+    return {
+      data: row?.data ?? null,
+      updatedAt: row?.updatedAt.toISOString() ?? null,
+    }
+  }
+
+  async saveDefaultTemplate(data: Record<string, unknown>) {
+    const row = await this.prisma.salaryDefaultTemplate.upsert({
+      where: { id: "global" },
+      create: {
+        id: "global",
+        data: data as Prisma.InputJsonValue,
+      },
+      update: {
+        data: data as Prisma.InputJsonValue,
+      },
+    })
+    return {
+      data: row.data,
+      updatedAt: row.updatedAt.toISOString(),
+    }
+  }
 }

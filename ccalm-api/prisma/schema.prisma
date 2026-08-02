@@ -203,6 +203,14 @@ model SalarySheet {
   updatedAt DateTime @updatedAt
 }
 
+/// 薪资表可自定义默认模板（「设为默认」写入；无记录时前端用内置模板）
+model SalaryDefaultTemplate {
+  id        String   @id @default("global")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum OrthodonticsCategory {
   treating
   appliance
