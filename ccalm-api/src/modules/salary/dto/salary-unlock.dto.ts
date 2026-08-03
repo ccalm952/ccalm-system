@@ -1,7 +1,7 @@
-import { IsString, Matches } from "class-validator"
+import { IsString, MinLength } from "class-validator"
 
 export class SalaryUnlockDto {
-  @IsString({ message: "PIN 格式不正确" })
-  @Matches(/^\d{4}$/, { message: "请输入 4 位数字 PIN" })
-  pin!: string
+  @IsString({ message: "密码格式不正确" })
+  @MinLength(1, { message: "密码不能为空" })
+  password!: string
 }

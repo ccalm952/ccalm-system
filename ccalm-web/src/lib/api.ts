@@ -65,7 +65,7 @@ export async function api<T>(
   const data = text ? (JSON.parse(text) as unknown) : null;
 
   if (!res.ok) {
-    // 薪资 PIN 等二次验证失败也会是 4xx，不能当成登录失效
+    // 薪资密码等二次验证失败也会是 4xx，不能当成登录失效
     const isSessionUnauthorized =
       res.status === 401 && !path.replace(/^\//, "").startsWith("salary/unlock");
     if (isSessionUnauthorized) {

@@ -1,13 +1,12 @@
 ﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,38 +23,32 @@ type SalaryUnlockDialogProps = {
 
 export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps) {
   const navigate = useNavigate();
-  const [pin, setPin] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
-    setPin("");
-    setError(null);
+    setPassword("");
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!/^\d{4}$/.test(pin)) {
-      setError("请输入 4 位数字 PIN");
-      return;
-    }
+    if (!password) return;
     setSubmitting(true);
-    setError(null);
     try {
       const res = await api<{ unlockToken: string; expiresAt: string }>(
         "POST",
         "/salary/unlock",
-        { pin },
+        { password },
       );
       setSalaryUnlockToken(res.unlockToken);
       onUnlocked();
     } catch (err) {
-      setError(errorMessage(err));
-      setPin("");
+      toast.error(errorMessage(err));
+      setPassword("");
       inputRef.current?.focus();
     } finally {
       setSubmitting(false);
@@ -64,33 +57,18 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
 
   return (
     <Dialog open={open}>
-      <DialogContent showCloseButton={false} className="md:max-w-sm">
-        <form className="grid gap-2" onSubmit={(e) => void submit(e)}>
-          <DialogHeader>
-            <DialogTitle>薪资 PIN 验证</DialogTitle>
-            <DialogDescription>
-              请输入 4 位薪资 PIN 以查看和编辑薪资数据。验证有效期 30 分钟，关闭浏览器标签后需重新输入。
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent showCloseButton={false} className="gap-4 md:max-w-sm">
+        <form className="flex flex-col gap-4" onSubmit={(e) => void submit(e)}>
+          <DialogTitle>输入密码</DialogTitle>
           <Input
             ref={inputRef}
             type="password"
-            inputMode="numeric"
             autoComplete="off"
-            maxLength={4}
-            pattern="\d{4}"
-            placeholder="••••"
-            value={pin}
+            value={password}
             disabled={submitting}
-            className="text-center text-lg tracking-[0.4em]"
-            onChange={(e) => {
-              const next = e.target.value.replace(/\D/g, "").slice(0, 4);
-              setPin(next);
-              setError(null);
-            }}
+            onChange={(e) => setPassword(e.target.value)}
           />
-          {error ? <p className="text-destructive text-sm">{error}</p> : null}
-          <DialogFooter className="gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -99,7 +77,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             >
               返回
             </Button>
-            <Button type="submit" disabled={submitting || pin.length !== 4}>
+            <Button type="submit" disabled={submitting || !password}>
               {submitting ? <Spinner className="size-4" /> : null}
               确认
             </Button>

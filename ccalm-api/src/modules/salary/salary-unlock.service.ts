@@ -12,23 +12,25 @@ const UNLOCK_TTL_SEC = 30 * 60
 export class SalaryUnlockService {
   constructor(private readonly jwt: JwtService) {}
 
-  private configuredPin(): string {
-    const pin = process.env.SALARY_PIN?.trim()
-    if (!pin || !/^\d{4}$/.test(pin)) {
+  private configuredPassword(): string {
+    const password = process.env.SALARY_PIN?.trim()
+    if (!password) {
       throw new ServiceUnavailableException(
-        "未配置薪资 PIN，请在服务端环境变量设置 SALARY_PIN（4 位数字）"
+        "未配置薪资密码，请在服务端环境变量设置 SALARY_PIN"
       )
     }
-    return pin
+    return password
   }
 
-  verifyPin(pin: string): void {
-    const expected = this.configuredPin()
-    if (!/^\d{4}$/.test(pin)) {
-      throw new ForbiddenException("薪资 PIN 错误")
+  verifyPassword(password: string): void {
+    const expected = this.configuredPassword()
+    const left = Buffer.from(password)
+    const right = Buffer.from(expected)
+    if (left.length !== right.length) {
+      throw new ForbiddenException("密码错误")
     }
-    const ok = timingSafeEqual(Buffer.from(pin), Buffer.from(expected))
-    if (!ok) throw new ForbiddenException("薪资 PIN 错误")
+    const ok = timingSafeEqual(left, right)
+    if (!ok) throw new ForbiddenException("密码错误")
   }
 
   async issueUnlockToken(
@@ -46,16 +48,16 @@ export class SalaryUnlockService {
 
   assertUnlocked(userId: string, token: string | undefined): void {
     if (!token?.trim()) {
-      throw new ForbiddenException("请先验证薪资 PIN")
+      throw new ForbiddenException("请先验证薪资密码")
     }
     try {
       const payload = this.jwt.verify<{ sub?: string; scope?: string }>(token)
       if (payload.sub !== userId || payload.scope !== "salary") {
-        throw new ForbiddenException("薪资验证已失效，请重新输入 PIN")
+        throw new ForbiddenException("薪资验证已失效，请重新输入密码")
       }
     } catch (e) {
       if (e instanceof ForbiddenException) throw e
-      throw new ForbiddenException("薪资验证已失效，请重新输入 PIN")
+      throw new ForbiddenException("薪资验证已失效，请重新输入密码")
     }
   }
 }
