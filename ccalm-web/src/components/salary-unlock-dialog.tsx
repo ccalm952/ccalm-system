@@ -36,7 +36,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!password) return;
+    if (!/^\d{4}$/.test(password)) return;
     setSubmitting(true);
     try {
       const res = await api<{ unlockToken: string; expiresAt: string }>(
@@ -63,10 +63,16 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
           <Input
             ref={inputRef}
             type="password"
+            inputMode="numeric"
             autoComplete="off"
+            maxLength={4}
+            placeholder="••••"
             value={password}
             disabled={submitting}
-            onChange={(e) => setPassword(e.target.value)}
+            className="text-center text-lg tracking-[0.4em]"
+            onChange={(e) => {
+              setPassword(e.target.value.replace(/\D/g, "").slice(0, 4));
+            }}
           />
           <DialogFooter>
             <Button
@@ -77,7 +83,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             >
               返回
             </Button>
-            <Button type="submit" disabled={submitting || !password}>
+            <Button type="submit" disabled={submitting || password.length !== 4}>
               {submitting ? <Spinner className="size-4" /> : null}
               确认
             </Button>
