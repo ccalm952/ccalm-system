@@ -387,7 +387,7 @@ export function OrthodonticsPage() {
               {editIdRef.current == null ? "添加" : "编辑"}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             <Input
               placeholder="病历号"
               value={form.chartNo}
