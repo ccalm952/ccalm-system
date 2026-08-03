@@ -66,7 +66,8 @@ function DialogContent({
               <Button
                 variant="ghost"
                 className="absolute top-4 right-4 bg-secondary"
-                size="icon-sm"
+                // CCALM: 关闭按钮 32px（官方默认 icon-sm / 28px）
+                size="icon"
               />
             }
           >
@@ -122,7 +123,8 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-medium",
+        // CCALM: 标题行高 32px（官方默认 leading-none）
+        "font-heading text-base leading-8 font-medium",
         className
       )}
       {...props}
