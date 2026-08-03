@@ -59,7 +59,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
     <Dialog open={open}>
       <DialogContent showCloseButton={false} className="gap-4 md:max-w-sm">
         <form className="flex flex-col gap-4" onSubmit={(e) => void submit(e)}>
-          <DialogTitle>输入密码</DialogTitle>
+          <DialogTitle className="leading-8">输入密码</DialogTitle>
           <Input
             ref={inputRef}
             type="password"
