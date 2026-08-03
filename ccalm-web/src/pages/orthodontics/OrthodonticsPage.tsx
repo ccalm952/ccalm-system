@@ -270,11 +270,11 @@ export function OrthodonticsPage() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+      <Card size="sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
           <CardTitle>{TITLE_BY_CATEGORY[category]}</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <InputGroup>
+          <div className="flex shrink-0 items-center gap-2">
+            <InputGroup className="w-40 sm:w-56">
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
