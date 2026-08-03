@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
+const DialogCloseContext = React.createContext(false)
+
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
@@ -39,6 +41,27 @@ function DialogOverlay({
   )
 }
 
+// CCALM: 关闭按钮放在 DialogHeader 标题行内（官方为 DialogContent 内 absolute）
+function DialogCloseButton() {
+  const showCloseButton = React.useContext(DialogCloseContext)
+  if (!showCloseButton) return null
+  return (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      render={
+        <Button
+          variant="ghost"
+          className="bg-secondary shrink-0"
+          size="icon"
+        />
+      }
+    >
+      <XIcon />
+      <span className="sr-only">Close</span>
+    </DialogPrimitive.Close>
+  )
+}
+
 function DialogContent({
   className,
   children,
@@ -50,45 +73,36 @@ function DialogContent({
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-popover p-6 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md dark:ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                // CCALM: 关闭按钮 32px，与 p-6 / 标题行对齐（官方 top-4 right-4 + icon-sm）
-                className="absolute top-6 right-6 bg-secondary"
-                size="icon"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+      <DialogCloseContext.Provider value={showCloseButton}>
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          className={cn(
+            "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-popover p-6 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md dark:ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </DialogPrimitive.Popup>
+      </DialogCloseContext.Provider>
     </DialogPortal>
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      // CCALM: 为右侧关闭按钮留空，与标题同行
-      className={cn("flex flex-col gap-1.5 pr-10", className)}
+      // CCALM: 标题文本与关闭按钮同一行（官方仅为 flex-col）
+      className={cn(
+        "flex flex-row items-start justify-between gap-4",
+        className
+      )}
       {...props}
-    />
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">{children}</div>
+      <DialogCloseButton />
+    </div>
   )
 }
 
