@@ -65,8 +65,8 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4 bg-secondary"
-                // CCALM: 关闭按钮 32px（官方默认 icon-sm / 28px）
+                // CCALM: 关闭按钮 32px，与 p-6 / 标题行对齐（官方 top-4 right-4 + icon-sm）
+                className="absolute top-6 right-6 bg-secondary"
                 size="icon"
               />
             }
@@ -85,7 +85,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-1.5", className)}
+      // CCALM: 为右侧关闭按钮留空，与标题同行
+      className={cn("flex flex-col gap-1.5 pr-10", className)}
       {...props}
     />
   )
