@@ -33,7 +33,7 @@ export class SalaryController {
   @Post("unlock")
   async unlock(@Req() req: Request, @Body() dto: SalaryUnlockDto) {
     const actor = requireAdmin(req, "仅管理员可查看薪资")
-    this.salaryUnlock.verifyPin(dto.pin)
+    this.salaryUnlock.verifyPassword(dto.password)
     return await this.salaryUnlock.issueUnlockToken(actor.userId)
   }
 
