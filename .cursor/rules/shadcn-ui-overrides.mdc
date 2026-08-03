@@ -29,7 +29,8 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 | `navigation-menu.tsx` | trigger / link | `focus-visible:bg-muted`（非 `focus:bg-muted`）；去掉 `data-open:focus:bg-muted`、`data-[active=true]:focus:bg-muted` |
 | `sidebar.tsx` | `SidebarRail` | `md:flex`（非 `sm:flex`） |
 | `dialog.tsx` | `DialogTitle` | `leading-8`（非 `leading-none`） |
-| `dialog.tsx` | 关闭按钮 | `size="icon"`（非 `icon-sm`） |
+| `dialog.tsx` | 关闭按钮 | `size="icon"` + `top-6 right-6`（非 `icon-sm` + `top-4 right-4`） |
+| `dialog.tsx` | `DialogHeader` | 增加 `pr-10`（为关闭按钮留空） |
 
 ## 已废弃定制（base-rhea 同步后勿恢复）
 
