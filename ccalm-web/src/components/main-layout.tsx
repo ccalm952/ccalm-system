@@ -22,7 +22,7 @@ export function MainLayout() {
   const { me } = useAuth();
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen>
       <AppSidebar collapsible="offcanvas" />
       <SidebarInset>
         <header className="sticky top-0 z-40 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b bg-background px-4 py-2">

@@ -813,6 +813,31 @@ function handleSalaryAccessError(e: unknown, onLocked: () => void): boolean {
 export function SalaryPage() {
   const { me } = useAuth();
   const [salaryUnlocked, setSalaryUnlocked] = React.useState(hasSalaryUnlockToken);
+
+  if (me?.role !== "admin") {
+    return <Navigate to={ROUTES.home} replace />;
+  }
+
+  if (!salaryUnlocked) {
+    return (
+      <SalaryUnlockDialog
+        open
+        onUnlocked={() => setSalaryUnlocked(true)}
+      />
+    );
+  }
+
+  return (
+    <SalaryPageContent
+      onLock={() => {
+        setSalaryUnlockToken(null);
+        setSalaryUnlocked(false);
+      }}
+    />
+  );
+}
+
+function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const [months, setMonths] = React.useState<string[]>([]);
   const [activeMonth, setActiveMonth] = React.useState("");
   const [addMonthOpen, setAddMonthOpen] = React.useState(false);
@@ -852,13 +877,12 @@ export function SalaryPage() {
   }, []);
 
   const lockSalary = React.useCallback(() => {
-    setSalaryUnlockToken(null);
-    setSalaryUnlocked(false);
     setSheets({});
     setDefaultTemplate(null);
     setMonths([]);
     setActiveMonth("");
-  }, []);
+    onLock();
+  }, [onLock]);
 
   const reloadMonths = React.useCallback(async () => {
     const list = await api<string[]>("GET", "/salary/months", undefined, salaryApi);
@@ -887,7 +911,6 @@ export function SalaryPage() {
   }, []);
 
   React.useEffect(() => {
-    if (!salaryUnlocked) return;
     void (async () => {
       try {
         await Promise.all([reloadMonths(), reloadDefaultTemplate()]);
@@ -896,7 +919,7 @@ export function SalaryPage() {
         toast.error(errorMessage(e));
       }
     })();
-  }, [salaryUnlocked, reloadMonths, reloadDefaultTemplate, lockSalary]);
+  }, [reloadMonths, reloadDefaultTemplate, lockSalary]);
 
   const refreshScheduleLeaveQuotas = React.useCallback(
     async (month: string) => {
@@ -982,12 +1005,12 @@ export function SalaryPage() {
   );
 
   React.useEffect(() => {
-    if (salaryUnlocked && activeMonth) void refreshScheduleLeaveQuotas(activeMonth);
-  }, [activeMonth, salaryUnlocked, refreshScheduleLeaveQuotas]);
+    if (activeMonth) void refreshScheduleLeaveQuotas(activeMonth);
+  }, [activeMonth, refreshScheduleLeaveQuotas]);
 
   React.useEffect(() => {
-    if (salaryUnlocked && activeMonth) void loadMonth(activeMonth);
-  }, [activeMonth, loadMonth, salaryUnlocked]);
+    if (activeMonth) void loadMonth(activeMonth);
+  }, [activeMonth, loadMonth]);
 
   const patchSheet = React.useCallback((month: string, patch: SalarySheetData) => {
     const data = applyMonthCalendar(patch, month);
@@ -1003,19 +1026,6 @@ export function SalaryPage() {
         .finally(() => setSaving(false));
     }, 600);
   }, [lockSalary]);
-
-  if (me?.role !== "admin") {
-    return <Navigate to={ROUTES.home} replace />;
-  }
-
-  if (!salaryUnlocked) {
-    return (
-      <SalaryUnlockDialog
-        open
-        onUnlocked={() => setSalaryUnlocked(true)}
-      />
-    );
-  }
 
   const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =

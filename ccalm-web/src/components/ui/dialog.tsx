@@ -66,13 +66,16 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  overlayClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  // CCALM: 允许业务侧覆盖遮罩（如去掉 blur 减轻卡顿）
+  overlayClassName?: string
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogCloseContext.Provider value={showCloseButton}>
         <DialogPrimitive.Popup
           data-slot="dialog-content"
