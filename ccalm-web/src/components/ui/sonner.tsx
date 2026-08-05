@@ -1,6 +1,7 @@
 "use client"
 
-import { useTheme } from "next-themes"
+// CCALM: 使用项目 ThemeProvider（官方默认 next-themes）
+import { useTheme } from "@/components/theme-provider"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 

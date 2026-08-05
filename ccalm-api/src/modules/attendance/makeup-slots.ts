@@ -151,29 +151,6 @@ function adminMakeupSlotDenyReason(
   return null
 }
 
-export function employeeMakeupSlotAvailable(
-  row: DayPunchRow,
-  type: MakeupSlotType,
-  pending: PendingMakeup[] = [],
-  gate?: MakeupTodayGate,
-  at: Date = new Date()
-): boolean {
-  const env = makeupSlotsEnv()
-  return (
-    employeeMakeupSlotDenyReason(row, type, pending, env, gate, at) === null
-  )
-}
-
-export function adminMakeupSlotAvailable(
-  row: DayPunchRow,
-  type: MakeupSlotType,
-  gate?: MakeupTodayGate,
-  at: Date = new Date()
-): boolean {
-  const env = makeupSlotsEnv()
-  return adminMakeupSlotDenyReason(row, type, env, gate, at) === null
-}
-
 export function makeupSlotDenyMessage(
   reason: MakeupSlotDenyReason,
   type: MakeupSlotType
