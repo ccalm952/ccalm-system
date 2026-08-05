@@ -1,12 +1,16 @@
 ﻿import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { setSalaryUnlockToken } from "@/lib/salary-unlock";
@@ -17,6 +21,7 @@ type SalaryUnlockDialogProps = {
 };
 
 export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps) {
+  const navigate = useNavigate();
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -82,6 +87,16 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
               if (next.length === 4) void unlock(next);
             }}
           />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => navigate(ROUTES.home)}
+            >
+              返回
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
