@@ -75,7 +75,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             placeholder="••••"
             value={password}
             readOnly={submitting}
-            className="text-center text-lg tracking-[0.4em]"
+            className="text-lg tracking-[0.4em]"
             onChange={(e) => {
               const next = e.target.value.replace(/\D/g, "").slice(0, 4);
               setPassword(next);
