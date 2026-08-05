@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -26,40 +26,52 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const submittingRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!open) return;
     setPassword("");
+    submittingRef.current = false;
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!/^\d{4}$/.test(password)) return;
-    setSubmitting(true);
-    try {
-      const res = await api<{ unlockToken: string; expiresAt: string }>(
-        "POST",
-        "/salary/unlock",
-        { password },
-      );
-      setSalaryUnlockToken(res.unlockToken);
-      onUnlocked();
-    } catch (err) {
-      toast.error(errorMessage(err));
-      setPassword("");
-      inputRef.current?.focus();
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const unlock = React.useCallback(
+    async (pin: string) => {
+      if (!/^\d{4}$/.test(pin) || submittingRef.current) return;
+      submittingRef.current = true;
+      setSubmitting(true);
+      try {
+        const res = await api<{ unlockToken: string; expiresAt: string }>(
+          "POST",
+          "/salary/unlock",
+          { password: pin },
+        );
+        setSalaryUnlockToken(res.unlockToken);
+        onUnlocked();
+      } catch (err) {
+        toast.error(errorMessage(err));
+        setPassword("");
+        inputRef.current?.focus();
+      } finally {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
+    },
+    [onUnlocked],
+  );
 
   return (
     <Dialog open={open}>
       <DialogContent showCloseButton={false} className="gap-4 md:max-w-sm">
-        <form className="flex flex-col gap-4" onSubmit={(e) => void submit(e)}>
-          <DialogTitle>输入密码</DialogTitle>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void unlock(password);
+          }}
+        >
+          <DialogTitle className="text-center">输入密码</DialogTitle>
           <Input
             ref={inputRef}
             type="password"
@@ -71,7 +83,9 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             disabled={submitting}
             className="text-center text-lg tracking-[0.4em]"
             onChange={(e) => {
-              setPassword(e.target.value.replace(/\D/g, "").slice(0, 4));
+              const next = e.target.value.replace(/\D/g, "").slice(0, 4);
+              setPassword(next);
+              if (next.length === 4) void unlock(next);
             }}
           />
           <DialogFooter>
