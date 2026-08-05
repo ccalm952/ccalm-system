@@ -53,7 +53,7 @@ function SidebarNavCollapsible({
     () => items.some((sub) => subPathActive(pathname, sub.url)),
     [pathname, items],
   );
-  const [open, setOpen] = React.useState(active);
+  const [open, setOpen] = React.useState(true);
   React.useEffect(() => {
     if (active) setOpen(true);
   }, [active]);
