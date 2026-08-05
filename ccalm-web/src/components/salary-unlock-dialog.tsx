@@ -62,7 +62,11 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
 
   return (
     <Dialog open={open}>
-      <DialogContent showCloseButton={false} className="gap-4 md:max-w-sm">
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="supports-backdrop-filter:backdrop-blur-none"
+        className="gap-4 duration-150 data-open:zoom-in-100 md:max-w-sm"
+      >
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {

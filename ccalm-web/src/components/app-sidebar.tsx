@@ -55,7 +55,7 @@ function SidebarNavCollapsible({
   );
   const [open, setOpen] = React.useState(active);
   React.useEffect(() => {
-    if (!active) setOpen(false);
+    if (active) setOpen(true);
   }, [active]);
   return (
     <Collapsible
