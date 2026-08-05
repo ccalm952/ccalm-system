@@ -1,8 +1,6 @@
 import type { MakeupSlotType } from "./makeup-today-gate"
 import type { ScheduleShiftType } from "./schedule-inference"
 
-export type RestHalf = "morning" | "afternoon"
-
 export type DayPunchRow = {
   date: string
   morningIn: string | null
@@ -22,20 +20,6 @@ export function isAfternoonScheduleRest(
   declaredRest: ScheduleShiftType | null | undefined
 ): boolean {
   return declaredRest === "full_rest" || declaredRest === "afternoon_rest"
-}
-
-export function isHalfDeclaredRest(
-  declaredRest: ScheduleShiftType | null | undefined,
-  half: RestHalf
-): boolean {
-  return half === "morning"
-    ? isMorningScheduleRest(declaredRest)
-    : isAfternoonScheduleRest(declaredRest)
-}
-
-export function halfHasPunch(row: DayPunchRow, half: RestHalf): boolean {
-  if (half === "morning") return !!(row.morningIn || row.morningOut)
-  return !!(row.afternoonIn || row.afternoonOut)
 }
 
 export function isPunchBlockedByScheduleRest(

@@ -2,7 +2,7 @@
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env`，填写 `DATABASE_URL`、`JWT_SECRET`、`PORT`（可选）。
+复制 `.env.example` 为 `.env`，填写 `DATABASE_URL`、`JWT_SECRET`、`SALARY_PIN`、`PORT`（可选）。
 
 ## 常用命令
 
