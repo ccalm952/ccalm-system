@@ -1,17 +1,12 @@
 ﻿import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { setSalaryUnlockToken } from "@/lib/salary-unlock";
@@ -22,7 +17,6 @@ type SalaryUnlockDialogProps = {
 };
 
 export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps) {
-  const navigate = useNavigate();
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -52,7 +46,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
       } catch (err) {
         toast.error(errorMessage(err));
         setPassword("");
-        inputRef.current?.focus();
+        window.setTimeout(() => inputRef.current?.focus(), 0);
       } finally {
         submittingRef.current = false;
         setSubmitting(false);
@@ -80,7 +74,7 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
             maxLength={4}
             placeholder="••••"
             value={password}
-            disabled={submitting}
+            readOnly={submitting}
             className="text-center text-lg tracking-[0.4em]"
             onChange={(e) => {
               const next = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -88,20 +82,6 @@ export function SalaryUnlockDialog({ open, onUnlocked }: SalaryUnlockDialogProps
               if (next.length === 4) void unlock(next);
             }}
           />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={submitting}
-              onClick={() => navigate(ROUTES.home)}
-            >
-              返回
-            </Button>
-            <Button type="submit" disabled={submitting || password.length !== 4}>
-              {submitting ? <Spinner className="size-4" /> : null}
-              确认
-            </Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
