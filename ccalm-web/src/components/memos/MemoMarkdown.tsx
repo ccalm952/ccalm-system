@@ -77,7 +77,7 @@ function InlineCodeCopyable({ text }: { text: string }) {
       className={cn(
         "group/inline-code mx-0.5 inline-flex max-w-full items-center gap-1 align-middle",
         "rounded-md border border-border/70 bg-muted px-1.5 py-0.5",
-        "font-mono text-[0.85em] leading-none",
+        "font-mono text-[1em] leading-none",
         "transition-colors hover:border-ring hover:bg-accent",
       )}
     >
@@ -111,8 +111,8 @@ export function MemoMarkdown({ content, className }: { content: string; classNam
         "[&_a]:text-primary [&_a]:underline-offset-2 hover:[&_a]:underline",
         "[&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
         "[&_hr]:my-4 [&_hr]:border-border",
-        "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]",
-        "[&_pre_code]:rounded-none [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:font-mono [&_pre_code]:text-[0.85em]",
+        "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[1em]",
+        "[&_pre_code]:rounded-none [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:font-mono [&_pre_code]:text-[1em]",
         "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left",
         "[&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-2 [&_th]:py-1",
         "[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1",
