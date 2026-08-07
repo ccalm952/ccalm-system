@@ -15,6 +15,7 @@ import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
+import { memosNavItem } from "@/config/memos-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -71,6 +72,11 @@ export function MainLayout() {
                       </NavigationMenuLink>
                     ))}
                   </NavigationMenuContent>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink render={<Link to={ROUTES.memos.root} />}>
+                    {memosNavItem.title}
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>

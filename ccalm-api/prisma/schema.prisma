@@ -236,3 +236,14 @@ model OrthodonticsPatient {
   @@index([name])
   @@index([lastVisitDate])
 }
+
+/// 备忘录（Markdown；共享给登录用户）
+model Memo {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   @default("")
+  category  String   @default("")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

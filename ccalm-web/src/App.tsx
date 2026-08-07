@@ -20,6 +20,7 @@ import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
 import { OrthodonticsPage } from "@/pages/orthodontics/OrthodonticsPage";
 import { UsersPage } from "@/pages/users/UsersPage";
 import { SalaryPage } from "@/pages/salary/SalaryPage";
+import { MemosPage } from "@/pages/memos/MemosPage";
 
 const LoginPage = lazy(() =>
   import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
@@ -136,6 +137,8 @@ export function App() {
             </Route>
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
+
+            <Route path={ROUTES.memos.root} element={<MemosPage />} />
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>

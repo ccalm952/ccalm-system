@@ -9,6 +9,7 @@ import { AttendanceModule } from "./modules/attendance/attendance.module"
 import { ImplantModule } from "./modules/implant/implant.module"
 import { OrthodonticsModule } from "./modules/orthodontics/orthodontics.module"
 import { SalaryModule } from "./modules/salary/salary.module"
+import { MemosModule } from "./modules/memos/memos.module"
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SalaryModule } from "./modules/salary/salary.module"
     ImplantModule,
     OrthodonticsModule,
     SalaryModule,
+    MemosModule,
   ],
   controllers: [],
   providers: [
