@@ -207,7 +207,8 @@ export function MemosPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">备忘录</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Markdown：``两个反引号`` 可复制，`一个` 仅高亮；代码块右上角可复制
+            Markdown：# / ## / ### 标题；**粗体**、*斜体*；- 或 1. 列表；&gt; 引用；[文字](链接)；
+            ``两个反引号`` 可复制，`一个` 仅高亮；``` 代码块右上角可复制；| 表格
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -298,7 +299,8 @@ export function MemosPage() {
               <div>
                 <CardTitle>{selectedId === "new" ? "新建备忘录" : "编辑备忘录"}</CardTitle>
                 <CardDescription>
-                  ``两个反引号`` 包住可点击复制；`一个反引号` 只做行内高亮；三个反引号是代码块
+                  支持标题、列表、引用、链接、表格；``两个反引号`` 可点击复制；`一个反引号`
+                  仅高亮；三个反引号是代码块
                 </CardDescription>
               </div>
               {typeof selectedId === "number" ? (
