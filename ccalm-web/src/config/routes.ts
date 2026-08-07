@@ -29,4 +29,7 @@ export const ROUTES = {
   salary: {
     root: "/salary",
   },
+  memos: {
+    root: "/memos",
+  },
 } as const;
