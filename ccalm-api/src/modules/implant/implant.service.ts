@@ -625,13 +625,11 @@ export class ImplantService {
 
   async createPending(dto: CreateImplantPendingDto) {
     const name = dto.name.trim()
-    const phone = dto.phone.trim()
     if (!name) throw new BadRequestException("请填写姓名")
-    if (!phone) throw new BadRequestException("请填写手机")
     const row = await this.prisma.implantPending.create({
       data: {
         name,
-        phone,
+        phone: dto.phone?.trim() ?? "",
         chartNo: dto.chartNo?.trim() ?? "",
         teeth: dto.teeth?.trim() ?? "",
         extractionDate: this.normalizeExtractionDate(dto.extractionDate),
@@ -647,14 +645,12 @@ export class ImplantService {
     })
     if (!existing) throw new NotFoundException("记录不存在")
     const name = dto.name.trim()
-    const phone = dto.phone.trim()
     if (!name) throw new BadRequestException("请填写姓名")
-    if (!phone) throw new BadRequestException("请填写手机")
     const row = await this.prisma.implantPending.update({
       where: { id },
       data: {
         name,
-        phone,
+        phone: dto.phone?.trim() ?? "",
         chartNo: dto.chartNo?.trim() ?? "",
         teeth: dto.teeth?.trim() ?? "",
         extractionDate: this.normalizeExtractionDate(dto.extractionDate),
