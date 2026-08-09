@@ -5,9 +5,9 @@ export class CreateImplantPendingDto {
   @MinLength(1)
   name!: string
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  phone!: string
+  phone?: string
 
   @IsOptional()
   @IsString()
@@ -31,9 +31,9 @@ export class UpdateImplantPendingDto {
   @MinLength(1)
   name!: string
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  phone!: string
+  phone?: string
 
   @IsOptional()
   @IsString()
