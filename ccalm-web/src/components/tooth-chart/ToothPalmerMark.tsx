@@ -8,7 +8,7 @@ type ToothPalmerMarkProps = {
   compact?: boolean;
 };
 
-/** 图1：十字象限 Palmer 标记；左右列等宽，竖线居中 */
+/** 图1：十字象限 Palmer 标记；左右列强制等宽，竖线居中 */
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
@@ -19,27 +19,23 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
     Math.max(g.UL.length, g.LL.length),
     1,
   );
-  const colStyle = { minWidth: `${colCh}ch` };
+  const padPx = compact ? 4 : 8;
+  const colTrack = `calc(${colCh}ch + ${padPx}px)`;
 
   return (
     <span
       className={cn(
-        "inline-grid shrink-0 grid-cols-[auto_1px_auto] grid-rows-[auto_1px_auto] font-medium tabular-nums text-foreground",
+        "inline-grid shrink-0 grid-rows-[auto_1px_auto] font-medium tabular-nums text-foreground",
         text,
         className,
       )}
+      style={{ gridTemplateColumns: `${colTrack} 1px ${colTrack}` }}
     >
-      <span
-        className={cn("flex items-end justify-end whitespace-nowrap", cell)}
-        style={colStyle}
-      >
+      <span className={cn("flex items-end justify-end whitespace-nowrap", cell)}>
         {g.UR || "\u00a0"}
       </span>
       <span className={line} />
-      <span
-        className={cn("flex items-end justify-start whitespace-nowrap", cell)}
-        style={colStyle}
-      >
+      <span className={cn("flex items-end justify-start whitespace-nowrap", cell)}>
         {g.UL || "\u00a0"}
       </span>
 
@@ -47,17 +43,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
       <span className={line} />
       <span className={line} />
 
-      <span
-        className={cn("flex items-start justify-end whitespace-nowrap", cell)}
-        style={colStyle}
-      >
+      <span className={cn("flex items-start justify-end whitespace-nowrap", cell)}>
         {g.LR || "\u00a0"}
       </span>
       <span className={line} />
-      <span
-        className={cn("flex items-start justify-start whitespace-nowrap", cell)}
-        style={colStyle}
-      >
+      <span className={cn("flex items-start justify-start whitespace-nowrap", cell)}>
         {g.LL || "\u00a0"}
       </span>
     </span>
