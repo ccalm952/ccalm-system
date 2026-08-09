@@ -341,7 +341,7 @@ export function ImplantPendingPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="text-base md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm">
           <DialogHeader>
             <DialogTitle>{editIdRef.current == null ? "新增" : "编辑"}</DialogTitle>
           </DialogHeader>
@@ -369,6 +369,7 @@ export function ImplantPendingPage() {
               value={form.extractionDate}
               onValueChange={(v) => setForm((f) => ({ ...f, extractionDate: v }))}
               placeholder="拔牙日期"
+              className="border-transparent bg-input/50 hover:bg-input/50 dark:bg-input/50 dark:hover:bg-input/50"
             />
             <Input
               placeholder="备注"
