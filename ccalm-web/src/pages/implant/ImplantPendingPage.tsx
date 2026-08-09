@@ -39,6 +39,19 @@ import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 
+const IMPLANT_TABLE_SELECT_COL_W = "40px";
+
+const PENDING_SHARE_COLS = [
+  "name",
+  "phone",
+  "chartNo",
+  "teeth",
+  "extractionDate",
+  "monthsAfter",
+  "remark",
+  "actions",
+] as const;
+
 type PendingRow = {
   id: number;
   name: string;
@@ -227,8 +240,22 @@ export function ImplantPendingPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea>
-            <Table>
+          <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
+            {/*
+              与种植患者一致：min-w 1246 + table-fixed；勾选列固定，其余列均分
+            */}
+            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+              <colgroup>
+                <col style={{ width: IMPLANT_TABLE_SELECT_COL_W }} />
+                {PENDING_SHARE_COLS.map((id) => (
+                  <col
+                    key={id}
+                    style={{
+                      width: `calc((100% - ${IMPLANT_TABLE_SELECT_COL_W}) / ${PENDING_SHARE_COLS.length})`,
+                    }}
+                  />
+                ))}
+              </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -240,14 +267,14 @@ export function ImplantPendingPage() {
                       }}
                     />
                   </TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>手机</TableHead>
-                  <TableHead>病历号</TableHead>
-                  <TableHead>牙位</TableHead>
-                  <TableHead>拔牙日期</TableHead>
-                  <TableHead>拔牙后</TableHead>
-                  <TableHead>备注</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">姓名</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">手机</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">病历号</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">牙位</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">拔牙日期</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">拔牙后</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">备注</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -259,20 +286,20 @@ export function ImplantPendingPage() {
                         onCheckedChange={() => toggleSel(index)}
                       />
                     </TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.phone}</TableCell>
-                    <TableCell>{row.chartNo}</TableCell>
-                    <TableCell>{row.teeth}</TableCell>
-                    <TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.teeth}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
                       {row.extractionDate
                         ? dayjs(row.extractionDate).format("YYYY-MM-DD")
                         : ""}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
                       {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
                     </TableCell>
-                    <TableCell>{row.remark}</TableCell>
-                    <TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
                           编辑
