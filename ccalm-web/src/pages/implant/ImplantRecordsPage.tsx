@@ -202,11 +202,11 @@ type AddSuggestion = {
   teeth?: string;
 };
 
-function splitPendingTeeth(raw: string): AddToothRow[] {
+/** 仅当整段都是空格分隔的纯数字牙位时才拆行；含中文等非数字内容则不拆、不自动填牙位 */
+function splitPendingTeeth(raw: string): AddToothRow[] | null {
   const parts = raw.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) {
-    return [{ toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }];
-  }
+  if (!parts.length) return null;
+  if (parts.some((part) => !/^\d+$/.test(part))) return null;
   return parts.map((toothNo) => ({
     toothNo,
     implantBrand: "",
@@ -567,7 +567,8 @@ function ImplantRecordsVisitDialog({
     setBirthday(s.birthday?.trim() ?? "");
     setAge(s.age != null && !Number.isNaN(Number(s.age)) ? String(s.age) : "");
     if (s.origin === "pending") {
-      setTeeth(splitPendingTeeth(s.teeth ?? ""));
+      const toothRows = splitPendingTeeth(s.teeth ?? "");
+      if (toothRows) setTeeth(toothRows);
     }
     setSuggestions([]);
     setSuggestListDismissed(true);

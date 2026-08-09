@@ -318,7 +318,7 @@ export function ImplantPendingPage() {
               onChange={(e) => setForm((f) => ({ ...f, chartNo: e.target.value }))}
             />
             <Input
-              placeholder="牙位（空格分隔，如 11 12 13）"
+              placeholder="牙位（纯数字空格分隔可自动拆行，如 11 12 13）"
               value={form.teeth}
               onChange={(e) => setForm((f) => ({ ...f, teeth: e.target.value }))}
             />
