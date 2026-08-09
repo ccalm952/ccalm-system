@@ -828,6 +828,7 @@ function ImplantRecordsVisitDialog({
                         onValueChange={() => {}}
                         disabled
                         captionLayout="dropdown"
+                        emptyMonth={new Date(2000, 0)}
                         placeholder=""
                       />
                     </FieldContent>
@@ -1071,6 +1072,7 @@ function ImplantRecordsVisitDialog({
                         value={birthday}
                         onValueChange={onBirthdayChange}
                         captionLayout="dropdown"
+                        emptyMonth={new Date(2000, 0)}
                         placeholder="出生日期"
                         aria-label="出生日期"
                       />
