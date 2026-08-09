@@ -11,8 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   deciduousInUi,
-  formatTeeth,
-  isDeciduousFdi,
   palmerLabel,
   permanentInUi,
   shortcutDeciduous,
@@ -53,42 +51,58 @@ function ToothCell({
   );
 }
 
+function ToothRow({
+  fdis,
+  selected,
+  toggle,
+  alignEnd,
+}: {
+  fdis: number[];
+  selected: Set<number>;
+  toggle: (n: number) => void;
+  alignEnd?: boolean;
+}) {
+  return (
+    <div className={cn("flex gap-1", alignEnd ? "justify-end" : "justify-start")}>
+      {fdis.map((n) => (
+        <ToothCell
+          key={n}
+          fdi={n}
+          selected={selected.has(n)}
+          onToggle={() => toggle(n)}
+        />
+      ))}
+    </div>
+  );
+}
+
 function QuadrantBlock({
   q,
   selected,
   toggle,
+  deciduousFirst,
 }: {
   q: UiQuadrant;
   selected: Set<number>;
   toggle: (n: number) => void;
+  /** 上半口：乳牙在上、恒牙在下 */
+  deciduousFirst?: boolean;
 }) {
   const perm = permanentInUi(q);
   const dec = deciduousInUi(q);
-  // UR/LR：外侧在左，显示顺序已是 8→1；UL/LL：1→8
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-1">
-        {perm.map((n) => (
-          <ToothCell
-            key={n}
-            fdi={n}
-            selected={selected.has(n)}
-            onToggle={() => toggle(n)}
-          />
-        ))}
-      </div>
-      <div className={cn("flex gap-1", q === "UR" || q === "LR" ? "justify-end" : "justify-start")}>
-        {dec.map((n) => (
-          <ToothCell
-            key={n}
-            fdi={n}
-            selected={selected.has(n)}
-            onToggle={() => toggle(n)}
-          />
-        ))}
-      </div>
-    </div>
+  const alignEnd = q === "UR" || q === "LR";
+  const rows = deciduousFirst ? (
+    <>
+      <ToothRow fdis={dec} selected={selected} toggle={toggle} alignEnd={alignEnd} />
+      <ToothRow fdis={perm} selected={selected} toggle={toggle} />
+    </>
+  ) : (
+    <>
+      <ToothRow fdis={perm} selected={selected} toggle={toggle} />
+      <ToothRow fdis={dec} selected={selected} toggle={toggle} alignEnd={alignEnd} />
+    </>
   );
+  return <div className="flex flex-col gap-1">{rows}</div>;
 }
 
 export function ToothChartDialog({
@@ -131,7 +145,6 @@ export function ToothChartDialog({
 
   function confirm() {
     const list = [...draft].filter((n) => !Number.isNaN(n));
-    // 去掉无效；恒牙乳牙都保留
     onConfirm(list.filter((n) => n > 0));
     onOpenChange(false);
   }
@@ -187,32 +200,24 @@ export function ToothChartDialog({
             ))}
           </div>
 
-          <div className="relative mx-auto w-fit pt-2">
-            <div className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 -translate-x-full pr-2 text-xs text-muted-foreground">
-              右
-            </div>
-            <div className="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2 translate-x-full pl-2 text-xs text-muted-foreground">
-              左
-            </div>
-            <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-3">
-              <QuadrantBlock q="UR" selected={draft} toggle={toggle} />
-              <QuadrantBlock q="UL" selected={draft} toggle={toggle} />
-              <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
-              <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
-            </div>
-            <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+          <div className="relative mx-auto w-fit">
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border" />
+            <div className="flex flex-col">
+              <div className="grid grid-cols-2 gap-x-4">
+                <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
+                <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
+              </div>
+              <div className="my-3 flex items-center gap-2">
+                <span className="shrink-0 text-xs text-muted-foreground">右</span>
+                <div className="h-px flex-1 bg-border" />
+                <span className="shrink-0 text-xs text-muted-foreground">左</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4">
+                <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
+                <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
+              </div>
+            </div>
           </div>
-
-          <p className="text-center text-xs text-muted-foreground">
-            已选 {draft.size} 颗
-            {draft.size
-              ? `（${formatTeeth(
-                  [...draft].sort((a, b) => a - b),
-                )}）`
-              : ""}
-            {![...draft].some(isDeciduousFdi) ? null : " · 含乳牙"}
-          </p>
         </div>
 
         <DialogFooter>
