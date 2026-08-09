@@ -106,11 +106,15 @@ type PendingToothDelete = { visitId: number; toothId: number };
 
 type RecordsTableMeta = {
   mergeSpans: number[];
-  selection: Set<number>;
-  toggleSel: (i: number) => void;
+  selection: Set<string>;
+  toggleSel: (id: string) => void;
   selectAllRows: () => void;
   clearSelection: () => void;
 };
+
+function recordRowId(row: Row, index: number) {
+  return `${row.visitId}-${row.toothId ?? index}`;
+}
 
 const recordsTableFeatures = tableFeatures({
   tableMeta: metaHelper<RecordsTableMeta>(),
@@ -1244,24 +1248,24 @@ export function ImplantRecordsPage() {
   const [dateFrom, setDateFrom] = React.useState(range.from);
   const [dateTo, setDateTo] = React.useState(range.to);
   const [rows, setRows] = React.useState<Row[]>([]);
-  const [selection, setSelection] = React.useState<Set<number>>(new Set());
+  const [selection, setSelection] = React.useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [visitDialog, setVisitDialog] = React.useState<ImplantRecordsVisitDialogState | null>(null);
 
   /** 合并行依赖行顺序（与接口返回顺序一致） */
   const mergeSpans = React.useMemo(() => computeMergeSpans(rows), [rows]);
 
-  const toggleSel = React.useCallback((i: number) => {
+  const toggleSel = React.useCallback((id: string) => {
     setSelection((prev) => {
       const n = new Set(prev);
-      if (n.has(i)) n.delete(i);
-      else n.add(i);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
       return n;
     });
   }, []);
 
   const selectAllRows = React.useCallback(() => {
-    setSelection(new Set(rows.map((_, i) => i)));
+    setSelection(new Set(rows.map((row, i) => recordRowId(row, i))));
   }, [rows]);
 
   const clearSelection = React.useCallback(() => {
@@ -1303,7 +1307,7 @@ export function ImplantRecordsPage() {
   );
 
   async function confirmDeleteSelected() {
-    const sel = rows.filter((_, i) => selection.has(i));
+    const sel = rows.filter((row, i) => selection.has(recordRowId(row, i)));
     if (!sel.length) {
       setDeleteDialogOpen(false);
       return;
@@ -1329,8 +1333,9 @@ export function ImplantRecordsPage() {
           const meta = table.options.meta;
           const modelRows = table.getRowModel().rows;
           const sel = meta?.selection;
-          const allSelected = modelRows.length > 0 && modelRows.every((r) => sel?.has(r.index));
-          const someSelected = modelRows.some((r) => sel?.has(r.index));
+          const allSelected =
+            modelRows.length > 0 && modelRows.every((r) => sel?.has(r.id));
+          const someSelected = modelRows.some((r) => sel?.has(r.id));
           return (
             <Checkbox
               checked={allSelected}
@@ -1343,13 +1348,13 @@ export function ImplantRecordsPage() {
           );
         },
         cell: ({ row, table }) => {
-          const i = row.index;
+          const id = row.id;
           const sel = table.options.meta?.selection;
           const toggle = table.options.meta?.toggleSel;
           return (
             <Checkbox
-              checked={sel?.has(i) ?? false}
-              onCheckedChange={() => toggle?.(i)}
+              checked={sel?.has(id) ?? false}
+              onCheckedChange={() => toggle?.(id)}
               onClick={(e) => e.stopPropagation()}
             />
           );
@@ -1430,7 +1435,7 @@ export function ImplantRecordsPage() {
     features: recordsTableFeatures,
     data: rows,
     columns,
-    getRowId: (row, index) => `${row.visitId}-${row.toothId ?? index}`,
+    getRowId: (row, index) => recordRowId(row, index),
     meta: {
       mergeSpans,
       selection,

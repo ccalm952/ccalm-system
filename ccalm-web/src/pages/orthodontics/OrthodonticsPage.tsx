@@ -241,7 +241,7 @@ export function OrthodonticsPage() {
   }
 
   async function confirmDelete() {
-    const selected = rows.filter((_, i) => selection.has(i));
+    const selected = rows.filter((row) => selection.has(row.id));
     if (!selected.length) {
       setDeleteOpen(false);
       return;
@@ -257,16 +257,16 @@ export function OrthodonticsPage() {
     }
   }
 
-  function toggleSel(index: number) {
+  function toggleSel(id: number) {
     setSelection((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
-  const allSelected = rows.length > 0 && selection.size === rows.length;
+  const allSelected = rows.length > 0 && rows.every((row) => selection.has(row.id));
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
@@ -307,8 +307,11 @@ export function OrthodonticsPage() {
                   <TableHead>
                     <Checkbox
                       checked={allSelected}
+                      indeterminate={
+                        !allSelected && rows.some((row) => selection.has(row.id))
+                      }
                       onCheckedChange={(checked) => {
-                        if (checked) setSelection(new Set(rows.map((_, i) => i)));
+                        if (checked) setSelection(new Set(rows.map((row) => row.id)));
                         else setSelection(new Set());
                       }}
                     />
@@ -325,12 +328,12 @@ export function OrthodonticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row, index) => (
+                {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
                       <Checkbox
-                        checked={selection.has(index)}
-                        onCheckedChange={() => toggleSel(index)}
+                        checked={selection.has(row.id)}
+                        onCheckedChange={() => toggleSel(row.id)}
                       />
                     </TableCell>
                     <TableCell>{row.chartNo}</TableCell>

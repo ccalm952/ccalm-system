@@ -8,23 +8,57 @@ import { Spinner } from "@/components/ui/spinner";
 import { api, getToken, setToken, setUnauthorizedHandler, type ApiError } from "@/lib/api";
 import type { AuthMe } from "@/lib/auth";
 import { AuthProvider } from "@/lib/auth-context";
-import { AttendancePage } from "@/pages/attendance/AttendancePage";
-import { AttendanceShiftSettingsPage } from "@/pages/attendance/AttendanceShiftSettingsPage";
-import { AttendanceStatsPage } from "@/pages/attendance/AttendanceStatsPage";
-import { CheckInRangePage } from "@/pages/attendance/CheckInRangePage";
-import { SchedulePage } from "@/pages/attendance/SchedulePage";
-import { ImplantInventoryPage } from "@/pages/implant/ImplantInventoryPage";
-import { ImplantPatientPage } from "@/pages/implant/ImplantPatientPage";
-import { ImplantPendingPage } from "@/pages/implant/ImplantPendingPage";
-import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
-import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
-import { OrthodonticsPage } from "@/pages/orthodontics/OrthodonticsPage";
-import { UsersPage } from "@/pages/users/UsersPage";
-import { SalaryPage } from "@/pages/salary/SalaryPage";
-import { MemosPage } from "@/pages/memos/MemosPage";
 
 const LoginPage = lazy(() =>
   import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
+);
+const AttendancePage = lazy(() =>
+  import("./pages/attendance/AttendancePage").then((m) => ({ default: m.AttendancePage })),
+);
+const AttendanceShiftSettingsPage = lazy(() =>
+  import("./pages/attendance/AttendanceShiftSettingsPage").then((m) => ({
+    default: m.AttendanceShiftSettingsPage,
+  })),
+);
+const AttendanceStatsPage = lazy(() =>
+  import("./pages/attendance/AttendanceStatsPage").then((m) => ({
+    default: m.AttendanceStatsPage,
+  })),
+);
+const CheckInRangePage = lazy(() =>
+  import("./pages/attendance/CheckInRangePage").then((m) => ({ default: m.CheckInRangePage })),
+);
+const SchedulePage = lazy(() =>
+  import("./pages/attendance/SchedulePage").then((m) => ({ default: m.SchedulePage })),
+);
+const ImplantInventoryPage = lazy(() =>
+  import("./pages/implant/ImplantInventoryPage").then((m) => ({
+    default: m.ImplantInventoryPage,
+  })),
+);
+const ImplantPatientPage = lazy(() =>
+  import("./pages/implant/ImplantPatientPage").then((m) => ({ default: m.ImplantPatientPage })),
+);
+const ImplantPendingPage = lazy(() =>
+  import("./pages/implant/ImplantPendingPage").then((m) => ({ default: m.ImplantPendingPage })),
+);
+const ImplantRecordsPage = lazy(() =>
+  import("./pages/implant/ImplantRecordsPage").then((m) => ({ default: m.ImplantRecordsPage })),
+);
+const ImplantStatsPage = lazy(() =>
+  import("./pages/implant/ImplantStatsPage").then((m) => ({ default: m.ImplantStatsPage })),
+);
+const OrthodonticsPage = lazy(() =>
+  import("./pages/orthodontics/OrthodonticsPage").then((m) => ({ default: m.OrthodonticsPage })),
+);
+const UsersPage = lazy(() =>
+  import("./pages/users/UsersPage").then((m) => ({ default: m.UsersPage })),
+);
+const SalaryPage = lazy(() =>
+  import("./pages/salary/SalaryPage").then((m) => ({ default: m.SalaryPage })),
+);
+const MemosPage = lazy(() =>
+  import("./pages/memos/MemosPage").then((m) => ({ default: m.MemosPage })),
 );
 
 function RouteFallback() {
