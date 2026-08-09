@@ -31,12 +31,16 @@ export function ToothPositionField({
   const fdis = parsed ?? [];
   const freeText = parsed == null && value.trim() !== "";
 
+  const textClass = compact ? "text-xs" : "text-base md:text-sm";
+
   const body = freeText ? (
-    <span className={cn("truncate text-sm", compact && "text-xs")}>{value}</span>
+    <span className={cn("truncate", textClass)}>{value}</span>
   ) : fdis.length ? (
     <ToothPalmerMark fdis={fdis} compact={compact} />
   ) : (
-    <span className="text-sm text-muted-foreground">{compact ? "—" : "选择牙位"}</span>
+    <span className={cn("text-muted-foreground", textClass)}>
+      {compact ? "—" : "选择牙位"}
+    </span>
   );
 
   if (readOnly) {
@@ -49,8 +53,10 @@ export function ToothPositionField({
         type="button"
         variant="outline"
         className={cn(
-          "h-auto min-h-9 w-full justify-start overflow-visible px-2 py-1.5 font-normal",
-          compact && "min-h-8 border-0 bg-transparent px-0 shadow-none hover:bg-transparent",
+          compact
+            ? "h-auto min-h-8 border-0 bg-transparent px-0 py-1.5 shadow-none hover:bg-transparent"
+            : "h-8 border-transparent bg-input/50 px-2.5 py-0 font-normal text-base hover:bg-input/50 md:text-sm dark:bg-input/50 dark:hover:bg-input/50",
+          "w-full justify-start overflow-visible",
           className,
         )}
         onClick={() => setOpen(true)}
