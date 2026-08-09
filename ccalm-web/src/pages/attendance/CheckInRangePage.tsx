@@ -14,7 +14,8 @@ import {
 } from "@/lib/amap-regeo";
 import type { GeofenceConfig } from "@/lib/attendance/types";
 import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
-import { api } from "@/lib/api";
+import { ROUTES } from "@/config/routes";
+import { api, type ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,8 @@ export function CheckInRangePage() {
   const navigate = useNavigate();
   const { me } = useAuth();
   const [ready, setReady] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
   const [shouldAutoRefreshLocation, setShouldAutoRefreshLocation] = React.useState(false);
   const [radius, setRadius] = React.useState(DEFAULT_GEOFENCE.radiusM);
   const [placeName, setPlaceName] = React.useState(DEFAULT_GEOFENCE.label);
@@ -57,7 +60,7 @@ export function CheckInRangePage() {
         if (!me) return;
         if (cancelled) return;
         if (me.role !== "admin") {
-          navigate("/attendance", { replace: true });
+          navigate(ROUTES.home, { replace: true });
           return;
         }
 
@@ -70,15 +73,21 @@ export function CheckInRangePage() {
           lng: Number(geofence.centerLng) || DEFAULT_GEOFENCE.centerLng,
         });
         setShouldAutoRefreshLocation(!geofence.enabled);
+        setLoadError(null);
         setReady(true);
-      } catch {
+      } catch (e) {
+        if (cancelled) return;
         // 401 由 api.ts 全局处理
+        if ((e as ApiError).status === 401) return;
+        const msg = errorMessage(e);
+        setLoadError(msg);
+        toast.error(msg);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [navigate, me]);
+  }, [navigate, me, reloadKey]);
 
   const updateCenterWithAddress = React.useCallback(
     async (nextCenter: { lat: number; lng: number }) => {
@@ -220,6 +229,22 @@ export function CheckInRangePage() {
   }, []);
 
   if (!ready) {
+    if (loadError) {
+      return (
+        <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background p-4">
+          <div className="text-sm text-destructive">{loadError}</div>
+          <Button
+            type="button"
+            onClick={() => {
+              setLoadError(null);
+              setReloadKey((k) => k + 1);
+            }}
+          >
+            重试
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <Spinner />
