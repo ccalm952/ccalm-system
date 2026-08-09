@@ -17,6 +17,7 @@ export const ROUTES = {
     root: "/implant",
     records: "/implant/records",
     patients: "/implant/patients",
+    pending: "/implant/pending",
     stats: "/implant/stats",
     inventory: "/implant/inventory",
   },
