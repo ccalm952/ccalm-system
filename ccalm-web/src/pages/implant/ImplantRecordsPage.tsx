@@ -775,7 +775,10 @@ function ImplantRecordsVisitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-3xl" showCloseButton={false}>
+      <DialogContent
+        className="text-base md:max-w-3xl md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm [&_label]:text-base md:[&_label]:text-sm [&_[data-slot=field-description]]:text-base md:[&_[data-slot=field-description]]:text-sm [&_[data-slot=field-label]]:text-base md:[&_[data-slot=field-label]]:text-sm [&_[data-slot=field-legend]]:text-base md:[&_[data-slot=field-legend]]:text-sm"
+        showCloseButton={false}
+      >
         <FieldSet>
           {isEdit ? (
             <>
