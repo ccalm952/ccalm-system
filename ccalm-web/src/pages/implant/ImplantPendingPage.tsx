@@ -229,8 +229,8 @@ export function ImplantPendingPage() {
       <Card size="sm">
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <CardTitle className="shrink-0">待种植</CardTitle>
-          <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
-            <InputGroup className="min-w-0 flex-1 basis-[12rem] sm:w-56 sm:flex-none sm:basis-auto">
+          <div className="flex min-w-0 w-full items-center gap-2 sm:w-auto sm:justify-end">
+            <InputGroup className="min-w-0 flex-1 sm:w-56 sm:flex-none">
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
