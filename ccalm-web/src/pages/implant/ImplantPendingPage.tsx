@@ -227,10 +227,10 @@ export function ImplantPendingPage() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <Card size="sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle>待种植</CardTitle>
-          <div className="flex shrink-0 items-center gap-2">
-            <InputGroup className="w-40 sm:w-56">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <CardTitle className="shrink-0">待种植</CardTitle>
+          <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
+            <InputGroup className="min-w-0 flex-1 basis-[12rem] sm:w-56 sm:flex-none sm:basis-auto">
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
@@ -240,13 +240,14 @@ export function ImplantPendingPage() {
                 placeholder="搜索姓名/手机"
               />
             </InputGroup>
-            <Button type="button" variant="outline" onClick={openCreate}>
+            <Button type="button" variant="outline" className="shrink-0" onClick={openCreate}>
               <Plus className="size-3.5" />
               新增
             </Button>
             <Button
               type="button"
               variant="outline"
+              className="shrink-0"
               disabled={selection.size === 0}
               onClick={() => setDeleteOpen(true)}
             >
