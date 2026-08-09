@@ -4,6 +4,8 @@ import { Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { DatePickerField } from "@/components/date-picker-field";
+import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,7 @@ import {
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
+import { parseTeethStrict } from "@/lib/tooth-fdi";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
 
@@ -81,6 +84,15 @@ function emptyForm(): FormState {
     extractionDate: "",
     remark: "",
   };
+}
+
+function TeethCell({ teeth }: { teeth: string }) {
+  const parsed = parseTeethStrict(teeth);
+  if (parsed == null) {
+    return <span className="truncate">{teeth}</span>;
+  }
+  if (!parsed.length) return null;
+  return <ToothPalmerMark fdis={parsed} compact />;
 }
 
 function formFromRow(row: PendingRow): FormState {
@@ -289,7 +301,9 @@ export function ImplantPendingPage() {
                     <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.teeth}</TableCell>
+                    <TableCell className="min-w-0 max-w-0">
+                      <TeethCell teeth={row.teeth} />
+                    </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">
                       {row.extractionDate
                         ? dayjs(row.extractionDate).format("YYYY-MM-DD")
@@ -339,10 +353,9 @@ export function ImplantPendingPage() {
               value={form.chartNo}
               onChange={(e) => setForm((f) => ({ ...f, chartNo: e.target.value }))}
             />
-            <Input
-              placeholder="牙位（纯数字空格分隔可自动拆行，如 11 12 13）"
+            <ToothPositionField
               value={form.teeth}
-              onChange={(e) => setForm((f) => ({ ...f, teeth: e.target.value }))}
+              onValueChange={(v) => setForm((f) => ({ ...f, teeth: v }))}
             />
             <DatePickerField
               value={form.extractionDate}
