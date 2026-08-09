@@ -1,11 +1,12 @@
 import * as React from "react";
 import {
+  columnVisibilityFeature,
   flexRender,
-  getCoreRowModel,
-  useReactTable,
+  tableFeatures,
+  useTable,
   type Column,
   type ColumnDef,
-  type VisibilityState,
+  type ColumnVisibilityState,
 } from "@tanstack/react-table";
 
 import {
@@ -75,7 +76,11 @@ type InvRow = {
   left: number;
 };
 
-function inventoryColumnPickerLabel(column: Column<InvRow, unknown>) {
+const inventoryTableFeatures = tableFeatures({
+  columnVisibilityFeature,
+});
+
+function inventoryColumnPickerLabel(column: Column<typeof inventoryTableFeatures, InvRow, unknown>) {
   const h = column.columnDef.header;
   if (typeof h === "string") return h;
   return column.id;
@@ -129,7 +134,7 @@ export function ImplantInventoryPage() {
   const [editModel, setEditModel] = React.useState("");
   const [editSupplement, setEditSupplement] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<ColumnVisibilityState>({});
 
   const addBrandItems = React.useMemo(() => {
     const s = new Set<string>();
@@ -211,7 +216,7 @@ export function ImplantInventoryPage() {
     setEditOpen(true);
   }, []);
 
-  const columns = React.useMemo<ColumnDef<InvRow>[]>(
+  const columns = React.useMemo<ColumnDef<typeof inventoryTableFeatures, InvRow>[]>(
     () => [
       {
         id: "select",
@@ -282,10 +287,10 @@ export function ImplantInventoryPage() {
     [list, selection, toggleSel, openEdit],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: inventoryTableFeatures,
     data: list,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.id),
     onColumnVisibilityChange: setColumnVisibility,
     state: { columnVisibility },

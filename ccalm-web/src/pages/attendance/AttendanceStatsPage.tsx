@@ -1,10 +1,11 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import {
+  createExpandedRowModel,
   flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  useReactTable,
+  rowExpandingFeature,
+  tableFeatures,
+  useTable,
   type ColumnDef,
   type ExpandedState,
 } from "@tanstack/react-table";
@@ -55,6 +56,11 @@ import type { AuthMe } from "@/lib/auth";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
+
+const attendanceStatsTableFeatures = tableFeatures({
+  rowExpandingFeature,
+  expandedRowModel: createExpandedRowModel(),
+});
 
 function dayOfMonth(date: string): string {
   const d = dayjs(date);
@@ -272,7 +278,7 @@ export function AttendanceStatsPage() {
     [expandedRows, month],
   );
 
-  const columns = React.useMemo<Array<ColumnDef<UserAgg>>>(() => {
+  const columns = React.useMemo<Array<ColumnDef<typeof attendanceStatsTableFeatures, UserAgg>>>(() => {
     return [
       { header: "姓名", accessorKey: "userName" },
       {
@@ -323,14 +329,13 @@ export function AttendanceStatsPage() {
     ];
   }, [toggleDetails]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: attendanceStatsTableFeatures,
     data: summary ?? [],
     columns,
     state: { expanded },
     onExpandedChange: setExpanded,
     getRowId: (row) => row.userId,
-    getCoreRowModel: getCoreRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: () => true,
   });
 
@@ -393,7 +398,7 @@ export function AttendanceStatsPage() {
                       void toggleDetails(row.id, row.original);
                     }}
                   >
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getAllCells().map((cell) => (
                       <TableCell key={cell.id} className={attendanceStatsTableColumnClass}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
@@ -401,7 +406,7 @@ export function AttendanceStatsPage() {
                   </TableRow>
                   {row.getIsExpanded() ? (
                     <TableRow className={cn("border-t border-border", attendanceExpandedRowClass)}>
-                      <TableCell className="p-0" colSpan={row.getVisibleCells().length}>
+                      <TableCell className="p-0" colSpan={row.getAllCells().length}>
                         <ScrollArea className="h-[360px] bg-background">
                           <table className="w-full min-w-[860px] table-fixed caption-bottom text-sm">
                             <TableHeader className={attendanceTableHeaderClass}>
