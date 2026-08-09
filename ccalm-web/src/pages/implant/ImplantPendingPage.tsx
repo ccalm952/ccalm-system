@@ -301,7 +301,7 @@ export function ImplantPendingPage() {
                     <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="min-w-0 max-w-0">
+                    <TableCell className="overflow-visible whitespace-nowrap">
                       <TeethCell teeth={row.teeth} />
                     </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">

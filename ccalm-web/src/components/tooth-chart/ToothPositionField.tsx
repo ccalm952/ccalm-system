@@ -49,7 +49,7 @@ export function ToothPositionField({
         type="button"
         variant="outline"
         className={cn(
-          "h-auto min-h-9 w-full justify-start px-2 py-1.5 font-normal",
+          "h-auto min-h-9 w-full justify-start overflow-visible px-2 py-1.5 font-normal",
           compact && "min-h-8 border-0 bg-transparent px-0 shadow-none hover:bg-transparent",
           className,
         )}

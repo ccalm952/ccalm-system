@@ -40,7 +40,7 @@ function ToothCell({
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex size-8 items-center justify-center rounded-md border text-sm font-medium transition-colors",
+        "box-border flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-md border text-sm font-medium tabular-nums transition-colors",
         selected
           ? "border-teal-600 bg-teal-500 text-white"
           : "border-border bg-background hover:bg-muted",
