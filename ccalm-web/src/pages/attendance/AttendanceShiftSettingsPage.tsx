@@ -13,7 +13,8 @@ import {
 } from "@/lib/attendance/shift";
 import type { AttendanceShiftFullConfig } from "@/lib/attendance/types";
 import { attendanceSectionTitleClass } from "@/lib/attendance/attendance-theme";
-import { api } from "@/lib/api";
+import { ROUTES } from "@/config/routes";
+import { api, type ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { toast } from "sonner";
@@ -26,6 +27,8 @@ export function AttendanceShiftSettingsPage() {
   const navigate = useNavigate();
   const { me } = useAuth();
   const [ready, setReady] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
   const [form, setForm] = React.useState<AttendanceShiftFullConfig>(() =>
     cloneShift(DEFAULT_SHIFT),
   );
@@ -37,21 +40,27 @@ export function AttendanceShiftSettingsPage() {
         if (!me) return;
         if (cancelled) return;
         if (me.role !== "admin") {
-          navigate("/attendance", { replace: true });
+          navigate(ROUTES.home, { replace: true });
           return;
         }
         const d = await api<BackendShiftDto>("GET", "/attendance/shift");
         if (cancelled) return;
         setForm(cloneShift(shiftFromBackend(d)));
+        setLoadError(null);
         setReady(true);
-      } catch {
+      } catch (e) {
+        if (cancelled) return;
         // 401 由 api.ts 全局处理
+        if ((e as ApiError).status === 401) return;
+        const msg = errorMessage(e);
+        setLoadError(msg);
+        toast.error(msg);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [navigate, me]);
+  }, [navigate, me, reloadKey]);
 
   function update<K extends keyof AttendanceShiftFullConfig>(
     k: K,
@@ -129,6 +138,22 @@ export function AttendanceShiftSettingsPage() {
   }
 
   if (!ready) {
+    if (loadError) {
+      return (
+        <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background p-4">
+          <div className="text-sm text-destructive">{loadError}</div>
+          <Button
+            type="button"
+            onClick={() => {
+              setLoadError(null);
+              setReloadKey((k) => k + 1);
+            }}
+          >
+            重试
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <Spinner />

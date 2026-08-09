@@ -110,7 +110,7 @@ export function App() {
             <Route path={ROUTES.home} element={<AttendancePage />} />
 
             <Route path="attendance">
-              <Route index element={<AttendancePage />} />
+              <Route index element={<Navigate to={ROUTES.home} replace />} />
               <Route path="check-in-range" element={<CheckInRangePage />} />
               <Route path="shift-settings" element={<AttendanceShiftSettingsPage />} />
               <Route path="stats" element={<AttendanceStatsPage />} />
