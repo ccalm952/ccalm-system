@@ -8,55 +8,53 @@ type ToothPalmerMarkProps = {
   compact?: boolean;
 };
 
-/** 图1：十字象限 Palmer 标记；四格等高，整体垂直对称 */
+/** 图1：十字象限 Palmer 标记；四格等高，十字线贯通 */
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
-  const cell = compact ? "h-4 min-w-4 px-1" : "h-5 min-w-5 px-1.5";
+  const cell = compact ? "px-1 py-0.5" : "px-1.5 py-1";
 
   return (
-    <span
+    <table
       className={cn(
-        "inline-grid shrink-0 grid-cols-2 grid-rows-2 font-medium text-foreground",
+        "shrink-0 border-collapse font-medium text-foreground",
+        text,
         className,
       )}
     >
-      <span
-        className={cn(
-          "flex items-end justify-end border-r border-b border-sky-300 pb-0.5 whitespace-nowrap",
-          text,
-          cell,
-        )}
-      >
-        {g.UR || "\u00a0"}
-      </span>
-      <span
-        className={cn(
-          "flex items-end justify-start border-b border-sky-300 pb-0.5 whitespace-nowrap",
-          text,
-          cell,
-        )}
-      >
-        {g.UL || "\u00a0"}
-      </span>
-      <span
-        className={cn(
-          "flex items-start justify-end border-r border-sky-300 pt-0.5 whitespace-nowrap",
-          text,
-          cell,
-        )}
-      >
-        {g.LR || "\u00a0"}
-      </span>
-      <span
-        className={cn(
-          "flex items-start justify-start pt-0.5 whitespace-nowrap",
-          text,
-          cell,
-        )}
-      >
-        {g.LL || "\u00a0"}
-      </span>
-    </span>
+      <tbody>
+        <tr>
+          <td
+            className={cn(
+              "border-r border-b border-sky-300 text-right align-bottom whitespace-nowrap",
+              cell,
+            )}
+          >
+            {g.UR || "\u00a0"}
+          </td>
+          <td
+            className={cn(
+              "border-b border-sky-300 text-left align-bottom whitespace-nowrap",
+              cell,
+            )}
+          >
+            {g.UL || "\u00a0"}
+          </td>
+        </tr>
+        <tr>
+          <td
+            className={cn(
+              "border-r border-sky-300 text-right align-top whitespace-nowrap",
+              cell,
+            )}
+          >
+            {g.LR || "\u00a0"}
+          </td>
+          <td className={cn("text-left align-top whitespace-nowrap", cell)}>
+            {g.LL || "\u00a0"}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

@@ -200,21 +200,29 @@ export function ToothChartDialog({
             ))}
           </div>
 
-          <div className="mx-auto w-fit">
-            <div className="flex flex-col">
-              <div className="grid grid-cols-2 gap-x-3">
-                <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
-                <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
-              </div>
-              <div className="my-3 flex items-center gap-2">
-                <span className="shrink-0 text-xs text-muted-foreground">右</span>
-                <div className="h-px flex-1 bg-border" />
-                <span className="shrink-0 text-xs text-muted-foreground">左</span>
-              </div>
-              <div className="grid grid-cols-2 gap-x-3">
-                <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
-                <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
-              </div>
+          <div className="mx-auto grid w-fit grid-cols-[auto_1px_auto] items-stretch">
+            <div className="pr-3">
+              <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
+            </div>
+            <div className="row-span-3 w-px bg-border" />
+            <div className="pl-3">
+              <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
+            </div>
+
+            <div className="flex items-center gap-2 py-3 pr-3">
+              <span className="shrink-0 text-xs text-muted-foreground">右</span>
+              <div className="h-px min-w-6 flex-1 bg-border" />
+            </div>
+            <div className="flex items-center gap-2 py-3 pl-3">
+              <div className="h-px min-w-6 flex-1 bg-border" />
+              <span className="shrink-0 text-xs text-muted-foreground">左</span>
+            </div>
+
+            <div className="pr-3">
+              <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
+            </div>
+            <div className="pl-3">
+              <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
             </div>
           </div>
         </div>
