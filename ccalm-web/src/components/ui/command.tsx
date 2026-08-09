@@ -76,7 +76,8 @@ function CommandInput({
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            // CCALM: 与 Input 一致，窄屏 text-base 避免 iOS 聚焦放大
+            "w-full text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
             className
           )}
           {...props}
