@@ -279,7 +279,7 @@ export function ImplantPendingPage() {
               </TableHeader>
               <TableBody>
                 {rows.map((row, index) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} onDoubleClick={() => openEdit(row)}>
                     <TableCell>
                       <Checkbox
                         checked={selection.has(index)}
