@@ -127,20 +127,15 @@ export function ImplantPendingPage() {
 
   async function save() {
     const name = form.name.trim();
-    const phone = form.phone.trim();
     if (!name) {
       toast.error("请填写姓名");
-      return;
-    }
-    if (!phone) {
-      toast.error("请填写手机");
       return;
     }
     setSaving(true);
     try {
       const body = {
         name,
-        phone,
+        phone: form.phone.trim(),
         chartNo: form.chartNo.trim(),
         teeth: form.teeth.trim(),
         extractionDate: form.extractionDate.trim() || null,
