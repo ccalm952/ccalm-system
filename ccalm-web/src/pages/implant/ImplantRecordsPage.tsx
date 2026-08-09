@@ -1,6 +1,12 @@
 ﻿import * as React from "react";
 import dayjs from "dayjs";
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
+import {
+  flexRender,
+  metaHelper,
+  tableFeatures,
+  useTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
 
 import {
   AlertDialog,
@@ -98,16 +104,17 @@ type EditTeethLine = {
 
 type PendingToothDelete = { visitId: number; toothId: number };
 
-declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- 与 TanStack 泛型签名一致
-  interface TableMeta<TData> {
-    mergeSpans: number[];
-    selection: Set<number>;
-    toggleSel: (i: number) => void;
-    selectAllRows: () => void;
-    clearSelection: () => void;
-  }
-}
+type RecordsTableMeta = {
+  mergeSpans: number[];
+  selection: Set<number>;
+  toggleSel: (i: number) => void;
+  selectAllRows: () => void;
+  clearSelection: () => void;
+};
+
+const recordsTableFeatures = tableFeatures({
+  tableMeta: metaHelper<RecordsTableMeta>(),
+});
 
 const MERGED_COLUMN_IDS = new Set(["patientName", "phone", "visitDate", "remark", "staff", "edit"]);
 
@@ -1314,7 +1321,7 @@ export function ImplantRecordsPage() {
     }
   }
 
-  const columns = React.useMemo<Array<ColumnDef<Row>>>(
+  const columns = React.useMemo<Array<ColumnDef<typeof recordsTableFeatures, Row>>>(
     () => [
       {
         id: "select",
@@ -1347,7 +1354,6 @@ export function ImplantRecordsPage() {
             />
           );
         },
-        enableHiding: false,
       },
       {
         id: "patientName",
@@ -1415,16 +1421,15 @@ export function ImplantRecordsPage() {
             编辑
           </Button>
         ),
-        enableSorting: false,
       },
     ],
     [openEdit],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: recordsTableFeatures,
     data: rows,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row, index) => `${row.visitId}-${row.toothId ?? index}`,
     meta: {
       mergeSpans,
@@ -1435,7 +1440,7 @@ export function ImplantRecordsPage() {
     },
   });
 
-  const leafCols = table.getVisibleLeafColumns();
+  const leafCols = table.getAllLeafColumns();
   const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
 
   return (
@@ -1545,7 +1550,7 @@ export function ImplantRecordsPage() {
                     const showMerged = rowspan > 0;
                     return (
                       <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
-                        {row.getVisibleCells().map((cell) => {
+                        {row.getAllCells().map((cell) => {
                           const colId = cell.column.id;
                           if (MERGED_COLUMN_IDS.has(colId) && !showMerged) {
                             return null;

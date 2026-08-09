@@ -1,11 +1,11 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 import {
   type ColumnDef,
   flexRender,
-  getCoreRowModel,
-  type TableMeta,
-  useReactTable,
+  metaHelper,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 
 import {
@@ -77,6 +77,10 @@ type PatientTableMeta = {
   selectAllRows: () => void;
   clearSelection: () => void;
 };
+
+const patientTableFeatures = tableFeatures({
+  tableMeta: metaHelper<PatientTableMeta>(),
+});
 
 export function ImplantPatientPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -200,12 +204,12 @@ export function ImplantPatientPage() {
     }
   }
 
-  const columns = React.useMemo<Array<ColumnDef<PatientRow>>>(
+  const columns = React.useMemo<Array<ColumnDef<typeof patientTableFeatures, PatientRow>>>(
     () => [
       {
         id: "select",
         header: ({ table }) => {
-          const meta = table.options.meta as PatientTableMeta | undefined;
+          const meta = table.options.meta;
           const modelRows = table.getRowModel().rows;
           const sel = meta?.selection;
           const allSelected = modelRows.length > 0 && modelRows.every((r) => sel?.has(r.index));
@@ -223,7 +227,7 @@ export function ImplantPatientPage() {
         },
         cell: ({ row, table }) => {
           const i = row.index;
-          const meta = table.options.meta as PatientTableMeta | undefined;
+          const meta = table.options.meta;
           const sel = meta?.selection;
           const toggle = meta?.toggleSel;
           return (
@@ -234,7 +238,6 @@ export function ImplantPatientPage() {
             />
           );
         },
-        enableHiding: false,
       },
       {
         accessorKey: "name",
@@ -289,26 +292,25 @@ export function ImplantPatientPage() {
             编辑
           </Button>
         ),
-        enableSorting: false,
       },
     ],
     [openEdit],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: patientTableFeatures,
     data: patients,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.id),
     meta: {
       selection,
       toggleSel,
       selectAllRows,
       clearSelection,
-    } as TableMeta<PatientRow>,
+    },
   });
 
-  const leafCols = table.getVisibleLeafColumns();
+  const leafCols = table.getAllLeafColumns();
   const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
 
   return (
@@ -398,7 +400,7 @@ export function ImplantPatientPage() {
                   {table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map((row) => (
                       <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
-                        {row.getVisibleCells().map((cell) => (
+                        {row.getAllCells().map((cell) => (
                           <TableCell
                             key={cell.id}
                             className={cn(
