@@ -92,7 +92,11 @@ function TeethCell({ teeth }: { teeth: string }) {
     return <span className="truncate">{teeth}</span>;
   }
   if (!parsed.length) return null;
-  return <ToothPalmerMark fdis={parsed} compact />;
+  return (
+    <span className="inline-flex items-center justify-center py-0.5">
+      <ToothPalmerMark fdis={parsed} compact />
+    </span>
+  );
 }
 
 function formFromRow(row: PendingRow): FormState {
@@ -301,7 +305,7 @@ export function ImplantPendingPage() {
                     <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="overflow-visible whitespace-nowrap">
+                    <TableCell className="align-middle overflow-visible whitespace-nowrap">
                       <TeethCell teeth={row.teeth} />
                     </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">

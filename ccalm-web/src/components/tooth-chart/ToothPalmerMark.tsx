@@ -8,12 +8,11 @@ type ToothPalmerMarkProps = {
   compact?: boolean;
 };
 
-/** 图1：十字象限 Palmer 标记（不截断，随牙位数量变宽） */
+/** 图1：十字象限 Palmer 标记；四格等高，整体垂直对称 */
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const text = compact ? "text-[10px] leading-tight" : "text-xs leading-tight";
-  const pad = compact ? "px-1 py-0.5" : "px-1.5 py-0.5";
-  const min = compact ? "min-h-3.5 min-w-4" : "min-h-4 min-w-5";
+  const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
+  const cell = compact ? "h-4 min-w-4 px-1" : "h-5 min-w-5 px-1.5";
 
   return (
     <span
@@ -24,35 +23,38 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
     >
       <span
         className={cn(
-          "border-r border-b border-sky-300 text-right whitespace-nowrap",
+          "flex items-end justify-end border-r border-b border-sky-300 pb-0.5 whitespace-nowrap",
           text,
-          pad,
-          min,
+          cell,
         )}
       >
         {g.UR || "\u00a0"}
       </span>
       <span
         className={cn(
-          "border-b border-sky-300 text-left whitespace-nowrap",
+          "flex items-end justify-start border-b border-sky-300 pb-0.5 whitespace-nowrap",
           text,
-          pad,
-          min,
+          cell,
         )}
       >
         {g.UL || "\u00a0"}
       </span>
       <span
         className={cn(
-          "border-r border-sky-300 text-right whitespace-nowrap",
+          "flex items-start justify-end border-r border-sky-300 pt-0.5 whitespace-nowrap",
           text,
-          pad,
-          min,
+          cell,
         )}
       >
         {g.LR || "\u00a0"}
       </span>
-      <span className={cn("text-left whitespace-nowrap", text, pad, min)}>
+      <span
+        className={cn(
+          "flex items-start justify-start pt-0.5 whitespace-nowrap",
+          text,
+          cell,
+        )}
+      >
         {g.LL || "\u00a0"}
       </span>
     </span>
