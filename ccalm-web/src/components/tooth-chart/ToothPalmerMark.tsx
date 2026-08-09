@@ -12,7 +12,7 @@ type ToothPalmerMarkProps = {
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
-  const cell = compact ? "px-1 py-0.5" : "px-1.5 py-1";
+  const cell = compact ? "p-0.5" : "p-1";
 
   return (
     <table
