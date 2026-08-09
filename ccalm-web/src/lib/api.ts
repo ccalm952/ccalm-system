@@ -62,7 +62,14 @@ export async function api<T>(
   });
 
   const text = await res.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text) as unknown;
+    } catch {
+      data = null;
+    }
+  }
 
   if (!res.ok) {
     // 薪资密码等二次验证失败也会是 4xx，不能当成登录失效
@@ -74,7 +81,14 @@ export async function api<T>(
     }
     const err = new Error(messageFromFailedResponse(data, res, text)) as ApiError;
     err.status = res.status;
-    err.body = data;
+    err.body = data ?? text;
+    throw err;
+  }
+
+  if (text && data === null) {
+    const err = new Error(`响应不是合法 JSON（${res.status}）`) as ApiError;
+    err.status = res.status;
+    err.body = text;
     throw err;
   }
 

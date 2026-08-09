@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Link, Outlet } from "react-router-dom";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -11,7 +12,8 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { attendanceSubNavItems } from "@/config/attendance-nav";
+import { Spinner } from "@/components/ui/spinner";
+import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
@@ -21,6 +23,7 @@ import { useAuth } from "@/lib/use-auth";
 
 export function MainLayout() {
   const { me } = useAuth();
+  const attendanceItems = attendanceNavItemsForRole(me?.role);
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -34,7 +37,7 @@ export function MainLayout() {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>考勤</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    {attendanceSubNavItems.map((item) => (
+                    {attendanceItems.map((item) => (
                       <NavigationMenuLink
                         className="w-62"
                         key={item.title}
@@ -93,7 +96,15 @@ export function MainLayout() {
           </div>
         </header>
         <div className="flex min-w-0 flex-1 flex-col">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex flex-1 items-center justify-center bg-background">
+                <Spinner className="size-8 opacity-60" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </SidebarInset>
     </SidebarProvider>

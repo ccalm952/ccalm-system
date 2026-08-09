@@ -73,7 +73,7 @@ function formatDate(iso: string) {
 
 type PatientTableMeta = {
   selection: Set<number>;
-  toggleSel: (i: number) => void;
+  toggleSel: (id: number) => void;
   selectAllRows: () => void;
   clearSelection: () => void;
 };
@@ -88,17 +88,17 @@ export function ImplantPatientPage() {
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  const toggleSel = React.useCallback((i: number) => {
+  const toggleSel = React.useCallback((id: number) => {
     setSelection((prev) => {
       const n = new Set(prev);
-      if (n.has(i)) n.delete(i);
-      else n.add(i);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
       return n;
     });
   }, []);
 
   const selectAllRows = React.useCallback(() => {
-    setSelection(new Set(patients.map((_, i) => i)));
+    setSelection(new Set(patients.map((row) => row.id)));
   }, [patients]);
 
   const clearSelection = React.useCallback(() => {
@@ -140,7 +140,7 @@ export function ImplantPatientPage() {
   }, [load]);
 
   async function confirmDeleteSelected() {
-    const sel = patients.filter((_, i) => selection.has(i));
+    const sel = patients.filter((row) => selection.has(row.id));
     if (!sel.length) {
       setDeleteDialogOpen(false);
       return;
@@ -212,8 +212,9 @@ export function ImplantPatientPage() {
           const meta = table.options.meta;
           const modelRows = table.getRowModel().rows;
           const sel = meta?.selection;
-          const allSelected = modelRows.length > 0 && modelRows.every((r) => sel?.has(r.index));
-          const someSelected = modelRows.some((r) => sel?.has(r.index));
+          const allSelected =
+            modelRows.length > 0 && modelRows.every((r) => sel?.has(r.original.id));
+          const someSelected = modelRows.some((r) => sel?.has(r.original.id));
           return (
             <Checkbox
               checked={allSelected}
@@ -226,14 +227,14 @@ export function ImplantPatientPage() {
           );
         },
         cell: ({ row, table }) => {
-          const i = row.index;
+          const id = row.original.id;
           const meta = table.options.meta;
           const sel = meta?.selection;
           const toggle = meta?.toggleSel;
           return (
             <Checkbox
-              checked={sel?.has(i) ?? false}
-              onCheckedChange={() => toggle?.(i)}
+              checked={sel?.has(id) ?? false}
+              onCheckedChange={() => toggle?.(id)}
               onClick={(e) => e.stopPropagation()}
             />
           );

@@ -855,12 +855,15 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     }[]
   >([]);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
+  const sheetsRef = React.useRef(sheets);
+  sheetsRef.current = sheets;
   const [defaultTemplate, setDefaultTemplate] = React.useState<SalarySheetData | null>(null);
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
 
-  const fetchMonth = React.useCallback(async (month: string) => {
+  const fetchMonth = React.useCallback(async (month: string, opts?: { persist?: boolean }) => {
+    const persist = opts?.persist !== false;
     const res = await api<{ month: string; data: SalarySheetData }>(
       "GET",
       `/salary/${month}`,
@@ -870,7 +873,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     const data = normalizeSalarySheet(res.data, month);
     const rawDays =
       isSalarySheetData(res.data) ? res.data.summary.daysInMonth : undefined;
-    if (!isSalarySheetData(res.data) || rawDays !== calendarDaysForMonth(month)) {
+    if (
+      persist &&
+      (!isSalarySheetData(res.data) || rawDays !== calendarDaysForMonth(month))
+    ) {
       await api("PUT", `/salary/${month}`, { data }, salaryApi);
     }
     return data;
@@ -947,12 +953,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       let prev = previousSalaryMonth(month, monthSet);
       while (prev && !merged[prev]) {
         try {
-          const data = await fetchMonth(prev);
+          // 历史月只读缓存，配额变化不回写，避免打开当前月时链式写库
+          const data = await fetchMonth(prev, { persist: false });
           const withQuotas = await applyScheduleLeaveQuotas(prev, data);
           merged = { ...merged, [prev]: withQuotas };
-          if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
-            await api("PUT", `/salary/${prev}`, { data: withQuotas }, salaryApi);
-          }
         } catch {
           break;
         }
@@ -966,15 +970,16 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const loadMonth = React.useCallback(
     async (month: string) => {
       if (!month) return;
+      const sheetsNow = sheetsRef.current;
       if (
-        sheets[month] &&
-        listMissingPriorMonths(month, months, sheets).length === 0
+        sheetsNow[month] &&
+        listMissingPriorMonths(month, months, sheetsNow).length === 0
       ) {
         return;
       }
       setLoadingMonth(month);
       try {
-        let merged = { ...sheets };
+        let merged = { ...sheetsNow };
         if (!merged[month]) {
           const data = await fetchMonth(month);
           const withQuotas = await applyScheduleLeaveQuotas(month, data);
@@ -984,6 +989,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
           }
         }
         merged = await loadMissingPriorSheets(month, merged);
+        sheetsRef.current = merged;
         setSheets(merged);
       } catch (e) {
         if (handleSalaryAccessError(e, lockSalary)) return;
@@ -991,7 +997,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         if (err.status === 404) {
           let data = resolveDefaultSalarySheet(month, defaultTemplate);
           data = await applyScheduleLeaveQuotas(month, data);
-          const merged = await loadMissingPriorSheets(month, { ...sheets, [month]: data });
+          const merged = await loadMissingPriorSheets(month, {
+            ...sheetsRef.current,
+            [month]: data,
+          });
+          sheetsRef.current = merged;
           setSheets(merged);
           await api("PUT", `/salary/${month}`, { data }, salaryApi);
         } else {
@@ -1001,7 +1011,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         setLoadingMonth((m) => (m === month ? null : m));
       }
     },
-    [defaultTemplate, fetchMonth, loadMissingPriorSheets, lockSalary, months, sheets],
+    [defaultTemplate, fetchMonth, loadMissingPriorSheets, lockSalary, months],
   );
 
   React.useEffect(() => {

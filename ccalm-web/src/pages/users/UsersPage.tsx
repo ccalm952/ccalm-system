@@ -1,7 +1,9 @@
 import * as React from "react";
+import { Navigate } from "react-router-dom";
 import { Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/config/routes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,15 +121,10 @@ export function UsersPage() {
   }
 
   const load = React.useCallback(async () => {
-    if (!me) return;
-    if (me.role === "admin") {
-      setLoadError(null);
-      const list = await api<UserRow[]>("GET", "/users");
-      setRows(list);
-    } else {
-      setLoadError(null);
-      setRows([]);
-    }
+    if (!me || me.role !== "admin") return;
+    setLoadError(null);
+    const list = await api<UserRow[]>("GET", "/users");
+    setRows(list);
   }, [me]);
 
   React.useEffect(() => {
@@ -147,23 +144,23 @@ export function UsersPage() {
     };
   }, [load]);
 
+  if (me && me.role !== "admin") {
+    return <Navigate to={ROUTES.home} replace />;
+  }
+
   return (
     <div className="min-h-svh bg-background p-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-end gap-2">
-              {me?.role === "admin" ? (
-                <Button type="button" onClick={() => setCreateOpen(true)}>
-                  创建
-                </Button>
-              ) : null}
+              <Button type="button" onClick={() => setCreateOpen(true)}>
+                创建
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {me?.role !== "admin" ? (
-              <div className="text-sm text-muted-foreground">仅管理员可管理人员。</div>
-            ) : loadError ? (
+            {loadError ? (
               <div className="text-sm text-destructive">{loadError}</div>
             ) : rows === null ? (
               <div className="space-y-3">

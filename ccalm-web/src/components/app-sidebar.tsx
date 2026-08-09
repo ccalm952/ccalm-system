@@ -18,7 +18,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { attendanceSubNavItems } from "@/config/attendance-nav";
+import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
 import { memosNavItem } from "@/config/memos-nav";
@@ -29,16 +29,6 @@ import { useAuth } from "@/lib/use-auth";
 function subPathActive(pathname: string, url: string) {
   return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
 }
-
-const navMain: {
-  title: string;
-  icon: typeof CalendarCheck2;
-  items: { title: string; url: string }[];
-}[] = [
-  { title: "考勤", icon: CalendarCheck2, items: attendanceSubNavItems },
-  { title: "种植", icon: Sprout, items: implantSubNavItems },
-  { title: "正畸", icon: Smile, items: orthodonticsSubNavItems },
-];
 
 function SidebarNavCollapsible({
   title,
@@ -109,6 +99,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setPendingPath(url);
     setOpenMobile(false);
   }
+
+  const navMain: {
+    title: string;
+    icon: typeof CalendarCheck2;
+    items: { title: string; url: string }[];
+  }[] = [
+    { title: "考勤", icon: CalendarCheck2, items: attendanceNavItemsForRole(me?.role) },
+    { title: "种植", icon: Sprout, items: implantSubNavItems },
+    { title: "正畸", icon: Smile, items: orthodonticsSubNavItems },
+  ];
 
   return (
     <Sidebar {...props}>
