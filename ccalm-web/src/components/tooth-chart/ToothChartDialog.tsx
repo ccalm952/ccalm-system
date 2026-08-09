@@ -164,7 +164,7 @@ export function ToothChartDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="w-fit max-w-[calc(100vw-2rem)] sm:max-w-none">
         <DialogHeader>
           <DialogTitle>选择牙位</DialogTitle>
         </DialogHeader>
@@ -200,10 +200,9 @@ export function ToothChartDialog({
             ))}
           </div>
 
-          <div className="relative mx-auto w-fit">
-            <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border" />
+          <div className="mx-auto w-fit">
             <div className="flex flex-col">
-              <div className="grid grid-cols-2 gap-x-4">
+              <div className="grid grid-cols-2 gap-x-3">
                 <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
                 <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
               </div>
@@ -212,7 +211,7 @@ export function ToothChartDialog({
                 <div className="h-px flex-1 bg-border" />
                 <span className="shrink-0 text-xs text-muted-foreground">左</span>
               </div>
-              <div className="grid grid-cols-2 gap-x-4">
+              <div className="grid grid-cols-2 gap-x-3">
                 <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
                 <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
               </div>
