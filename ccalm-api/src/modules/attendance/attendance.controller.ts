@@ -67,23 +67,9 @@ export class AttendanceController {
     return await this.attendance.punch(authUserId(req), dto)
   }
 
-  @Get("today")
-  async today(@Req() req: Request) {
-    return await this.attendance.today(authUserId(req))
-  }
-
   @Get("bundle")
   async bundle(@Req() req: Request, @Query("month") month: string) {
     return await this.attendance.attendanceBundle(authUserId(req), month)
-  }
-
-  @Get("records")
-  async records(
-    @Req() req: Request,
-    @Query("startDate") startDate: string,
-    @Query("endDate") endDate: string
-  ) {
-    return await this.attendance.records(authUserId(req), startDate, endDate)
   }
 
   @Get("summary/monthly-all")
@@ -147,13 +133,6 @@ export class AttendanceController {
     @Query("status") status?: string
   ) {
     return await this.makeup.listMine(authUserId(req), status)
-  }
-
-  @Get("makeup-requests/pending-count")
-  async makeupPendingCount(@Req() req: Request) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    const count = await this.makeup.pendingCount()
-    return { count }
   }
 
   @Get("makeup-requests")

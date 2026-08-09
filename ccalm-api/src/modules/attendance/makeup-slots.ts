@@ -15,8 +15,6 @@ import type { ScheduleShiftType } from "./schedule-inference"
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 import { isAttendanceDateToday } from "./attendance-makeup-today-gate"
 
-export type { DayPunchRow } from "./schedule-rest"
-
 export type PendingMakeup = {
   date: string
   type: string

@@ -10,7 +10,7 @@ import {
 import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 
 export type { RestHalf };
-export { halfHasPunch, isHalfDeclaredRest };
+export { isHalfDeclaredRest };
 
 export function isWithinRestEditWindow(dateStr: string): boolean {
   const today = attendanceTodayStart();

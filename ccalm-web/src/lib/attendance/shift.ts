@@ -118,9 +118,3 @@ export function shiftFromBackend(d: BackendShiftDto): AttendanceShiftFullConfig 
 export function ymd(d: Date): string {
   return dayjs(d).format("YYYY-MM-DD");
 }
-
-export function hmFromIso(iso: string): string {
-  const d = dayjs(iso);
-  if (!d.isValid()) return "--:--";
-  return d.format("HH:mm");
-}

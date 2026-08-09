@@ -316,12 +316,6 @@ export class AttendanceMakeupService {
     return rows.map((r) => this.serializeRequest(r))
   }
 
-  async pendingCount() {
-    return await this.prisma.attendanceMakeupRequest.count({
-      where: { status: "pending" },
-    })
-  }
-
   async listForAdmin(status?: string) {
     const where =
       status === "pending"

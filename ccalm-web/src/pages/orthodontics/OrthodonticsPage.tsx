@@ -42,7 +42,7 @@ import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 
-export type OrthodonticsCategory = "treating" | "appliance" | "completed";
+type OrthodonticsCategory = "treating" | "appliance" | "completed";
 
 type OrthodonticsRow = {
   id: number;
