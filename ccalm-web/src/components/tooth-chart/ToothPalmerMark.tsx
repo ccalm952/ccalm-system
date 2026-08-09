@@ -19,7 +19,6 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
     Math.max(g.UL.length, g.LL.length),
     1,
   );
-  /** 左右轨道同宽 = 字符宽 + 单元格左右 padding，避免有内容一侧被撑开 */
   const padPx = compact ? 4 : 8;
   const colTrack = `calc(${colCh}ch + ${padPx}px)`;
 
