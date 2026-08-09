@@ -16,6 +16,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { attendanceSubNavItems } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
@@ -43,16 +44,18 @@ function SidebarNavCollapsible({
   title,
   icon: Icon,
   items,
-  pathname,
+  activePath,
+  onNavClick,
 }: {
   title: string;
   icon: typeof CalendarCheck2;
   items: { title: string; url: string }[];
-  pathname: string;
+  activePath: string;
+  onNavClick: (url: string) => void;
 }) {
   const active = React.useMemo(
-    () => items.some((sub) => subPathActive(pathname, sub.url)),
-    [pathname, items],
+    () => items.some((sub) => subPathActive(activePath, sub.url)),
+    [activePath, items],
   );
   const [open, setOpen] = React.useState(true);
   React.useEffect(() => {
@@ -76,8 +79,8 @@ function SidebarNavCollapsible({
             {items.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton
-                  isActive={subPathActive(pathname, subItem.url)}
-                  render={<Link to={subItem.url} />}
+                  isActive={subPathActive(activePath, subItem.url)}
+                  render={<Link to={subItem.url} onClick={() => onNavClick(subItem.url)} />}
                 >
                   {subItem.title}
                 </SidebarMenuSubButton>
@@ -92,7 +95,20 @@ function SidebarNavCollapsible({
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
   const { me, setMe } = useAuth();
+  const [pendingPath, setPendingPath] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
+
+  const activePath = pendingPath ?? pathname;
+
+  function onNavClick(url: string) {
+    setPendingPath(url);
+    setOpenMobile(false);
+  }
 
   return (
     <Sidebar {...props}>
@@ -120,14 +136,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 title={item.title}
                 icon={item.icon}
                 items={item.items}
-                pathname={pathname}
+                activePath={activePath}
+                onNavClick={onNavClick}
               />
             ))}
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="font-medium"
-                isActive={subPathActive(pathname, memosNavItem.url)}
-                render={<Link to={memosNavItem.url} />}
+                isActive={subPathActive(activePath, memosNavItem.url)}
+                render={<Link to={memosNavItem.url} onClick={() => onNavClick(memosNavItem.url)} />}
                 tooltip={memosNavItem.title}
               >
                 <StickyNote className="shrink-0" />
@@ -138,8 +155,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="font-medium"
-                  isActive={subPathActive(pathname, salaryNavItem.url)}
-                  render={<Link to={salaryNavItem.url} />}
+                  isActive={subPathActive(activePath, salaryNavItem.url)}
+                  render={<Link to={salaryNavItem.url} onClick={() => onNavClick(salaryNavItem.url)} />}
                   tooltip={salaryNavItem.title}
                 >
                   <Wallet className="shrink-0" />
