@@ -34,10 +34,6 @@ export const attendanceStatsTableColumnClass = "w-1/6";
 /** 统计页展开明细行 */
 export const attendanceExpandedRowClass = "bg-muted/10";
 
-/** 表格内 link 操作（字重 + 悬停下划线） */
-export const tableActionLinkClass =
-  "h-auto px-0 text-sm font-medium text-primary underline-offset-4 hover:underline";
-
 /** 设置页区块小标题 */
 export const attendanceSectionTitleClass = `mb-3 text-sm font-semibold ${attendanceMutedTextClass}`;
 

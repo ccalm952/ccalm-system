@@ -6,7 +6,7 @@ import {
 
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 
-export type { MakeupTodayGate, MakeupSlotType } from "./makeup-today-gate"
+export type { MakeupTodayGate } from "./makeup-today-gate"
 
 function wallClockMinutes(d: Date): number {
   return attendanceDayjs(d).hour() * 60 + attendanceDayjs(d).minute()

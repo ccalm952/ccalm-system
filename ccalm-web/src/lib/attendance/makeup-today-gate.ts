@@ -7,7 +7,7 @@ import {
 import { attendanceDayjs, attendanceTodayStart } from "./dayjs";
 import type { AttendancePunchType } from "./types";
 
-export type { MakeupTodayGate, MakeupSlotType } from "./makeup-today-gate-core";
+export type { MakeupTodayGate } from "./makeup-today-gate-core";
 
 export function makeupTodayGateFromShift(shift: MakeupTodayGate): MakeupTodayGate {
   return {

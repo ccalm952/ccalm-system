@@ -11,7 +11,6 @@ import type { AttendanceMakeupRequest, AttendancePunchDayRow, AttendancePunchTyp
 
 export type { MakeupTodayGate } from "./makeup-today-gate";
 export { makeupTodayGateFromShift } from "./makeup-today-gate";
-export { isWithinRestEditWindow as isWithinMakeupWindow } from "./rest";
 
 export type MakeupInType = "morning_in" | "afternoon_in";
 export type MakeupOutType = "morning_out" | "afternoon_out";

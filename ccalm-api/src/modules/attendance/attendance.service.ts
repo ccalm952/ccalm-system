@@ -280,20 +280,6 @@ export class AttendanceService {
     })
   }
 
-  async records(userId: string, startDate: string, endDate: string) {
-    const start = attendanceDayjs(startDate, "YYYY-MM-DD").startOf("day")
-    const end = attendanceDayjs(endDate, "YYYY-MM-DD")
-      .add(1, "day")
-      .startOf("day")
-    if (!start.isValid() || !end.isValid() || end.isBefore(start)) {
-      throw new BadRequestException("日期范围不合法")
-    }
-    return await this.prisma.attendanceRecord.findMany({
-      where: { userId, punchTime: { gte: start.toDate(), lt: end.toDate() } },
-      orderBy: { punchTime: "asc" },
-    })
-  }
-
   async monthlySummary(
     userId: string,
     month: string,

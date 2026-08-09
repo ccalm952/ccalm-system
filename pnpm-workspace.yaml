@@ -10,3 +10,8 @@ allowBuilds:
   msw: true
   prisma: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - pg-protocol@1.16.0
+  - pg@8.23.0
+  - sonner@2.0.8

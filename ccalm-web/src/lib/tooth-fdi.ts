@@ -1,7 +1,5 @@
 /** FDI 牙位：恒牙 11–48，乳牙 51–85 */
 
-export type ToothKind = "permanent" | "deciduous";
-
 /** 界面象限（牙医视角：左=患者右） */
 export type UiQuadrant = "UR" | "UL" | "LR" | "LL";
 
