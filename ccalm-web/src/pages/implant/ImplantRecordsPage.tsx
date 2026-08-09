@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import dayjs from "dayjs";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
@@ -196,8 +196,24 @@ type AddSuggestion = {
   phone: string;
   source: string;
   birthday?: string;
-  age?: number;
+  age?: number | null;
+  origin?: "patient" | "pending";
+  originLabel?: string;
+  teeth?: string;
 };
+
+function splitPendingTeeth(raw: string): AddToothRow[] {
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) {
+    return [{ toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }];
+  }
+  return parts.map((toothNo) => ({
+    toothNo,
+    implantBrand: "",
+    implantModel: "",
+    toothRemark: "",
+  }));
+}
 
 type InvInventoryRow = {
   brand: string;
@@ -550,6 +566,9 @@ function ImplantRecordsVisitDialog({
     setChartNo(s.source);
     setBirthday(s.birthday?.trim() ?? "");
     setAge(s.age != null && !Number.isNaN(Number(s.age)) ? String(s.age) : "");
+    if (s.origin === "pending") {
+      setTeeth(splitPendingTeeth(s.teeth ?? ""));
+    }
     setSuggestions([]);
     setSuggestListDismissed(true);
   }
@@ -1006,13 +1025,14 @@ function ImplantRecordsVisitDialog({
                               <CommandGroup>
                                 {suggestions.map((s) => (
                                   <CommandItem
-                                    key={s.id}
-                                    value={`${s.id}-${s.name}-${s.phone}`}
+                                    key={`${s.origin ?? "patient"}-${s.id}`}
+                                    value={`${s.origin ?? "patient"}-${s.id}-${s.name}-${s.phone}`}
                                     onSelect={() => selectSuggestion(s)}
                                   >
                                     <span>{s.name}</span>
                                     <span className="text-muted-foreground">
-                                      {s.phone}
+                                      {s.originLabel ?? "患者库"}
+                                      {s.phone ? ` · ${s.phone}` : ""}
                                       {s.source ? ` · ${s.source}` : ""}
                                     </span>
                                   </CommandItem>

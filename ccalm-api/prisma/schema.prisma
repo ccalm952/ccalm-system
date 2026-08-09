@@ -196,6 +196,22 @@ model ImplantInventory {
   @@unique([brand, model])
 }
 
+/// 待种植名单（可被种植记录姓名搜索引用）
+model ImplantPending {
+  id             Int      @id @default(autoincrement())
+  name           String
+  phone          String
+  chartNo        String   @default("")
+  teeth          String   @default("")
+  extractionDate String?
+  remark         String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name])
+  @@index([phone])
+}
+
 model SalarySheet {
   month     String   @id
   data      Json

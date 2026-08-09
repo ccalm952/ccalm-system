@@ -15,6 +15,7 @@ import { CheckInRangePage } from "@/pages/attendance/CheckInRangePage";
 import { SchedulePage } from "@/pages/attendance/SchedulePage";
 import { ImplantInventoryPage } from "@/pages/implant/ImplantInventoryPage";
 import { ImplantPatientPage } from "@/pages/implant/ImplantPatientPage";
+import { ImplantPendingPage } from "@/pages/implant/ImplantPendingPage";
 import { ImplantRecordsPage } from "@/pages/implant/ImplantRecordsPage";
 import { ImplantStatsPage } from "@/pages/implant/ImplantStatsPage";
 import { OrthodonticsPage } from "@/pages/orthodontics/OrthodonticsPage";
@@ -122,6 +123,7 @@ export function App() {
               <Route index element={<Navigate to={ROUTES.implant.records} replace />} />
               <Route path="records" element={<ImplantRecordsPage />} />
               <Route path="patients" element={<ImplantPatientPage />} />
+              <Route path="pending" element={<ImplantPendingPage />} />
               <Route path="stats" element={<ImplantStatsPage />} />
               <Route path="inventory" element={<ImplantInventoryPage />} />
             </Route>

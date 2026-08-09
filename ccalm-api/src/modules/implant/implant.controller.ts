@@ -15,6 +15,10 @@ import {
   CreateImplantVisitDto,
   ImplantToothInputDto,
 } from "./dto/create-visit.dto"
+import {
+  CreateImplantPendingDto,
+  UpdateImplantPendingDto,
+} from "./dto/implant-pending.dto"
 import { UpdateImplantPatientDto } from "./dto/update-patient.dto"
 import { UpdateImplantVisitDto } from "./dto/update-visit.dto"
 import { ImplantService } from "./implant.service"
@@ -137,7 +141,7 @@ export class ImplantController {
     return this.implant.deleteImplantPatient(id)
   }
 
-  /** 新增种植：姓名自动完成（本库患者） */
+  /** 新增种植：姓名自动完成（患者库 + 待种植） */
   @Get("patient-list")
   patientSuggest(
     @Query("keyword") keyword?: string,
@@ -145,5 +149,28 @@ export class ImplantController {
   ) {
     const ps = pageSize != null && pageSize !== "" ? Number(pageSize) : 20
     return this.implant.suggestPatients(keyword, Number.isFinite(ps) ? ps : 20)
+  }
+
+  @Get("pending")
+  listPending(@Query("q") q?: string) {
+    return this.implant.listPending(q)
+  }
+
+  @Post("pending")
+  createPending(@Body() dto: CreateImplantPendingDto) {
+    return this.implant.createPending(dto)
+  }
+
+  @Put("pending/:id")
+  updatePending(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateImplantPendingDto
+  ) {
+    return this.implant.updatePending(id, dto)
+  }
+
+  @Delete("pending/:id")
+  deletePending(@Param("id", ParseIntPipe) id: number) {
+    return this.implant.deletePending(id)
   }
 }
