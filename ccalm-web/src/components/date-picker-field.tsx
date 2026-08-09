@@ -33,6 +33,8 @@ export type DatePickerFieldProps = {
   granularity?: "day" | "month";
   startMonth?: Date;
   endMonth?: Date;
+  /** 无选中值时日历初始月份；默认当天/当月。出生日期可传 2000-01 */
+  emptyMonth?: Date;
 };
 
 export function DatePickerField({
@@ -46,6 +48,7 @@ export function DatePickerField({
   granularity = "day",
   startMonth,
   endMonth,
+  emptyMonth,
   "aria-label": ariaLabel,
 }: DatePickerFieldProps) {
   const isMonth = granularity === "month";
@@ -61,12 +64,14 @@ export function DatePickerField({
   const dropdownStart = startMonth ?? (isMonth ? new Date(2020, 0) : new Date(1900, 0));
   const dropdownEnd =
     endMonth ?? (isMonth ? new Date(now.getFullYear() + 2, 11) : now);
+  const initialMonth = selected ?? emptyMonth ?? now;
 
   const calendar = (
     <Calendar
+      key={open ? "open" : "closed"}
       mode="single"
       selected={selected}
-      defaultMonth={selected ?? (isMonth ? now : new Date(2000, 0))}
+      defaultMonth={initialMonth}
       captionLayout={captionLayout}
       onSelect={(d) => {
         onValueChange(d ? format(d, isMonth ? "yyyy-MM" : "yyyy-MM-dd") : "");
