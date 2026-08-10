@@ -230,11 +230,11 @@ export function ToothChartDialog({
               <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
             </div>
 
-            <div className="flex items-center gap-2 py-[12px]">
+            <div className="flex items-center gap-2 py-0 sm:py-[12px]">
               <span className="shrink-0 text-xs text-muted-foreground">右</span>
               <div className="h-px min-w-6 flex-1 bg-border" />
             </div>
-            <div className="flex items-center gap-2 py-[12px]">
+            <div className="flex items-center gap-2 py-0 sm:py-[12px]">
               <div className="h-px min-w-6 flex-1 bg-border" />
               <span className="shrink-0 text-xs text-muted-foreground">左</span>
             </div>
