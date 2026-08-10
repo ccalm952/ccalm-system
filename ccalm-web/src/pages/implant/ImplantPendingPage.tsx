@@ -93,7 +93,7 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <div className="flex h-10 w-full items-center justify-center leading-[0]">
+    <div className="flex h-10 w-full items-center justify-center leading-none">
       <ToothPalmerMark fdis={parsed} compact />
     </div>
   );
