@@ -55,7 +55,7 @@ export function ToothPositionField({
         className={cn(
           compact
             ? "h-auto min-h-8 border-0 bg-transparent px-0 py-1.5 shadow-none hover:bg-transparent"
-            : "h-8 border-transparent bg-input/50 px-2.5 py-0 font-normal text-base hover:bg-input/50 md:text-sm dark:bg-input/50 dark:hover:bg-input/50",
+            : "h-10 border-transparent bg-input/50 px-2.5 py-0 font-normal text-base hover:bg-input/50 md:text-sm dark:bg-input/50 dark:hover:bg-input/50",
           "w-full justify-start overflow-visible",
           className,
         )}
