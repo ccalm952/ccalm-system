@@ -10,11 +10,12 @@ type ToothPalmerMarkProps = {
   compact?: boolean;
 };
 
-/** 图1：十字象限 Palmer 标记；按实宽测左右列，等宽且保留 padding */
+/** 图1：十字象限 Palmer 标记；按实宽测左右列，等宽且保留水平 padding */
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
-  const cell = compact ? "p-0.5" : "p-1";
+  // 只保留左右内边距，避免上下 padding + items-start/end 造成「底多顶少」
+  const cell = compact ? "px-0.5" : "px-1";
   const line = "bg-sky-300";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
   const measureKey = `${labels.join("\0")}:${compact ? "c" : "n"}`;
@@ -33,7 +34,7 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
   }, [measureKey]);
 
   return (
-    <span className={cn("relative inline-block align-middle leading-none", className)}>
+    <span className={cn("relative inline-flex leading-none", className)}>
       <span
         ref={measureRef}
         className={cn(
@@ -49,7 +50,7 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
       </span>
       <span
         className={cn(
-          "inline-grid shrink-0 grid-rows-[auto_1px_auto] align-middle font-medium tabular-nums leading-none text-foreground",
+          "grid shrink-0 grid-rows-[auto_1px_auto] font-medium tabular-nums leading-none text-foreground",
           text,
         )}
         style={
@@ -58,11 +59,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
             : { gridTemplateColumns: "auto 1px auto" }
         }
       >
-        <span className={cn("flex items-end justify-end whitespace-nowrap", cell)}>
+        <span className={cn("flex items-center justify-end whitespace-nowrap", cell)}>
           {g.UR || "\u00a0"}
         </span>
         <span className={line} />
-        <span className={cn("flex items-end justify-start whitespace-nowrap", cell)}>
+        <span className={cn("flex items-center justify-start whitespace-nowrap", cell)}>
           {g.UL || "\u00a0"}
         </span>
 
@@ -70,11 +71,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
         <span className={line} />
         <span className={line} />
 
-        <span className={cn("flex items-start justify-end whitespace-nowrap", cell)}>
+        <span className={cn("flex items-center justify-end whitespace-nowrap", cell)}>
           {g.LR || "\u00a0"}
         </span>
         <span className={line} />
-        <span className={cn("flex items-start justify-start whitespace-nowrap", cell)}>
+        <span className={cn("flex items-center justify-start whitespace-nowrap", cell)}>
           {g.LL || "\u00a0"}
         </span>
       </span>
