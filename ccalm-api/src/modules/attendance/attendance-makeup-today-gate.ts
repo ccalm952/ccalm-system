@@ -1,5 +1,3 @@
-import { type MakeupTodayGate } from "./makeup-today-gate"
-
 import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
 
 export type { MakeupTodayGate } from "./makeup-today-gate"
