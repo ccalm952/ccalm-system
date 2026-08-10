@@ -222,27 +222,27 @@ export function ToothChartDialog({
           </div>
 
           <div className="mx-auto grid w-fit grid-cols-[auto_1px_auto] items-stretch">
-            <div className="pr-2 sm:pr-[18px]">
+            <div className="pr-2 sm:pr-[12px]">
               <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
             </div>
             <div className="row-span-3 w-px bg-border" />
-            <div className="pl-2 sm:pl-[18px]">
+            <div className="pl-2 sm:pl-[12px]">
               <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
             </div>
 
-            <div className="flex items-center gap-2 py-0 sm:py-[12px]">
+            <div className="flex items-center gap-2 py-0 sm:py-[6px]">
               <span className="shrink-0 text-xs text-muted-foreground">右</span>
               <div className="h-px min-w-6 flex-1 bg-border" />
             </div>
-            <div className="flex items-center gap-2 py-0 sm:py-[12px]">
+            <div className="flex items-center gap-2 py-0 sm:py-[6px]">
               <div className="h-px min-w-6 flex-1 bg-border" />
               <span className="shrink-0 text-xs text-muted-foreground">左</span>
             </div>
 
-            <div className="pr-2 sm:pr-[18px]">
+            <div className="pr-2 sm:pr-[12px]">
               <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
             </div>
-            <div className="pl-2 sm:pl-[18px]">
+            <div className="pl-2 sm:pl-[12px]">
               <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
             </div>
           </div>
