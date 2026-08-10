@@ -231,12 +231,14 @@ export function ToothChartDialog({
             </div>
 
             <div className="flex items-center gap-2 py-0 sm:py-[6px]">
+              <div className="h-px min-w-6 flex-1 bg-border" />
               <span className="shrink-0 text-xs text-muted-foreground">右</span>
               <div className="h-px min-w-6 flex-1 bg-border" />
             </div>
             <div className="flex items-center gap-2 py-0 sm:py-[6px]">
               <div className="h-px min-w-6 flex-1 bg-border" />
               <span className="shrink-0 text-xs text-muted-foreground">左</span>
+              <div className="h-px min-w-6 flex-1 bg-border" />
             </div>
 
             <div className="pr-2 sm:pr-[12px]">
