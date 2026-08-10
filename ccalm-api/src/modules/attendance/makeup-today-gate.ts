@@ -8,7 +8,7 @@ export type MakeupTodayGate = {
 export type MakeupSlotType =
   "morning_in" | "morning_out" | "afternoon_in" | "afternoon_out"
 
-export function canMakeupTodaySlot(
+function canMakeupTodaySlot(
   isToday: boolean,
   wallMinutes: number,
   type: MakeupSlotType,

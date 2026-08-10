@@ -4,7 +4,7 @@ import type { AttendancePunchType, Prisma } from "@prisma/client"
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
-import { attendanceDayjs } from "./attendance-dayjs"
+import { attendanceDayjs, formatAttendanceDate } from "./attendance-dayjs"
 import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
 import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
@@ -15,7 +15,6 @@ import {
   monthSummaryBounds,
   overtimeMinutesForOutTimes,
 } from "./monthly-summary-compute"
-import { punchDateFromTime } from "./punch-date"
 import { minutesFromMidnight } from "./time"
 
 const GLOBAL_CONFIG_ID = "global" as const
@@ -121,7 +120,7 @@ export class AttendanceService {
 
   async punch(userId: string, dto: PunchDto) {
     const now = new Date()
-    const punchDate = punchDateFromTime(now)
+    const punchDate = formatAttendanceDate(now)
     const type = dto.type
     const [shift, fence] = await Promise.all([
       this.getShift(),
@@ -273,7 +272,7 @@ export class AttendanceService {
   }
 
   async today(userId: string) {
-    const punchDate = punchDateFromTime(new Date())
+    const punchDate = formatAttendanceDate(new Date())
     return await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate },
       orderBy: { punchTime: "asc" },

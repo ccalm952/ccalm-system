@@ -1,11 +1,6 @@
-import {
-  passesMakeupTodayGate as passesMakeupTodayGateCore,
-  type MakeupSlotType,
-  type MakeupTodayGate,
-} from "./makeup-today-gate-core";
+import { type MakeupTodayGate } from "./makeup-today-gate-core";
 
 import { attendanceDayjs, attendanceTodayStart } from "./dayjs";
-import type { AttendancePunchType } from "./types";
 
 export type { MakeupTodayGate } from "./makeup-today-gate-core";
 
@@ -16,27 +11,9 @@ export function makeupTodayGateFromShift(shift: MakeupTodayGate): MakeupTodayGat
   };
 }
 
-function wallClockMinutes(d: Date): number {
-  return d.getHours() * 60 + d.getMinutes();
-}
-
 export function isAttendanceDateToday(dateStr: string): boolean {
   return (
     attendanceDayjs(dateStr, "YYYY-MM-DD").format("YYYY-MM-DD") ===
     attendanceTodayStart().format("YYYY-MM-DD")
-  );
-}
-
-export function passesMakeupTodayGate(
-  dateStr: string,
-  type: AttendancePunchType,
-  gate: MakeupTodayGate | undefined,
-  at: Date = new Date(),
-): boolean {
-  return passesMakeupTodayGateCore(
-    isAttendanceDateToday(dateStr),
-    wallClockMinutes(at),
-    type as MakeupSlotType,
-    gate,
   );
 }

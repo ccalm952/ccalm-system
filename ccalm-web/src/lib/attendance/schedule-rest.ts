@@ -1,6 +1,5 @@
 import type { MakeupSlotType } from "./makeup-today-gate-core";
-
-export type ScheduleRestType = "full_rest" | "morning_rest" | "afternoon_rest";
+import type { ScheduleRestType } from "./types";
 
 export type RestHalf = "morning" | "afternoon";
 
@@ -13,13 +12,13 @@ export type DayPunchRow = {
   declaredRest?: ScheduleRestType | null;
 };
 
-export function isMorningScheduleRest(
+function isMorningScheduleRest(
   declaredRest: ScheduleRestType | null | undefined,
 ): boolean {
   return declaredRest === "full_rest" || declaredRest === "morning_rest";
 }
 
-export function isAfternoonScheduleRest(
+function isAfternoonScheduleRest(
   declaredRest: ScheduleRestType | null | undefined,
 ): boolean {
   return declaredRest === "full_rest" || declaredRest === "afternoon_rest";
