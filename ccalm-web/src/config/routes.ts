@@ -7,14 +7,12 @@ export const ROUTES = {
     root: "/users",
   },
   attendance: {
-    root: "/attendance",
     stats: "/attendance/stats",
     schedule: "/attendance/schedule",
     shiftSettings: "/attendance/shift-settings",
     checkInRange: "/attendance/check-in-range",
   },
   implant: {
-    root: "/implant",
     records: "/implant/records",
     patients: "/implant/patients",
     pending: "/implant/pending",
@@ -22,7 +20,6 @@ export const ROUTES = {
     inventory: "/implant/inventory",
   },
   orthodontics: {
-    root: "/orthodontics",
     treating: "/orthodontics/treating",
     appliance: "/orthodontics/appliance",
     completed: "/orthodontics/completed",

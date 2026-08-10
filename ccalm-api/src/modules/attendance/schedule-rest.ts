@@ -10,13 +10,13 @@ export type DayPunchRow = {
   declaredRest?: ScheduleShiftType | null
 }
 
-export function isMorningScheduleRest(
+function isMorningScheduleRest(
   declaredRest: ScheduleShiftType | null | undefined
 ): boolean {
   return declaredRest === "full_rest" || declaredRest === "morning_rest"
 }
 
-export function isAfternoonScheduleRest(
+function isAfternoonScheduleRest(
   declaredRest: ScheduleShiftType | null | undefined
 ): boolean {
   return declaredRest === "full_rest" || declaredRest === "afternoon_rest"

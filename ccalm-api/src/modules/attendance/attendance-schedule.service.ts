@@ -313,30 +313,6 @@ export class AttendanceScheduleService {
     }
   }
 
-  async getRemainingLeave(userId: string, month: string): Promise<number> {
-    monthBounds(month)
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { leaveInitialBalance: true, createdAt: true },
-    })
-    if (!user) throw new BadRequestException("用户不存在")
-
-    const { configMap, leaveByUserMonth } = await this.buildLeaveContext(
-      [userId],
-      month,
-      [{ id: userId, createdAt: user.createdAt }]
-    )
-
-    return this.remainingLeaveFromPrefetch(
-      userId,
-      month,
-      user.leaveInitialBalance,
-      user.createdAt,
-      configMap,
-      leaveByUserMonth
-    )
-  }
-
   async resolveShiftForUserDay(
     userId: string,
     dateStr: string
@@ -487,19 +463,6 @@ export class AttendanceScheduleService {
       data: { shiftType: next },
     })
     return { date, shiftType: next }
-  }
-
-  async declaredScheduleMapForUser(
-    userId: string,
-    startDate: string,
-    endDate: string
-  ): Promise<Map<string, ScheduleShiftType>> {
-    const maps = await this.declaredScheduleMapsForUsers(
-      [userId],
-      startDate,
-      endDate
-    )
-    return maps.get(userId) ?? new Map()
   }
 
   async declaredScheduleMapsForUsers(

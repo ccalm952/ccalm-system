@@ -21,25 +21,25 @@ const DEC_BY_UI: Record<UiQuadrant, number[]> = {
 
 const DEC_LABEL = ["A", "B", "C", "D", "E"] as const;
 
-export const ALL_PERMANENT: number[] = [
+const ALL_PERMANENT: number[] = [
   ...PERM_BY_UI.UR,
   ...PERM_BY_UI.UL,
   ...PERM_BY_UI.LL,
   ...PERM_BY_UI.LR,
 ];
 
-export const ALL_DECIDUOUS: number[] = [
+const ALL_DECIDUOUS: number[] = [
   ...DEC_BY_UI.UR,
   ...DEC_BY_UI.UL,
   ...DEC_BY_UI.LL,
   ...DEC_BY_UI.LR,
 ];
 
-export function isValidFdi(n: number): boolean {
+function isValidFdi(n: number): boolean {
   return ALL_PERMANENT.includes(n) || ALL_DECIDUOUS.includes(n);
 }
 
-export function isDeciduousFdi(n: number): boolean {
+function isDeciduousFdi(n: number): boolean {
   return ALL_DECIDUOUS.includes(n);
 }
 
@@ -52,7 +52,7 @@ export function palmerLabel(fdi: number): string {
   return String(pos);
 }
 
-export function uiQuadrantOf(fdi: number): UiQuadrant | null {
+function uiQuadrantOf(fdi: number): UiQuadrant | null {
   for (const q of ["UR", "UL", "LR", "LL"] as const) {
     if (PERM_BY_UI[q].includes(fdi) || DEC_BY_UI[q].includes(fdi)) return q;
   }
@@ -67,29 +67,14 @@ export function deciduousInUi(q: UiQuadrant): number[] {
   return DEC_BY_UI[q];
 }
 
-/** 前牙：每象限 1–3；后牙：4–8（乳牙后牙 D–E = 4–5） */
-export function shortcutPermanent(kind: "all" | "upper" | "lower" | "front" | "back"): number[] {
-  const upper = [...PERM_BY_UI.UR, ...PERM_BY_UI.UL];
-  const lower = [...PERM_BY_UI.LR, ...PERM_BY_UI.LL];
-  if (kind === "all") return ALL_PERMANENT;
-  if (kind === "upper") return upper;
-  if (kind === "lower") return lower;
-  if (kind === "front") {
-    return ALL_PERMANENT.filter((n) => n % 10 <= 3);
-  }
-  return ALL_PERMANENT.filter((n) => n % 10 >= 4);
+export function shortcutPermanent(kind: "upper" | "lower"): number[] {
+  if (kind === "upper") return [...PERM_BY_UI.UR, ...PERM_BY_UI.UL];
+  return [...PERM_BY_UI.LR, ...PERM_BY_UI.LL];
 }
 
-export function shortcutDeciduous(kind: "all" | "upper" | "lower" | "front" | "back"): number[] {
-  const upper = [...DEC_BY_UI.UR, ...DEC_BY_UI.UL];
-  const lower = [...DEC_BY_UI.LR, ...DEC_BY_UI.LL];
-  if (kind === "all") return ALL_DECIDUOUS;
-  if (kind === "upper") return upper;
-  if (kind === "lower") return lower;
-  if (kind === "front") {
-    return ALL_DECIDUOUS.filter((n) => n % 10 <= 3);
-  }
-  return ALL_DECIDUOUS.filter((n) => n % 10 >= 4);
+export function shortcutDeciduous(kind: "upper" | "lower"): number[] {
+  if (kind === "upper") return [...DEC_BY_UI.UR, ...DEC_BY_UI.UL];
+  return [...DEC_BY_UI.LR, ...DEC_BY_UI.LL];
 }
 
 export function formatTeeth(fdis: number[]): string {

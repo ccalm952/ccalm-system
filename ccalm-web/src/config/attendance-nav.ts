@@ -1,7 +1,7 @@
 import { ROUTES } from "@/config/routes";
 
 /** 考勤分组下的子导航（侧栏与顶栏共用） */
-export const attendanceSubNavItems: { title: string; url: string }[] = [
+const attendanceSubNavItems: { title: string; url: string }[] = [
   { title: "考勤打卡", url: ROUTES.home },
   { title: "考勤统计", url: ROUTES.attendance.stats },
   { title: "排班表", url: ROUTES.attendance.schedule },

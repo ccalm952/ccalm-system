@@ -17,7 +17,7 @@ function isWallClockAfterMinutes(wallMinutes: number, hhmm: string): boolean {
   return wallMinutes > target;
 }
 
-export function canMakeupTodaySlot(
+function canMakeupTodaySlot(
   isToday: boolean,
   wallMinutes: number,
   type: MakeupSlotType,

@@ -10,7 +10,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
-import { attendanceDayjs, attendanceTodayStart } from "./attendance-dayjs"
+import { attendanceDayjs, attendanceTodayStart, formatAttendanceDate } from "./attendance-dayjs"
 import {
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
@@ -24,7 +24,6 @@ import { type MakeupTodayGate } from "./attendance-makeup-today-gate"
 import type { MakeupSlotType } from "./makeup-today-gate"
 import { DEFAULT_SHIFT_ROW } from "./defaults"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
-import { punchDateFromTime } from "./punch-date"
 
 dayjs.extend(customParseFormat)
 
@@ -65,7 +64,7 @@ export class AttendanceMakeupService {
     return {
       userId,
       type,
-      punchDate: punchDateFromTime(punchTime),
+      punchDate: formatAttendanceDate(punchTime),
       punchTime,
       latitude: 0,
       longitude: 0,
