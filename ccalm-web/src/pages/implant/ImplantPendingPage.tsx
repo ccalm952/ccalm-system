@@ -93,9 +93,9 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <span className="inline-flex items-center justify-center leading-none">
+    <div className="flex h-10 w-full items-center justify-center leading-[0]">
       <ToothPalmerMark fdis={parsed} compact />
-    </span>
+    </div>
   );
 }
 
@@ -309,7 +309,7 @@ export function ImplantPendingPage() {
                     <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="align-middle overflow-visible whitespace-nowrap">
+                    <TableCell className="overflow-visible p-0">
                       <TeethCell teeth={row.teeth} />
                     </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">

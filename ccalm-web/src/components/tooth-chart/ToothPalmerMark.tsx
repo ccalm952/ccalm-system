@@ -13,7 +13,7 @@ type ToothPalmerMarkProps = {
 /** 图1：十字象限 Palmer 标记；按实宽测左右列，等宽且保留水平 padding */
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
+  const text = compact ? "text-[10px] leading-[0]" : "text-xs leading-[0]";
   // 只保留左右内边距，避免上下 padding + items-start/end 造成「底多顶少」
   const cell = compact ? "px-0.5" : "px-1";
   const line = "bg-sky-300";
@@ -34,11 +34,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
   }, [measureKey]);
 
   return (
-    <span className={cn("relative inline-flex leading-none", className)}>
+    <span className={cn("relative inline-flex items-center leading-[0]", className)}>
       <span
         ref={measureRef}
         className={cn(
-          "pointer-events-none absolute top-0 left-0 flex font-medium tabular-nums opacity-0",
+          "pointer-events-none absolute top-0 left-0 flex font-medium tabular-nums opacity-0 leading-[0]",
           text,
         )}
       >
@@ -50,7 +50,7 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
       </span>
       <span
         className={cn(
-          "grid shrink-0 grid-rows-[auto_1px_auto] font-medium tabular-nums leading-none text-foreground",
+          "grid shrink-0 grid-rows-[auto_1px_auto] font-medium tabular-nums leading-[0] text-foreground",
           text,
         )}
         style={
