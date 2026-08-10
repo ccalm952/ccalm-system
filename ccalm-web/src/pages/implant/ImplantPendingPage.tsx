@@ -93,7 +93,7 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <span className="inline-flex items-center justify-center py-0.5">
+    <span className="inline-flex items-center justify-center leading-none">
       <ToothPalmerMark fdis={parsed} compact />
     </span>
   );

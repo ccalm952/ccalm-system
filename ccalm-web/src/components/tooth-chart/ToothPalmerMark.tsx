@@ -33,7 +33,7 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
   }, [measureKey]);
 
   return (
-    <span className={cn("relative inline-block", className)}>
+    <span className={cn("relative inline-block align-middle leading-none", className)}>
       <span
         ref={measureRef}
         className={cn(
@@ -49,7 +49,7 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
       </span>
       <span
         className={cn(
-          "inline-grid shrink-0 grid-rows-[auto_1px_auto] font-medium tabular-nums text-foreground",
+          "inline-grid shrink-0 grid-rows-[auto_1px_auto] align-middle font-medium tabular-nums leading-none text-foreground",
           text,
         )}
         style={
@@ -58,11 +58,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
             : { gridTemplateColumns: "auto 1px auto" }
         }
       >
-        <span className={cn("flex items-center justify-end whitespace-nowrap", cell)}>
+        <span className={cn("flex items-end justify-end whitespace-nowrap", cell)}>
           {g.UR || "\u00a0"}
         </span>
         <span className={line} />
-        <span className={cn("flex items-center justify-start whitespace-nowrap", cell)}>
+        <span className={cn("flex items-end justify-start whitespace-nowrap", cell)}>
           {g.UL || "\u00a0"}
         </span>
 
@@ -70,11 +70,11 @@ export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkPro
         <span className={line} />
         <span className={line} />
 
-        <span className={cn("flex items-center justify-end whitespace-nowrap", cell)}>
+        <span className={cn("flex items-start justify-end whitespace-nowrap", cell)}>
           {g.LR || "\u00a0"}
         </span>
         <span className={line} />
-        <span className={cn("flex items-center justify-start whitespace-nowrap", cell)}>
+        <span className={cn("flex items-start justify-start whitespace-nowrap", cell)}>
           {g.LL || "\u00a0"}
         </span>
       </span>
