@@ -335,6 +335,7 @@ export function AttendanceStatsPage() {
     columns,
     state: { expanded },
     onExpandedChange: setExpanded,
+    autoResetExpanded: false,
     getRowId: (row) => row.userId,
     getRowCanExpand: () => true,
   });
