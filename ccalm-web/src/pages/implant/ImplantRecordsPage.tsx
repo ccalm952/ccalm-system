@@ -42,9 +42,7 @@ import { SearchIcon, X } from "lucide-react";
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
@@ -780,14 +778,7 @@ function ImplantRecordsVisitDialog({
         showCloseButton={false}
       >
         <FieldSet>
-          {isEdit ? (
-            <>
-              <FieldLegend>编辑种植记录</FieldLegend>
-              <FieldDescription>
-                病历号、出生日期、年龄为只读。同一天同一人合并展示的多条牙位可一并编辑；保存时按各条所属就诊分别提交。
-              </FieldDescription>
-            </>
-          ) : (
+          {isEdit ? null : (
             <FieldLegend className="sr-only">新增种植记录</FieldLegend>
           )}
           {isEdit ? (
@@ -795,18 +786,18 @@ function ImplantRecordsVisitDialog({
               <FieldGroup>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field orientation="vertical">
-                    <FieldLabel>日期</FieldLabel>
                     <FieldContent>
                       <DatePickerField
                         value={editForm.visitDate}
                         onValueChange={(v) => setEditForm((s) => ({ ...s, visitDate: v }))}
+                        placeholder="日期"
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>姓名</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="姓名"
                         value={editForm.patientName}
                         onChange={(e) =>
                           setEditForm((s) => ({ ...s, patientName: e.target.value }))
@@ -815,27 +806,25 @@ function ImplantRecordsVisitDialog({
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>手机</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="手机"
                         value={editForm.phone}
                         onChange={(e) => setEditForm((s) => ({ ...s, phone: e.target.value }))}
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>病历号</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="病历号"
                         value={editForm.chartNo}
                         readOnly
-                        disabled
-                        className="pointer-events-none bg-muted/40"
+                        className="border-border bg-muted/30 focus-visible:border-border focus-visible:ring-0"
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>出生日期</FieldLabel>
                     <FieldContent>
                       <DatePickerField
                         value={editForm.birthday}
@@ -843,37 +832,36 @@ function ImplantRecordsVisitDialog({
                         disabled
                         captionLayout="dropdown"
                         emptyMonth={new Date(2000, 0)}
-                        placeholder=""
+                        placeholder="出生日期"
+                        className="border-border bg-muted/30 disabled:opacity-100"
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>年龄</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="年龄"
                         value={editForm.age}
                         readOnly
-                        disabled
-                        className="pointer-events-none bg-muted/40"
+                        className="border-border bg-muted/30 focus-visible:border-border focus-visible:ring-0"
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>人员</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="人员"
                         value={editForm.staff}
                         onChange={(e) => setEditForm((s) => ({ ...s, staff: e.target.value }))}
                       />
                     </FieldContent>
                   </Field>
                   <Field orientation="vertical">
-                    <FieldLabel>二期（月数）</FieldLabel>
                     <FieldContent>
                       <Input
+                        placeholder="二期（月数）"
                         value={editForm.remark}
                         onChange={(e) => setEditForm((s) => ({ ...s, remark: e.target.value }))}
-                        placeholder="仅数字表示月数"
                       />
                     </FieldContent>
                   </Field>
@@ -882,16 +870,15 @@ function ImplantRecordsVisitDialog({
 
               <div className="flex flex-col gap-2">
                 {editTeeth.map((t, i) => {
-                  const showToothFieldLabels = i === 0;
                   return (
                     <FieldGroup key={`${String(t.toothId ?? "new")}-${i}`}>
                       <div className="flex min-w-0 items-end gap-4">
                         <div className="min-w-0 flex-1">
-                          <div className="grid min-w-[28rem] grid-cols-4 gap-4">
+                          <div className="grid grid-cols-[repeat(4,minmax(0,1fr))] gap-2 md:gap-4">
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>牙位</FieldLabel> : null}
                               <FieldContent>
                                 <Input
+                                  placeholder="牙位"
                                   value={t.toothNo}
                                   onChange={(e) =>
                                     setEditTeeth((rows) =>
@@ -904,7 +891,6 @@ function ImplantRecordsVisitDialog({
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>品牌</FieldLabel> : null}
                               <FieldContent>
                                 <ToothBrandCombobox
                                   brands={inventoryBrands}
@@ -920,7 +906,6 @@ function ImplantRecordsVisitDialog({
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>植体</FieldLabel> : null}
                               <FieldContent>
                                 <ToothModelCombobox
                                   models={modelsByBrand.get(t.implantBrand.trim()) ?? []}
@@ -935,9 +920,9 @@ function ImplantRecordsVisitDialog({
                               </FieldContent>
                             </Field>
                             <Field orientation="vertical">
-                              {showToothFieldLabels ? <FieldLabel>备注</FieldLabel> : null}
                               <FieldContent>
                                 <Input
+                                  placeholder="备注"
                                   value={t.toothRemark}
                                   onChange={(e) =>
                                     setEditTeeth((rows) =>
@@ -960,7 +945,7 @@ function ImplantRecordsVisitDialog({
                 })}
               </div>
 
-              <div className="flex w-full gap-2">
+              <div className="flex w-full gap-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -1131,7 +1116,7 @@ function ImplantRecordsVisitDialog({
                     <FieldGroup key={i}>
                       <div className="flex min-w-0 items-end gap-4">
                         <div className="min-w-0 flex-1">
-                          <div className="grid min-w-[28rem] grid-cols-4 gap-4">
+                          <div className="grid grid-cols-[repeat(4,minmax(0,1fr))] gap-2 md:gap-4">
                             <Field orientation="vertical">
                               <FieldContent>
                                 <Input
@@ -1204,7 +1189,7 @@ function ImplantRecordsVisitDialog({
                 })}
               </div>
 
-              <div className="flex w-full gap-2">
+              <div className="flex w-full gap-4">
                 <Button
                   type="button"
                   variant="outline"

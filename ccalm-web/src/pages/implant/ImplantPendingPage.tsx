@@ -23,8 +23,6 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -94,7 +92,7 @@ function TeethCell({ teeth }: { teeth: string }) {
   if (!parsed.length) return null;
   return (
     <div className="flex h-10 w-full items-center justify-center leading-none">
-      <ToothPalmerMark fdis={parsed} compact />
+      <ToothPalmerMark fdis={parsed} />
     </div>
   );
 }
@@ -341,10 +339,10 @@ export function ImplantPendingPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="text-base md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm">
-          <DialogHeader>
-            <DialogTitle>{editIdRef.current == null ? "新增" : "编辑"}</DialogTitle>
-          </DialogHeader>
+        <DialogContent
+          showCloseButton={false}
+          className="text-base md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm"
+        >
           <div className="grid gap-4">
             <Input
               placeholder="姓名"
@@ -377,7 +375,7 @@ export function ImplantPendingPage() {
               onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))}
             />
           </div>
-          <DialogFooter>
+          <DialogFooter className="grid grid-cols-2 md:grid-cols-2 *:w-full">
             <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
               取消
             </Button>

@@ -5,8 +5,6 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
@@ -198,13 +196,12 @@ export function ToothChartDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-fit sm:max-w-none">
-        <DialogHeader>
-          <DialogTitle>选择牙位</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+      <DialogContent
+        showCloseButton={false}
+        className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-fit sm:max-w-none"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {shortcuts.map((s) => (
               <Button
                 key={s.label}

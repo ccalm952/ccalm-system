@@ -26,10 +26,8 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldContent, FieldLabel, FieldSet, FieldTitle } from "@/components/ui/field";
+import { FieldSet } from "@/components/ui/field";
 import {
   Combobox,
   ComboboxContent,
@@ -465,7 +463,7 @@ export function ImplantInventoryPage() {
                 className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </FieldSet>
-            <DialogFooter className="grid grid-cols-2 gap-2 md:grid-cols-2 *:w-full">
+            <DialogFooter className="grid grid-cols-2 md:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setAddStockOpen(false)}>
                 取消
               </Button>
@@ -477,43 +475,28 @@ export function ImplantInventoryPage() {
         </Dialog>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>修改库存</DialogTitle>
-            </DialogHeader>
-            <FieldSet className="text-sm">
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>品牌</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>植体</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input value={editModel} onChange={(e) => setEditModel(e.target.value)} />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>补货数量</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={editSupplement}
-                    onChange={(e) => setEditSupplement(e.target.value)}
-                    className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                </FieldContent>
-              </Field>
-            </FieldSet>
-            <DialogFooter className="grid grid-cols-2 gap-2 md:grid-cols-2 *:w-full">
+          <DialogContent showCloseButton={false}>
+            <div className="grid gap-4">
+              <Input
+                placeholder="品牌"
+                value={editBrand}
+                onChange={(e) => setEditBrand(e.target.value)}
+              />
+              <Input
+                placeholder="植体"
+                value={editModel}
+                onChange={(e) => setEditModel(e.target.value)}
+              />
+              <Input
+                type="number"
+                min={0}
+                placeholder="补货数量"
+                value={editSupplement}
+                onChange={(e) => setEditSupplement(e.target.value)}
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </div>
+            <DialogFooter className="grid grid-cols-2 md:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>
                 取消
               </Button>

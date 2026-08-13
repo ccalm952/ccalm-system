@@ -25,10 +25,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldContent, FieldLabel, FieldSet, FieldTitle } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
@@ -430,80 +427,41 @@ export function ImplantPatientPage() {
         </Card>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>编辑患者</DialogTitle>
-            </DialogHeader>
-            <FieldSet className="text-sm">
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>姓名</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.name}
-                    onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>手机</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm((s) => ({ ...s, phone: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>性别</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.gender}
-                    onChange={(e) => setEditForm((s) => ({ ...s, gender: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>病历号</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.chartNo}
-                    onChange={(e) => setEditForm((s) => ({ ...s, chartNo: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>出生日期</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.birthday}
-                    onChange={(e) => setEditForm((s) => ({ ...s, birthday: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-              <Field orientation="vertical">
-                <FieldLabel>
-                  <FieldTitle>年龄</FieldTitle>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    value={editForm.age}
-                    inputMode="numeric"
-                    onChange={(e) => setEditForm((s) => ({ ...s, age: e.target.value }))}
-                  />
-                </FieldContent>
-              </Field>
-            </FieldSet>
-            <DialogFooter>
+          <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto">
+            <div className="grid gap-4">
+              <Input
+                placeholder="姓名"
+                value={editForm.name}
+                onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
+              />
+              <Input
+                placeholder="手机"
+                value={editForm.phone}
+                onChange={(e) => setEditForm((s) => ({ ...s, phone: e.target.value }))}
+              />
+              <Input
+                placeholder="性别"
+                value={editForm.gender}
+                onChange={(e) => setEditForm((s) => ({ ...s, gender: e.target.value }))}
+              />
+              <Input
+                placeholder="病历号"
+                value={editForm.chartNo}
+                onChange={(e) => setEditForm((s) => ({ ...s, chartNo: e.target.value }))}
+              />
+              <Input
+                placeholder="出生日期"
+                value={editForm.birthday}
+                onChange={(e) => setEditForm((s) => ({ ...s, birthday: e.target.value }))}
+              />
+              <Input
+                placeholder="年龄"
+                value={editForm.age}
+                inputMode="numeric"
+                onChange={(e) => setEditForm((s) => ({ ...s, age: e.target.value }))}
+              />
+            </div>
+            <DialogFooter className="grid grid-cols-2 md:grid-cols-2 *:w-full">
               <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>
                 取消
               </Button>

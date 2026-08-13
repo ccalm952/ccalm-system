@@ -14,8 +14,8 @@ type ToothPalmerMarkProps = {
 export function ToothPalmerMark({ fdis, className, compact }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
-  // 只保留左右内边距；行高用 leading-none，避免 leading-[0] 把上下行压扁导致竖线消失
-  const cell = compact ? "min-h-[10px] px-0.5" : "min-h-3 px-1";
+  // 四边内边距；行高用 leading-none，避免 leading-[0] 把上下行压扁导致竖线消失
+  const cell = compact ? "min-h-[10px] p-0.5" : "min-h-3 p-0.5";
   const line = "bg-sky-300";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
   const measureKey = `${labels.join("\0")}:${compact ? "c" : "n"}`;
