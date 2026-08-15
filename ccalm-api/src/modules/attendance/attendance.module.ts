@@ -5,6 +5,7 @@ import { AttendanceMakeupService } from "./attendance-makeup.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"
 import { ChinaHolidaysService } from "./china-holidays.service"
+import { MakeupEventsService } from "./makeup-events.service"
 
 @Module({
   controllers: [AttendanceController],
@@ -13,6 +14,7 @@ import { ChinaHolidaysService } from "./china-holidays.service"
     AttendanceMakeupService,
     AttendanceScheduleService,
     ChinaHolidaysService,
+    MakeupEventsService,
   ],
 })
 export class AttendanceModule {}

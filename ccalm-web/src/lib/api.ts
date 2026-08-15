@@ -42,6 +42,13 @@ export function setToken(token: string | null) {
   else localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
+/** EventSource 用：`/api/attendance/makeup-events?token=...` */
+export function makeupEventsUrl(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  return `${API_BASE}/attendance/makeup-events?token=${encodeURIComponent(token)}`;
+}
+
 export async function api<T>(
   method: HttpMethod,
   path: string,

@@ -10,6 +10,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
+import { MakeupEventsService } from "./makeup-events.service"
 import {
   attendanceDayjs,
   attendanceTodayStart,
@@ -57,7 +58,8 @@ const OUT_TYPE_BY_IN: Record<MakeupInType, MakeupOutType> = {
 export class AttendanceMakeupService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly schedule: AttendanceScheduleService
+    private readonly schedule: AttendanceScheduleService,
+    private readonly makeupEvents: MakeupEventsService
   ) {}
 
   private createMakeupRecordData(
@@ -297,6 +299,12 @@ export class AttendanceMakeupService {
       },
       include: this.includeUser(),
     })
+    this.makeupEvents.publish({
+      type: "makeup-changed",
+      action: "created",
+      userId,
+      requestId: row.id,
+    })
     return this.serializeRequest(row)
   }
 
@@ -400,6 +408,12 @@ export class AttendanceMakeupService {
       return row
     })
 
+    this.makeupEvents.publish({
+      type: "makeup-changed",
+      action: "approved",
+      userId: req.userId,
+      requestId,
+    })
     return this.serializeRequest(updated)
   }
 
@@ -426,6 +440,12 @@ export class AttendanceMakeupService {
       include: this.includeUser(),
     })
     if (!updated) throw new NotFoundException("补卡申请不存在")
+    this.makeupEvents.publish({
+      type: "makeup-changed",
+      action: "rejected",
+      userId: req.userId,
+      requestId,
+    })
     return this.serializeRequest(updated)
   }
 
@@ -474,6 +494,12 @@ export class AttendanceMakeupService {
       }
 
       return created
+    })
+
+    this.makeupEvents.publish({
+      type: "makeup-changed",
+      action: "cleared",
+      userId: dto.userId,
     })
 
     return {

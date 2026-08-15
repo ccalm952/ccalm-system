@@ -25,7 +25,7 @@ import {
   makeupTodoBadgeClass,
 } from "@/lib/attendance/attendance-theme";
 import { formatMakeupTime } from "@/lib/attendance/makeup";
-import { api } from "@/lib/api";
+import { api, makeupEventsUrl } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
@@ -211,6 +211,50 @@ export function MakeupTodoButton() {
   React.useEffect(() => {
     if (open) void load();
   }, [open, load]);
+
+  React.useEffect(() => {
+    if (!me) return;
+    const url = makeupEventsUrl();
+    if (!url) return;
+
+    let es: EventSource | null = null;
+    let closed = false;
+
+    const connect = () => {
+      if (closed) return;
+      es = new EventSource(url);
+      es.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as { type?: string };
+          if (data.type === "ping" || data.type === "connected") return;
+        } catch {
+          // ignore parse errors, still refresh
+        }
+        if (document.visibilityState === "hidden") return;
+        void load();
+      };
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (!closed) {
+          window.setTimeout(connect, 3000);
+        }
+      };
+    };
+
+    connect();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      closed = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      es?.close();
+    };
+  }, [me, load]);
 
   if (!me) return null;
 

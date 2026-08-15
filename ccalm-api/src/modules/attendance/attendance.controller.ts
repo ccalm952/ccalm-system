@@ -3,15 +3,19 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  MessageEvent,
   Param,
   Post,
   Put,
   Query,
   Req,
+  Sse,
 } from "@nestjs/common"
 import type { Request } from "express"
+import type { Observable } from "rxjs"
 
 import {
+  actor,
   isAdmin,
   requireAdmin,
   userId as authUserId,
@@ -30,6 +34,7 @@ import { AttendanceMakeupService } from "./attendance-makeup.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"
 import { ChinaHolidaysService } from "./china-holidays.service"
+import { MakeupEventsService } from "./makeup-events.service"
 
 @Controller("attendance")
 export class AttendanceController {
@@ -37,8 +42,15 @@ export class AttendanceController {
     private readonly attendance: AttendanceService,
     private readonly makeup: AttendanceMakeupService,
     private readonly schedule: AttendanceScheduleService,
-    private readonly holidays: ChinaHolidaysService
+    private readonly holidays: ChinaHolidaysService,
+    private readonly makeupEvents: MakeupEventsService
   ) {}
+
+  @Sse("makeup-events")
+  makeupEventsStream(@Req() req: Request): Observable<MessageEvent> {
+    const a = actor(req)
+    return this.makeupEvents.stream(a.userId, a.role)
+  }
 
   @Get("geofence")
   async getGeofence() {
