@@ -86,6 +86,16 @@ export type AttendanceMakeupRequest = {
   reviewerName: string | null;
 };
 
+export type AttendancePunchDeviceUnbindRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  status: AttendanceMakeupRequestStatus;
+  reviewedAt: string | null;
+  createdAt: string;
+  reviewerName: string | null;
+};
+
 export type AttendanceMonthlySummary = {
   month: string; // YYYY-MM
   startDate: string; // YYYY-MM-DD
