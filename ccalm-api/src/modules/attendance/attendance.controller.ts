@@ -28,6 +28,7 @@ import {
 } from "./dto/makeup-request.dto"
 import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
 import { PunchDto } from "./dto/punch.dto"
+import { UnbindPunchDeviceDto } from "./dto/punch-device.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
 import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
 import { AttendanceMakeupService } from "./attendance-makeup.service"
@@ -77,6 +78,32 @@ export class AttendanceController {
   @Post("punch")
   async punch(@Req() req: Request, @Body() dto: PunchDto) {
     return await this.attendance.punch(authUserId(req), dto)
+  }
+
+  @Get("punch-device")
+  async getPunchDevice(
+    @Req() req: Request,
+    @Query("deviceToken") deviceToken?: string
+  ) {
+    return await this.attendance.getPunchDevice(
+      authUserId(req),
+      deviceToken ?? ""
+    )
+  }
+
+  @Get("punch-devices")
+  async listPunchDevices(@Req() req: Request) {
+    requireAdmin(req, "仅管理员可查看打卡设备")
+    return await this.attendance.listPunchDevices()
+  }
+
+  @Post("punch-device/unbind")
+  async unbindPunchDevice(
+    @Req() req: Request,
+    @Body() dto: UnbindPunchDeviceDto
+  ) {
+    requireAdmin(req, "仅管理员可解绑打卡设备")
+    return await this.attendance.unbindPunchDevice(dto.userId)
   }
 
   @Get("bundle")

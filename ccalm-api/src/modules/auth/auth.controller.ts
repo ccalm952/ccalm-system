@@ -33,11 +33,4 @@ export class AuthController {
     const me = await this.auth.getUserSafe(user.sub)
     return me
   }
-
-  @Post("switch-user")
-  async switchUser(@Req() req: Request, @Body("userId") userId: string) {
-    const user = req.user
-    if (!user?.sub) throw new UnauthorizedException("未登录或登录已失效")
-    return await this.auth.switchUser(user, userId)
-  }
 }

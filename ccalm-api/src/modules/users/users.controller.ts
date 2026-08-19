@@ -50,11 +50,6 @@ export class UsersController {
     return await this.users.listAll()
   }
 
-  @Get("switchable")
-  async switchable() {
-    return await this.users.listSwitchableUsers()
-  }
-
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateUserDto) {
     const a = actor(req)

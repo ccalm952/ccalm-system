@@ -8,6 +8,7 @@ const FIELD_LABELS: Record<string, string> = {
   half: "时段",
   type: "类型",
   role: "角色",
+  deviceToken: "打卡设备",
   initialLeaveBalance: "初始假期额度",
 };
 

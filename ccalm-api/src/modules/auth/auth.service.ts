@@ -1,7 +1,5 @@
 import {
-  ForbiddenException,
   Injectable,
-  NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common"
@@ -57,27 +55,5 @@ export class AuthService {
     })
     if (!user) throw new UnauthorizedException("未登录或登录已失效")
     return user
-  }
-
-  async switchUser(actor: Express.User, targetUserId: string) {
-    if (actor.role !== "user" && actor.role !== "admin")
-      throw new ForbiddenException("无权切换用户")
-    const user = await this.prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-    if (!user) throw new NotFoundException("用户不存在")
-    if (user.role !== "user")
-      throw new ForbiddenException("不能切换到管理员账户")
-    const accessToken = await this.signUser(user)
-    return { accessToken, user }
   }
 }
