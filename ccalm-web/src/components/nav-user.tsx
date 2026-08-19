@@ -43,7 +43,7 @@ export function NavUser({
   onAvatarUpdated?: (avatarUrl: string) => void;
 }) {
   const nav = useNavigate();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const initials = avatarInitials(user.name);
   const inMobileSidebar = variant === "sidebar" && isMobile;
   const menuSide = inMobileSidebar ? "top" : variant === "sidebar" ? "right" : "bottom";
@@ -91,7 +91,7 @@ export function NavUser({
       sideOffset={8}
     >
       <DropdownMenuGroup>
-        <DropdownMenuItem onClick={() => setDeviceOpen(true)}>打卡设备</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => { if (inMobileSidebar) setOpenMobile(false); setDeviceOpen(true); }}>打卡设备</DropdownMenuItem>
         <DropdownMenuItem disabled={uploadingAvatar} onClick={() => fileInputRef.current?.click()}>
           {uploadingAvatar ? (
             <>
