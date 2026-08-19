@@ -1,4 +1,10 @@
-import { IsIn, IsNumber, IsOptional, IsString } from "class-validator"
+import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from "class-validator"
 
 export class PunchDto {
   @IsString()
@@ -14,4 +20,8 @@ export class PunchDto {
   @IsOptional()
   @IsString()
   address?: string
+
+  @IsString()
+  @IsNotEmpty()
+  deviceToken!: string
 }

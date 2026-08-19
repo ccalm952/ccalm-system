@@ -182,9 +182,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               onAvatarUpdated={(avatarUrl) => {
                 setMe((current) => (current ? { ...current, avatarUrl } : current));
               }}
-              onUserSwitched={(user) => {
-                setMe(user);
-              }}
             />
           </SidebarMenuItem>
         </SidebarMenu>

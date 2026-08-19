@@ -50,7 +50,9 @@ import {
 import { isWallClockInInclusiveRange, type BackendShiftDto } from "@/lib/attendance/shift";
 import { todayKey, formatDayCount } from "@/lib/attendance/summary";
 import { api } from "@/lib/api";
+import { getPunchDeviceToken } from "@/lib/attendance/punch-device";
 import { useAuth } from "@/lib/use-auth";
+import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -359,6 +361,7 @@ export function AttendancePage() {
       latitude: lat,
       longitude: lng,
       address: address?.trim() || "",
+      deviceToken: getPunchDeviceToken(),
     });
     if (cancelled?.() || (session !== undefined && session !== autoPunchEpochRef.current))
       return null;
@@ -436,9 +439,10 @@ export function AttendancePage() {
             session,
           });
           notifyPunchAttempt(punchResult);
-        } catch {
+        } catch (e) {
           if (!cancelled && session === autoPunchEpochRef.current) {
             setLoc((s) => ({ ...s, locating: false, attempted: true }));
+            toast.error(errorMessage(e));
           }
         }
       } catch {
@@ -489,9 +493,10 @@ export function AttendancePage() {
         session,
       });
       notifyPunchAttempt(punchResult);
-    } catch {
+    } catch (e) {
       if (session === autoPunchEpochRef.current) {
         setLoc((s) => ({ ...s, locating: false }));
+        toast.error(errorMessage(e));
       }
     }
   }

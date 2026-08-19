@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
 import type { AttendancePunchType, Prisma } from "@prisma/client"
+import { createHash } from "node:crypto"
 
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
@@ -18,6 +19,10 @@ import {
 import { minutesFromMidnight } from "./time"
 
 const GLOBAL_CONFIG_ID = "global" as const
+
+function hashPunchDeviceToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex")
+}
 
 @Injectable()
 export class AttendanceService {
@@ -122,11 +127,22 @@ export class AttendanceService {
     const now = new Date()
     const punchDate = formatAttendanceDate(now)
     const type = dto.type
+    const deviceToken = dto.deviceToken.trim()
+    const tokenHash = hashPunchDeviceToken(deviceToken)
     const [shift, fence] = await Promise.all([
       this.getShift(),
       this.getGeofence(),
       this.schedule.assertHalfOpenForPunch(userId, punchDate, type),
     ])
+
+    const bound = await this.prisma.attendancePunchDevice.findUnique({
+      where: { userId },
+    })
+    if (bound && bound.tokenHash !== tokenHash) {
+      throw new BadRequestException(
+        "该账号已绑定其他打卡设备，请联系管理员解绑"
+      )
+    }
 
     if (fence.enabled) {
       const d = haversineDistanceMeters(
@@ -156,6 +172,10 @@ export class AttendanceService {
       }
 
       this.assertPunchWindow(type, map, shift, inRange)
+
+      if (!bound) {
+        await this.bindPunchDevice(tx, userId, tokenHash)
+      }
 
       const existing = map.get(type)
       let result
@@ -189,6 +209,65 @@ export class AttendanceService {
 
       return result
     })
+  }
+
+  async getPunchDevice(userId: string, deviceToken: string) {
+    const row = await this.prisma.attendancePunchDevice.findUnique({
+      where: { userId },
+    })
+    if (!row) {
+      return { bound: false, boundAt: null, current: false }
+    }
+    const token = deviceToken.trim()
+    return {
+      bound: true,
+      boundAt: row.boundAt,
+      current: token ? row.tokenHash === hashPunchDeviceToken(token) : false,
+    }
+  }
+
+  async listPunchDevices() {
+    const users = await this.prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        displayName: true,
+        punchDevice: { select: { boundAt: true } },
+      },
+    })
+    return users.map((user) => ({
+      userId: user.id,
+      displayName: user.displayName,
+      bound: !!user.punchDevice,
+      boundAt: user.punchDevice?.boundAt ?? null,
+    }))
+  }
+
+  async unbindPunchDevice(userId: string) {
+    await this.prisma.attendancePunchDevice.deleteMany({ where: { userId } })
+    return { ok: true }
+  }
+
+  private async bindPunchDevice(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    tokenHash: string
+  ) {
+    try {
+      await tx.attendancePunchDevice.create({
+        data: { userId, tokenHash },
+      })
+    } catch (error) {
+      if (!isPrismaUniqueViolation(error)) throw error
+      const existing = await tx.attendancePunchDevice.findUnique({
+        where: { userId },
+      })
+      if (!existing || existing.tokenHash !== tokenHash) {
+        throw new BadRequestException(
+          "该账号已绑定其他打卡设备，请联系管理员解绑"
+        )
+      }
+    }
   }
 
   private assertPunchWindow(

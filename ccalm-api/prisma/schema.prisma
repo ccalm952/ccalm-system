@@ -50,6 +50,7 @@ model User {
   makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
   reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
   scheduleEntries      ScheduleEntry[]
+  punchDevice          AttendancePunchDevice?
 }
 
 model GeofenceConfig {
@@ -83,6 +84,13 @@ model ShiftConfig {
   overtimeAfternoonNormalEnd String @default("18:00")
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
+}
+
+model AttendancePunchDevice {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  boundAt   DateTime @default(now())
 }
 
 model AttendanceRecord {

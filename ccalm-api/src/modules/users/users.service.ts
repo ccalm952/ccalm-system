@@ -28,23 +28,6 @@ export class UsersService {
     })
   }
 
-  async listSwitchableUsers() {
-    return await this.prisma.user.findMany({
-      where: { role: "user" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        role: true,
-        leaveInitialBalance: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-  }
-
   async createByAdmin(input: {
     username: string
     password: string
