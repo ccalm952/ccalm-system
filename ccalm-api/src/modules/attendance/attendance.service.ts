@@ -212,17 +212,29 @@ export class AttendanceService {
   }
 
   async getPunchDevice(userId: string, deviceToken: string) {
-    const row = await this.prisma.attendancePunchDevice.findUnique({
-      where: { userId },
-    })
+    const [row, unbindPending] = await Promise.all([
+      this.prisma.attendancePunchDevice.findUnique({
+        where: { userId },
+      }),
+      this.prisma.attendancePunchDeviceUnbindRequest.findFirst({
+        where: { userId, status: "pending" },
+        select: { id: true },
+      }),
+    ])
     if (!row) {
-      return { bound: false, boundAt: null, current: false }
+      return {
+        bound: false,
+        boundAt: null,
+        current: false,
+        unbindPending: false,
+      }
     }
     const token = deviceToken.trim()
     return {
       bound: true,
       boundAt: row.boundAt,
       current: token ? row.tokenHash === hashPunchDeviceToken(token) : false,
+      unbindPending: !!unbindPending,
     }
   }
 

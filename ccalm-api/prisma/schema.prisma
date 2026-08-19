@@ -51,6 +51,8 @@ model User {
   reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
   scheduleEntries      ScheduleEntry[]
   punchDevice          AttendancePunchDevice?
+  punchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
+  reviewedPunchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindReviewer")
 }
 
 model GeofenceConfig {
@@ -91,6 +93,21 @@ model AttendancePunchDevice {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String
   boundAt   DateTime @default(now())
+}
+
+model AttendancePunchDeviceUnbindRequest {
+  id         String                        @id @default(uuid())
+  userId     String
+  user       User                          @relation("PunchDeviceUnbindApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  status     AttendanceMakeupRequestStatus @default(pending)
+  reviewedBy String?
+  reviewer   User?                         @relation("PunchDeviceUnbindReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt DateTime?
+  createdAt  DateTime                      @default(now())
+  updatedAt  DateTime                      @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model AttendanceRecord {

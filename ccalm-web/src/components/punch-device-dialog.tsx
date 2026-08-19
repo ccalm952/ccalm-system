@@ -26,6 +26,7 @@ type PunchDeviceStatus = {
   bound: boolean;
   boundAt: string | null;
   current: boolean;
+  unbindPending: boolean;
 };
 
 type PunchDeviceRow = {
@@ -45,6 +46,7 @@ export function PunchDeviceDialog(props: {
   const [rows, setRows] = React.useState<PunchDeviceRow[] | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [unbindingUserId, setUnbindingUserId] = React.useState<string | null>(null);
+  const [applying, setApplying] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoadError(null);
@@ -83,8 +85,9 @@ export function PunchDeviceDialog(props: {
 
   function statusText(s: PunchDeviceStatus): string {
     if (!s.bound) return "尚未绑定，首次打卡后自动绑定当前手机";
+    if (s.unbindPending) return "解绑申请审批中，请等待管理员处理";
     if (s.current) return "本机已绑定";
-    return "已绑定其他设备，换机请联系管理员解绑";
+    return "已绑定其他设备，可申请解绑后在新手机打卡";
   }
 
   return (
@@ -100,6 +103,29 @@ export function PunchDeviceDialog(props: {
         ) : (
           <>
             <div>{statusText(status)}</div>
+            {!isAdmin && status.bound && !status.unbindPending ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={applying}
+                onClick={() => {
+                  void (async () => {
+                    setApplying(true);
+                    try {
+                      await api("POST", "/attendance/punch-device/unbind-requests");
+                      toast.success("已提交解绑申请");
+                      await load();
+                    } catch (e) {
+                      toast.error(errorMessage(e));
+                    } finally {
+                      setApplying(false);
+                    }
+                  })();
+                }}
+              >
+                {applying ? "提交中…" : "申请解绑"}
+              </Button>
+            ) : null}
             {isAdmin ? (
               rows === null ? (
                 <Spinner />

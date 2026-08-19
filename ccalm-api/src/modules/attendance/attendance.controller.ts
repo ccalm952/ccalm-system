@@ -32,6 +32,7 @@ import { UnbindPunchDeviceDto } from "./dto/punch-device.dto"
 import { UpsertShiftDto } from "./dto/shift.dto"
 import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
 import { AttendanceMakeupService } from "./attendance-makeup.service"
+import { AttendancePunchDeviceUnbindService } from "./attendance-punch-device-unbind.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { AttendanceService } from "./attendance.service"
 import { ChinaHolidaysService } from "./china-holidays.service"
@@ -42,6 +43,7 @@ export class AttendanceController {
   constructor(
     private readonly attendance: AttendanceService,
     private readonly makeup: AttendanceMakeupService,
+    private readonly punchDeviceUnbind: AttendancePunchDeviceUnbindService,
     private readonly schedule: AttendanceScheduleService,
     private readonly holidays: ChinaHolidaysService,
     private readonly makeupEvents: MakeupEventsService
@@ -104,6 +106,46 @@ export class AttendanceController {
   ) {
     requireAdmin(req, "仅管理员可解绑打卡设备")
     return await this.attendance.unbindPunchDevice(dto.userId)
+  }
+
+  @Post("punch-device/unbind-requests")
+  async createPunchDeviceUnbindRequest(@Req() req: Request) {
+    return await this.punchDeviceUnbind.createRequest(authUserId(req))
+  }
+
+  @Get("punch-device/unbind-requests/mine")
+  async listMyPunchDeviceUnbindRequests(
+    @Req() req: Request,
+    @Query("status") status?: string
+  ) {
+    return await this.punchDeviceUnbind.listMine(authUserId(req), status)
+  }
+
+  @Get("punch-device/unbind-requests")
+  async listPunchDeviceUnbindRequests(
+    @Req() req: Request,
+    @Query("status") status?: string
+  ) {
+    requireAdmin(req, "仅管理员可查看解绑申请")
+    return await this.punchDeviceUnbind.listForAdmin(status)
+  }
+
+  @Post("punch-device/unbind-requests/:id/approve")
+  async approvePunchDeviceUnbindRequest(
+    @Req() req: Request,
+    @Param("id") id: string
+  ) {
+    requireAdmin(req, "仅管理员可处理解绑申请")
+    return await this.punchDeviceUnbind.approve(id, authUserId(req))
+  }
+
+  @Post("punch-device/unbind-requests/:id/reject")
+  async rejectPunchDeviceUnbindRequest(
+    @Req() req: Request,
+    @Param("id") id: string
+  ) {
+    requireAdmin(req, "仅管理员可处理解绑申请")
+    return await this.punchDeviceUnbind.reject(id, authUserId(req))
   }
 
   @Get("bundle")
