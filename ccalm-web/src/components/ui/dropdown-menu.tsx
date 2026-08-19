@@ -25,17 +25,19 @@ function DropdownMenuContent({
   sideOffset = 4,
   className,
   positionerClassName,
+  container,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
     MenuPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
   > & {
-    // CCALM: 允许业务侧抬高 Positioner 层级（如侧栏 Sheet 内的菜单）
+    // CCALM: 允许业务侧抬高 Positioner 层级、指定 Portal 挂载点（如侧栏 Sheet 内的菜单）
     positionerClassName?: string
+    container?: MenuPrimitive.Portal.Props["container"]
   }) {
   return (
-    <MenuPrimitive.Portal>
+    <MenuPrimitive.Portal container={container}>
       <MenuPrimitive.Positioner
         className={cn("isolate z-50 outline-none", positionerClassName)}
         align={align}
