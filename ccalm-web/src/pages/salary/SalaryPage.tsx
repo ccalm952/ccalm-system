@@ -854,6 +854,14 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       tier3Rate: number;
     }[]
   >([]);
+  const [plantingUnitDrafts, setPlantingUnitDrafts] = React.useState<
+    {
+      index: number;
+      name: string;
+      title: string;
+      plantingBonusPerUnit: number;
+    }[]
+  >([]);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
   const sheetsRef = React.useRef(sheets);
   sheetsRef.current = sheets;
@@ -1089,20 +1097,36 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
           : [],
       ),
     );
+    setPlantingUnitDrafts(
+      sheet.employees.map((row, index) => ({
+        index,
+        name: row.name,
+        title: row.title,
+        plantingBonusPerUnit: row.plantingBonusPerUnit,
+      })),
+    );
     setTierRateSettingsOpen(true);
   }
 
   function confirmTierRateSettings() {
     if (!sheet || !activeMonth) return;
     const byIndex = new Map(tierRateDrafts.map((draft) => [draft.index, draft]));
+    const plantingByIndex = new Map(
+      plantingUnitDrafts.map((draft) => [draft.index, draft]),
+    );
     const employees = sheet.employees.map((row, index) => {
       const draft = byIndex.get(index);
-      if (!draft) return row;
+      const planting = plantingByIndex.get(index);
       return {
         ...row,
-        tier1Rate: draft.tier1Rate,
-        tier2Rate: draft.tier2Rate,
-        tier3Rate: draft.tier3Rate,
+        ...(draft
+          ? {
+              tier1Rate: draft.tier1Rate,
+              tier2Rate: draft.tier2Rate,
+              tier3Rate: draft.tier3Rate,
+            }
+          : {}),
+        ...(planting ? { plantingBonusPerUnit: planting.plantingBonusPerUnit } : {}),
       };
     });
     patchSheet(activeMonth, { ...sheet, employees });
@@ -1290,54 +1314,85 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         <Dialog open={tierRateSettingsOpen} onOpenChange={setTierRateSettingsOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>阶梯费率</DialogTitle>
+              <DialogTitle>设置</DialogTitle>
             </DialogHeader>
+            {tierRateDrafts.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>一档</TableHead>
+                    <TableHead>二档</TableHead>
+                    <TableHead>三档</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tierRateDrafts.map((draft, draftIndex) => (
+                    <TableRow key={`${draft.name}-${draft.index}`}>
+                      <TableCell>
+                        {draft.name || draft.title || `员工${draft.index + 1}`}
+                      </TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={draft.tier1Rate}
+                          onChange={(tier1Rate) =>
+                            setTierRateDrafts((prev) =>
+                              prev.map((row, i) =>
+                                i === draftIndex ? { ...row, tier1Rate } : row,
+                              ),
+                            )
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={draft.tier2Rate}
+                          onChange={(tier2Rate) =>
+                            setTierRateDrafts((prev) =>
+                              prev.map((row, i) =>
+                                i === draftIndex ? { ...row, tier2Rate } : row,
+                              ),
+                            )
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={draft.tier3Rate}
+                          onChange={(tier3Rate) =>
+                            setTierRateDrafts((prev) =>
+                              prev.map((row, i) =>
+                                i === draftIndex ? { ...row, tier3Rate } : row,
+                              ),
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : null}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>姓名</TableHead>
-                  <TableHead>一档</TableHead>
-                  <TableHead>二档</TableHead>
-                  <TableHead>三档</TableHead>
+                  <TableHead>种植单价</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tierRateDrafts.map((draft, draftIndex) => (
-                  <TableRow key={`${draft.name}-${draft.index}`}>
+                {plantingUnitDrafts.map((draft, draftIndex) => (
+                  <TableRow key={`planting-${draft.name}-${draft.index}`}>
                     <TableCell>
                       {draft.name || draft.title || `员工${draft.index + 1}`}
                     </TableCell>
                     <TableCell>
-                      <RatePercentInput
-                        value={draft.tier1Rate}
-                        onChange={(tier1Rate) =>
-                          setTierRateDrafts((prev) =>
+                      <NumInput
+                        value={draft.plantingBonusPerUnit}
+                        onChange={(plantingBonusPerUnit) =>
+                          setPlantingUnitDrafts((prev) =>
                             prev.map((row, i) =>
-                              i === draftIndex ? { ...row, tier1Rate } : row,
-                            ),
-                          )
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <RatePercentInput
-                        value={draft.tier2Rate}
-                        onChange={(tier2Rate) =>
-                          setTierRateDrafts((prev) =>
-                            prev.map((row, i) =>
-                              i === draftIndex ? { ...row, tier2Rate } : row,
-                            ),
-                          )
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <RatePercentInput
-                        value={draft.tier3Rate}
-                        onChange={(tier3Rate) =>
-                          setTierRateDrafts((prev) =>
-                            prev.map((row, i) =>
-                              i === draftIndex ? { ...row, tier3Rate } : row,
+                              i === draftIndex ? { ...row, plantingBonusPerUnit } : row,
                             ),
                           )
                         }
