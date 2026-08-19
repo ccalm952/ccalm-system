@@ -115,9 +115,7 @@ export function NavUser({
   const trigger =
     variant === "sidebar" ? (
       <DropdownMenuTrigger
-        render={
-          <SidebarMenuButton size="lg" className="w-full aria-expanded:bg-sidebar-accent" />
-        }
+        render={<SidebarMenuButton size="lg" />}
       >
         {avatar}
         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
@@ -133,6 +131,7 @@ export function NavUser({
             className={cn(
               "flex h-8 max-w-[200px] shrink-0 items-center gap-2 rounded-md px-1.5 outline-none transition-colors",
               "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50",
+              "data-pressed:bg-muted data-pressed:text-foreground dark:data-pressed:bg-muted/50",
               "data-popup-open:bg-muted data-popup-open:text-foreground dark:data-popup-open:bg-muted/50",
               "data-open:bg-muted data-open:text-foreground dark:data-open:bg-muted/50",
               "aria-expanded:bg-muted aria-expanded:text-foreground dark:aria-expanded:bg-muted/50",
