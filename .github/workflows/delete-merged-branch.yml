@@ -1,0 +1,30 @@
+name: Delete merged branch
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  delete:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete head branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "Skip: PR from fork"
+            exit 0
+          fi
+          if [ "$BRANCH" = "${{ github.event.repository.default_branch }}" ]; then
+            echo "Skip: default branch"
+            exit 0
+          fi
+          gh api --method DELETE "repos/${{ github.repository }}/git/refs/heads/${BRANCH}" \
+            && echo "Deleted ${BRANCH}" \
+            || echo "Already deleted: ${BRANCH}"
