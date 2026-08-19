@@ -28,6 +28,7 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 | `table.tsx` | `TableCell` | `h-10 px-2 text-center`（非 `p-2` 左对齐） |
 | `navigation-menu.tsx` | trigger / link | `focus-visible:bg-muted`（非 `focus:bg-muted`）；去掉 `data-open:focus:bg-muted`、`data-[active=true]:focus:bg-muted` |
 | `sidebar.tsx` | `SidebarRail` | `md:flex`（非 `sm:flex`） |
+| `sidebar.tsx` | `SidebarMenuButton` | 增加 `data-pressed` / `data-popup-open` 灰底，菜单打开时保持按下态 |
 | `dialog.tsx` | `DialogTitle` | `leading-8`（非 `leading-none`） |
 | `dialog.tsx` | 关闭按钮 | 放在 `DialogHeader` 标题行右侧；`size="icon"`（非 Content 内 `absolute` + `icon-sm`） |
 | `dialog.tsx` | `DialogHeader` | `flex-row items-start justify-between gap-2`，左侧为标题区、右侧为关闭按钮 |
