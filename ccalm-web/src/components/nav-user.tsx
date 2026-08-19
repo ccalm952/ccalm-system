@@ -48,6 +48,7 @@ export function NavUser({
   const inMobileSidebar = variant === "sidebar" && isMobile;
   const menuSide = inMobileSidebar ? "top" : variant === "sidebar" ? "right" : "bottom";
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const sidebarRootRef = React.useRef<HTMLElement | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
   const [deviceOpen, setDeviceOpen] = React.useState(false);
 
@@ -80,8 +81,11 @@ export function NavUser({
 
   const menuContent = (
     <DropdownMenuContent
-      className="min-w-56 rounded-lg"
-      positionerClassName={inMobileSidebar ? "z-[60]" : undefined}
+      className={cn(
+        "min-w-56 rounded-lg",
+        inMobileSidebar && "duration-0 data-open:animate-none data-closed:animate-none",
+      )}
+      container={inMobileSidebar ? sidebarRootRef : undefined}
       side={menuSide}
       align="end"
       sideOffset={8}
@@ -160,7 +164,14 @@ export function NavUser({
         onChange={(e) => void handleAvatarFile(e.target.files?.[0])}
       />
       <DropdownMenu modal={!inMobileSidebar}>
-        {trigger}
+        <div
+          className="contents"
+          ref={(node) => {
+            sidebarRootRef.current = node?.closest("[data-slot=sidebar]") ?? null;
+          }}
+        >
+          {trigger}
+        </div>
         {menuContent}
       </DropdownMenu>
       <PunchDeviceDialog
