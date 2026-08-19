@@ -10,9 +10,7 @@ export type MakeupSsePayload = {
 }
 
 type MakeupSseClientEvent =
-  | MakeupSsePayload
-  | { type: "connected" }
-  | { type: "ping" }
+  MakeupSsePayload | { type: "connected" } | { type: "ping" }
 
 @Injectable()
 export class MakeupEventsService {
@@ -25,18 +23,14 @@ export class MakeupEventsService {
   stream(userId: string, role: "user" | "admin"): Observable<MessageEvent> {
     const filtered = this.bus.pipe(
       filter((e) => role === "admin" || e.userId === userId),
-      map(
-        (e): MessageEvent => ({
-          data: e satisfies MakeupSseClientEvent,
-        })
-      )
+      map((e): MessageEvent => ({
+        data: e satisfies MakeupSseClientEvent,
+      }))
     )
     const keepalive = interval(25_000).pipe(
-      map(
-        (): MessageEvent => ({
-          data: { type: "ping" } satisfies MakeupSseClientEvent,
-        })
-      )
+      map((): MessageEvent => ({
+        data: { type: "ping" } satisfies MakeupSseClientEvent,
+      }))
     )
     return merge(
       of({
