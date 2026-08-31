@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 import { round2 } from "./calc";
+import { stripLegacyEmployee, stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
@@ -287,21 +288,29 @@ export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
 }
 
 export function normalizeSalarySheet(data: unknown, month: string): SalarySheetData {
-  if (!isSalarySheetData(data)) {
+  if (!data || typeof data !== "object") {
+    return createDefaultSalarySheet(month);
+  }
+
+  const stripped = stripLegacySalarySheet(data as Record<string, unknown>);
+
+  if (!isSalarySheetData(stripped)) {
     return createDefaultSalarySheet(month);
   }
 
   return applyMonthCalendar(
     {
       summary: {
-        ...data.summary,
-        workingDays: data.summary.workingDays || 25,
+        ...stripped.summary,
+        workingDays: stripped.summary.workingDays || 25,
       },
-      leaveQuotas: data.leaveQuotas,
-      employees: data.employees,
-      insurance: data.insurance,
-      housingFund: data.housingFund,
-      costItems: normalizeCostItems(data),
+      leaveQuotas: stripped.leaveQuotas,
+      employees: stripped.employees.map(
+        (employee) => stripLegacyEmployee(employee as Record<string, unknown>) as SalarySheetData["employees"][number],
+      ),
+      insurance: stripped.insurance,
+      housingFund: stripped.housingFund,
+      costItems: normalizeCostItems(stripped),
     },
     month,
   );
