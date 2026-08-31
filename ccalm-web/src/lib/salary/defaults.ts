@@ -345,10 +345,7 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
       },
       leaveQuotas: data.leaveQuotas,
       tierThresholds: data.tierThresholds,
-      employees: data.employees.map((employee) => ({
-        ...employee,
-        tier4Rate: employee.tier4Rate ?? employee.tier3Rate,
-      })),
+      employees: data.employees,
       insurance: data.insurance,
       housingFund: data.housingFund,
       costItems: normalizeCostItems(data),
