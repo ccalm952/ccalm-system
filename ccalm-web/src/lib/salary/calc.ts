@@ -11,7 +11,7 @@ import type {
   SalaryTierRates,
   SalaryTierThresholds,
 } from "./types";
-import { tierRatesForTitle } from "./settings";
+import { plantingBonusPerUnitForEmployee, tierRatesForTitle } from "./settings";
 
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -48,7 +48,7 @@ function insuranceRowTotal(
   return round2(employer + round2(personalPayment * personalCount));
 }
 
-export type InsuranceTableLine = {
+type InsuranceTableLine = {
   key: string;
   group: "social" | "medical" | "housing";
   groupLabel: string;
@@ -63,7 +63,7 @@ export type InsuranceTableLine = {
   rowTotal: number;
 };
 
-export type InsuranceGroupSubtotals = {
+type InsuranceGroupSubtotals = {
   employer: number;
   personal: number | null;
 };
@@ -298,10 +298,12 @@ function calcLeavePools(
   };
 }
 
-const ACTUAL_RECEIPT_DEDUCTION_RATE = 0.2;
-
-function calcActualReceipt(totalIncome: number, shareRatio: number): number {
-  return round0(totalIncome * shareRatio * (1 - ACTUAL_RECEIPT_DEDUCTION_RATE));
+function calcActualReceipt(
+  totalIncome: number,
+  shareRatio: number,
+  deductionRate: number,
+): number {
+  return round0(totalIncome * shareRatio * (1 - deductionRate));
 }
 
 function calcTieredBonus(
@@ -311,13 +313,24 @@ function calcTieredBonus(
   plantingBonus: number,
   deductions: number,
 ): number {
-  const { tier1, tier2, tier3 } = thresholds;
-  const { tier1Rate, tier2Rate, tier3Rate, tier4Rate } = rates;
+  const caps = [
+    thresholds.tier1,
+    thresholds.tier2,
+    thresholds.tier3,
+    thresholds.tier4,
+    thresholds.tier5,
+  ];
+  const tierRates = [
+    rates.tier1Rate,
+    rates.tier2Rate,
+    rates.tier3Rate,
+    rates.tier4Rate,
+    rates.tier5Rate,
+    rates.tier6Rate,
+  ];
 
   let commission = 0;
   let prev = 0;
-  const caps = [tier1, tier2, tier3];
-  const tierRates = [tier1Rate, tier2Rate, tier3Rate, tier4Rate];
 
   for (let i = 0; i < caps.length; i++) {
     if (actualReceipt <= prev) break;
@@ -327,8 +340,9 @@ function calcTieredBonus(
       return round2(commission + plantingBonus - deductions);
     }
   }
-  if (actualReceipt > tier3) {
-    commission += (actualReceipt - tier3) * tier4Rate;
+  const lastCap = caps[caps.length - 1];
+  if (actualReceipt > lastCap) {
+    commission += (actualReceipt - lastCap) * tierRates[tierRates.length - 1];
   }
   return round2(commission + plantingBonus - deductions);
 }
@@ -372,10 +386,15 @@ function computeEmployee(
   const deductedBase = round2(emp.baseSalary - leaveOffset + priorBonusCarryover);
   const actualReceipt =
     emp.bonusMode === "tiered"
-      ? calcActualReceipt(ctx.totalIncome, emp.shareRatio)
+      ? calcActualReceipt(
+          ctx.totalIncome,
+          emp.shareRatio,
+          ctx.globalSettings.actualReceiptDeductionRate,
+        )
       : 0;
   const plantingBonus = round2(
-    emp.plantingCount * ctx.globalSettings.plantingBonusPerUnit,
+    emp.plantingCount *
+      plantingBonusPerUnitForEmployee(emp.name, ctx.globalSettings),
   );
   const deductions = round2(emp.housingFund + ctx.social + ctx.medical);
   const tierRates = tierRatesForTitle(emp.title, ctx.globalSettings);
@@ -396,7 +415,6 @@ function computeEmployee(
   return {
     ...emp,
     leaveOffset,
-    priorBonusCarryover,
     deductedBase,
     actualReceipt,
     plantingBonus,
@@ -412,9 +430,7 @@ export function computeSalarySheet(
   context: SalaryComputeContext,
 ): SalarySheetComputed {
   const { utilities, rent, materials, planting, processing, other } = data.costItems;
-  const costsTotal = round2(materials + planting + other);
-  const processingTotal = round2(processing);
-  const costTotal = round2(costsTotal + processingTotal);
+  const costTotal = round2(materials + planting + other + processing);
 
   const netIncome = round2(data.summary.totalIncome - costTotal);
   const leavePools = calcLeavePools(
@@ -456,8 +472,6 @@ export function computeSalarySheet(
 
   const employeePayrollTotal = round2(totals.monthlySalary);
 
-  const operatingTotal = round2(utilities + rent);
-
   const costGrandTotal = round2(
     utilities +
       rent +
@@ -469,18 +483,10 @@ export function computeSalarySheet(
       employeePayrollTotal,
   );
 
-  const expenseTotal = costGrandTotal;
-
-  const remaining = round2(data.summary.totalIncome - expenseTotal);
+  const remaining = round2(data.summary.totalIncome - costGrandTotal);
 
   return {
     netIncome,
-    costTotal,
-    costsTotal,
-    processingTotal,
-    operatingTotal,
-    leavePools,
-    profit: remaining,
     profitRate: data.summary.totalIncome > 0 ? remaining / data.summary.totalIncome : 0,
     employees,
     totals: {
@@ -490,8 +496,6 @@ export function computeSalarySheet(
       monthlySalary: round2(totals.monthlySalary),
     },
     insuranceEmployerTotal,
-    insurancePersonalTotal: round2(social + medical),
-    expenseTotal,
     costGrandTotal,
     remaining,
     employeePayrollTotal,
@@ -512,7 +516,7 @@ export function buildPriorBonusMap(
   });
 }
 
-export function priorBonusMapFromSheet(
+function priorBonusMapFromSheet(
   sheet: SalarySheetData,
   context: SalaryComputeContext,
 ): Record<string, number> {

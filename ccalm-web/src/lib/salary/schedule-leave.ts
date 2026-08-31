@@ -10,14 +10,8 @@ const SCHEDULE_LEAVE_EMPLOYEES: Record<keyof SalaryLeaveQuotas, string> = {
   xu: "许桦婧",
 };
 
-/** 薪资月 M 引用排班表 M 月的请假天数 */
-export function scheduleLeaveSourceMonth(salaryMonth: string): string | null {
-  return salaryMonth;
-}
-
 export function scheduleLeaveSourceMonthLabel(salaryMonth: string): string {
-  const source = scheduleLeaveSourceMonth(salaryMonth);
-  return source ? formatSalaryMonthTab(source) : "";
+  return formatSalaryMonthTab(salaryMonth);
 }
 
 export function formatScheduleLeaveDays(n: number): string {
@@ -32,15 +26,10 @@ function leaveDaysForUser(data: ScheduleMonthData, name: string): number {
 export async function fetchLeaveQuotasFromSchedule(
   salaryMonth: string,
 ): Promise<SalaryLeaveQuotas> {
-  const scheduleMonth = scheduleLeaveSourceMonth(salaryMonth);
-  if (!scheduleMonth) {
-    return { chen: 0, lu: 0, xu: 0 };
-  }
-
   try {
     const data = await api<ScheduleMonthData>(
       "GET",
-      `/attendance/schedule?month=${encodeURIComponent(scheduleMonth)}&includeOvertime=0`,
+      `/attendance/schedule?month=${encodeURIComponent(salaryMonth)}&includeOvertime=0`,
     );
     return {
       chen: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.chen),

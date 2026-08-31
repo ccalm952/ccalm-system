@@ -2,7 +2,7 @@ import { getSalaryUnlockToken } from "@/lib/salary-unlock";
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
 
-export const AUTH_TOKEN_KEY = "auth:token";
+const AUTH_TOKEN_KEY = "auth:token";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 

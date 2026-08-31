@@ -1,4 +1,4 @@
-export const SALARY_UNLOCK_KEY = "salary:unlockToken";
+const SALARY_UNLOCK_KEY = "salary:unlockToken";
 
 export function getSalaryUnlockToken(): string | null {
   return sessionStorage.getItem(SALARY_UNLOCK_KEY);

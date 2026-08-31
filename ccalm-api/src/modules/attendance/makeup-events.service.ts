@@ -1,21 +1,21 @@
 import { Injectable, MessageEvent } from "@nestjs/common"
 import { Observable, Subject, filter, interval, map, merge, of } from "rxjs"
 
-export type MakeupSsePayload = {
+type MakeupSsePayload = {
   type: "makeup-changed"
   action: "created" | "approved" | "rejected" | "cleared"
   userId: string
   requestId?: string
 }
 
-export type DeviceUnbindSsePayload = {
+type DeviceUnbindSsePayload = {
   type: "device-unbind-changed"
   action: "created" | "approved" | "rejected"
   userId: string
   requestId?: string
 }
 
-export type AttendanceTodoSsePayload = MakeupSsePayload | DeviceUnbindSsePayload
+type AttendanceTodoSsePayload = MakeupSsePayload | DeviceUnbindSsePayload
 
 type AttendanceTodoSseClientEvent =
   AttendanceTodoSsePayload | { type: "connected" } | { type: "ping" }

@@ -127,7 +127,7 @@ function ProtectedRoute() {
   );
 }
 
-export function App() {
+function App() {
   return (
     <BrowserRouter>
       <Routes>

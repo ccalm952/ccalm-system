@@ -1,4 +1,4 @@
-export type ChinaHolidayPeriod = {
+type ChinaHolidayPeriod = {
   name: string;
   start: string;
   end: string;

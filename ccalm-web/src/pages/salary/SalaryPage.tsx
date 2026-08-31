@@ -74,6 +74,7 @@ import type {
 import {
   createDefaultSalaryGlobalSettings,
   normalizeSalaryGlobalSettings,
+  receiptTierLabels,
 } from "@/lib/salary/settings";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
@@ -564,6 +565,8 @@ function TierRatesRow({
     "tier2Rate",
     "tier3Rate",
     "tier4Rate",
+    "tier5Rate",
+    "tier6Rate",
   ];
   return (
     <TableRow>
@@ -942,8 +945,9 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       undefined,
       salaryApi,
     );
-    setGlobalSettings(normalizeSalaryGlobalSettings(res.data));
-    return normalizeSalaryGlobalSettings(res.data);
+    const normalized = normalizeSalaryGlobalSettings(res.data);
+    setGlobalSettings(normalized);
+    return normalized;
   }, []);
 
   const reloadDefaultTemplate = React.useCallback(async () => {
@@ -1312,7 +1316,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         </Dialog>
 
         <Dialog open={tierRateSettingsOpen} onOpenChange={setTierRateSettingsOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>设置</DialogTitle>
             </DialogHeader>
@@ -1321,11 +1325,35 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>实收</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>扣减(%)</TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={settingsDraft.actualReceiptDeductionRate}
+                          onChange={(actualReceiptDeductionRate) =>
+                            setSettingsDraft((prev) =>
+                              prev
+                                ? { ...prev, actualReceiptDeductionRate }
+                                : prev,
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                       <TableHead>职称</TableHead>
-                      <TableHead>一档</TableHead>
-                      <TableHead>二档</TableHead>
-                      <TableHead>三档</TableHead>
-                      <TableHead>四档</TableHead>
+                      {receiptTierLabels(settingsDraft.tierThresholds).map((label) => (
+                        <TableHead key={label}>{label}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1353,10 +1381,27 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>种植单价</TableHead>
+                      <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
+                      <TableCell>吴介尘</TableCell>
+                      <TableCell>
+                        <NumInput
+                          value={settingsDraft.wuJiechenPlantingBonusPerUnit}
+                          onChange={(wuJiechenPlantingBonusPerUnit) =>
+                            setSettingsDraft((prev) =>
+                              prev
+                                ? { ...prev, wuJiechenPlantingBonusPerUnit }
+                                : prev,
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>其他员工</TableCell>
                       <TableCell>
                         <NumInput
                           value={settingsDraft.plantingBonusPerUnit}

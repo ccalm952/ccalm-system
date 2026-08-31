@@ -1,10 +1,12 @@
-export type SalaryBonusMode = "tiered" | "chen_pool" | "lu_pool" | "xu_pool";
+type SalaryBonusMode = "tiered" | "chen_pool" | "lu_pool" | "xu_pool";
 
 export type SalaryTierRates = {
   tier1Rate: number;
   tier2Rate: number;
   tier3Rate: number;
   tier4Rate: number;
+  tier5Rate: number;
+  tier6Rate: number;
 };
 
 export type SalaryEmployeeInput = {
@@ -89,7 +91,7 @@ export type SalaryOperatingExpenses = {
   rent: number;
 };
 
-export type SalarySummaryInput = {
+type SalarySummaryInput = {
   totalIncome: number;
   daysInMonth: number;
   /** 假期抵消除数（Excel R4，默认 25） */
@@ -100,13 +102,18 @@ export type SalaryTierThresholds = {
   tier1: number;
   tier2: number;
   tier3: number;
+  tier4: number;
+  tier5: number;
 };
 
 export type SalaryGlobalSettings = {
   tierThresholds: SalaryTierThresholds;
   docTierRates: SalaryTierRates;
   asstTierRates: SalaryTierRates;
+  /** 实收扣减比例，如 0.2 表示扣 20% */
+  actualReceiptDeductionRate: number;
   plantingBonusPerUnit: number;
+  wuJiechenPlantingBonusPerUnit: number;
 };
 
 export type SalarySheetData = {
@@ -120,7 +127,6 @@ export type SalarySheetData = {
 
 export type SalaryEmployeeComputed = SalaryEmployeeInput & {
   leaveOffset: number;
-  priorBonusCarryover: number;
   deductedBase: number;
   actualReceipt: number;
   plantingBonus: number;
@@ -132,12 +138,6 @@ export type SalaryEmployeeComputed = SalaryEmployeeInput & {
 
 export type SalarySheetComputed = {
   netIncome: number;
-  costTotal: number;
-  costsTotal: number;
-  processingTotal: number;
-  operatingTotal: number;
-  leavePools: SalaryLeaveQuotas;
-  profit: number;
   profitRate: number;
   employees: SalaryEmployeeComputed[];
   totals: {
@@ -147,8 +147,6 @@ export type SalarySheetComputed = {
     monthlySalary: number;
   };
   insuranceEmployerTotal: number;
-  insurancePersonalTotal: number;
-  expenseTotal: number;
   costGrandTotal: number;
   remaining: number;
   employeePayrollTotal: number;

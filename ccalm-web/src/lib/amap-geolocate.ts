@@ -42,7 +42,7 @@ function setSecurityConfig(): void {
  * 加载 AMap 2.0 与定位插件（单例）。安全密钥需在高德控制台与 Key
  * 成对使用，并写入 VITE_AMAP_SECURITY_JS_CODE。
  */
-export function loadAmapWithGeolocation() {
+function loadAmapWithGeolocation() {
   setSecurityConfig();
   if (!aMapPromise) {
     aMapPromise = load({

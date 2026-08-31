@@ -3,10 +3,12 @@ const LEGACY_EMPLOYEE_KEYS = [
   "tier2Rate",
   "tier3Rate",
   "tier4Rate",
+  "tier5Rate",
+  "tier6Rate",
   "plantingBonusPerUnit",
 ] as const;
 
-export function stripLegacyEmployee(
+function stripLegacyEmployee(
   employee: Record<string, unknown>,
 ): Record<string, unknown> {
   const next = { ...employee };

@@ -12,7 +12,7 @@ import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 export type { RestHalf };
 export { isHalfDeclaredRest };
 
-export function isWithinRestEditWindow(dateStr: string): boolean {
+function isWithinRestEditWindow(dateStr: string): boolean {
   const today = attendanceTodayStart();
   return isWithinAttendanceEditWindow(
     dateStr,
@@ -31,7 +31,7 @@ export function canDeclareRest(row: AttendancePunchDayRow, half: RestHalf): bool
   return true;
 }
 
-export function willBecomeFullRest(
+function willBecomeFullRest(
   declaredRest: ScheduleRestType | null | undefined,
   half: RestHalf,
 ): boolean {
@@ -39,7 +39,7 @@ export function willBecomeFullRest(
   return declaredRest === "morning_rest";
 }
 
-export function restHalfLabel(half: RestHalf): string {
+function restHalfLabel(half: RestHalf): string {
   return half === "morning" ? "上午" : "下午";
 }
 

@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 
 import { round2 } from "./calc";
-import { stripLegacyEmployee, stripLegacySalarySheet } from "./strip-legacy";
+import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
@@ -19,7 +19,6 @@ function emp(
   return { id: `emp-${employeeId}`, ...partial };
 }
 
-/** 与 Excel「2605」工作表一致的默认模板 */
 /** 根据 YYYY-MM（如 2026-06 / 标签 2606）返回当月自然日天数 */
 export function calendarDaysForMonth(month: string): number {
   return dayjs(`${month}-01`).daysInMonth();
@@ -44,7 +43,7 @@ export function resolveDefaultSalarySheet(
   return createDefaultSalarySheet(month);
 }
 
-export function createDefaultSalarySheet(month: string): SalarySheetData {
+function createDefaultSalarySheet(month: string): SalarySheetData {
   employeeId = 0;
   const daysInMonth = calendarDaysForMonth(month);
 
@@ -206,7 +205,7 @@ function isOperatingLine(value: unknown): value is SalaryOperatingLine {
   return typeof line.id === "string" && typeof line.label === "string" && typeof line.amount === "number";
 }
 
-export function normalizeOperatingExpenses(operating: unknown): SalaryOperatingLine[] {
+function normalizeOperatingExpenses(operating: unknown): SalaryOperatingLine[] {
   if (Array.isArray(operating)) {
     return operating.filter(isOperatingLine).map((line) => ({ ...line }));
   }
@@ -226,7 +225,7 @@ function costAmountByLabel(lines: { label: string; amount: number }[], label: st
   return lines.find((line) => line.label === label)?.amount ?? 0;
 }
 
-export function normalizeCostItems(data: {
+function normalizeCostItems(data: {
   costItems?: Partial<SalaryCostItems>;
   costs?: SalaryCostLine[];
   processing?: SalaryProcessingLine[];
@@ -305,9 +304,7 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
         workingDays: stripped.summary.workingDays || 25,
       },
       leaveQuotas: stripped.leaveQuotas,
-      employees: stripped.employees.map(
-        (employee) => stripLegacyEmployee(employee as Record<string, unknown>) as SalarySheetData["employees"][number],
-      ),
+      employees: stripped.employees as SalarySheetData["employees"],
       insurance: stripped.insurance,
       housingFund: stripped.housingFund,
       costItems: normalizeCostItems(stripped),

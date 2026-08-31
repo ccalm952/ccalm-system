@@ -19,7 +19,7 @@ export type AttendanceCellClassOptions = {
 };
 
 /** 当天：上班窗口未到，或下班窗口未结束 → 下班格暂不标缺卡。 */
-export function isOutMissingDeferredToday(
+function isOutMissingDeferredToday(
   row: AttendancePunchDayRow,
   half: RestHalf,
   options?: AttendanceCellClassOptions,

@@ -29,7 +29,7 @@ export type GeofenceConfig = {
   label: string;
 };
 
-export type ShiftRange = {
+type ShiftRange = {
   label: string;
   rangeStart: string; // HH:mm
   rangeEnd: string; // HH:mm

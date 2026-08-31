@@ -12,7 +12,7 @@ import type { AttendanceMakeupRequest, ScheduleRestType } from "./types";
 export const attendanceMutedTextClass = "text-muted-foreground";
 
 /** 正文（无额外 class 时继承 foreground） */
-export const attendanceTimeTextClass = "";
+const attendanceTimeTextClass = "";
 
 /** 时钟等大号强调 */
 export const attendanceBrandTextClass = "text-foreground";
@@ -38,7 +38,7 @@ export const attendanceExpandedRowClass = "bg-muted/10";
 export const attendanceSectionTitleClass = `mb-3 text-sm font-semibold ${attendanceMutedTextClass}`;
 
 /** 补卡待办：申请状态（仅四色） */
-export const makeupRequestStatusClass: Record<AttendanceMakeupRequest["status"], string> = {
+const makeupRequestStatusClass: Record<AttendanceMakeupRequest["status"], string> = {
   pending: attendanceMutedTextClass,
   approved: attendanceTimeTextClass,
   rejected: attendanceMutedTextClass,
@@ -52,7 +52,7 @@ export const makeupTodoBadgeClass =
 export const scheduleHolidayHeaderClass = attendanceMissingTextClass;
 
 /** 排班格：全=前景淡底，上=destructive 淡底，下=muted 实底 */
-export const SCHEDULE_SHIFT_CELL_CLASS: Record<ScheduleRestType, string> = {
+const SCHEDULE_SHIFT_CELL_CLASS: Record<ScheduleRestType, string> = {
   full_rest: "bg-foreground/8 text-foreground",
   morning_rest: "bg-destructive/12 text-foreground",
   afternoon_rest: "bg-muted text-foreground",

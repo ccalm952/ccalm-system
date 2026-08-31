@@ -16,7 +16,7 @@ export async function copyText(text: string): Promise<void> {
 }
 
 /** 标记：由 ``两个反引号`` 转换而来，渲染为可复制行内代码 */
-export const COPYABLE_INLINE_MARK = "\u2060COPY\u2060";
+const COPYABLE_INLINE_MARK = "\u2060COPY\u2060";
 
 /**
  * 将正文中的 ``内容``（恰好两个反引号）转为带标记的单反引号行内代码。
