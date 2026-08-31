@@ -295,34 +295,42 @@ function calcLeavePools(
   };
 }
 
+const ACTUAL_RECEIPT_DEDUCTION_RATE = 0.2;
+
+function calcActualReceipt(totalIncome: number, shareRatio: number): number {
+  return round0(totalIncome * shareRatio * (1 - ACTUAL_RECEIPT_DEDUCTION_RATE));
+}
+
 function calcTieredBonus(
   actualReceipt: number,
   thresholds: SalaryTierThresholds,
-  rates: Pick<SalaryEmployeeInput, "tier1Rate" | "tier2Rate" | "tier3Rate">,
+  rates: Pick<
+    SalaryEmployeeInput,
+    "tier1Rate" | "tier2Rate" | "tier3Rate" | "tier4Rate"
+  >,
   plantingBonus: number,
   deductions: number,
 ): number {
-  const { tier1, tier2 } = thresholds;
-  const { tier1Rate, tier2Rate, tier3Rate } = rates;
+  const { tier1, tier2, tier3 } = thresholds;
+  const { tier1Rate, tier2Rate, tier3Rate, tier4Rate } = rates;
 
-  if (actualReceipt <= tier1) {
-    return actualReceipt * tier1Rate + plantingBonus - deductions;
+  let commission = 0;
+  let prev = 0;
+  const caps = [tier1, tier2, tier3];
+  const tierRates = [tier1Rate, tier2Rate, tier3Rate, tier4Rate];
+
+  for (let i = 0; i < caps.length; i++) {
+    if (actualReceipt <= prev) break;
+    commission += (Math.min(actualReceipt, caps[i]) - prev) * tierRates[i];
+    prev = caps[i];
+    if (actualReceipt <= caps[i]) {
+      return round2(commission + plantingBonus - deductions);
+    }
   }
-  if (actualReceipt <= tier2) {
-    return (
-      tier1 * tier1Rate +
-      (actualReceipt - tier1) * tier2Rate +
-      plantingBonus -
-      deductions
-    );
+  if (actualReceipt > tier3) {
+    commission += (actualReceipt - tier3) * tier4Rate;
   }
-  return (
-    tier1 * tier1Rate +
-    (tier2 - tier1) * tier2Rate +
-    (actualReceipt - tier2) * tier3Rate +
-    plantingBonus -
-    deductions
-  );
+  return round2(commission + plantingBonus - deductions);
 }
 
 function poolBonusRate(mode: SalaryEmployeeInput["bonusMode"]): number {
@@ -345,7 +353,7 @@ function poolAmount(
 function computeEmployee(
   emp: SalaryEmployeeInput,
   ctx: {
-    netIncome: number;
+    totalIncome: number;
     daysInMonth: number;
     workingDays: number;
     thresholds: SalaryTierThresholds;
@@ -362,7 +370,10 @@ function computeEmployee(
   const priorBonus = ctx.priorBonusByName[emp.name] ?? 0;
   const priorBonusCarryover = Math.min(0, priorBonus);
   const deductedBase = round2(emp.baseSalary - leaveOffset + priorBonusCarryover);
-  const actualReceipt = round0(ctx.netIncome * emp.shareRatio);
+  const actualReceipt =
+    emp.bonusMode === "tiered"
+      ? calcActualReceipt(ctx.totalIncome, emp.shareRatio)
+      : 0;
   const plantingBonus = round2(emp.plantingCount * emp.plantingBonusPerUnit);
   const deductions = round2(emp.housingFund + ctx.social + ctx.medical);
 
@@ -415,7 +426,7 @@ export function computeSalarySheet(
 
   const employees = data.employees.map((emp) =>
     computeEmployee(emp, {
-      netIncome,
+      totalIncome: data.summary.totalIncome,
       daysInMonth: data.summary.daysInMonth,
       workingDays: data.summary.workingDays,
       thresholds: data.tierThresholds,

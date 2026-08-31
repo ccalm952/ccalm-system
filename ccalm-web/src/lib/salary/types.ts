@@ -9,6 +9,7 @@ export type SalaryEmployeeInput = {
   tier1Rate: number;
   tier2Rate: number;
   tier3Rate: number;
+  tier4Rate: number;
   plantingCount: number;
   plantingBonusPerUnit: number;
   leaveDays: number;

@@ -852,6 +852,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       tier1Rate: number;
       tier2Rate: number;
       tier3Rate: number;
+      tier4Rate: number;
     }[]
   >([]);
   const [plantingUnitDrafts, setPlantingUnitDrafts] = React.useState<
@@ -1092,6 +1093,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                 tier1Rate: row.tier1Rate,
                 tier2Rate: row.tier2Rate,
                 tier3Rate: row.tier3Rate,
+                tier4Rate: row.tier4Rate,
               },
             ]
           : [],
@@ -1124,6 +1126,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
               tier1Rate: draft.tier1Rate,
               tier2Rate: draft.tier2Rate,
               tier3Rate: draft.tier3Rate,
+              tier4Rate: draft.tier4Rate,
             }
           : {}),
         ...(planting ? { plantingBonusPerUnit: planting.plantingBonusPerUnit } : {}),
@@ -1324,6 +1327,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                     <TableHead>一档</TableHead>
                     <TableHead>二档</TableHead>
                     <TableHead>三档</TableHead>
+                    <TableHead>四档</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1363,6 +1367,18 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                             setTierRateDrafts((prev) =>
                               prev.map((row, i) =>
                                 i === draftIndex ? { ...row, tier3Rate } : row,
+                              ),
+                            )
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={draft.tier4Rate}
+                          onChange={(tier4Rate) =>
+                            setTierRateDrafts((prev) =>
+                              prev.map((row, i) =>
+                                i === draftIndex ? { ...row, tier4Rate } : row,
                               ),
                             )
                           }
