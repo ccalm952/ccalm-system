@@ -94,4 +94,31 @@ export class SalaryService {
       updatedAt: row.updatedAt.toISOString(),
     }
   }
+
+  async getGlobalSettings() {
+    const row = await this.prisma.salarySettings.findUnique({
+      where: { id: "global" },
+    })
+    return {
+      data: row?.data ?? null,
+      updatedAt: row?.updatedAt.toISOString() ?? null,
+    }
+  }
+
+  async saveGlobalSettings(data: Record<string, unknown>) {
+    const row = await this.prisma.salarySettings.upsert({
+      where: { id: "global" },
+      create: {
+        id: "global",
+        data: data as Prisma.InputJsonValue,
+      },
+      update: {
+        data: data as Prisma.InputJsonValue,
+      },
+    })
+    return {
+      data: row.data,
+      updatedAt: row.updatedAt.toISOString(),
+    }
+  }
 }

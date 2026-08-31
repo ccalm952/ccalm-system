@@ -2,13 +2,16 @@ import type {
   SalaryComputeContext,
   SalaryEmployeeComputed,
   SalaryEmployeeInput,
+  SalaryGlobalSettings,
   SalaryHousingFundInput,
   SalaryInsuranceInput,
   SalaryLeaveQuotas,
   SalarySheetComputed,
   SalarySheetData,
+  SalaryTierRates,
   SalaryTierThresholds,
 } from "./types";
+import { tierRatesForTitle } from "./settings";
 
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -304,10 +307,7 @@ function calcActualReceipt(totalIncome: number, shareRatio: number): number {
 function calcTieredBonus(
   actualReceipt: number,
   thresholds: SalaryTierThresholds,
-  rates: Pick<
-    SalaryEmployeeInput,
-    "tier1Rate" | "tier2Rate" | "tier3Rate" | "tier4Rate"
-  >,
+  rates: SalaryTierRates,
   plantingBonus: number,
   deductions: number,
 ): number {
@@ -354,9 +354,9 @@ function computeEmployee(
   emp: SalaryEmployeeInput,
   ctx: {
     totalIncome: number;
+    globalSettings: SalaryGlobalSettings;
     daysInMonth: number;
     workingDays: number;
-    thresholds: SalaryTierThresholds;
     leavePools: SalaryLeaveQuotas;
     social: number;
     medical: number;
@@ -374,15 +374,18 @@ function computeEmployee(
     emp.bonusMode === "tiered"
       ? calcActualReceipt(ctx.totalIncome, emp.shareRatio)
       : 0;
-  const plantingBonus = round2(emp.plantingCount * emp.plantingBonusPerUnit);
+  const plantingBonus = round2(
+    emp.plantingCount * ctx.globalSettings.plantingBonusPerUnit,
+  );
   const deductions = round2(emp.housingFund + ctx.social + ctx.medical);
+  const tierRates = tierRatesForTitle(emp.title, ctx.globalSettings);
 
   const bonus =
     emp.bonusMode === "tiered"
       ? calcTieredBonus(
           actualReceipt,
-          ctx.thresholds,
-          emp,
+          ctx.globalSettings.tierThresholds,
+          tierRates,
           plantingBonus,
           deductions,
         )
@@ -406,7 +409,7 @@ function computeEmployee(
 
 export function computeSalarySheet(
   data: SalarySheetData,
-  context: SalaryComputeContext = {},
+  context: SalaryComputeContext,
 ): SalarySheetComputed {
   const { utilities, rent, materials, planting, processing, other } = data.costItems;
   const costsTotal = round2(materials + planting + other);
@@ -427,9 +430,9 @@ export function computeSalarySheet(
   const employees = data.employees.map((emp) =>
     computeEmployee(emp, {
       totalIncome: data.summary.totalIncome,
+      globalSettings: context.globalSettings,
       daysInMonth: data.summary.daysInMonth,
       workingDays: data.summary.workingDays,
-      thresholds: data.tierThresholds,
       leavePools,
       social,
       medical,
@@ -499,17 +502,19 @@ export function buildPriorBonusMap(
   month: string,
   sheets: Record<string, SalarySheetData>,
   getPrevious: (month: string) => string | null,
+  globalSettings: SalaryGlobalSettings,
 ): Record<string, number> {
   const prev = getPrevious(month);
   if (!prev || !sheets[prev]) return {};
   return priorBonusMapFromSheet(sheets[prev], {
-    priorBonusByName: buildPriorBonusMap(prev, sheets, getPrevious),
+    globalSettings,
+    priorBonusByName: buildPriorBonusMap(prev, sheets, getPrevious, globalSettings),
   });
 }
 
 export function priorBonusMapFromSheet(
   sheet: SalarySheetData,
-  context: SalaryComputeContext = {},
+  context: SalaryComputeContext,
 ): Record<string, number> {
   const computed = computeSalarySheet(sheet, context);
   return Object.fromEntries(computed.employees.map((row) => [row.name, row.bonus]));
