@@ -55,6 +55,21 @@ export class SalaryController {
     return await this.salary.saveDefaultTemplate(body.data)
   }
 
+  @Get("settings")
+  async getSettings(@Req() req: Request) {
+    this.assertSalaryAccess(req)
+    return await this.salary.getGlobalSettings()
+  }
+
+  @Put("settings")
+  async saveSettings(
+    @Req() req: Request,
+    @Body() body: SaveSalarySheetBodyDto
+  ) {
+    this.assertSalaryAccess(req)
+    return await this.salary.saveGlobalSettings(body.data)
+  }
+
   @Get(":month")
   async getMonth(@Req() req: Request, @Param("month") month: string) {
     this.assertSalaryAccess(req)

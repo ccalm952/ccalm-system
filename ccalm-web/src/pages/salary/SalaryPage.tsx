@@ -64,11 +64,17 @@ import {
 } from "@/lib/salary/schedule-leave";
 import type {
   SalaryEmployeeInput,
+  SalaryGlobalSettings,
   SalaryHousingFundInput,
   SalaryInsuranceInput,
   SalaryLeaveQuotas,
   SalarySheetData,
+  SalaryTierRates,
 } from "@/lib/salary/types";
+import {
+  createDefaultSalaryGlobalSettings,
+  normalizeSalaryGlobalSettings,
+} from "@/lib/salary/settings";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { hasSalaryUnlockToken, setSalaryUnlockToken } from "@/lib/salary-unlock";
@@ -533,12 +539,45 @@ function computeWithCarryover(
   sheet: SalarySheetData,
   sheets: Record<string, SalarySheetData>,
   monthList: string[],
+  globalSettings: SalaryGlobalSettings,
 ): ReturnType<typeof computeSalarySheet> {
   return computeSalarySheet(sheet, {
+    globalSettings,
     priorBonusByName: buildPriorBonusMap(month, sheets, (m) =>
       previousSalaryMonth(m, monthList),
+      globalSettings,
     ),
   });
+}
+
+function TierRatesRow({
+  label,
+  rates,
+  onChange,
+}: {
+  label: string;
+  rates: SalaryTierRates;
+  onChange: (rates: SalaryTierRates) => void;
+}) {
+  const tiers: (keyof SalaryTierRates)[] = [
+    "tier1Rate",
+    "tier2Rate",
+    "tier3Rate",
+    "tier4Rate",
+  ];
+  return (
+    <TableRow>
+      <TableCell>{label}</TableCell>
+      {tiers.map((key) => (
+        <TableCell key={key}>
+          <RatePercentInput
+            value={rates[key]}
+            onChange={(value) => onChange({ ...rates, [key]: value })}
+          />
+        </TableCell>
+      ))}
+    </TableRow>
+  );
 }
 
 function InsuranceFundTable({
@@ -844,25 +883,12 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const [addMonthValue, setAddMonthValue] = React.useState("");
   const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false);
   const [tierRateSettingsOpen, setTierRateSettingsOpen] = React.useState(false);
-  const [tierRateDrafts, setTierRateDrafts] = React.useState<
-    {
-      index: number;
-      name: string;
-      title: string;
-      tier1Rate: number;
-      tier2Rate: number;
-      tier3Rate: number;
-      tier4Rate: number;
-    }[]
-  >([]);
-  const [plantingUnitDrafts, setPlantingUnitDrafts] = React.useState<
-    {
-      index: number;
-      name: string;
-      title: string;
-      plantingBonusPerUnit: number;
-    }[]
-  >([]);
+  const [globalSettings, setGlobalSettings] = React.useState<SalaryGlobalSettings>(
+    createDefaultSalaryGlobalSettings,
+  );
+  const [settingsDraft, setSettingsDraft] = React.useState<SalaryGlobalSettings | null>(
+    null,
+  );
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>({});
   const sheetsRef = React.useRef(sheets);
   sheetsRef.current = sheets;
@@ -909,6 +935,17 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     return list;
   }, []);
 
+  const reloadGlobalSettings = React.useCallback(async () => {
+    const res = await api<{ data: unknown | null }>(
+      "GET",
+      "/salary/settings",
+      undefined,
+      salaryApi,
+    );
+    setGlobalSettings(normalizeSalaryGlobalSettings(res.data));
+    return normalizeSalaryGlobalSettings(res.data);
+  }, []);
+
   const reloadDefaultTemplate = React.useCallback(async () => {
     const res = await api<{ data: unknown | null }>(
       "GET",
@@ -928,13 +965,13 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   React.useEffect(() => {
     void (async () => {
       try {
-        await Promise.all([reloadMonths(), reloadDefaultTemplate()]);
+        await Promise.all([reloadMonths(), reloadDefaultTemplate(), reloadGlobalSettings()]);
       } catch (e) {
         if (handleSalaryAccessError(e, lockSalary)) return;
         toast.error(errorMessage(e));
       }
     })();
-  }, [reloadMonths, reloadDefaultTemplate, lockSalary]);
+  }, [reloadMonths, reloadDefaultTemplate, reloadGlobalSettings, lockSalary]);
 
   const refreshScheduleLeaveQuotas = React.useCallback(
     async (month: string) => {
@@ -1049,7 +1086,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =
     sheet && activeMonth
-      ? computeWithCarryover(activeMonth, sheet, sheets, months)
+      ? computeWithCarryover(activeMonth, sheet, sheets, months, globalSettings)
       : null;
 
   function updateEmployee(index: number, patch: Partial<SalaryEmployeeInput>) {
@@ -1081,59 +1118,21 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   }
 
   function openTierRateSettings() {
-    if (!sheet) return;
-    setTierRateDrafts(
-      sheet.employees.flatMap((row, index) =>
-        row.bonusMode === "tiered"
-          ? [
-              {
-                index,
-                name: row.name,
-                title: row.title,
-                tier1Rate: row.tier1Rate,
-                tier2Rate: row.tier2Rate,
-                tier3Rate: row.tier3Rate,
-                tier4Rate: row.tier4Rate,
-              },
-            ]
-          : [],
-      ),
-    );
-    setPlantingUnitDrafts(
-      sheet.employees.map((row, index) => ({
-        index,
-        name: row.name,
-        title: row.title,
-        plantingBonusPerUnit: row.plantingBonusPerUnit,
-      })),
-    );
+    setSettingsDraft({ ...globalSettings });
     setTierRateSettingsOpen(true);
   }
 
-  function confirmTierRateSettings() {
-    if (!sheet || !activeMonth) return;
-    const byIndex = new Map(tierRateDrafts.map((draft) => [draft.index, draft]));
-    const plantingByIndex = new Map(
-      plantingUnitDrafts.map((draft) => [draft.index, draft]),
-    );
-    const employees = sheet.employees.map((row, index) => {
-      const draft = byIndex.get(index);
-      const planting = plantingByIndex.get(index);
-      return {
-        ...row,
-        ...(draft
-          ? {
-              tier1Rate: draft.tier1Rate,
-              tier2Rate: draft.tier2Rate,
-              tier3Rate: draft.tier3Rate,
-              tier4Rate: draft.tier4Rate,
-            }
-          : {}),
-        ...(planting ? { plantingBonusPerUnit: planting.plantingBonusPerUnit } : {}),
-      };
-    });
-    patchSheet(activeMonth, { ...sheet, employees });
-    setTierRateSettingsOpen(false);
+  async function confirmTierRateSettings() {
+    if (!settingsDraft) return;
+    try {
+      await api("PUT", "/salary/settings", { data: settingsDraft }, salaryApi);
+      setGlobalSettings(settingsDraft);
+      setTierRateSettingsOpen(false);
+      toast.success("已保存");
+    } catch (e) {
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
+    }
   }
 
   async function addMonth() {
@@ -1204,16 +1203,14 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                 <Spinner className="size-4" /> 保存中…
               </span>
             ) : null}
-            {sheet && activeMonth ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={openTierRateSettings}
-              >
-                <Settings className="size-3.5" />
-                设置
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openTierRateSettings}
+            >
+              <Settings className="size-3.5" />
+              设置
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -1319,105 +1316,62 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
             <DialogHeader>
               <DialogTitle>设置</DialogTitle>
             </DialogHeader>
-            {tierRateDrafts.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>一档</TableHead>
-                    <TableHead>二档</TableHead>
-                    <TableHead>三档</TableHead>
-                    <TableHead>四档</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tierRateDrafts.map((draft, draftIndex) => (
-                    <TableRow key={`${draft.name}-${draft.index}`}>
+            {settingsDraft ? (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>职称</TableHead>
+                      <TableHead>一档</TableHead>
+                      <TableHead>二档</TableHead>
+                      <TableHead>三档</TableHead>
+                      <TableHead>四档</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TierRatesRow
+                      label="执业医师"
+                      rates={settingsDraft.docTierRates}
+                      onChange={(docTierRates) =>
+                        setSettingsDraft((prev) =>
+                          prev ? { ...prev, docTierRates } : prev,
+                        )
+                      }
+                    />
+                    <TierRatesRow
+                      label="助理医师"
+                      rates={settingsDraft.asstTierRates}
+                      onChange={(asstTierRates) =>
+                        setSettingsDraft((prev) =>
+                          prev ? { ...prev, asstTierRates } : prev,
+                        )
+                      }
+                    />
+                  </TableBody>
+                </Table>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>种植单价</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
                       <TableCell>
-                        {draft.name || draft.title || `员工${draft.index + 1}`}
-                      </TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={draft.tier1Rate}
-                          onChange={(tier1Rate) =>
-                            setTierRateDrafts((prev) =>
-                              prev.map((row, i) =>
-                                i === draftIndex ? { ...row, tier1Rate } : row,
-                              ),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={draft.tier2Rate}
-                          onChange={(tier2Rate) =>
-                            setTierRateDrafts((prev) =>
-                              prev.map((row, i) =>
-                                i === draftIndex ? { ...row, tier2Rate } : row,
-                              ),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={draft.tier3Rate}
-                          onChange={(tier3Rate) =>
-                            setTierRateDrafts((prev) =>
-                              prev.map((row, i) =>
-                                i === draftIndex ? { ...row, tier3Rate } : row,
-                              ),
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={draft.tier4Rate}
-                          onChange={(tier4Rate) =>
-                            setTierRateDrafts((prev) =>
-                              prev.map((row, i) =>
-                                i === draftIndex ? { ...row, tier4Rate } : row,
-                              ),
+                        <NumInput
+                          value={settingsDraft.plantingBonusPerUnit}
+                          onChange={(plantingBonusPerUnit) =>
+                            setSettingsDraft((prev) =>
+                              prev ? { ...prev, plantingBonusPerUnit } : prev,
                             )
                           }
                         />
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </>
             ) : null}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>种植单价</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {plantingUnitDrafts.map((draft, draftIndex) => (
-                  <TableRow key={`planting-${draft.name}-${draft.index}`}>
-                    <TableCell>
-                      {draft.name || draft.title || `员工${draft.index + 1}`}
-                    </TableCell>
-                    <TableCell>
-                      <NumInput
-                        value={draft.plantingBonusPerUnit}
-                        onChange={(plantingBonusPerUnit) =>
-                          setPlantingUnitDrafts((prev) =>
-                            prev.map((row, i) =>
-                              i === draftIndex ? { ...row, plantingBonusPerUnit } : row,
-                            ),
-                          )
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
             <DialogFooter>
               <Button
                 type="button"
@@ -1426,7 +1380,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
               >
                 取消
               </Button>
-              <Button type="button" onClick={confirmTierRateSettings}>
+              <Button type="button" onClick={() => void confirmTierRateSettings()}>
                 确定
               </Button>
             </DialogFooter>

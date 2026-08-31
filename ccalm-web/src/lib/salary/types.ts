@@ -1,17 +1,19 @@
 export type SalaryBonusMode = "tiered" | "chen_pool" | "lu_pool" | "xu_pool";
 
+export type SalaryTierRates = {
+  tier1Rate: number;
+  tier2Rate: number;
+  tier3Rate: number;
+  tier4Rate: number;
+};
+
 export type SalaryEmployeeInput = {
   id: string;
   title: string;
   name: string;
   baseSalary: number;
   shareRatio: number;
-  tier1Rate: number;
-  tier2Rate: number;
-  tier3Rate: number;
-  tier4Rate: number;
   plantingCount: number;
-  plantingBonusPerUnit: number;
   leaveDays: number;
   housingFund: number;
   bonusMode: SalaryBonusMode;
@@ -100,10 +102,16 @@ export type SalaryTierThresholds = {
   tier3: number;
 };
 
+export type SalaryGlobalSettings = {
+  tierThresholds: SalaryTierThresholds;
+  docTierRates: SalaryTierRates;
+  asstTierRates: SalaryTierRates;
+  plantingBonusPerUnit: number;
+};
+
 export type SalarySheetData = {
   summary: SalarySummaryInput;
   leaveQuotas: SalaryLeaveQuotas;
-  tierThresholds: SalaryTierThresholds;
   employees: SalaryEmployeeInput[];
   insurance: SalaryInsuranceInput;
   housingFund: SalaryHousingFundInput;
@@ -147,5 +155,6 @@ export type SalarySheetComputed = {
 };
 
 export type SalaryComputeContext = {
+  globalSettings: SalaryGlobalSettings;
   priorBonusByName?: Record<string, number>;
 };

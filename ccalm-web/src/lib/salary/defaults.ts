@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 import { round2 } from "./calc";
+import { stripLegacyEmployee, stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
@@ -54,19 +55,13 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
       workingDays: 25,
     },
     leaveQuotas: { chen: 0, lu: 0, xu: 0 },
-    tierThresholds: { tier1: 30000, tier2: 60000, tier3: 90000 },
     employees: [
       emp({
         title: "执业医师",
         name: "胡芊芊",
         baseSalary: 12000,
         shareRatio: 0.28,
-        tier1Rate: 0.1,
-        tier2Rate: 0.12,
-        tier3Rate: 0.14,
-        tier4Rate: 0.16,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 700,
         bonusMode: "tiered",
@@ -76,12 +71,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "宁福月",
         baseSalary: 12000,
         shareRatio: 0.28,
-        tier1Rate: 0.1,
-        tier2Rate: 0.12,
-        tier3Rate: 0.14,
-        tier4Rate: 0.16,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 700,
         bonusMode: "tiered",
@@ -91,12 +81,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "骆群鸿",
         baseSalary: 12000,
         shareRatio: 0.28,
-        tier1Rate: 0.1,
-        tier2Rate: 0.12,
-        tier3Rate: 0.14,
-        tier4Rate: 0.16,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 700,
         bonusMode: "tiered",
@@ -106,12 +91,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "吴介尘",
         baseSalary: 8000,
         shareRatio: 0.01,
-        tier1Rate: 0.07,
-        tier2Rate: 0.08,
-        tier3Rate: 0.09,
-        tier4Rate: 0.1,
         plantingCount: 0,
-        plantingBonusPerUnit: 500,
         leaveDays: 0,
         housingFund: 0,
         bonusMode: "tiered",
@@ -121,12 +101,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "吴彤",
         baseSalary: 5500,
         shareRatio: 0.01,
-        tier1Rate: 0.07,
-        tier2Rate: 0.08,
-        tier3Rate: 0.09,
-        tier4Rate: 0.1,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 0,
         bonusMode: "tiered",
@@ -136,12 +111,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "余煌",
         baseSalary: 5500,
         shareRatio: 0.01,
-        tier1Rate: 0.07,
-        tier2Rate: 0.08,
-        tier3Rate: 0.09,
-        tier4Rate: 0.1,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 0,
         bonusMode: "tiered",
@@ -151,12 +121,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "陈美珍",
         baseSalary: 4700,
         shareRatio: 0,
-        tier1Rate: 0,
-        tier2Rate: 0,
-        tier3Rate: 0,
-        tier4Rate: 0,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 300,
         bonusMode: "chen_pool",
@@ -166,12 +131,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "卢彤",
         baseSalary: 5500,
         shareRatio: 0,
-        tier1Rate: 0,
-        tier2Rate: 0,
-        tier3Rate: 0,
-        tier4Rate: 0,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 700,
         bonusMode: "lu_pool",
@@ -181,12 +141,7 @@ export function createDefaultSalarySheet(month: string): SalarySheetData {
         name: "许桦婧",
         baseSalary: 4500,
         shareRatio: 0,
-        tier1Rate: 0,
-        tier2Rate: 0,
-        tier3Rate: 0,
-        tier4Rate: 0,
         plantingCount: 0,
-        plantingBonusPerUnit: 50,
         leaveDays: 0,
         housingFund: 0,
         bonusMode: "xu_pool",
@@ -333,22 +288,29 @@ export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
 }
 
 export function normalizeSalarySheet(data: unknown, month: string): SalarySheetData {
-  if (!isSalarySheetData(data)) {
+  if (!data || typeof data !== "object") {
+    return createDefaultSalarySheet(month);
+  }
+
+  const stripped = stripLegacySalarySheet(data as Record<string, unknown>);
+
+  if (!isSalarySheetData(stripped)) {
     return createDefaultSalarySheet(month);
   }
 
   return applyMonthCalendar(
     {
       summary: {
-        ...data.summary,
-        workingDays: data.summary.workingDays || 25,
+        ...stripped.summary,
+        workingDays: stripped.summary.workingDays || 25,
       },
-      leaveQuotas: data.leaveQuotas,
-      tierThresholds: data.tierThresholds,
-      employees: data.employees,
-      insurance: data.insurance,
-      housingFund: data.housingFund,
-      costItems: normalizeCostItems(data),
+      leaveQuotas: stripped.leaveQuotas,
+      employees: stripped.employees.map(
+        (employee) => stripLegacyEmployee(employee as Record<string, unknown>) as SalarySheetData["employees"][number],
+      ),
+      insurance: stripped.insurance,
+      housingFund: stripped.housingFund,
+      costItems: normalizeCostItems(stripped),
     },
     month,
   );
@@ -383,12 +345,7 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     name: "",
     baseSalary: 5000,
     shareRatio: 0,
-    tier1Rate: 0.1,
-    tier2Rate: 0.12,
-    tier3Rate: 0.14,
-    tier4Rate: 0.16,
     plantingCount: 0,
-    plantingBonusPerUnit: 50,
     leaveDays: 0,
     housingFund: 0,
     bonusMode: "tiered",

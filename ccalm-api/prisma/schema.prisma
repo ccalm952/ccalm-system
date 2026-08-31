@@ -244,6 +244,14 @@ model SalarySheet {
   updatedAt DateTime @updatedAt
 }
 
+/// 薪资全局设置（阶梯档位、费率、种植单价）
+model SalarySettings {
+  id        String   @id @default("global")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// 薪资表可自定义默认模板（「设为默认」写入；无记录时前端用内置模板）
 model SalaryDefaultTemplate {
   id        String   @id @default("global")
