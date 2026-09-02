@@ -47,13 +47,10 @@ import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
-import { cn } from "@/lib/utils";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
+const TABLE_ROW_HEIGHT_PX = 40;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
-/** 单元格 40px + tr border-b 1px，与浏览器实测行高一致 */
-const PENDING_TABLE_ROW_PX = 41;
-const pendingCellClass = "!h-full !max-h-full overflow-hidden leading-none py-0";
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -73,6 +70,7 @@ const PENDING_SHARE_COLS = [
   "remark",
   "actions",
 ] as const;
+const PENDING_TABLE_COL_COUNT = 1 + PENDING_SHARE_COLS.length;
 
 type PendingRow = {
   id: number;
@@ -111,11 +109,7 @@ function TeethCell({ teeth }: { teeth: string }) {
     return <span className="truncate">{teeth}</span>;
   }
   if (!parsed.length) return null;
-  return (
-    <div className="flex h-full w-full items-center justify-center overflow-hidden leading-none">
-      <ToothPalmerMark fdis={parsed} compact />
-    </div>
-  );
+  return <ToothPalmerMark fdis={parsed} compact />;
 }
 
 function formFromRow(row: PendingRow): FormState {
@@ -255,6 +249,7 @@ export function ImplantPendingPage() {
     currentPage * pageSize,
   );
   const pageList = buildPageList(currentPage, totalPages);
+  const emptyRowCount = Math.max(0, pageSize - pageRows.length);
   const allSelected =
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
@@ -343,84 +338,50 @@ export function ImplantPendingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.from({ length: pageSize }, (_, index) => {
-                  const row = pageRows[index];
-                  if (row) {
-                    const padAfter = index === pageRows.length - 1 && index < pageSize - 1;
-                    return (
-                      <TableRow
-                        key={row.id}
-                        style={{ height: PENDING_TABLE_ROW_PX, maxHeight: PENDING_TABLE_ROW_PX }}
-                        className={cn("overflow-hidden", padAfter && "border-b-0")}
-                        onDoubleClick={() => openEdit(row)}
-                      >
-                        <TableCell className={pendingCellClass}>
-                          <Checkbox
-                            checked={selection.has(row.id)}
-                            onCheckedChange={() => toggleSel(row.id)}
-                          />
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.name}
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.phone}
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.chartNo}
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "p-0")}>
-                          <TeethCell teeth={row.teeth} />
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.extractionDate
-                            ? dayjs(row.extractionDate).format("YYYY-MM-DD")
-                            : ""}
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
-                        </TableCell>
-                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
-                          {row.remark}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            pendingCellClass,
-                            "min-w-0 max-w-0 overflow-hidden whitespace-nowrap",
-                          )}
-                        >
-                          <div className="flex h-full items-center justify-center gap-2">
-                            <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
-                              编辑
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={() => void deleteOne(row)}
-                            >
-                              删除
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }
-                  return (
-                    <TableRow
-                      key={`empty-${currentPage}-${index}`}
-                      style={{ height: PENDING_TABLE_ROW_PX, maxHeight: PENDING_TABLE_ROW_PX }}
-                      className="overflow-hidden border-b-0 hover:bg-transparent"
-                    >
-                      <TableCell className={pendingCellClass} />
-                      {PENDING_SHARE_COLS.map((id) => (
-                        <TableCell
-                          key={id}
-                          className={cn(pendingCellClass, id === "teeth" ? "p-0" : "min-w-0 max-w-0")}
-                        />
-                      ))}
-                    </TableRow>
-                  );
-                })}
+                {pageRows.map((row) => (
+                  <TableRow key={row.id} onDoubleClick={() => openEdit(row)}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selection.has(row.id)}
+                        onCheckedChange={() => toggleSel(row.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
+                    <TableCell className="overflow-hidden p-0">
+                      <TeethCell teeth={row.teeth} />
+                    </TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
+                      {row.extractionDate
+                        ? dayjs(row.extractionDate).format("YYYY-MM-DD")
+                        : ""}
+                    </TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
+                      {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
+                    </TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
+                          编辑
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={() => void deleteOne(row)}>
+                          删除
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {emptyRowCount > 0 ? (
+                  <TableRow className="border-b-0 bg-background hover:bg-transparent">
+                    <TableCell
+                      colSpan={PENDING_TABLE_COL_COUNT}
+                      className="p-0"
+                      style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
+                    />
+                  </TableRow>
+                ) : null}
               </TableBody>
             </Table>
             <ScrollBar orientation="horizontal" />
