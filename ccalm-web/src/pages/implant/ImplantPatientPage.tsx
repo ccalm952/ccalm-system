@@ -240,6 +240,7 @@ export function ImplantPatientPage() {
     currentPage * pageSize,
   );
   const pageList = buildPageList(currentPage, totalPages);
+  const emptyRowCount = Math.max(0, pageSize - pagePatients.length);
 
   const columns = React.useMemo<Array<ColumnDef<typeof patientTableFeatures, PatientRow>>>(
     () => [
@@ -436,30 +437,40 @@ export function ImplantPatientPage() {
                   ))}
                 </TableHeader>
                 <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
-                        {row.getAllCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className={cn(
-                              cell.column.id !== "select" &&
-                                cn(
-                                  "min-w-0 max-w-0",
-                                  cell.column.id === "edit" ? "whitespace-nowrap" : "truncate",
-                                ),
-                            )}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={table.getAllColumns().length}>无结果。</TableCell>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
+                      {row.getAllCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            cell.column.id !== "select" &&
+                              cn(
+                                "min-w-0 max-w-0",
+                                cell.column.id === "edit" ? "whitespace-nowrap" : "truncate",
+                              ),
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  )}
+                  ))}
+                  {Array.from({ length: emptyRowCount }).map((_, index) => (
+                    <TableRow key={`empty-${currentPage}-${index}`}>
+                      {leafCols.map((col) => (
+                        <TableCell
+                          key={col.id}
+                          className={cn(
+                            col.id !== "select" &&
+                              cn(
+                                "min-w-0 max-w-0",
+                                col.id === "edit" ? "whitespace-nowrap" : undefined,
+                              ),
+                          )}
+                        />
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
               <ScrollBar orientation="horizontal" />

@@ -330,6 +330,7 @@ export function OrthodonticsPage() {
     currentPage * pageSize,
   );
   const pageList = buildPageList(currentPage, totalPages);
+  const emptyRowCount = Math.max(0, pageSize - pageRows.length);
   const allSelected =
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
@@ -491,6 +492,14 @@ export function OrthodonticsPage() {
                         ) : null}
                       </div>
                     </TableCell>
+                  </TableRow>
+                ))}
+                {Array.from({ length: emptyRowCount }).map((_, index) => (
+                  <TableRow key={`empty-${currentPage}-${index}`}>
+                    <TableCell />
+                    {ORTHODONTICS_SHARE_COLS.map((id) => (
+                      <TableCell key={id} className="min-w-0 max-w-0" />
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
