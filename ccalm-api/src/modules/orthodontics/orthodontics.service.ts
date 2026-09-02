@@ -137,6 +137,9 @@ export class OrthodonticsService {
         followUp: dto.followUp?.trim() ?? "",
         remark: dto.remark?.trim() ?? "",
         doctor: dto.doctor?.trim() ?? "",
+        ...(dto.category != null
+          ? { category: this.parseCategory(dto.category) }
+          : {}),
       },
     })
     return this.mapRow(row)

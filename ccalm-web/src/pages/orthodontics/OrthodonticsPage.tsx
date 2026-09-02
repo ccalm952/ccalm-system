@@ -185,6 +185,20 @@ export function OrthodonticsPage() {
     setDialogOpen(true);
   }
 
+  async function markCompleted(row: OrthodonticsRow) {
+    try {
+      await api(
+        "PUT",
+        `/orthodontics/patients/${row.id}`,
+        { ...patientBody(row), category: "completed" },
+      );
+      toast.success("已移至已完成");
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   async function markVisitedToday(row: OrthodonticsRow) {
     try {
       await api(
@@ -365,13 +379,24 @@ export function OrthodonticsPage() {
                         >
                           编辑
                         </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => void markVisitedToday(row)}
-                        >
-                          就诊
-                        </Button>
+                        {category === "treating" ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => void markCompleted(row)}
+                          >
+                            完成
+                          </Button>
+                        ) : null}
+                        {category !== "completed" ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => void markVisitedToday(row)}
+                          >
+                            就诊
+                          </Button>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
