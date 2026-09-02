@@ -102,6 +102,8 @@ const ORTHODONTICS_SHARE_COLS = [
   "doctor",
   "actions",
 ] as const;
+const TABLE_ROW_HEIGHT_PX = 40;
+const ORTHODONTICS_TABLE_COL_COUNT = 1 + ORTHODONTICS_SHARE_COLS.length;
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -494,14 +496,15 @@ export function OrthodonticsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {Array.from({ length: emptyRowCount }).map((_, index) => (
-                  <TableRow key={`empty-${currentPage}-${index}`}>
-                    <TableCell />
-                    {ORTHODONTICS_SHARE_COLS.map((id) => (
-                      <TableCell key={id} className="min-w-0 max-w-0" />
-                    ))}
+                {emptyRowCount > 0 ? (
+                  <TableRow className="border-b-0 !bg-background hover:!bg-transparent">
+                    <TableCell
+                      colSpan={ORTHODONTICS_TABLE_COL_COUNT}
+                      className="p-0"
+                      style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
+                    />
                   </TableRow>
-                ))}
+                ) : null}
               </TableBody>
             </Table>
             <ScrollBar orientation="horizontal" />

@@ -50,6 +50,7 @@ import { parseTeethStrict } from "@/lib/tooth-fdi";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+const TABLE_ROW_HEIGHT_PX = 40;
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -69,6 +70,7 @@ const PENDING_SHARE_COLS = [
   "remark",
   "actions",
 ] as const;
+const PENDING_TABLE_COL_COUNT = 1 + PENDING_SHARE_COLS.length;
 
 type PendingRow = {
   id: number;
@@ -256,7 +258,7 @@ export function ImplantPendingPage() {
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
+    <div className="flex flex-col p-4 md:p-6">
       <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <CardTitle className="shrink-0">待种植</CardTitle>
@@ -375,21 +377,15 @@ export function ImplantPendingPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {Array.from({ length: emptyRowCount }).map((_, index) => (
-                  <TableRow key={`empty-${currentPage}-${index}`}>
-                    <TableCell />
-                    {PENDING_SHARE_COLS.map((id) => (
-                      <TableCell
-                        key={id}
-                        className={
-                          id === "teeth"
-                            ? "min-w-0 max-w-0 overflow-visible p-0"
-                            : "min-w-0 max-w-0"
-                        }
-                      />
-                    ))}
+                {emptyRowCount > 0 ? (
+                  <TableRow className="border-b-0 bg-background hover:bg-transparent">
+                    <TableCell
+                      colSpan={PENDING_TABLE_COL_COUNT}
+                      className="p-0"
+                      style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
+                    />
                   </TableRow>
-                ))}
+                ) : null}
               </TableBody>
             </Table>
             <ScrollBar orientation="horizontal" />

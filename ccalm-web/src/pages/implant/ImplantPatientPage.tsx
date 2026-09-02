@@ -56,6 +56,7 @@ import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
+const TABLE_ROW_HEIGHT_PX = 40;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 function buildPageList(current: number, total: number): number[] {
@@ -455,22 +456,15 @@ export function ImplantPatientPage() {
                       ))}
                     </TableRow>
                   ))}
-                  {Array.from({ length: emptyRowCount }).map((_, index) => (
-                    <TableRow key={`empty-${currentPage}-${index}`}>
-                      {leafCols.map((col) => (
-                        <TableCell
-                          key={col.id}
-                          className={cn(
-                            col.id !== "select" &&
-                              cn(
-                                "min-w-0 max-w-0",
-                                col.id === "edit" ? "whitespace-nowrap" : undefined,
-                              ),
-                          )}
-                        />
-                      ))}
+                  {emptyRowCount > 0 ? (
+                    <TableRow className="border-b-0 bg-background hover:bg-transparent">
+                      <TableCell
+                        colSpan={leafCols.length}
+                        className="p-0"
+                        style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
+                      />
                     </TableRow>
-                  ))}
+                  ) : null}
                 </TableBody>
               </Table>
               <ScrollBar orientation="horizontal" />
