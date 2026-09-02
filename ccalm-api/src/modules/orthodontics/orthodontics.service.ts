@@ -74,12 +74,14 @@ export class OrthodonticsService {
     }
   }
 
-  async list(categoryRaw: string, q?: string) {
-    const category = this.parseCategory(categoryRaw)
+  async list(categoryRaw?: string, q?: string) {
+    const category = categoryRaw?.trim()
+      ? this.parseCategory(categoryRaw)
+      : undefined
     const keyword = q?.trim()
     const rows = await this.prisma.orthodonticsPatient.findMany({
       where: {
-        category,
+        ...(category ? { category } : {}),
         ...(keyword
           ? {
               OR: [

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
-import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
+import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { memosNavItem } from "@/config/memos-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { ROUTES } from "@/config/routes";
@@ -107,8 +107,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }[] = [
     { title: "考勤", icon: CalendarCheck2, items: attendanceNavItemsForRole(me?.role) },
     { title: "种植", icon: Sprout, items: implantSubNavItems },
-    { title: "正畸", icon: Smile, items: orthodonticsSubNavItems },
   ];
+
+  const orthodonticsLink = orthodonticsNavItem;
 
   return (
     <Sidebar {...props}>
@@ -140,6 +141,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 onNavClick={onNavClick}
               />
             ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="font-medium"
+                isActive={subPathActive(activePath, orthodonticsLink.url)}
+                render={
+                  <Link
+                    to={orthodonticsLink.url}
+                    onClick={() => onNavClick(orthodonticsLink.url)}
+                  />
+                }
+                tooltip={orthodonticsLink.title}
+              >
+                <Smile className="shrink-0" />
+                <span>{orthodonticsLink.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="font-medium"

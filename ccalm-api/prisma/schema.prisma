@@ -262,6 +262,7 @@ model SalaryDefaultTemplate {
 
 enum OrthodonticsCategory {
   treating
+  invisible
   appliance
   completed
 }

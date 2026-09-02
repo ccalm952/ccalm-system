@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import { Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +16,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -36,13 +43,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DatePickerField } from "@/components/date-picker-field";
-import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
+import {
+  ORTHODONTICS_CATEGORY_OPTIONS,
+  orthodonticsCategoryLabel,
+  type OrthodonticsCategory,
+} from "@/lib/orthodontics/categories";
 import { cn } from "@/lib/utils";
-
-type OrthodonticsCategory = "treating" | "appliance" | "completed";
 
 type OrthodonticsRow = {
   id: number;
@@ -59,6 +68,7 @@ type OrthodonticsRow = {
 };
 
 type FormState = {
+  category: OrthodonticsCategory;
   chartNo: string;
   name: string;
   phone: string;
@@ -70,20 +80,9 @@ type FormState = {
 
 const OVERDUE_DAYS = 30;
 
-const CATEGORY_BY_PATH: Record<string, OrthodonticsCategory> = {
-  [ROUTES.orthodontics.treating]: "treating",
-  [ROUTES.orthodontics.appliance]: "appliance",
-  [ROUTES.orthodontics.completed]: "completed",
-};
-
-const TITLE_BY_CATEGORY: Record<OrthodonticsCategory, string> = {
-  treating: "治疗中",
-  appliance: "矫治器",
-  completed: "已完成",
-};
-
-function emptyForm(): FormState {
+function emptyForm(category: OrthodonticsCategory): FormState {
   return {
+    category,
     chartNo: "",
     name: "",
     phone: "",
@@ -96,6 +95,7 @@ function emptyForm(): FormState {
 
 function formFromRow(row: OrthodonticsRow): FormState {
   return {
+    category: row.category,
     chartNo: row.chartNo,
     name: row.name,
     phone: row.phone,
@@ -113,6 +113,7 @@ function isOverdue(days: number | null): boolean {
 function patientBody(
   row: Pick<
     OrthodonticsRow,
+    | "category"
     | "chartNo"
     | "name"
     | "phone"
@@ -124,6 +125,7 @@ function patientBody(
   >,
 ) {
   return {
+    category: row.category,
     chartNo: row.chartNo,
     name: row.name,
     phone: row.phone,
@@ -136,22 +138,20 @@ function patientBody(
 }
 
 export function OrthodonticsPage() {
-  const { pathname } = useLocation();
-  const category = CATEGORY_BY_PATH[pathname] ?? "treating";
-  const showModel = category === "appliance";
-
+  const [activeCategory, setActiveCategory] =
+    React.useState<OrthodonticsCategory>("treating");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [rows, setRows] = React.useState<OrthodonticsRow[]>([]);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [form, setForm] = React.useState<FormState>(emptyForm);
+  const [form, setForm] = React.useState<FormState>(emptyForm("treating"));
   const editIdRef = React.useRef<number | null>(null);
 
   const load = React.useCallback(async () => {
     try {
-      const params = new URLSearchParams({ category });
+      const params = new URLSearchParams({ category: activeCategory });
       const q = searchQuery.trim();
       if (q) params.set("q", q);
       const data = await api<OrthodonticsRow[]>(
@@ -164,7 +164,7 @@ export function OrthodonticsPage() {
       toast.error(errorMessage(e));
       setRows([]);
     }
-  }, [category, searchQuery]);
+  }, [activeCategory, searchQuery]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -175,7 +175,7 @@ export function OrthodonticsPage() {
 
   function openCreate() {
     editIdRef.current = null;
-    setForm(emptyForm());
+    setForm(emptyForm(activeCategory));
     setDialogOpen(true);
   }
 
@@ -190,7 +190,7 @@ export function OrthodonticsPage() {
       await api(
         "PUT",
         `/orthodontics/patients/${row.id}`,
-        { ...patientBody(row), category: "completed" },
+        { ...patientBody({ ...row, category: "completed" }) },
       );
       toast.success("已移至已完成");
       await load();
@@ -229,6 +229,7 @@ export function OrthodonticsPage() {
           ? null
           : (rows.find((row) => row.id === editIdRef.current) ?? null);
       const body = {
+        category: form.category,
         chartNo: form.chartNo.trim(),
         name,
         phone: form.phone.trim(),
@@ -239,7 +240,7 @@ export function OrthodonticsPage() {
         doctor: form.doctor.trim(),
       };
       if (editIdRef.current == null) {
-        await api("POST", "/orthodontics/patients", { ...body, category });
+        await api("POST", "/orthodontics/patients", body);
         toast.success("已添加");
       } else {
         await api("PUT", `/orthodontics/patients/${editIdRef.current}`, body);
@@ -285,32 +286,46 @@ export function OrthodonticsPage() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <Card size="sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle>{TITLE_BY_CATEGORY[category]}</CardTitle>
-          <div className="flex shrink-0 items-center gap-2">
-            <InputGroup className="w-40 sm:w-56">
-              <InputGroupAddon>
-                <SearchIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索"
-              />
-            </InputGroup>
-            <Button type="button" variant="outline" onClick={openCreate}>
-              <Plus className="size-3.5" />
-              添加
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={selection.size === 0}
-              onClick={() => setDeleteOpen(true)}
-            >
-              <X className="size-3.5" />
-              删除
-            </Button>
+        <CardHeader className="flex flex-col gap-4 space-y-0">
+          <CardTitle>正畸</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {ORTHODONTICS_CATEGORY_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  variant={activeCategory === opt.value ? "default" : "outline"}
+                  onClick={() => setActiveCategory(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <InputGroup className="w-40 sm:w-56">
+                <InputGroupAddon>
+                  <SearchIcon />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索"
+                />
+              </InputGroup>
+              <Button type="button" variant="outline" onClick={openCreate}>
+                <Plus className="size-3.5" />
+                添加
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={selection.size === 0}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <X className="size-3.5" />
+                删除
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -330,9 +345,10 @@ export function OrthodonticsPage() {
                       }}
                     />
                   </TableHead>
+                  <TableHead>标签</TableHead>
                   <TableHead>病历号</TableHead>
                   <TableHead>姓名</TableHead>
-                  {showModel ? <TableHead>型号</TableHead> : null}
+                  <TableHead>型号</TableHead>
                   <TableHead>电话</TableHead>
                   <TableHead>上次就诊</TableHead>
                   <TableHead>距离上次就诊</TableHead>
@@ -350,9 +366,10 @@ export function OrthodonticsPage() {
                         onCheckedChange={() => toggleSel(row.id)}
                       />
                     </TableCell>
+                    <TableCell>{orthodonticsCategoryLabel(row.category)}</TableCell>
                     <TableCell>{row.chartNo}</TableCell>
                     <TableCell>{row.name}</TableCell>
-                    {showModel ? <TableCell>{row.applianceModel}</TableCell> : null}
+                    <TableCell>{row.applianceModel}</TableCell>
                     <TableCell>{row.phone}</TableCell>
                     <TableCell>
                       {row.lastVisitDate
@@ -379,7 +396,7 @@ export function OrthodonticsPage() {
                         >
                           编辑
                         </Button>
-                        {category === "treating" ? (
+                        {row.category === "treating" ? (
                           <Button
                             type="button"
                             variant="secondary"
@@ -388,7 +405,7 @@ export function OrthodonticsPage() {
                             完成
                           </Button>
                         ) : null}
-                        {category !== "completed" ? (
+                        {row.category !== "completed" ? (
                           <Button
                             type="button"
                             variant="secondary"
@@ -416,6 +433,30 @@ export function OrthodonticsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
+            <Combobox
+              items={[...ORTHODONTICS_CATEGORY_OPTIONS]}
+              value={
+                ORTHODONTICS_CATEGORY_OPTIONS.find(
+                  (opt) => opt.value === form.category,
+                ) ?? null
+              }
+              onValueChange={(opt) => {
+                if (opt) setForm((f) => ({ ...f, category: opt.value }));
+              }}
+              itemToStringValue={(opt) => opt.label}
+            >
+              <ComboboxInput placeholder="标签" />
+              <ComboboxContent>
+                <ComboboxEmpty>无匹配项</ComboboxEmpty>
+                <ComboboxList>
+                  {(opt) => (
+                    <ComboboxItem key={opt.value} value={opt}>
+                      {opt.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
             <Input
               placeholder="病历号"
               value={form.chartNo}
@@ -426,15 +467,13 @@ export function OrthodonticsPage() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
-            {showModel ? (
-              <Input
-                placeholder="型号"
-                value={form.applianceModel}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, applianceModel: e.target.value }))
-                }
-              />
-            ) : null}
+            <Input
+              placeholder="型号"
+              value={form.applianceModel}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, applianceModel: e.target.value }))
+              }
+            />
             <Input
               placeholder="电话"
               value={form.phone}
