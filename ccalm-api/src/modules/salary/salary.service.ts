@@ -26,50 +26,6 @@ export class SalaryService implements OnModuleInit {
 
   async onModuleInit() {
     await this.stripLegacyStoredData()
-    await this.migrateLegacySalarySettings()
-  }
-
-  private async migrateLegacySalarySettings() {
-    const row = await this.prisma.salarySettings.findUnique({
-      where: { id: "global" },
-    })
-    if (!row) return
-
-    const data = row.data as Record<string, unknown>
-    const thresholds = data.tierThresholds as
-      Record<string, unknown> | undefined
-    if (!thresholds) return
-
-    const is369 =
-      thresholds.tier1 === 30000 &&
-      thresholds.tier2 === 60000 &&
-      thresholds.tier3 === 90000
-    const missingCaps = thresholds.tier4 == null || thresholds.tier5 == null
-    if (!is369 && !missingCaps) return
-
-    const migrated = {
-      ...data,
-      tierThresholds: {
-        tier1: 20000,
-        tier2: 40000,
-        tier3: 60000,
-        tier4: 80000,
-        tier5: 100000,
-      },
-      docTierRates: {
-        tier1Rate: 0.1,
-        tier2Rate: 0.12,
-        tier3Rate: 0.14,
-        tier4Rate: 0.16,
-        tier5Rate: 0.18,
-        tier6Rate: 0.2,
-      },
-    }
-
-    await this.prisma.salarySettings.update({
-      where: { id: "global" },
-      data: { data: migrated },
-    })
   }
 
   private sanitizeSheetData(
