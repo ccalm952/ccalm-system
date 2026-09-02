@@ -51,6 +51,9 @@ import { cn } from "@/lib/utils";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+/** 单元格 40px + tr border-b 1px，与浏览器实测行高一致 */
+const PENDING_TABLE_ROW_PX = 41;
+const pendingCellClass = "!h-full !max-h-full overflow-hidden leading-none py-0";
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -70,7 +73,6 @@ const PENDING_SHARE_COLS = [
   "remark",
   "actions",
 ] as const;
-const PENDING_TABLE_COL_COUNT = 1 + PENDING_SHARE_COLS.length;
 
 type PendingRow = {
   id: number;
@@ -110,7 +112,7 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <div className="flex h-10 w-full items-center justify-center overflow-hidden leading-none">
+    <div className="flex h-full w-full items-center justify-center overflow-hidden leading-none">
       <ToothPalmerMark fdis={parsed} compact />
     </div>
   );
@@ -348,35 +350,46 @@ export function ImplantPendingPage() {
                     return (
                       <TableRow
                         key={row.id}
-                        className={cn(
-                          "h-10 max-h-10 overflow-hidden",
-                          padAfter && "border-b-0",
-                        )}
+                        style={{ height: PENDING_TABLE_ROW_PX, maxHeight: PENDING_TABLE_ROW_PX }}
+                        className={cn("overflow-hidden", padAfter && "border-b-0")}
                         onDoubleClick={() => openEdit(row)}
                       >
-                        <TableCell>
+                        <TableCell className={pendingCellClass}>
                           <Checkbox
                             checked={selection.has(row.id)}
                             onCheckedChange={() => toggleSel(row.id)}
                           />
                         </TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                        <TableCell className="overflow-hidden p-0">
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
+                          {row.phone}
+                        </TableCell>
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
+                          {row.chartNo}
+                        </TableCell>
+                        <TableCell className={cn(pendingCellClass, "p-0")}>
                           <TeethCell teeth={row.teeth} />
                         </TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
                           {row.extractionDate
                             ? dayjs(row.extractionDate).format("YYYY-MM-DD")
                             : ""}
                         </TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
                           {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
                         </TableCell>
-                        <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
-                        <TableCell className="min-w-0 max-w-0 overflow-hidden whitespace-nowrap">
-                          <div className="flex h-10 items-center justify-center gap-2">
+                        <TableCell className={cn(pendingCellClass, "min-w-0 max-w-0 truncate")}>
+                          {row.remark}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            pendingCellClass,
+                            "min-w-0 max-w-0 overflow-hidden whitespace-nowrap",
+                          )}
+                        >
+                          <div className="flex h-full items-center justify-center gap-2">
                             <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
                               编辑
                             </Button>
@@ -395,15 +408,14 @@ export function ImplantPendingPage() {
                   return (
                     <TableRow
                       key={`empty-${currentPage}-${index}`}
-                      className="h-10 max-h-10 border-b-0 hover:bg-transparent"
+                      style={{ height: PENDING_TABLE_ROW_PX, maxHeight: PENDING_TABLE_ROW_PX }}
+                      className="overflow-hidden border-b-0 hover:bg-transparent"
                     >
-                      <TableCell />
+                      <TableCell className={pendingCellClass} />
                       {PENDING_SHARE_COLS.map((id) => (
                         <TableCell
                           key={id}
-                          className={
-                            id === "teeth" ? "overflow-hidden p-0" : "min-w-0 max-w-0"
-                          }
+                          className={cn(pendingCellClass, id === "teeth" ? "p-0" : "min-w-0 max-w-0")}
                         />
                       ))}
                     </TableRow>
