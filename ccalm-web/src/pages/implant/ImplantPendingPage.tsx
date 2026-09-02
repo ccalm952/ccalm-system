@@ -224,7 +224,7 @@ export function ImplantPendingPage() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
-      <Card size="sm">
+      <Card>
         <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <CardTitle className="shrink-0">待种植</CardTitle>
           <div className="flex min-w-0 w-full items-center gap-2 sm:w-auto sm:justify-end">
@@ -257,9 +257,9 @@ export function ImplantPendingPage() {
         <CardContent>
           <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             {/*
-              与种植患者一致：min-w 1246 + table-fixed；勾选列固定，其余列均分
+              与种植患者一致：min-w 1240 + table-fixed；勾选列固定，其余列均分
             */}
-            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+            <Table className="w-full min-w-[1240px] table-fixed border-collapse">
               <colgroup>
                 <col style={{ width: IMPLANT_TABLE_SELECT_COL_W }} />
                 {PENDING_SHARE_COLS.map((id) => (
