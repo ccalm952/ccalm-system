@@ -335,7 +335,7 @@ export function OrthodonticsPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col p-4 md:p-6">
-      <Card size="sm" className="flex min-h-0 flex-1 flex-col">
+      <Card className="flex min-h-0 flex-1 flex-col">
         <CardHeader className="shrink-0 space-y-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
