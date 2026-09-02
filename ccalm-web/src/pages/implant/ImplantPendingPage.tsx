@@ -251,6 +251,7 @@ export function ImplantPendingPage() {
     currentPage * pageSize,
   );
   const pageList = buildPageList(currentPage, totalPages);
+  const emptyRowCount = Math.max(0, pageSize - pageRows.length);
   const allSelected =
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
@@ -372,6 +373,21 @@ export function ImplantPendingPage() {
                         </Button>
                       </div>
                     </TableCell>
+                  </TableRow>
+                ))}
+                {Array.from({ length: emptyRowCount }).map((_, index) => (
+                  <TableRow key={`empty-${currentPage}-${index}`}>
+                    <TableCell />
+                    {PENDING_SHARE_COLS.map((id) => (
+                      <TableCell
+                        key={id}
+                        className={
+                          id === "teeth"
+                            ? "min-w-0 max-w-0 overflow-visible p-0"
+                            : "min-w-0 max-w-0"
+                        }
+                      />
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
