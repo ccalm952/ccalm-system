@@ -1498,10 +1498,10 @@ export function ImplantRecordsPage() {
           <CardContent>
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
               {/*
-                与 max-w-7xl（80rem=1280px）栏宽对齐：表最小宽度 = 1280 − 34 = 1246
-                （Card 内容区左右各 16px 共 32px + ring 约 2px，与种植记录一致）
+                宽屏 min-w-full 贴合 Card 内容区，避免多余横向滚动条；
+                窄屏 max-md:min-w-[1246px] 保留横向滚动
               */}
-              <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+              <Table className="w-full min-w-full table-fixed border-collapse max-md:min-w-[1246px]">
                 <colgroup>
                   {leafCols.map((col) => {
                     if (col.id === "select") {

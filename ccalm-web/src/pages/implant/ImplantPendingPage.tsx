@@ -257,9 +257,10 @@ export function ImplantPendingPage() {
         <CardContent>
           <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             {/*
-              与种植患者一致：min-w 1246 + table-fixed；勾选列固定，其余列均分
+              宽屏 min-w-full 贴合容器，避免多余横向滚动条；
+              窄屏 max-md:min-w-[1246px] 保留横向滚动
             */}
-            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+            <Table className="w-full min-w-full table-fixed border-collapse max-md:min-w-[1246px]">
               <colgroup>
                 <col style={{ width: IMPLANT_TABLE_SELECT_COL_W }} />
                 {PENDING_SHARE_COLS.map((id) => (
