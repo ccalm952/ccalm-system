@@ -110,8 +110,8 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <div className="flex h-10 w-full items-center justify-center leading-none">
-      <ToothPalmerMark fdis={parsed} />
+    <div className="flex h-10 w-full items-center justify-center overflow-hidden leading-none">
+      <ToothPalmerMark fdis={parsed} compact />
     </div>
   );
 }
@@ -341,9 +341,13 @@ export function ImplantPendingPage() {
                   <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody style={{ height: pageSize * TABLE_ROW_HEIGHT_PX }}>
                 {pageRows.map((row) => (
-                  <TableRow key={row.id} onDoubleClick={() => openEdit(row)}>
+                  <TableRow
+                    key={row.id}
+                    className="h-10 max-h-10 overflow-hidden"
+                    onDoubleClick={() => openEdit(row)}
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selection.has(row.id)}
@@ -353,7 +357,7 @@ export function ImplantPendingPage() {
                     <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="overflow-visible p-0">
+                    <TableCell className="overflow-hidden p-0">
                       <TeethCell teeth={row.teeth} />
                     </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">
@@ -365,8 +369,8 @@ export function ImplantPendingPage() {
                       {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
                     </TableCell>
                     <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <TableCell className="min-w-0 max-w-0 overflow-hidden whitespace-nowrap">
+                      <div className="flex h-10 items-center justify-center gap-2">
                         <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
                           编辑
                         </Button>
