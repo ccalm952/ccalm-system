@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
   SelectContent,
@@ -165,9 +166,11 @@ export function OrthodonticsPage() {
   const [form, setForm] = React.useState<FormState>(emptyForm("treating"));
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
+  const [loading, setLoading] = React.useState(true);
   const editIdRef = React.useRef<number | null>(null);
 
   const load = React.useCallback(async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({ category: activeCategory });
       const q = searchQuery.trim();
@@ -181,6 +184,8 @@ export function OrthodonticsPage() {
     } catch (e) {
       toast.error(errorMessage(e));
       setRows([]);
+    } finally {
+      setLoading(false);
     }
   }, [activeCategory, searchQuery]);
 
@@ -359,7 +364,8 @@ export function OrthodonticsPage() {
           </div>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-0">
-          <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:h-full">
+          <div className="relative min-h-0 flex-1">
+            <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:h-full">
             <Table className="w-full min-w-[1100px]">
               <TableHeader>
                 <TableRow>
@@ -462,7 +468,13 @@ export function OrthodonticsPage() {
               </TableBody>
             </Table>
             <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+            </ScrollArea>
+            {loading ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+                <Spinner className="size-8 opacity-60" />
+              </div>
+            ) : null}
+          </div>
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
             <div>已选择 {selection.size} 条</div>
             <div className="flex flex-wrap items-center gap-2">
