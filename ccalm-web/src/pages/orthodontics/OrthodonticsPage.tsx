@@ -428,7 +428,7 @@ export function OrthodonticsPage() {
                   <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="[&_tr:nth-child(even)]:bg-muted/30">
+              <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
                 {pageRows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
