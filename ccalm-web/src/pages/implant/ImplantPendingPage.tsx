@@ -341,7 +341,7 @@ export function ImplantPendingPage() {
                   <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody style={{ height: pageSize * TABLE_ROW_HEIGHT_PX }}>
+              <TableBody>
                 {pageRows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -381,17 +381,11 @@ export function ImplantPendingPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {emptyRowCount > 0 ? (
-                  <TableRow className="border-b-0 bg-background hover:bg-transparent">
-                    <TableCell
-                      colSpan={PENDING_TABLE_COL_COUNT}
-                      className="p-0"
-                      style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
-                    />
-                  </TableRow>
-                ) : null}
               </TableBody>
             </Table>
+            {emptyRowCount > 0 ? (
+              <div style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }} />
+            ) : null}
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
