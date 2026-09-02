@@ -431,10 +431,10 @@ export function ImplantInventoryPage() {
           <CardContent>
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
               {/*
-                与 max-w-5xl（64rem=1024px）栏宽对齐：表最小宽度 = 1024 − 34 = 990
-                （Card 内容区左右各 16px 共 32px + ring 约 2px，算法同种植记录 1246）
+                与 max-w-5xl（64rem=1024px）栏宽对齐：表最小宽度 = 1024 − 40 = 984
+                （Card 内容区左右各 20px 共 40px）
               */}
-              <Table className="w-full min-w-[990px] table-fixed border-collapse">
+              <Table className="w-full min-w-[984px] table-fixed border-collapse">
                 <colgroup>
                   {leafCols.map((col) => {
                     if (col.id === "select") {

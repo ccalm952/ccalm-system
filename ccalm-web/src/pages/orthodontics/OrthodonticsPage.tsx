@@ -377,7 +377,7 @@ export function OrthodonticsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-(--card-spacing)">
           <div className="relative min-h-0 flex-1">
             <ScrollArea className="min-h-0 flex-1 w-full max-w-full [&_[data-slot=scroll-area-viewport]]:h-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             <Table className="w-full min-w-[1246px] table-fixed border-collapse">
