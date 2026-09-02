@@ -286,7 +286,7 @@ export function ImplantPendingPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-0">
+        <CardContent className="flex flex-col gap-4">
           <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             {/*
               与种植患者一致：min-w 1240 + table-fixed；勾选列固定，其余列均分

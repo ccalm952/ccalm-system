@@ -394,7 +394,7 @@ export function ImplantPatientPage() {
               </AlertDialog>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-0">
+          <CardContent className="flex flex-col gap-4">
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
               {/*
                 与 max-w-7xl（80rem=1280px）栏宽对齐：表最小宽度 = 1280 − 40 = 1240
