@@ -334,9 +334,8 @@ export function OrthodonticsPage() {
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
   return (
-    <div className="bg-background p-4">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
-        <Card>
+    <div className="flex flex-col p-4 md:p-6">
+      <Card>
         <CardHeader className="space-y-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -381,7 +380,7 @@ export function OrthodonticsPage() {
         <CardContent className="flex flex-col gap-(--card-spacing)">
           <div className="relative">
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
-            <Table className="w-full min-w-[1240px] table-fixed border-collapse">
+            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
               <colgroup>
                 <col style={{ width: ORTHODONTICS_TABLE_SELECT_COL_W }} />
                 {ORTHODONTICS_SHARE_COLS.map((id) => (
@@ -564,8 +563,7 @@ export function OrthodonticsPage() {
             </div>
           </div>
         </CardContent>
-        </Card>
-      </div>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
