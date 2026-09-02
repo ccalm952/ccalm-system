@@ -69,4 +69,8 @@ export class UpdateOrthodonticsPatientDto {
   @IsOptional()
   @IsString()
   doctor?: string
+
+  @IsOptional()
+  @IsIn(CATEGORIES)
+  category?: (typeof CATEGORIES)[number]
 }
