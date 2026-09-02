@@ -47,10 +47,10 @@ import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
+import { cn } from "@/lib/utils";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
-const TABLE_ROW_HEIGHT_PX = 40;
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -253,7 +253,6 @@ export function ImplantPendingPage() {
     currentPage * pageSize,
   );
   const pageList = buildPageList(currentPage, totalPages);
-  const emptyRowCount = Math.max(0, pageSize - pageRows.length);
   const allSelected =
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
@@ -342,50 +341,76 @@ export function ImplantPendingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageRows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="h-10 max-h-10 overflow-hidden"
-                    onDoubleClick={() => openEdit(row)}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selection.has(row.id)}
-                        onCheckedChange={() => toggleSel(row.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="overflow-hidden p-0">
-                      <TeethCell teeth={row.teeth} />
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">
-                      {row.extractionDate
-                        ? dayjs(row.extractionDate).format("YYYY-MM-DD")
-                        : ""}
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">
-                      {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 overflow-hidden whitespace-nowrap">
-                      <div className="flex h-10 items-center justify-center gap-2">
-                        <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
-                          编辑
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => void deleteOne(row)}>
-                          删除
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {Array.from({ length: pageSize }, (_, index) => {
+                  const row = pageRows[index];
+                  if (row) {
+                    const padAfter = index === pageRows.length - 1 && index < pageSize - 1;
+                    return (
+                      <TableRow
+                        key={row.id}
+                        className={cn(
+                          "h-10 max-h-10 overflow-hidden",
+                          padAfter && "border-b-0",
+                        )}
+                        onDoubleClick={() => openEdit(row)}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selection.has(row.id)}
+                            onCheckedChange={() => toggleSel(row.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
+                        <TableCell className="overflow-hidden p-0">
+                          <TeethCell teeth={row.teeth} />
+                        </TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">
+                          {row.extractionDate
+                            ? dayjs(row.extractionDate).format("YYYY-MM-DD")
+                            : ""}
+                        </TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">
+                          {row.monthsAfter == null ? "" : `${row.monthsAfter}个月`}
+                        </TableCell>
+                        <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
+                        <TableCell className="min-w-0 max-w-0 overflow-hidden whitespace-nowrap">
+                          <div className="flex h-10 items-center justify-center gap-2">
+                            <Button type="button" variant="secondary" onClick={() => openEdit(row)}>
+                              编辑
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => void deleteOne(row)}
+                            >
+                              删除
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  return (
+                    <TableRow
+                      key={`empty-${currentPage}-${index}`}
+                      className="h-10 max-h-10 border-b-0 hover:bg-transparent"
+                    >
+                      <TableCell />
+                      {PENDING_SHARE_COLS.map((id) => (
+                        <TableCell
+                          key={id}
+                          className={
+                            id === "teeth" ? "overflow-hidden p-0" : "min-w-0 max-w-0"
+                          }
+                        />
+                      ))}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-            {emptyRowCount > 0 ? (
-              <div style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }} />
-            ) : null}
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
