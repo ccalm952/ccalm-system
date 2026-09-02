@@ -463,12 +463,10 @@ export function OrthodonticsPage() {
             </Table>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t pt-4">
-            <div className="text-muted-foreground text-sm">
-              已选择 {selection.size} 条
-            </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+            <div>已选择 {selection.size} 条</div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground text-sm">共 {total} 条</span>
+              <span>共 {total} 条</span>
               <Button
                 type="button"
                 variant="outline"
@@ -483,9 +481,7 @@ export function OrthodonticsPage() {
                 const showEllipsis = prev != null && pageNo - prev > 1;
                 return (
                   <React.Fragment key={pageNo}>
-                    {showEllipsis ? (
-                      <span className="text-muted-foreground px-1 text-sm">…</span>
-                    ) : null}
+                    {showEllipsis ? <span>…</span> : null}
                     <Button
                       type="button"
                       variant={currentPage === pageNo ? "default" : "outline"}
@@ -511,7 +507,7 @@ export function OrthodonticsPage() {
                   if (value) setPageSize(Number(value));
                 }}
               >
-                <SelectTrigger size="sm">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
