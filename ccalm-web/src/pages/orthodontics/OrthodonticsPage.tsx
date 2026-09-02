@@ -88,6 +88,19 @@ type FormState = {
 
 const OVERDUE_DAYS = 30;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+const ORTHODONTICS_TABLE_SELECT_COL_W = "40px";
+const ORTHODONTICS_SHARE_COLS = [
+  "category",
+  "chartNo",
+  "name",
+  "applianceModel",
+  "phone",
+  "lastVisitDate",
+  "daysSinceLastVisit",
+  "remark",
+  "doctor",
+  "actions",
+] as const;
 
 function buildPageList(current: number, total: number): number[] {
   if (total <= 7) {
@@ -365,8 +378,19 @@ export function OrthodonticsPage() {
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col gap-0">
           <div className="relative min-h-0 flex-1">
-            <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:h-full">
-            <Table className="w-full min-w-[1100px]">
+            <ScrollArea className="min-h-0 flex-1 w-full max-w-full [&_[data-slot=scroll-area-viewport]]:h-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
+            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+              <colgroup>
+                <col style={{ width: ORTHODONTICS_TABLE_SELECT_COL_W }} />
+                {ORTHODONTICS_SHARE_COLS.map((id) => (
+                  <col
+                    key={id}
+                    style={{
+                      width: `calc((100% - ${ORTHODONTICS_TABLE_SELECT_COL_W}) / ${ORTHODONTICS_SHARE_COLS.length})`,
+                    }}
+                  />
+                ))}
+              </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -392,16 +416,16 @@ export function OrthodonticsPage() {
                       }}
                     />
                   </TableHead>
-                  <TableHead>标签</TableHead>
-                  <TableHead>病历号</TableHead>
-                  <TableHead>姓名</TableHead>
-                  <TableHead>型号</TableHead>
-                  <TableHead>电话</TableHead>
-                  <TableHead>上次就诊</TableHead>
-                  <TableHead>距离上次就诊</TableHead>
-                  <TableHead>备注</TableHead>
-                  <TableHead>医生</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">标签</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">病历号</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">姓名</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">型号</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">电话</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">上次就诊</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">距离上次就诊</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">备注</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">医生</TableHead>
+                  <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -413,18 +437,21 @@ export function OrthodonticsPage() {
                         onCheckedChange={() => toggleSel(row.id)}
                       />
                     </TableCell>
-                    <TableCell>{orthodonticsCategoryLabel(row.category)}</TableCell>
-                    <TableCell>{row.chartNo}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.applianceModel}</TableCell>
-                    <TableCell>{row.phone}</TableCell>
-                    <TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
+                      {orthodonticsCategoryLabel(row.category)}
+                    </TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.applianceModel}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">
                       {row.lastVisitDate
                         ? dayjs(row.lastVisitDate).format("YYYY-MM-DD")
                         : ""}
                     </TableCell>
                     <TableCell
                       className={cn(
+                        "min-w-0 max-w-0 truncate",
                         isOverdue(row.daysSinceLastVisit) && "text-destructive",
                       )}
                     >
@@ -432,10 +459,10 @@ export function OrthodonticsPage() {
                         ? ""
                         : `${row.daysSinceLastVisit} 天`}
                     </TableCell>
-                    <TableCell>{row.remark}</TableCell>
-                    <TableCell>{row.doctor}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 truncate">{row.doctor}</TableCell>
+                    <TableCell className="min-w-0 max-w-0 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
                         <Button
                           type="button"
                           variant="secondary"
