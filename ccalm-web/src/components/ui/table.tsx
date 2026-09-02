@@ -32,8 +32,8 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      // CCALM: 无 [&_tr:last-child]:border-0
-      className={cn(className)}
+      // CCALM: 最后一行无底部分割线（与底部分页区衔接）
+      className={cn("[&_tr:last-child]:border-b-0", className)}
       {...props}
     />
   )

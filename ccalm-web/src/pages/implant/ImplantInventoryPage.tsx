@@ -157,6 +157,14 @@ export function ImplantInventoryPage() {
     return list.filter((row) => row.brand === brandFilter);
   }, [list, brandFilter]);
 
+  const brandFilterItems = React.useMemo(
+    () => [
+      { label: "全部品牌", value: "all" },
+      ...brandOptions.map((brand) => ({ label: brand, value: brand })),
+    ],
+    [brandOptions],
+  );
+
   const addBrandItems = React.useMemo(() => {
     const s = new Set<string>();
     for (const r of list) {
@@ -351,6 +359,7 @@ export function ImplantInventoryPage() {
               onValueChange={(value) => {
                 if (value) setBrandFilter(value === "all" ? "" : value);
               }}
+              items={brandFilterItems}
             >
               <SelectTrigger>
                 <SelectValue />
