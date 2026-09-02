@@ -38,6 +38,7 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -550,11 +551,13 @@ export function OrthodonticsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <SelectItem key={size} value={String(size)}>
-                      {size} 条/页
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size} 条/页
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
