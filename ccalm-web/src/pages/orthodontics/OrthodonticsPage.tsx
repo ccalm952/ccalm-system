@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { Plus, SearchIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Combobox,
@@ -34,6 +34,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -79,6 +86,15 @@ type FormState = {
 };
 
 const OVERDUE_DAYS = 30;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
+function buildPageList(current: number, total: number): number[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
+  return [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
+}
 
 function emptyForm(category: OrthodonticsCategory): FormState {
   return {
@@ -147,6 +163,8 @@ export function OrthodonticsPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [form, setForm] = React.useState<FormState>(emptyForm("treating"));
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
   const editIdRef = React.useRef<number | null>(null);
 
   const load = React.useCallback(async () => {
@@ -165,6 +183,10 @@ export function OrthodonticsPage() {
       setRows([]);
     }
   }, [activeCategory, searchQuery]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeCategory, searchQuery, pageSize]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -281,13 +303,21 @@ export function OrthodonticsPage() {
     });
   }
 
-  const allSelected = rows.length > 0 && rows.every((row) => selection.has(row.id));
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = rows.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+  const pageList = buildPageList(currentPage, totalPages);
+  const allSelected =
+    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
-      <Card size="sm">
-        <CardHeader className="flex flex-col gap-4 space-y-0">
-          <CardTitle>正畸</CardTitle>
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col p-4 md:p-6">
+      <Card size="sm" className="flex min-h-0 flex-1 flex-col">
+        <CardHeader className="shrink-0 space-y-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {ORTHODONTICS_CATEGORY_OPTIONS.map((opt) => (
@@ -328,9 +358,9 @@ export function OrthodonticsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <ScrollArea>
-            <Table>
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-0">
+          <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:h-full">
+            <Table className="w-full min-w-[1100px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -340,8 +370,19 @@ export function OrthodonticsPage() {
                         !allSelected && rows.some((row) => selection.has(row.id))
                       }
                       onCheckedChange={(checked) => {
-                        if (checked) setSelection(new Set(rows.map((row) => row.id)));
-                        else setSelection(new Set());
+                        if (checked) {
+                          setSelection((prev) => {
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.add(row.id);
+                            return next;
+                          });
+                        } else {
+                          setSelection((prev) => {
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.delete(row.id);
+                            return next;
+                          });
+                        }
                       }}
                     />
                   </TableHead>
@@ -358,7 +399,7 @@ export function OrthodonticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {pageRows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
                       <Checkbox
@@ -422,6 +463,67 @@ export function OrthodonticsPage() {
             </Table>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <div className="text-muted-foreground text-sm">
+              已选择 {selection.size} 条
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-sm">共 {total} 条</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft />
+              </Button>
+              {pageList.map((pageNo, index) => {
+                const prev = pageList[index - 1];
+                const showEllipsis = prev != null && pageNo - prev > 1;
+                return (
+                  <React.Fragment key={pageNo}>
+                    {showEllipsis ? (
+                      <span className="text-muted-foreground px-1 text-sm">…</span>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant={currentPage === pageNo ? "default" : "outline"}
+                      onClick={() => setPage(pageNo)}
+                    >
+                      {pageNo}
+                    </Button>
+                  </React.Fragment>
+                );
+              })}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight />
+              </Button>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(value) => {
+                  if (value) setPageSize(Number(value));
+                }}
+              >
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size} 条/页
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
