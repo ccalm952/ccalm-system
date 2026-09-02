@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { Plus, SearchIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { DatePickerField } from "@/components/date-picker-field";
@@ -28,6 +28,14 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,6 +49,15 @@ import { errorMessage } from "@/lib/errorMessage";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
 
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
+function buildPageList(current: number, total: number): number[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
+  return [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
+}
 
 const PENDING_SHARE_COLS = [
   "name",
@@ -116,6 +133,8 @@ export function ImplantPendingPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [form, setForm] = React.useState<FormState>(emptyForm);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
   const editIdRef = React.useRef<number | null>(null);
 
   const load = React.useCallback(async () => {
@@ -132,6 +151,10 @@ export function ImplantPendingPage() {
       setRows([]);
     }
   }, [searchQuery]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery, pageSize]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
@@ -220,7 +243,16 @@ export function ImplantPendingPage() {
     });
   }
 
-  const allSelected = rows.length > 0 && rows.every((row) => selection.has(row.id));
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = rows.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+  const pageList = buildPageList(currentPage, totalPages);
+  const allSelected =
+    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
@@ -254,7 +286,7 @@ export function ImplantPendingPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-0">
           <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
             {/*
               与种植患者一致：min-w 1240 + table-fixed；勾选列固定，其余列均分
@@ -277,11 +309,22 @@ export function ImplantPendingPage() {
                     <Checkbox
                       checked={allSelected}
                       indeterminate={
-                        !allSelected && rows.some((row) => selection.has(row.id))
+                        !allSelected && pageRows.some((row) => selection.has(row.id))
                       }
                       onCheckedChange={(checked) => {
-                        if (checked) setSelection(new Set(rows.map((row) => row.id)));
-                        else setSelection(new Set());
+                        if (checked) {
+                          setSelection((prev) => {
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.add(row.id);
+                            return next;
+                          });
+                        } else {
+                          setSelection((prev) => {
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.delete(row.id);
+                            return next;
+                          });
+                        }
                       }}
                     />
                   </TableHead>
@@ -296,7 +339,7 @@ export function ImplantPendingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {pageRows.map((row) => (
                   <TableRow key={row.id} onDoubleClick={() => openEdit(row)}>
                     <TableCell>
                       <Checkbox
@@ -335,6 +378,65 @@ export function ImplantPendingPage() {
             </Table>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+            <div>已选择 {selection.size} 条</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span>共 {total} 条</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft />
+              </Button>
+              {pageList.map((pageNo, index) => {
+                const prev = pageList[index - 1];
+                const showEllipsis = prev != null && pageNo - prev > 1;
+                return (
+                  <React.Fragment key={pageNo}>
+                    {showEllipsis ? <span>…</span> : null}
+                    <Button
+                      type="button"
+                      variant={currentPage === pageNo ? "default" : "outline"}
+                      onClick={() => setPage(pageNo)}
+                    >
+                      {pageNo}
+                    </Button>
+                  </React.Fragment>
+                );
+              })}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight />
+              </Button>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(value) => {
+                  if (value) setPageSize(Number(value));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size} 条/页
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

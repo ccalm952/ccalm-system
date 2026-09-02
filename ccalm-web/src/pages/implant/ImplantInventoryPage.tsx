@@ -46,6 +46,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -133,6 +141,21 @@ export function ImplantInventoryPage() {
   const [editSupplement, setEditSupplement] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [columnVisibility, setColumnVisibility] = React.useState<ColumnVisibilityState>({});
+  const [brandFilter, setBrandFilter] = React.useState("");
+
+  const brandOptions = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const row of list) {
+      const brand = row.brand?.trim();
+      if (brand) s.add(brand);
+    }
+    return [...s].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  }, [list]);
+
+  const filteredList = React.useMemo(() => {
+    if (!brandFilter) return list;
+    return list.filter((row) => row.brand === brandFilter);
+  }, [list, brandFilter]);
 
   const addBrandItems = React.useMemo(() => {
     const s = new Set<string>();
@@ -219,7 +242,7 @@ export function ImplantInventoryPage() {
       {
         id: "select",
         header: () => {
-          const ids = list.map((r) => r.id);
+          const ids = filteredList.map((r) => r.id);
           const selectedCount = ids.filter((id) => selection.has(id)).length;
           const allSelected = ids.length > 0 && selectedCount === ids.length;
           const someSelected = selectedCount > 0 && !allSelected;
@@ -282,12 +305,12 @@ export function ImplantInventoryPage() {
         enableHiding: false,
       },
     ],
-    [list, selection, toggleSel, openEdit],
+    [filteredList, selection, toggleSel, openEdit],
   );
 
   const table = useTable({
     features: inventoryTableFeatures,
-    data: list,
+    data: filteredList,
     columns,
     getRowId: (row) => String(row.id),
     onColumnVisibilityChange: setColumnVisibility,
@@ -322,7 +345,28 @@ export function ImplantInventoryPage() {
     <div className="bg-background p-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
         <Card>
-          <CardHeader className="flex flex-row flex-wrap items-center justify-end gap-2 space-y-0">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <Select
+              value={brandFilter || "all"}
+              onValueChange={(value) => {
+                if (value) setBrandFilter(value === "all" ? "" : value);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">全部品牌</SelectItem>
+                  {brandOptions.map((brand) => (
+                    <SelectItem key={brand} value={brand}>
+                      {brand}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <div className="flex flex-wrap items-center justify-end gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="outline" />}>
                 列
@@ -373,6 +417,7 @@ export function ImplantInventoryPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
