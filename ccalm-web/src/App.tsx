@@ -162,15 +162,11 @@ function App() {
               <Route path="inventory" element={<ImplantInventoryPage />} />
             </Route>
 
-            <Route path="orthodontics">
-              <Route
-                index
-                element={<Navigate to={ROUTES.orthodontics.treating} replace />}
-              />
-              <Route path="treating" element={<OrthodonticsPage />} />
-              <Route path="appliance" element={<OrthodonticsPage />} />
-              <Route path="completed" element={<OrthodonticsPage />} />
-            </Route>
+            <Route path={ROUTES.orthodontics.root} element={<OrthodonticsPage />} />
+            <Route
+              path="orthodontics/*"
+              element={<Navigate to={ROUTES.orthodontics.root} replace />}
+            />
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 

@@ -15,7 +15,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Spinner } from "@/components/ui/spinner";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
-import { orthodonticsSubNavItems } from "@/config/orthodontics-nav";
+import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { memosNavItem } from "@/config/memos-nav";
 import { ROUTES } from "@/config/routes";
@@ -63,18 +63,9 @@ export function MainLayout() {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>正畸</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    {orthodonticsSubNavItems.map((item) => (
-                      <NavigationMenuLink
-                        className="w-62"
-                        key={item.title}
-                        render={<Link to={item.url} />}
-                      >
-                        {item.title}
-                      </NavigationMenuLink>
-                    ))}
-                  </NavigationMenuContent>
+                  <NavigationMenuLink render={<Link to={orthodonticsNavItem.url} />}>
+                    {orthodonticsNavItem.title}
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink render={<Link to={ROUTES.memos.root} />}>
