@@ -13,7 +13,6 @@ import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { MakeupEventsService } from "./makeup-events.service"
 import {
   attendanceDayjs,
-  attendanceTodayStart,
   formatAttendanceDate,
 } from "./attendance-dayjs"
 import {
@@ -120,9 +119,17 @@ export class AttendanceMakeupService {
     await this.createMakeupRecord(tx, userId, autoOut.type, autoOut.punchTime)
   }
 
-  private shouldAutoMakeupOut(dateStr: string, type: MakeupRequestType) {
-    if (!MAKEUP_IN_TYPES.includes(type as MakeupInType)) return false
-    return dateStr !== attendanceTodayStart().format("YYYY-MM-DD")
+  /**
+   * 过了该半天「下班打卡窗口结束时间」后补上班卡时，自动补对应下班卡。
+   * 例如上午：过 morningOutWindowEnd；下午：过 afternoonOutWindowEnd。
+   */
+  private shouldAutoMakeupOut(dateStr: string, outWindowEndHhmm: string) {
+    const windowEnd = attendanceDayjs(
+      `${dateStr} ${outWindowEndHhmm}`,
+      "YYYY-MM-DD HH:mm"
+    )
+    if (!windowEnd.isValid()) return false
+    return attendanceDayjs().isAfter(windowEnd)
   }
 
   private async buildAutoOutRecord(
@@ -130,11 +137,16 @@ export class AttendanceMakeupService {
     dateStr: string,
     type: MakeupInType
   ) {
-    if (!this.shouldAutoMakeupOut(dateStr, type)) return null
-
     const shift = await this.prisma.shiftConfig.findUnique({
       where: { id: "global" },
     })
+    const outWindowEnd =
+      type === "morning_in"
+        ? (shift?.morningOutWindowEnd ?? DEFAULT_SHIFT_ROW.morningOutWindowEnd)
+        : (shift?.afternoonOutWindowEnd ??
+          DEFAULT_SHIFT_ROW.afternoonOutWindowEnd)
+    if (!this.shouldAutoMakeupOut(dateStr, outWindowEnd)) return null
+
     const outType = OUT_TYPE_BY_IN[type]
     const time =
       type === "morning_in"
