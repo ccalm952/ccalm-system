@@ -99,7 +99,7 @@ export function MemosPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
-  const [contentMode, setContentMode] = useState<"edit" | "preview">("edit");
+  const [contentMode, setContentMode] = useState<"edit" | "preview">("preview");
   const saveGenRef = useRef(0);
   const skipHydrateRef = useRef(false);
   const memosRef = useRef(memos);
