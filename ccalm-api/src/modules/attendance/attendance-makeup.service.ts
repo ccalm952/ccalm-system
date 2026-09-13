@@ -11,10 +11,7 @@ import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { MakeupEventsService } from "./makeup-events.service"
-import {
-  attendanceDayjs,
-  formatAttendanceDate,
-} from "./attendance-dayjs"
+import { attendanceDayjs, formatAttendanceDate } from "./attendance-dayjs"
 import {
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
@@ -38,7 +35,6 @@ const MAKEUP_OUT_TYPES = ["morning_out", "afternoon_out"] as const
 type MakeupOutType = (typeof MAKEUP_OUT_TYPES)[number]
 
 const MAKEUP_REQUEST_TYPES = [...MAKEUP_IN_TYPES, ...MAKEUP_OUT_TYPES] as const
-type MakeupRequestType = (typeof MAKEUP_REQUEST_TYPES)[number]
 
 const ADMIN_MAKEUP_TYPES = [
   "morning_in",

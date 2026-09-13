@@ -15,7 +15,7 @@
     "lint:web": "pnpm -C ccalm-web lint",
     "lint:api": "pnpm -C ccalm-api lint:check",
     "lint": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint:check",
-    "lint:fix": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint",
+    "lint:fix": "pnpm -C ccalm-web lint --fix && pnpm -C ccalm-api lint",
     "typecheck:web": "pnpm -C ccalm-web typecheck",
     "typecheck:api": "pnpm -C ccalm-api typecheck",
     "typecheck": "pnpm -C ccalm-web typecheck && pnpm -C ccalm-api typecheck",

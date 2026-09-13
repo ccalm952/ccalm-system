@@ -2,13 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from "@nestjs/common"
 import type { Prisma } from "@prisma/client"
 import dayjs from "dayjs"
 
 import { PrismaService } from "../../prisma/prisma.service"
-import type { SaveSalarySheetDto } from "./dto/save-salary-sheet.dto"
 import { stripLegacySalarySheet } from "./salary-sheet-sanitize"
 
 function assertValidMonth(month: string) {
@@ -21,53 +19,13 @@ function assertValidMonth(month: string) {
 }
 
 @Injectable()
-export class SalaryService implements OnModuleInit {
+export class SalaryService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async onModuleInit() {
-    await this.stripLegacyStoredData()
-  }
 
   private sanitizeSheetData(
     data: Record<string, unknown>
   ): Record<string, unknown> {
     return stripLegacySalarySheet(data)
-  }
-
-  private sheetDataChanged(
-    before: unknown,
-    after: Record<string, unknown>
-  ): boolean {
-    return JSON.stringify(before) !== JSON.stringify(after)
-  }
-
-  async stripLegacyStoredData() {
-    const sheets = await this.prisma.salarySheet.findMany()
-    for (const sheet of sheets) {
-      const cleaned = this.sanitizeSheetData(
-        sheet.data as Record<string, unknown>
-      )
-      if (!this.sheetDataChanged(sheet.data, cleaned)) continue
-      await this.prisma.salarySheet.update({
-        where: { month: sheet.month },
-        data: { data: cleaned as Prisma.InputJsonValue },
-      })
-    }
-
-    const template = await this.prisma.salaryDefaultTemplate.findUnique({
-      where: { id: "global" },
-    })
-    if (template) {
-      const cleaned = this.sanitizeSheetData(
-        template.data as Record<string, unknown>
-      )
-      if (this.sheetDataChanged(template.data, cleaned)) {
-        await this.prisma.salaryDefaultTemplate.update({
-          where: { id: "global" },
-          data: { data: cleaned as Prisma.InputJsonValue },
-        })
-      }
-    }
   }
 
   async listMonths(): Promise<string[]> {
@@ -90,7 +48,7 @@ export class SalaryService implements OnModuleInit {
     }
   }
 
-  async saveMonth(dto: SaveSalarySheetDto) {
+  async saveMonth(dto: { month: string; data: Record<string, unknown> }) {
     assertValidMonth(dto.month)
     const data = this.sanitizeSheetData(dto.data)
     const row = await this.prisma.salarySheet.upsert({

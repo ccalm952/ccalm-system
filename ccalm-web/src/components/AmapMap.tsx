@@ -57,7 +57,7 @@ function getEnv(name: "VITE_AMAP_KEY" | "VITE_AMAP_SECURITY_JS_CODE"): string {
   const v = (import.meta.env[name] ?? "").trim();
   if (!v && name === "VITE_AMAP_KEY") {
     throw new Error(
-      "未配置 VITE_AMAP_KEY。请在项目根目录 .env 中设置高德 Web 端（JS API）Key 后重启开发服务。",
+      "未配置 VITE_AMAP_KEY。请在 ccalm-web/.env 中设置高德 Web 端（JS API）Key 后重启开发服务。",
     );
   }
   return v;

@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main.js",
-    "check": "pnpm prisma:generate && pnpm lint:check && pnpm typecheck && pnpm build",
+    "check": "pnpm lint:check && pnpm typecheck && pnpm build",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "lint:check": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
