@@ -30,14 +30,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -47,25 +39,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronLeft, ChevronRight, SearchIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
+import { TablePagination } from "@/components/table-pagination";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
+import { paginateRows } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
 const TABLE_ROW_HEIGHT_PX = 40;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
-
-function buildPageList(current: number, total: number): number[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
-  }
-  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
-  return [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
-}
 
 type PatientRow = {
   id: number;
@@ -233,15 +218,13 @@ export function ImplantPatientPage() {
     }
   }
 
-  const total = patients.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const pagePatients = patients.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-  const pageList = buildPageList(currentPage, totalPages);
-  const emptyRowCount = Math.max(0, pageSize - pagePatients.length);
+  const {
+    total,
+    totalPages,
+    currentPage,
+    pageRows: pagePatients,
+    emptyRowCount,
+  } = paginateRows(patients, page, pageSize);
 
   const columns = React.useMemo<Array<ColumnDef<typeof patientTableFeatures, PatientRow>>>(
     () => [
@@ -469,65 +452,15 @@ export function ImplantPatientPage() {
               </Table>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-              <div>已选择 {selection.size} 条</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span>共 {total} 条</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft />
-                </Button>
-                {pageList.map((pageNo, index) => {
-                  const prev = pageList[index - 1];
-                  const showEllipsis = prev != null && pageNo - prev > 1;
-                  return (
-                    <React.Fragment key={pageNo}>
-                      {showEllipsis ? <span>…</span> : null}
-                      <Button
-                        type="button"
-                        variant={currentPage === pageNo ? "default" : "outline"}
-                        onClick={() => setPage(pageNo)}
-                      >
-                        {pageNo}
-                      </Button>
-                    </React.Fragment>
-                  );
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <ChevronRight />
-                </Button>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(value) => {
-                    if (value) setPageSize(Number(value));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {PAGE_SIZE_OPTIONS.map((size) => (
-                        <SelectItem key={size} value={String(size)}>
-                          {size} 条/页
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <TablePagination
+              selectedCount={selection.size}
+              total={total}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </CardContent>
         </Card>
 

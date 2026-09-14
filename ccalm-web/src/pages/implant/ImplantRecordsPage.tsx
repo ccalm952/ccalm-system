@@ -1,12 +1,8 @@
 ﻿import * as React from "react";
 import dayjs from "dayjs";
-import {
-  flexRender,
-  metaHelper,
-  tableFeatures,
-  useTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
+import { SearchIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -21,38 +17,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { SearchIcon, X } from "lucide-react";
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DatePickerField } from "@/components/date-picker-field";
 import { DateRangePickerField } from "@/components/date-range-picker-field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -62,1172 +29,64 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
+import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
-/** 勾选列固定宽度 40px（与种植库存一致） */
+import {
+  createImplantRecordsColumns,
+  recordsTableFeatures,
+} from "./implant-records-columns";
+import type {
+  ImplantRecordRow,
+  ImplantRecordsVisitDialogState,
+} from "./implant-records-types";
+import { ImplantRecordsVisitDialog } from "./ImplantRecordsVisitDialog";
+
 const IMPLANT_TABLE_SELECT_COL_W = "40px";
-
-type Row = {
-  patientId: number;
-  patientName: string;
-  phone: string;
-  chartNo?: string;
-  birthday?: string | null;
-  age?: number | null;
-  visitId: number;
-  visitDate: string;
-  remark: string | null;
-  staff: string | null;
-  toothId: number | null;
-  toothNo: string | null;
-  implantBrand: string | null;
-  implantModel: string | null;
-  toothRemark: string | null;
-};
-
-/** 种植记录：新增与编辑共用同一弹层；编辑带合并组内全部牙位行 */
-type ImplantRecordsVisitDialogState = { type: "add" } | { type: "edit"; group: Row[] };
-
-type EditTeethLine = {
-  visitId: number;
-  toothId: number | null;
-  toothNo: string;
-  implantBrand: string;
-  implantModel: string;
-  toothRemark: string;
-};
-
-type PendingToothDelete = { visitId: number; toothId: number };
-
-type RecordsTableMeta = {
-  mergeSpans: number[];
-  selection: Set<string>;
-  toggleSel: (id: string) => void;
-  selectAllRows: () => void;
-  clearSelection: () => void;
-};
-
-function recordRowId(row: Row, index: number) {
-  return `${row.visitId}-${row.toothId ?? index}`;
-}
-
-const recordsTableFeatures = tableFeatures({
-  tableMeta: metaHelper<RecordsTableMeta>(),
-});
-
 const MERGED_COLUMN_IDS = new Set(["patientName", "phone", "visitDate", "remark", "staff", "edit"]);
 
-function defaultDateRange(): { from: string; to: string } {
+function defaultDateRange() {
   const start = dayjs().startOf("month");
   const end = dayjs().endOf("month");
   return { from: start.format("YYYY-MM-DD"), to: end.format("YYYY-MM-DD") };
 }
 
-function rowMergeKey(row: Row) {
+function recordRowId(row: ImplantRecordRow, index: number) {
+  return `${row.visitId}-${row.toothId ?? index}`;
+}
+
+function rowMergeKey(row: ImplantRecordRow) {
   return `${row.patientName}\n${row.phone}\n${row.visitDate}`;
 }
 
-function computeMergeSpans(rows: Row[]) {
+function computeMergeSpans(rows: ImplantRecordRow[]) {
   if (!rows.length) return [];
-  const span = Array.from({ length: rows.length }, () => 1);
-  let i = 0;
-  while (i < rows.length) {
-    const key = rowMergeKey(rows[i]!);
-    let j = i + 1;
-    while (j < rows.length && rowMergeKey(rows[j]!) === key) j++;
-    const len = j - i;
-    for (let k = i; k < j; k++) span[k] = k === i ? len : 0;
-    i = j;
+  const spans = Array.from({ length: rows.length }, () => 1);
+  let index = 0;
+  while (index < rows.length) {
+    const key = rowMergeKey(rows[index]!);
+    let end = index + 1;
+    while (end < rows.length && rowMergeKey(rows[end]!) === key) end++;
+    const length = end - index;
+    for (let current = index; current < end; current++)
+      spans[current] = current === index ? length : 0;
+    index = end;
   }
-  return span;
+  return spans;
 }
 
-/** 与表格合并规则一致：同一姓名+手机+就诊日的连续行，编辑弹窗一次展示全部牙位 */
-function rowsInSameMergeGroup(allRows: Row[], clicked: Row): Row[] {
+function rowsInSameMergeGroup(rows: ImplantRecordRow[], clicked: ImplantRecordRow) {
   const key = rowMergeKey(clicked);
-  const i = allRows.findIndex(
-    (r) => r.visitId === clicked.visitId && r.toothId === clicked.toothId,
+  const index = rows.findIndex(
+    (row) => row.visitId === clicked.visitId && row.toothId === clicked.toothId,
   );
-  if (i < 0) return [clicked];
-  let start = i;
-  while (start > 0 && rowMergeKey(allRows[start - 1]!) === key) start--;
-  let end = i;
-  while (end + 1 < allRows.length && rowMergeKey(allRows[end + 1]!) === key) end++;
-  return allRows.slice(start, end + 1);
-}
-
-function emptyEditToothLine(visitId: number): EditTeethLine {
-  return {
-    visitId,
-    toothId: null,
-    toothNo: "",
-    implantBrand: "",
-    implantModel: "",
-    toothRemark: "",
-  };
-}
-
-function collectEditVisitIds(
-  teeth: EditTeethLine[],
-  pendingDeletes: PendingToothDelete[],
-  fallbackVisitId: number,
-): number[] {
-  const ids = new Set<number>();
-  for (const t of teeth) ids.add(t.visitId);
-  for (const d of pendingDeletes) ids.add(d.visitId);
-  ids.add(fallbackVisitId);
-  return [...ids];
-}
-
-/** 二期列展示：就诊日期 + remark（月数）→ 预计二期日期 */
-function phase2DisplayDate(visitDate: string, remarkMonths: string | null): string {
-  const m = remarkMonths?.trim();
-  if (!m || !/^\d+$/.test(m)) return "";
-  const n = parseInt(m, 10);
-  if (!Number.isFinite(n) || n < 0) return "";
-  const d = dayjs(visitDate).add(n, "month");
-  return d.isValid() ? d.format("YYYY-MM-DD") : "";
-}
-
-type AddToothRow = {
-  toothNo: string;
-  implantBrand: string;
-  implantModel: string;
-  toothRemark: string;
-};
-
-type AddSuggestion = {
-  id: number;
-  name: string;
-  phone: string;
-  source: string;
-  birthday?: string;
-  age?: number | null;
-  origin?: "patient" | "pending";
-  originLabel?: string;
-  teeth?: string;
-};
-
-/** 仅当整段都是空格分隔的纯数字牙位时才拆行；含中文等非数字内容则不拆、不自动填牙位 */
-function splitPendingTeeth(raw: string): AddToothRow[] | null {
-  const parts = raw.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return null;
-  if (parts.some((part) => !/^\d+$/.test(part))) return null;
-  return parts.map((toothNo) => ({
-    toothNo,
-    implantBrand: "",
-    implantModel: "",
-    toothRemark: "",
-  }));
-}
-
-type InvInventoryRow = {
-  brand: string;
-  model: string;
-};
-
-function buildInventoryBrands(rows: InvInventoryRow[]): string[] {
-  const uniq = new Set<string>();
-  for (const r of rows) {
-    const b = r.brand?.trim();
-    if (b) uniq.add(b);
-  }
-  return [...uniq].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-}
-
-function buildModelsByBrand(rows: InvInventoryRow[]): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const r of rows) {
-    const brand = r.brand?.trim();
-    const model = r.model?.trim();
-    if (!brand || !model) continue;
-    const list = map.get(brand) ?? [];
-    if (!list.includes(model)) list.push(model);
-    map.set(brand, list);
-  }
-  for (const [brand, models] of map) {
-    models.sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-    map.set(brand, models);
-  }
-  return map;
-}
-
-function isModelInInventory(
-  modelsByBrand: Map<string, string[]>,
-  brand: string,
-  model: string,
-): boolean {
-  const b = brand.trim();
-  const m = model.trim();
-  if (!b || !m) return false;
-  return (modelsByBrand.get(b) ?? []).includes(m);
-}
-
-function validateInventoryTeeth(
-  teeth: { implantBrand: string; implantModel: string }[],
-  modelsByBrand: Map<string, string[]>,
-): string | null {
-  for (const t of teeth) {
-    const brand = t.implantBrand.trim();
-    const model = t.implantModel.trim();
-    if (!brand && !model) continue;
-    if (brand && !model) return "请为已选品牌选择植体型号";
-    if (!brand && model) return "请先选择品牌";
-    if (!isModelInInventory(modelsByBrand, brand, model)) {
-      return "植体型号不在库存中，请从下拉列表重新选择";
-    }
-  }
-  return null;
-}
-
-function ToothBrandCombobox({
-  brands,
-  value,
-  onValueChange,
-}: {
-  brands: string[];
-  value: string;
-  onValueChange: (v: string) => void;
-}) {
-  return (
-    <Combobox items={brands} value={value || null} onValueChange={(v) => onValueChange(v ?? "")}>
-      <ComboboxInput placeholder="品牌" />
-      <ComboboxContent>
-        <ComboboxEmpty>库存中暂无品牌</ComboboxEmpty>
-        <ComboboxList>
-          {(item: string) => (
-            <ComboboxItem key={item} value={item}>
-              {item}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
-
-function ToothModelCombobox({
-  models,
-  brand,
-  value,
-  onValueChange,
-}: {
-  models: string[];
-  brand: string;
-  value: string;
-  onValueChange: (v: string) => void;
-}) {
-  const disabled = !brand.trim();
-  return (
-    <Combobox
-      items={models}
-      value={value || null}
-      onValueChange={(v) => onValueChange(v ?? "")}
-    >
-      <ComboboxInput placeholder={disabled ? "请先选择品牌" : "植体"} disabled={disabled} />
-      <ComboboxContent>
-        <ComboboxEmpty>该品牌暂无库存型号</ComboboxEmpty>
-        <ComboboxList>
-          {(item: string) => (
-            <ComboboxItem key={item} value={item}>
-              {item}
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
-
-function addVisitTodayStr() {
-  return dayjs().format("YYYY-MM-DD");
-}
-
-function ImplantRecordsVisitDialog({
-  state,
-  onOpenChange,
-  onSaved,
-}: {
-  state: ImplantRecordsVisitDialogState | null;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-}) {
-  /** 关闭瞬间 state 已为 null，但弹层退出动画仍会渲染子树；用 surface 模式避免误切到「新增」一帧 */
-  const [dialogSurfaceMode, setDialogSurfaceMode] = React.useState<"add" | "edit">("add");
-  React.useEffect(() => {
-    if (state != null) setDialogSurfaceMode(state.type);
-  }, [state]);
-
-  const open = state !== null;
-  const isEdit = state != null ? state.type === "edit" : dialogSurfaceMode === "edit";
-
-  const [visitDate, setVisitDate] = React.useState(addVisitTodayStr);
-  const [patientName, setPatientName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [chartNo, setChartNo] = React.useState("");
-  const [birthday, setBirthday] = React.useState("");
-  const [age, setAge] = React.useState<string>("");
-  const [staff, setStaff] = React.useState("");
-  const [remark, setRemark] = React.useState("");
-
-  const [teeth, setTeeth] = React.useState<AddToothRow[]>([
-    { toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" },
-  ]);
-
-  const [inventoryRows, setInventoryRows] = React.useState<InvInventoryRow[]>([]);
-  const inventoryBrands = React.useMemo(() => buildInventoryBrands(inventoryRows), [inventoryRows]);
-  const modelsByBrand = React.useMemo(() => buildModelsByBrand(inventoryRows), [inventoryRows]);
-
-  React.useEffect(() => {
-    if (!open || (state?.type !== "add" && state?.type !== "edit")) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const rows = await api<InvInventoryRow[]>("GET", "/implant/inventory");
-        if (!cancelled) setInventoryRows(rows ?? []);
-      } catch {
-        if (!cancelled) setInventoryRows([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, state?.type]);
-
-  const [suggestions, setSuggestions] = React.useState<AddSuggestion[]>([]);
-  /** 从列表选中患者后为 true，收起下拉；用户再次编辑姓名时置回 false */
-  const [suggestListDismissed, setSuggestListDismissed] = React.useState(false);
-  const suggestTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const nameSuggestRootRef = React.useRef<HTMLDivElement>(null);
-  const nameSuggestInputRef = React.useRef<HTMLInputElement>(null);
-  const nameSuggestOpen = Boolean(patientName.trim()) && !suggestListDismissed;
-
-  const resetForm = React.useCallback(() => {
-    setVisitDate(addVisitTodayStr());
-    setPatientName("");
-    setPhone("");
-    setChartNo("");
-    setBirthday("");
-    setAge("");
-    setStaff("");
-    setRemark("");
-    setTeeth([{ toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }]);
-    setSuggestListDismissed(false);
-    setSuggestions([]);
-  }, []);
-
-  React.useEffect(() => {
-    if (!open || state?.type !== "add") return;
-    resetForm();
-  }, [open, state?.type, resetForm]);
-
-  const editRowRef = React.useRef<Row | null>(null);
-  const [editForm, setEditForm] = React.useState({
-    patientName: "",
-    phone: "",
-    chartNo: "",
-    birthday: "",
-    age: "",
-    visitDate: "",
-    remark: "",
-    staff: "",
-  });
-  const [editTeeth, setEditTeeth] = React.useState<EditTeethLine[]>([]);
-  const [editPendingDeletes, setEditPendingDeletes] = React.useState<PendingToothDelete[]>([]);
-
-  React.useEffect(() => {
-    if (!open) {
-      setEditPendingDeletes([]);
-    }
-  }, [open]);
-
-  React.useLayoutEffect(() => {
-    if (state?.type !== "edit") return;
-    const group = state.group;
-    const row = group[0];
-    if (!row) return;
-    editRowRef.current = row;
-    setEditPendingDeletes([]);
-    setEditForm({
-      patientName: row.patientName || "",
-      phone: row.phone || "",
-      chartNo: row.chartNo ?? "",
-      birthday: row.birthday?.trim() ?? "",
-      age: row.age != null && !Number.isNaN(Number(row.age)) ? String(row.age) : "",
-      visitDate: row.visitDate || "",
-      remark: row.remark || "",
-      staff: row.staff || "",
-    });
-    setEditTeeth(
-      group.map((r) => ({
-        visitId: r.visitId,
-        toothId: r.toothId,
-        toothNo: r.toothNo ?? "",
-        implantBrand: r.implantBrand ?? "",
-        implantModel: r.implantModel ?? "",
-        toothRemark: r.toothRemark ?? "",
-      })),
-    );
-  }, [state]);
-
-  React.useEffect(() => {
-    if (!open || !inventoryRows.length || state?.type !== "edit") return;
-    setEditTeeth((rows) =>
-      rows.map((t) => ({
-        ...t,
-        implantModel: isModelInInventory(modelsByBrand, t.implantBrand, t.implantModel)
-          ? t.implantModel
-          : "",
-      })),
-    );
-  }, [open, state?.type, inventoryRows, modelsByBrand]);
-
-  /**
-   * 仅当焦点仍在姓名「输入框」本身时保持列表；同一块里的清空按钮、cmdk 列表高亮等不算在输入框内。
-   */
-  const dismissNameSuggestIfNotTyping = React.useCallback(() => {
-    window.setTimeout(() => {
-      const input = nameSuggestInputRef.current;
-      const ae = document.activeElement;
-      if (input && ae instanceof Node && input.contains(ae)) return;
-      setSuggestListDismissed(true);
-    }, 0);
-  }, []);
-
-  React.useEffect(() => {
-    if (!nameSuggestOpen) return;
-    function onPointerDown(e: PointerEvent) {
-      const root = nameSuggestRootRef.current;
-      const t = e.target;
-      if (!(t instanceof Node) || !root || root.contains(t)) return;
-      setSuggestListDismissed(true);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [nameSuggestOpen]);
-
-  /** Tab / 程序性焦点变化时，blur 可能不触发，用 focusin 再收一层 */
-  React.useEffect(() => {
-    if (!nameSuggestOpen) return;
-    function onFocusIn() {
-      dismissNameSuggestIfNotTyping();
-    }
-    document.addEventListener("focusin", onFocusIn);
-    return () => document.removeEventListener("focusin", onFocusIn);
-  }, [nameSuggestOpen, dismissNameSuggestIfNotTyping]);
-
-  React.useEffect(() => {
-    const q = patientName.trim();
-    clearTimeout(suggestTimer.current);
-    if (!q) {
-      setSuggestions([]);
-      return;
-    }
-    suggestTimer.current = setTimeout(() => {
-      void (async () => {
-        try {
-          const res = await api<{ list: AddSuggestion[] }>(
-            "GET",
-            `/implant/patient-list?keyword=${encodeURIComponent(q)}&pageSize=20`,
-          );
-          setSuggestions(res.list ?? []);
-        } catch {
-          setSuggestions([]);
-        }
-      })();
-    }, 200);
-    return () => clearTimeout(suggestTimer.current);
-  }, [patientName]);
-
-  function onBirthdayChange(val: string) {
-    setBirthday(val);
-    if (!val) {
-      setAge("");
-      return;
-    }
-    const birth = dayjs(val);
-    if (!birth.isValid()) return;
-    let a = dayjs().diff(birth, "year");
-    const monthDiff = dayjs().month() - birth.month();
-    if (monthDiff < 0 || (monthDiff === 0 && dayjs().date() < birth.date())) a--;
-    setAge(String(a));
-  }
-
-  function onAgeChange(raw: string) {
-    setAge(raw);
-    const n = Number(raw);
-    if (raw === "" || Number.isNaN(n)) {
-      setBirthday("");
-      return;
-    }
-    const ageInt = Math.min(150, Math.max(0, Math.floor(n)));
-    setAge(String(ageInt));
-    const birthYear = dayjs().year() - ageInt;
-    setBirthday(`${birthYear}-01-01`);
-  }
-
-  function selectSuggestion(s: AddSuggestion) {
-    setPatientName(s.name);
-    setPhone(s.phone);
-    setChartNo(s.source);
-    setBirthday(s.birthday?.trim() ?? "");
-    setAge(s.age != null && !Number.isNaN(Number(s.age)) ? String(s.age) : "");
-    if (s.origin === "pending") {
-      const toothRows = splitPendingTeeth(s.teeth ?? "");
-      if (toothRows) setTeeth(toothRows);
-    }
-    setSuggestions([]);
-    setSuggestListDismissed(true);
-  }
-
-  function addToothRow() {
-    setTeeth((t) => [...t, { toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }]);
-  }
-
-  function removeToothAt(index: number) {
-    setTeeth((rows) => {
-      if (rows.length <= 1) {
-        return [{ toothNo: "", implantBrand: "", implantModel: "", toothRemark: "" }];
-      }
-      return rows.filter((_, i) => i !== index);
-    });
-  }
-
-  const [saving, setSaving] = React.useState(false);
-
-  async function submit() {
-    const phase2 = remark.trim();
-    if (phase2 && !/^\d+$/.test(phase2)) {
-      toast.warning("二期只能填写数字（月数）");
-      return;
-    }
-    const payloadTeeth = teeth.filter(
-      (t) =>
-        t.toothNo.trim() || t.implantModel.trim() || t.implantBrand.trim() || t.toothRemark.trim(),
-    );
-    if (!payloadTeeth.length) {
-      toast.warning("请至少填写一条牙位与植体");
-      return;
-    }
-    const inventoryError = validateInventoryTeeth(payloadTeeth, modelsByBrand);
-    if (inventoryError) {
-      toast.warning(inventoryError);
-      return;
-    }
-    if (!patientName.trim()) {
-      toast.warning("请填写姓名");
-      return;
-    }
-    if (!phone.trim()) {
-      toast.warning("请填写手机");
-      return;
-    }
-    if (!chartNo.trim()) {
-      toast.warning("请填写病历号");
-      return;
-    }
-    setSaving(true);
-    try {
-      await api("POST", "/implant/visits", {
-        phone: phone.trim(),
-        patientName: patientName.trim(),
-        chartNo: chartNo.trim(),
-        birthday: birthday.trim() || null,
-        age: age.trim() ? Number(age) : null,
-        visitDate,
-        remark: phase2 || null,
-        staff: staff.trim() || null,
-        followUp: null,
-        teeth: payloadTeeth.map((t) => ({
-          toothNo: t.toothNo.trim() || undefined,
-          implantBrand: t.implantBrand.trim() || undefined,
-          implantModel: t.implantModel.trim() || undefined,
-          toothRemark: t.toothRemark.trim() || undefined,
-        })),
-      });
-      toast.success("已保存");
-      resetForm();
-      onSaved();
-      onOpenChange(false);
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function addEditToothRow() {
-    const visitId = editRowRef.current?.visitId;
-    if (visitId == null) return;
-    setEditTeeth((r) => [...r, emptyEditToothLine(visitId)]);
-  }
-
-  function removeEditToothAt(index: number) {
-    setEditTeeth((prevRows) => {
-      const row = prevRows[index];
-      const existingToothId = row?.toothId;
-      const visitId = row?.visitId;
-      if (existingToothId != null && visitId != null) {
-        setEditPendingDeletes((d) => {
-          const key = `${visitId}:${existingToothId}`;
-          if (d.some((x) => `${x.visitId}:${x.toothId}` === key)) return d;
-          return [...d, { visitId, toothId: existingToothId }];
-        });
-      }
-      const next = prevRows.filter((_, i) => i !== index);
-      const fallbackVisitId = visitId ?? editRowRef.current?.visitId;
-      return next.length
-        ? next
-        : fallbackVisitId != null
-          ? [emptyEditToothLine(fallbackVisitId)]
-          : [];
-    });
-  }
-
-  async function saveEdit() {
-    const row0 = editRowRef.current;
-    if (!row0) return;
-    const phase2 = editForm.remark.trim();
-    if (phase2 && !/^\d+$/.test(phase2)) {
-      toast.warning("二期只能填写数字（月数）");
-      return;
-    }
-    const payloadTeeth = editTeeth.filter(
-      (t) =>
-        t.toothNo.trim() || t.implantModel.trim() || t.implantBrand.trim() || t.toothRemark.trim(),
-    );
-    if (!payloadTeeth.length) {
-      toast.warning("请至少填写一条牙位与植体");
-      return;
-    }
-    const inventoryError = validateInventoryTeeth(payloadTeeth, modelsByBrand);
-    if (inventoryError) {
-      toast.warning(inventoryError);
-      return;
-    }
-    setSaving(true);
-    try {
-      const patientId = row0.patientId;
-      const visitIds = collectEditVisitIds(editTeeth, editPendingDeletes, row0.visitId);
-
-      for (const visitId of visitIds) {
-        for (const t of editTeeth) {
-          if (t.toothId != null || t.visitId !== visitId) continue;
-          if (
-            !t.toothNo.trim() &&
-            !t.implantModel.trim() &&
-            !t.implantBrand.trim() &&
-            !t.toothRemark.trim()
-          )
-            continue;
-          await api("POST", `/implant/visits/${visitId}/teeth`, {
-            toothNo: t.toothNo.trim() || undefined,
-            implantBrand: t.implantBrand.trim() || undefined,
-            implantModel: t.implantModel.trim() || undefined,
-            toothRemark: t.toothRemark.trim() || undefined,
-          });
-        }
-
-        for (const { visitId: delVisitId, toothId } of editPendingDeletes) {
-          if (delVisitId !== visitId) continue;
-          const q = `?toothId=${encodeURIComponent(String(toothId))}`;
-          await api("DELETE", `/implant/visits/${visitId}${q}`);
-        }
-
-        for (const t of editTeeth) {
-          if (t.toothId == null || t.visitId !== visitId) continue;
-          if (
-            !t.toothNo.trim() &&
-            !t.implantModel.trim() &&
-            !t.implantBrand.trim() &&
-            !t.toothRemark.trim()
-          )
-            continue;
-          await api("PUT", `/implant/visits/${visitId}`, {
-            toothId: t.toothId,
-            patientId,
-            patientName: editForm.patientName,
-            phone: editForm.phone,
-            visitDate: editForm.visitDate,
-            remark: editForm.remark || null,
-            staff: editForm.staff || null,
-            toothNo: t.toothNo.trim() || null,
-            implantBrand: t.implantBrand.trim() || null,
-            implantModel: t.implantModel.trim() || null,
-            toothRemark: t.toothRemark.trim() || null,
-          });
-        }
-      }
-      toast.success("已保存");
-      onSaved();
-      onOpenChange(false);
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="text-base md:max-w-3xl md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm [&_label]:text-base md:[&_label]:text-sm [&_[data-slot=field-description]]:text-base md:[&_[data-slot=field-description]]:text-sm [&_[data-slot=field-label]]:text-base md:[&_[data-slot=field-label]]:text-sm [&_[data-slot=field-legend]]:text-base md:[&_[data-slot=field-legend]]:text-sm"
-        showCloseButton={false}
-      >
-        <FieldSet>
-          {isEdit ? null : (
-            <FieldLegend className="sr-only">新增种植记录</FieldLegend>
-          )}
-          {isEdit ? (
-            <div className="flex flex-col gap-4">
-              <FieldGroup>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <DatePickerField
-                        value={editForm.visitDate}
-                        onValueChange={(v) => setEditForm((s) => ({ ...s, visitDate: v }))}
-                        placeholder="日期"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="姓名"
-                        value={editForm.patientName}
-                        onChange={(e) =>
-                          setEditForm((s) => ({ ...s, patientName: e.target.value }))
-                        }
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="手机"
-                        value={editForm.phone}
-                        onChange={(e) => setEditForm((s) => ({ ...s, phone: e.target.value }))}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="病历号"
-                        value={editForm.chartNo}
-                        readOnly
-                        className="border-border bg-muted/30 focus-visible:border-border focus-visible:ring-0"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <DatePickerField
-                        value={editForm.birthday}
-                        onValueChange={() => {}}
-                        disabled
-                        captionLayout="dropdown"
-                        emptyMonth={new Date(2000, 0)}
-                        placeholder="出生日期"
-                        className="border-border bg-muted/30 disabled:opacity-100"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="年龄"
-                        value={editForm.age}
-                        readOnly
-                        className="border-border bg-muted/30 focus-visible:border-border focus-visible:ring-0"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="人员"
-                        value={editForm.staff}
-                        onChange={(e) => setEditForm((s) => ({ ...s, staff: e.target.value }))}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="二期（月数）"
-                        value={editForm.remark}
-                        onChange={(e) => setEditForm((s) => ({ ...s, remark: e.target.value }))}
-                      />
-                    </FieldContent>
-                  </Field>
-                </div>
-              </FieldGroup>
-
-              <div className="flex flex-col gap-2">
-                {editTeeth.map((t, i) => {
-                  return (
-                    <FieldGroup key={`${String(t.toothId ?? "new")}-${i}`}>
-                      <div className="flex min-w-0 items-end gap-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="grid grid-cols-[repeat(4,minmax(0,1fr))] gap-2 md:gap-4">
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <Input
-                                  placeholder="牙位"
-                                  value={t.toothNo}
-                                  onChange={(e) =>
-                                    setEditTeeth((rows) =>
-                                      rows.map((x, j) =>
-                                        j === i ? { ...x, toothNo: e.target.value } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <ToothBrandCombobox
-                                  brands={inventoryBrands}
-                                  value={t.implantBrand}
-                                  onValueChange={(v) =>
-                                    setEditTeeth((rows) =>
-                                      rows.map((x, j) =>
-                                        j === i ? { ...x, implantBrand: v, implantModel: "" } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <ToothModelCombobox
-                                  models={modelsByBrand.get(t.implantBrand.trim()) ?? []}
-                                  brand={t.implantBrand}
-                                  value={t.implantModel}
-                                  onValueChange={(v) =>
-                                    setEditTeeth((rows) =>
-                                      rows.map((x, j) => (j === i ? { ...x, implantModel: v } : x)),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <Input
-                                  placeholder="备注"
-                                  value={t.toothRemark}
-                                  onChange={(e) =>
-                                    setEditTeeth((rows) =>
-                                      rows.map((x, j) =>
-                                        j === i ? { ...x, toothRemark: e.target.value } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="icon" onClick={() => removeEditToothAt(i)}>
-                          <X className="size-4" />
-                        </Button>
-                      </div>
-                    </FieldGroup>
-                  );
-                })}
-              </div>
-
-              <div className="flex w-full gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-w-0 flex-1"
-                  onClick={addEditToothRow}
-                >
-                  添加牙位
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-w-0 flex-1"
-                  onClick={() => onOpenChange(false)}
-                >
-                  取消
-                </Button>
-                <Button
-                  type="button"
-                  className="min-w-0 flex-1"
-                  disabled={saving}
-                  onClick={() => void saveEdit()}
-                >
-                  {saving ? (
-                    <>
-                      <Spinner data-icon="inline-start" />
-                      保存中…
-                    </>
-                  ) : (
-                    "保存"
-                  )}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <FieldGroup>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <DatePickerField
-                        value={visitDate}
-                        onValueChange={setVisitDate}
-                        placeholder=""
-                        aria-label="日期"
-                        className="border-transparent bg-input/50 hover:bg-input/50 dark:hover:bg-input/50"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <div ref={nameSuggestRootRef} className="relative">
-                        <Command
-                          shouldFilter={false}
-                          label="搜索患者"
-                          className="w-full overflow-visible rounded-none bg-transparent p-0 text-foreground shadow-none [&_[data-slot=command-input-wrapper]]:p-0"
-                        >
-                          <CommandInput
-                            ref={nameSuggestInputRef}
-                            placeholder="姓名"
-                            aria-label="姓名"
-                            value={patientName}
-                            onValueChange={(v) => {
-                              setSuggestListDismissed(false);
-                              setPatientName(v);
-                            }}
-                            onFocus={() => setSuggestListDismissed(false)}
-                            onBlur={dismissNameSuggestIfNotTyping}
-                            autoComplete="off"
-                          />
-                          {nameSuggestOpen ? (
-                            <CommandList
-                              className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 rounded-md border bg-popover text-popover-foreground shadow-md"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                              }}
-                            >
-                              <CommandEmpty>未找到匹配患者</CommandEmpty>
-                              <CommandGroup>
-                                {suggestions.map((s) => (
-                                  <CommandItem
-                                    key={`${s.origin ?? "patient"}-${s.id}`}
-                                    value={`${s.origin ?? "patient"}-${s.id}-${s.name}-${s.phone}`}
-                                    onSelect={() => selectSuggestion(s)}
-                                  >
-                                    <span>{s.name}</span>
-                                    <span className="text-muted-foreground">
-                                      {s.originLabel ?? "患者库"}
-                                      {s.phone ? ` · ${s.phone}` : ""}
-                                      {s.source ? ` · ${s.source}` : ""}
-                                    </span>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          ) : null}
-                        </Command>
-                      </div>
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="手机"
-                        aria-label="手机"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="病历号"
-                        aria-label="病历号"
-                        value={chartNo}
-                        onChange={(e) => setChartNo(e.target.value)}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <DatePickerField
-                        value={birthday}
-                        onValueChange={onBirthdayChange}
-                        captionLayout="dropdown"
-                        emptyMonth={new Date(2000, 0)}
-                        placeholder="出生日期"
-                        aria-label="出生日期"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="年龄"
-                        aria-label="年龄"
-                        value={age}
-                        onChange={(e) => onAgeChange(e.target.value)}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="人员"
-                        aria-label="人员"
-                        value={staff}
-                        onChange={(e) => setStaff(e.target.value)}
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldContent>
-                      <Input
-                        placeholder="二期（月数）"
-                        aria-label="二期（月数）"
-                        value={remark}
-                        onChange={(e) => setRemark(e.target.value)}
-                      />
-                    </FieldContent>
-                  </Field>
-                </div>
-              </FieldGroup>
-
-              <div className="flex flex-col gap-2">
-                {teeth.map((row, i) => {
-                  return (
-                    <FieldGroup key={i}>
-                      <div className="flex min-w-0 items-end gap-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="grid grid-cols-[repeat(4,minmax(0,1fr))] gap-2 md:gap-4">
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <Input
-                                  placeholder="牙位"
-                                  aria-label="牙位"
-                                  value={row.toothNo}
-                                  onChange={(e) =>
-                                    setTeeth((t) =>
-                                      t.map((x, j) =>
-                                        j === i ? { ...x, toothNo: e.target.value } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <ToothBrandCombobox
-                                  brands={inventoryBrands}
-                                  value={row.implantBrand}
-                                  onValueChange={(v) =>
-                                    setTeeth((t) =>
-                                      t.map((x, j) =>
-                                        j === i ? { ...x, implantBrand: v, implantModel: "" } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <ToothModelCombobox
-                                  models={modelsByBrand.get(row.implantBrand.trim()) ?? []}
-                                  brand={row.implantBrand}
-                                  value={row.implantModel}
-                                  onValueChange={(v) =>
-                                    setTeeth((t) =>
-                                      t.map((x, j) => (j === i ? { ...x, implantModel: v } : x)),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                            <Field orientation="vertical">
-                              <FieldContent>
-                                <Input
-                                  placeholder="备注"
-                                  aria-label="备注"
-                                  value={row.toothRemark}
-                                  onChange={(e) =>
-                                    setTeeth((t) =>
-                                      t.map((x, j) =>
-                                        j === i ? { ...x, toothRemark: e.target.value } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </FieldContent>
-                            </Field>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="icon" onClick={() => removeToothAt(i)}>
-                          <X className="size-4" />
-                        </Button>
-                      </div>
-                    </FieldGroup>
-                  );
-                })}
-              </div>
-
-              <div className="flex w-full gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-w-0 flex-1"
-                  onClick={addToothRow}
-                >
-                  添加牙位
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="min-w-0 flex-1"
-                  onClick={() => onOpenChange(false)}
-                >
-                  取消
-                </Button>
-                <Button
-                  type="button"
-                  className="min-w-0 flex-1"
-                  disabled={saving}
-                  onClick={() => void submit()}
-                >
-                  {saving ? (
-                    <>
-                      <Spinner data-icon="inline-start" />
-                      保存中…
-                    </>
-                  ) : (
-                    "保存"
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </FieldSet>
-      </DialogContent>
-    </Dialog>
-  );
+  if (index < 0) return [clicked];
+  let start = index;
+  while (start > 0 && rowMergeKey(rows[start - 1]!) === key) start--;
+  let end = index;
+  while (end + 1 < rows.length && rowMergeKey(rows[end + 1]!) === key) end++;
+  return rows.slice(start, end + 1);
 }
 
 export function ImplantRecordsPage() {
@@ -1235,76 +94,72 @@ export function ImplantRecordsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [dateFrom, setDateFrom] = React.useState(range.from);
   const [dateTo, setDateTo] = React.useState(range.to);
-  const [rows, setRows] = React.useState<Row[]>([]);
+  const [rows, setRows] = React.useState<ImplantRecordRow[]>([]);
   const [selection, setSelection] = React.useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [visitDialog, setVisitDialog] = React.useState<ImplantRecordsVisitDialogState | null>(null);
-
-  /** 合并行依赖行顺序（与接口返回顺序一致） */
   const mergeSpans = React.useMemo(() => computeMergeSpans(rows), [rows]);
 
   const toggleSel = React.useCallback((id: string) => {
-    setSelection((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
+    setSelection((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   }, []);
 
   const selectAllRows = React.useCallback(() => {
-    setSelection(new Set(rows.map((row, i) => recordRowId(row, i))));
+    setSelection(new Set(rows.map(recordRowId)));
   }, [rows]);
 
-  const clearSelection = React.useCallback(() => {
-    setSelection(new Set());
-  }, []);
+  const clearSelection = React.useCallback(() => setSelection(new Set()), []);
 
   const load = React.useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      const kw = searchQuery.trim();
-      if (kw) {
-        params.set("q", kw);
-      } else {
+      const keyword = searchQuery.trim();
+      if (keyword) params.set("q", keyword);
+      else {
         if (dateFrom) params.set("dateFrom", dateFrom);
         if (dateTo) params.set("dateTo", dateTo);
       }
-      const qs = params.toString();
-      const data = await api<Row[]>("GET", `/implant/records${qs ? `?${qs}` : ""}`);
+      const query = params.toString();
+      const data = await api<ImplantRecordRow[]>(
+        "GET",
+        `/implant/records${query ? `?${query}` : ""}`,
+      );
       setRows(Array.isArray(data) ? data : []);
       setSelection(new Set());
-    } catch (e) {
-      toast.error(errorMessage(e));
+    } catch (error) {
+      toast.error(errorMessage(error));
       setRows([]);
     }
   }, [searchQuery, dateFrom, dateTo]);
 
   React.useEffect(() => {
-    const id = window.setTimeout(() => {
-      void load();
-    }, 300);
+    const id = window.setTimeout(() => void load(), 300);
     return () => window.clearTimeout(id);
   }, [load]);
 
   const openEdit = React.useCallback(
-    (row: Row) => {
+    (row: ImplantRecordRow) => {
       setVisitDialog({ type: "edit", group: rowsInSameMergeGroup(rows, row) });
     },
     [rows],
   );
 
   async function confirmDeleteSelected() {
-    const sel = rows.filter((row, i) => selection.has(recordRowId(row, i)));
-    if (!sel.length) {
+    const selected = rows.filter((row, index) => selection.has(recordRowId(row, index)));
+    if (!selected.length) {
       setDeleteDialogOpen(false);
       return;
     }
     try {
-      const { ok, fail } = await batchDelete(sel, (row) => {
-        const q =
+      const { ok, fail } = await batchDelete(selected, (row) => {
+        const query =
           row.toothId != null ? `?toothId=${encodeURIComponent(String(row.toothId))}` : "";
-        return api("DELETE", `/implant/visits/${row.visitId}${q}`);
+        return api("DELETE", `/implant/visits/${row.visitId}${query}`);
       });
       toastBatchDeleteResult(ok, fail);
       await load();
@@ -1313,109 +168,15 @@ export function ImplantRecordsPage() {
     }
   }
 
-  const columns = React.useMemo<Array<ColumnDef<typeof recordsTableFeatures, Row>>>(
-    () => [
-      {
-        id: "select",
-        header: ({ table }) => {
-          const meta = table.options.meta;
-          const modelRows = table.getRowModel().rows;
-          const sel = meta?.selection;
-          const allSelected =
-            modelRows.length > 0 && modelRows.every((r) => sel?.has(r.id));
-          const someSelected = modelRows.some((r) => sel?.has(r.id));
-          return (
-            <Checkbox
-              checked={allSelected}
-              indeterminate={!allSelected && someSelected}
-              onCheckedChange={(value) => {
-                if (value) meta?.selectAllRows?.();
-                else meta?.clearSelection?.();
-              }}
-            />
-          );
+  const columns = React.useMemo(
+    () =>
+      createImplantRecordsColumns(
+        (visitDate, months) => {
+          const date = dayjs(visitDate).add(months, "month");
+          return date.isValid() ? date.format("YYYY-MM-DD") : "";
         },
-        cell: ({ row, table }) => {
-          const id = row.id;
-          const sel = table.options.meta?.selection;
-          const toggle = table.options.meta?.toggleSel;
-          return (
-            <Checkbox
-              checked={sel?.has(id) ?? false}
-              onCheckedChange={() => toggle?.(id)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          );
-        },
-      },
-      {
-        id: "patientName",
-        accessorKey: "patientName",
-        header: "姓名",
-      },
-      {
-        id: "phone",
-        accessorKey: "phone",
-        header: "手机",
-      },
-      {
-        id: "visitDate",
-        accessorKey: "visitDate",
-        header: "日期",
-      },
-      {
-        id: "remark",
-        accessorKey: "remark",
-        header: "二期",
-        cell: ({ row }) => phase2DisplayDate(row.original.visitDate, row.original.remark),
-      },
-      {
-        id: "toothNo",
-        accessorKey: "toothNo",
-        header: "牙位",
-        cell: ({ getValue }) => (getValue() as string | null) ?? "",
-      },
-      {
-        id: "implantBrand",
-        accessorKey: "implantBrand",
-        header: "品牌",
-        cell: ({ getValue }) => (getValue() as string | null) ?? "",
-      },
-      {
-        id: "implantModel",
-        accessorKey: "implantModel",
-        header: "植体",
-        cell: ({ getValue }) => (getValue() as string | null) ?? "",
-      },
-      {
-        id: "toothRemark",
-        accessorKey: "toothRemark",
-        header: "备注",
-        cell: ({ getValue }) => (getValue() as string | null) ?? "",
-      },
-      {
-        id: "staff",
-        accessorKey: "staff",
-        header: "人员",
-        cell: ({ getValue }) => (getValue() as string | null) ?? "",
-      },
-      {
-        id: "edit",
-        header: "操作",
-        cell: ({ row }) => (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              openEdit(row.original);
-            }}
-          >
-            编辑
-          </Button>
-        ),
-      },
-    ],
+        openEdit,
+      ),
     [openEdit],
   );
 
@@ -1423,18 +184,11 @@ export function ImplantRecordsPage() {
     features: recordsTableFeatures,
     data: rows,
     columns,
-    getRowId: (row, index) => recordRowId(row, index),
-    meta: {
-      mergeSpans,
-      selection,
-      toggleSel,
-      selectAllRows,
-      clearSelection,
-    },
+    getRowId: recordRowId,
+    meta: { mergeSpans, selection, toggleSel, selectAllRows, clearSelection },
   });
-
-  const leafCols = table.getAllLeafColumns();
-  const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
+  const leafColumns = table.getAllLeafColumns();
+  const visibleShareColumnCount = leafColumns.filter((column) => column.id !== "select").length;
 
   return (
     <div className="bg-background p-4">
@@ -1448,7 +202,7 @@ export function ImplantRecordsPage() {
                 </InputGroupAddon>
                 <InputGroupInput
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                 />
               </InputGroup>
               <DateRangePickerField
@@ -1497,40 +251,34 @@ export function ImplantRecordsPage() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
-              {/*
-                与 max-w-7xl（80rem=1280px）栏宽对齐：表最小宽度 = 1280 − 40 = 1240
-                （Card 内容区左右各 20px 共 40px）
-              */}
               <Table className="w-full min-w-[1240px] table-fixed border-collapse">
                 <colgroup>
-                  {leafCols.map((col) => {
-                    if (col.id === "select") {
-                      return <col key={col.id} style={{ width: IMPLANT_TABLE_SELECT_COL_W }} />;
-                    }
-                    return (
-                      <col
-                        key={col.id}
-                        style={{
-                          width: `calc((100% - ${IMPLANT_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
-                        }}
-                      />
-                    );
-                  })}
+                  {leafColumns.map((column) => (
+                    <col
+                      key={column.id}
+                      style={{
+                        width:
+                          column.id === "select"
+                            ? IMPLANT_TABLE_SELECT_COL_W
+                            : `calc((100% - ${IMPLANT_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColumnCount)})`,
+                      }}
+                    />
+                  ))}
                 </colgroup>
                 <TableHeader>
-                  {table.getHeaderGroups().map((hg) => (
-                    <TableRow key={hg.id}>
-                      {hg.headers.map((h) => (
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
                         <TableHead
-                          key={h.id}
+                          key={header.id}
                           className={cn(
                             "text-center",
-                            h.column.id !== "select" && "min-w-0 max-w-0",
+                            header.column.id !== "select" && "min-w-0 max-w-0",
                           )}
                         >
-                          {h.isPlaceholder
+                          {header.isPlaceholder
                             ? null
-                            : flexRender(h.column.columnDef.header, h.getContext())}
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -1538,29 +286,26 @@ export function ImplantRecordsPage() {
                 </TableHeader>
                 <TableBody>
                   {table.getRowModel().rows.map((row) => {
-                    const rowIndex = row.index;
-                    const rowspan = mergeSpans[rowIndex] ?? 1;
-                    const showMerged = rowspan > 0;
+                    const rowSpan = mergeSpans[row.index] ?? 1;
+                    const showMerged = rowSpan > 0;
                     return (
                       <TableRow key={row.id} onDoubleClick={() => openEdit(row.original)}>
                         {row.getAllCells().map((cell) => {
-                          const colId = cell.column.id;
-                          if (MERGED_COLUMN_IDS.has(colId) && !showMerged) {
-                            return null;
-                          }
+                          const columnId = cell.column.id;
+                          if (MERGED_COLUMN_IDS.has(columnId) && !showMerged) return null;
                           const rowSpanProps =
-                            MERGED_COLUMN_IDS.has(colId) && showMerged && rowspan > 1
-                              ? { rowSpan: rowspan }
+                            MERGED_COLUMN_IDS.has(columnId) && showMerged && rowSpan > 1
+                              ? { rowSpan }
                               : {};
                           return (
                             <TableCell
                               key={cell.id}
                               {...rowSpanProps}
                               className={cn(
-                                colId !== "select" &&
+                                columnId !== "select" &&
                                   cn(
                                     "min-w-0 max-w-0",
-                                    colId === "edit" ? "whitespace-nowrap" : "truncate",
+                                    columnId === "edit" ? "whitespace-nowrap" : "truncate",
                                   ),
                               )}
                             >
@@ -1577,11 +322,10 @@ export function ImplantRecordsPage() {
             </ScrollArea>
           </CardContent>
         </Card>
-
         <ImplantRecordsVisitDialog
           state={visitDialog}
-          onOpenChange={(o) => {
-            if (!o) setVisitDialog(null);
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setVisitDialog(null);
           }}
           onSaved={() => void load()}
         />

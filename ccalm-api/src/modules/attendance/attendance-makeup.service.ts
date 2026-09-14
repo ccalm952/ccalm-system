@@ -25,6 +25,7 @@ import { type MakeupTodayGate } from "./attendance-makeup-today-gate"
 import type { MakeupSlotType } from "./makeup-today-gate"
 import { DEFAULT_SHIFT_ROW } from "./defaults"
 import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
+import { shouldAutoMakeupOut } from "./auto-makeup-out"
 
 dayjs.extend(customParseFormat)
 
@@ -120,12 +121,7 @@ export class AttendanceMakeupService {
    * 例如上午：过 morningOutWindowEnd；下午：过 afternoonOutWindowEnd。
    */
   private shouldAutoMakeupOut(dateStr: string, outWindowEndHhmm: string) {
-    const windowEnd = attendanceDayjs(
-      `${dateStr} ${outWindowEndHhmm}`,
-      "YYYY-MM-DD HH:mm"
-    )
-    if (!windowEnd.isValid()) return false
-    return attendanceDayjs().isAfter(windowEnd)
+    return shouldAutoMakeupOut(attendanceDayjs(), dateStr, outWindowEndHhmm)
   }
 
   private async buildAutoOutRecord(

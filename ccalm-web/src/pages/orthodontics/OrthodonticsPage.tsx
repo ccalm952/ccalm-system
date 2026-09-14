@@ -1,8 +1,9 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { ChevronLeft, ChevronRight, Plus, SearchIcon, X } from "lucide-react";
+import { Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { TablePagination } from "@/components/table-pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,14 +37,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -55,6 +48,7 @@ import { DatePickerField } from "@/components/date-picker-field";
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
+import { paginateRows } from "@/lib/pagination";
 import {
   ORTHODONTICS_CATEGORY_OPTIONS,
   orthodonticsCategoryLabel,
@@ -88,7 +82,6 @@ type FormState = {
 };
 
 const OVERDUE_DAYS = 30;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 const ORTHODONTICS_TABLE_SELECT_COL_W = "40px";
 const ORTHODONTICS_SHARE_COLS = [
   "category",
@@ -104,14 +97,6 @@ const ORTHODONTICS_SHARE_COLS = [
 ] as const;
 const TABLE_ROW_HEIGHT_PX = 40;
 const ORTHODONTICS_TABLE_COL_COUNT = 1 + ORTHODONTICS_SHARE_COLS.length;
-
-function buildPageList(current: number, total: number): number[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
-  }
-  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
-  return [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
-}
 
 function emptyForm(category: OrthodonticsCategory): FormState {
   return {
@@ -324,15 +309,13 @@ export function OrthodonticsPage() {
     });
   }
 
-  const total = rows.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const pageRows = rows.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-  const pageList = buildPageList(currentPage, totalPages);
-  const emptyRowCount = Math.max(0, pageSize - pageRows.length);
+  const {
+    total,
+    totalPages,
+    currentPage,
+    pageRows,
+    emptyRowCount,
+  } = paginateRows(rows, page, pageSize);
   const allSelected =
     pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
@@ -515,65 +498,15 @@ export function OrthodonticsPage() {
               </div>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-            <div>已选择 {selection.size} 条</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span>共 {total} 条</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={currentPage <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft />
-              </Button>
-              {pageList.map((pageNo, index) => {
-                const prev = pageList[index - 1];
-                const showEllipsis = prev != null && pageNo - prev > 1;
-                return (
-                  <React.Fragment key={pageNo}>
-                    {showEllipsis ? <span>…</span> : null}
-                    <Button
-                      type="button"
-                      variant={currentPage === pageNo ? "default" : "outline"}
-                      onClick={() => setPage(pageNo)}
-                    >
-                      {pageNo}
-                    </Button>
-                  </React.Fragment>
-                );
-              })}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={currentPage >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                <ChevronRight />
-              </Button>
-              <Select
-                value={String(pageSize)}
-                onValueChange={(value) => {
-                  if (value) setPageSize(Number(value));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {PAGE_SIZE_OPTIONS.map((size) => (
-                      <SelectItem key={size} value={String(size)}>
-                        {size} 条/页
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <TablePagination
+            selectedCount={selection.size}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

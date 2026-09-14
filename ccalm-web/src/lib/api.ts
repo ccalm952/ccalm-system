@@ -42,11 +42,98 @@ export function setToken(token: string | null) {
   else localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
-/** EventSource 用：`/api/attendance/makeup-events?token=...` */
-export function makeupEventsUrl(): string | null {
+type MakeupEventListener = () => void;
+
+const makeupEventListeners = new Set<MakeupEventListener>();
+let makeupEventAbort: AbortController | null = null;
+let makeupEventReconnectTimer: number | null = null;
+
+function stopMakeupEvents() {
+  makeupEventAbort?.abort();
+  makeupEventAbort = null;
+  if (makeupEventReconnectTimer !== null) {
+    window.clearTimeout(makeupEventReconnectTimer);
+    makeupEventReconnectTimer = null;
+  }
+}
+
+function scheduleMakeupEventsReconnect() {
+  if (makeupEventListeners.size === 0 || makeupEventReconnectTimer !== null) return;
+  makeupEventReconnectTimer = window.setTimeout(() => {
+    makeupEventReconnectTimer = null;
+    void connectMakeupEvents();
+  }, 3000);
+}
+
+function dispatchMakeupEvent(block: string) {
+  const data = block
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart())
+    .join("\n");
+  if (!data) return;
+
+  try {
+    const event = JSON.parse(data) as { type?: string };
+    if (event.type === "ping" || event.type === "connected") return;
+  } catch {
+    // 非 JSON 事件仍通知订阅方刷新
+  }
+
+  for (const listener of makeupEventListeners) listener();
+}
+
+async function connectMakeupEvents() {
+  if (makeupEventListeners.size === 0 || makeupEventAbort) return;
   const token = getToken();
-  if (!token) return null;
-  return `${API_BASE}/attendance/makeup-events?token=${encodeURIComponent(token)}`;
+  if (!token) return;
+
+  const controller = new AbortController();
+  makeupEventAbort = controller;
+
+  try {
+    const res = await fetch(`${API_BASE}/attendance/makeup-events`, {
+      headers: {
+        Accept: "text/event-stream",
+        Authorization: `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    });
+    if (res.status === 401) {
+      setToken(null);
+      onUnauthorized?.();
+      return;
+    }
+    if (!res.ok || !res.body) throw new Error(`SSE 请求失败（${res.status}）`);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) dispatchMakeupEvent(block);
+      if (done) break;
+    }
+  } catch {
+    if (!controller.signal.aborted) scheduleMakeupEventsReconnect();
+  } finally {
+    if (makeupEventAbort === controller) makeupEventAbort = null;
+    if (!controller.signal.aborted) scheduleMakeupEventsReconnect();
+  }
+}
+
+export function subscribeMakeupEvents(listener: MakeupEventListener) {
+  makeupEventListeners.add(listener);
+  void connectMakeupEvents();
+
+  return () => {
+    makeupEventListeners.delete(listener);
+    if (makeupEventListeners.size === 0) stopMakeupEvents();
+  };
 }
 
 export async function api<T>(
