@@ -5,10 +5,17 @@ import { Input } from "@/components/ui/input";
 import { round2 } from "@/lib/salary/calc";
 
 const SUMMARY_DECIMAL_DRAFT = /^\d*(\.\d{0,2})?$/;
+const RATE_PERCENT_DRAFT = /^\d*(\.\d?)?$/;
 
 function formatSummaryDecimalValue(n: number): string {
   if (!Number.isFinite(n)) return "0";
   return String(n);
+}
+
+function formatRatePercent(ratio: number): string {
+  if (!Number.isFinite(ratio)) return "0";
+  const percent = Math.round(ratio * 1000) / 10;
+  return String(percent);
 }
 
 export function SummaryDecimalInput({
@@ -68,11 +75,35 @@ export function RatePercentInput(props: {
   onChange: (ratio: number) => void;
 }) {
   const { value, onChange } = props;
-  const display = Number.isFinite(value) ? Math.round(value * 1000) / 10 : 0;
+  const [draft, setDraft] = React.useState(() => formatRatePercent(value));
+  const focusedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(formatRatePercent(value));
+    }
+  }, [value]);
+
   return (
     <Input
-      value={display}
-      onChange={(e) => onChange((Number(e.target.value) || 0) / 100)}
+      inputMode="decimal"
+      value={draft}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (next === "" || RATE_PERCENT_DRAFT.test(next)) {
+          setDraft(next);
+        }
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        const percent = Math.round((Number(draft) || 0) * 10) / 10;
+        const ratio = percent / 100;
+        onChange(ratio);
+        setDraft(formatRatePercent(ratio));
+      }}
     />
   );
 }
