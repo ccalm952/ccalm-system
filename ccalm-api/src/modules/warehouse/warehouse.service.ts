@@ -43,14 +43,14 @@ function txnQtyDelta(
 
 function consumptionUnitPrice(
   unitPrice: number,
-  lastPurchasePrice: number,
+  lastPurchasePrice: number
 ): number {
   return unitPrice > 0 ? unitPrice : lastPurchasePrice
 }
 
 function consumptionTxnAmount(
   txn: { qty: number; unitPrice: number; amount: number },
-  lastPurchasePrice: number,
+  lastPurchasePrice: number
 ): number {
   if (txn.amount > 0) return txn.amount
   const unitPrice = consumptionUnitPrice(txn.unitPrice, lastPurchasePrice)
@@ -61,7 +61,7 @@ function buildAdjustTxnCreateData(
   itemId: number,
   qtyDelta: number,
   lastPurchasePrice: number,
-  operatorUserId: string,
+  operatorUserId: string
 ) {
   const isOut = qtyDelta < 0
   const qty = Math.abs(qtyDelta)
@@ -157,7 +157,8 @@ function buildProductFieldsFromDto(
   defaultUnit: string
 } {
   return {
-    category: dto.category != null ? cleanText(dto.category) : fallback.category,
+    category:
+      dto.category != null ? cleanText(dto.category) : fallback.category,
     brand: dto.brand != null ? cleanText(dto.brand) : fallback.brand,
     manufacturer:
       dto.manufacturer != null
@@ -167,7 +168,8 @@ function buildProductFieldsFromDto(
       dto.supplierName != null
         ? cleanText(dto.supplierName)
         : fallback.supplierName,
-    defaultUnit: dto.unit != null ? cleanText(dto.unit, "个") : fallback.defaultUnit,
+    defaultUnit:
+      dto.unit != null ? cleanText(dto.unit, "个") : fallback.defaultUnit,
   }
 }
 
@@ -202,7 +204,12 @@ export class WarehouseService {
     itemId: number
   ) {
     const rows = await tx.$queryRaw<
-      Array<{ id: number; currentQty: number; enabled: boolean; lastPurchasePrice: number }>
+      Array<{
+        id: number
+        currentQty: number
+        enabled: boolean
+        lastPurchasePrice: number
+      }>
     >`
       SELECT id, "currentQty", enabled, "lastPurchasePrice"
       FROM "WarehouseItem"
@@ -347,7 +354,9 @@ export class WarehouseService {
     } catch (error) {
       if (error instanceof BadRequestException) throw error
       if (isPrismaUniqueViolation(error)) {
-        throw new BadRequestException("编码已存在、规格重复或名称与品牌组合已存在")
+        throw new BadRequestException(
+          "编码已存在、规格重复或名称与品牌组合已存在"
+        )
       }
       throw error
     }
@@ -411,7 +420,10 @@ export class WarehouseService {
     }
 
     const nextIdentity = resolveNextProductIdentity(dto, existing.product)
-    const identityChanging = !productIdentityEqual(nextIdentity, existing.product)
+    const identityChanging = !productIdentityEqual(
+      nextIdentity,
+      existing.product
+    )
 
     const mergeTarget = identityChanging
       ? await this.prisma.warehouseProduct.findFirst({
@@ -454,7 +466,9 @@ export class WarehouseService {
       await this.prisma.$transaction(async (tx) => {
         const locked = await this.lockWarehouseItem(tx, id)
         const nextQty =
-          dto.currentQty != null ? Math.round(dto.currentQty) : locked.currentQty
+          dto.currentQty != null
+            ? Math.round(dto.currentQty)
+            : locked.currentQty
         if (nextQty < 0) throw new BadRequestException("库存不能为负数")
 
         const qtyDelta = nextQty - locked.currentQty
@@ -464,7 +478,7 @@ export class WarehouseService {
               id,
               qtyDelta,
               locked.lastPurchasePrice,
-              operatorUserId,
+              operatorUserId
             ),
           })
         }
@@ -481,7 +495,9 @@ export class WarehouseService {
           data: {
             ...(dto.code != null ? { code: cleanText(dto.code) } : {}),
             ...(dto.unit != null ? { unit: cleanText(dto.unit, "个") } : {}),
-            ...(typeof dto.enabled === "boolean" ? { enabled: dto.enabled } : {}),
+            ...(typeof dto.enabled === "boolean"
+              ? { enabled: dto.enabled }
+              : {}),
             productId: mergeTarget.id,
             spec: mergeSpec,
             ...(dto.currentQty != null ? { currentQty: nextQty } : {}),
@@ -492,7 +508,9 @@ export class WarehouseService {
           where: { productId: existing.productId },
         })
         if (remaining === 0) {
-          await tx.warehouseProduct.delete({ where: { id: existing.productId } })
+          await tx.warehouseProduct.delete({
+            where: { id: existing.productId },
+          })
         }
       })
 
@@ -532,7 +550,7 @@ export class WarehouseService {
                   id,
                   qtyDelta,
                   locked.lastPurchasePrice,
-                  operatorUserId,
+                  operatorUserId
                 ),
               })
             }
@@ -553,7 +571,9 @@ export class WarehouseService {
               where: { id },
               data: {
                 ...(dto.code != null ? { code: cleanText(dto.code) } : {}),
-                ...(dto.unit != null ? { unit: cleanText(dto.unit, "个") } : {}),
+                ...(dto.unit != null
+                  ? { unit: cleanText(dto.unit, "个") }
+                  : {}),
                 ...(typeof dto.enabled === "boolean"
                   ? { enabled: dto.enabled }
                   : {}),
@@ -592,7 +612,7 @@ export class WarehouseService {
             id,
             qtyDelta,
             locked.lastPurchasePrice,
-            operatorUserId,
+            operatorUserId
           ),
         })
       }
