@@ -101,14 +101,7 @@ function normalizeTierThresholds(
 export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettings {
   const defaults = createDefaultSalaryGlobalSettings();
   if (!data || typeof data !== "object") return defaults;
-  const settings = data as Partial<SalaryGlobalSettings> & {
-    actualReceiptDeductionRate?: number;
-  };
-  const legacyDeduction =
-    typeof settings.actualReceiptDeductionRate === "number" &&
-    Number.isFinite(settings.actualReceiptDeductionRate)
-      ? settings.actualReceiptDeductionRate
-      : null;
+  const settings = data as Partial<SalaryGlobalSettings>;
   const numRate = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   return {
@@ -120,11 +113,11 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
     asstTierRates: normalizeTierRates(settings.asstTierRates, defaults.asstTierRates),
     doctorReceiptDeductionRate: numRate(
       settings.doctorReceiptDeductionRate,
-      legacyDeduction ?? defaults.doctorReceiptDeductionRate,
+      defaults.doctorReceiptDeductionRate,
     ),
     nurseDeductionRate: numRate(
       settings.nurseDeductionRate,
-      legacyDeduction ?? defaults.nurseDeductionRate,
+      defaults.nurseDeductionRate,
     ),
     plantingBonusPerUnit:
       typeof settings.plantingBonusPerUnit === "number"
