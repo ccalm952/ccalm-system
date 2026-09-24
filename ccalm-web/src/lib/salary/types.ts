@@ -110,8 +110,10 @@ export type SalaryGlobalSettings = {
   tierThresholds: SalaryTierThresholds;
   docTierRates: SalaryTierRates;
   asstTierRates: SalaryTierRates;
-  /** 实收扣减比例，如 0.2 表示扣 20% */
-  actualReceiptDeductionRate: number;
+  /** 医生实收扣减比例，如 0.2 表示扣 20% */
+  doctorReceiptDeductionRate: number;
+  /** 护士奖金池扣减比例，净收入 = 总收入 × (1 − 该比例) */
+  nurseDeductionRate: number;
   plantingBonusPerUnit: number;
   wuJiechenPlantingBonusPerUnit: number;
 };

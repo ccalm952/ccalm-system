@@ -92,7 +92,7 @@ describe("薪资计算", () => {
     expect(
       computedEmployee(actualReceipt, employee(), {
         ...settings,
-        actualReceiptDeductionRate: 0,
+        doctorReceiptDeductionRate: 0,
       }).bonus
     ).toBe(bonus)
   })
@@ -101,6 +101,51 @@ describe("薪资计算", () => {
     const row = computedEmployee(100_000, employee({ shareRatio: 0.5 }))
     expect(row.actualReceipt).toBe(40_000)
     expect(row.bonus).toBe(4_400)
+  })
+
+  it("护士个人池按总收入×(1−护士扣减%)计算，请假与池比例不变", () => {
+    const result = computeSalarySheet(
+      sheet(100_000, [
+        employee({
+          id: "chen",
+          name: "陈美珍",
+          title: "护士",
+          bonusMode: "chen_pool",
+          shareRatio: 0,
+        }),
+      ]),
+      {
+        globalSettings: {
+          ...settings,
+          nurseDeductionRate: 0.25,
+        },
+      },
+    )
+    // 净收入 75000，请假 30 天 → 个人池 0 → 奖金 0
+    expect(result.employees[0].bonus).toBe(0)
+
+    const withWork = computeSalarySheet(
+      {
+        ...sheet(100_000, [
+          employee({
+            id: "chen",
+            name: "陈美珍",
+            title: "护士",
+            bonusMode: "chen_pool",
+            shareRatio: 0,
+          }),
+        ]),
+        leaveQuotas: { chen: 0, lu: 30, xu: 30 },
+      },
+      {
+        globalSettings: {
+          ...settings,
+          nurseDeductionRate: 0.25,
+        },
+      },
+    )
+    // 个人池 = 75000，奖金 = 75000 × 0.003 = 225
+    expect(withWork.employees[0].bonus).toBe(225)
   })
 
   it("区分吴介尘与其他员工的种植单价", () => {

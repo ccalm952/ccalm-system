@@ -45,7 +45,8 @@ export function createDefaultSalaryGlobalSettings(): SalaryGlobalSettings {
       tier5Rate: 0.11,
       tier6Rate: 0.12,
     },
-    actualReceiptDeductionRate: 0.2,
+    doctorReceiptDeductionRate: 0.2,
+    nurseDeductionRate: 0.2,
     plantingBonusPerUnit: 50,
     wuJiechenPlantingBonusPerUnit: 500,
   };
@@ -101,6 +102,8 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
   const defaults = createDefaultSalaryGlobalSettings();
   if (!data || typeof data !== "object") return defaults;
   const settings = data as Partial<SalaryGlobalSettings>;
+  const numRate = (value: unknown, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
   return {
     tierThresholds: normalizeTierThresholds(
       settings.tierThresholds,
@@ -108,11 +111,14 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
     ),
     docTierRates: normalizeTierRates(settings.docTierRates, defaults.docTierRates),
     asstTierRates: normalizeTierRates(settings.asstTierRates, defaults.asstTierRates),
-    actualReceiptDeductionRate:
-      typeof settings.actualReceiptDeductionRate === "number" &&
-      Number.isFinite(settings.actualReceiptDeductionRate)
-        ? settings.actualReceiptDeductionRate
-        : defaults.actualReceiptDeductionRate,
+    doctorReceiptDeductionRate: numRate(
+      settings.doctorReceiptDeductionRate,
+      defaults.doctorReceiptDeductionRate,
+    ),
+    nurseDeductionRate: numRate(
+      settings.nurseDeductionRate,
+      defaults.nurseDeductionRate,
+    ),
     plantingBonusPerUnit:
       typeof settings.plantingBonusPerUnit === "number"
         ? settings.plantingBonusPerUnit
