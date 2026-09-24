@@ -24,9 +24,6 @@ export const ROUTES = {
   },
   warehouse: {
     root: "/warehouse",
-    ledger: "/warehouse/ledger",
-    stats: "/warehouse/stats",
-    consumption: "/warehouse/consumption",
   },
   salary: {
     root: "/salary",

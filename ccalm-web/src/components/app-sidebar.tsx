@@ -22,7 +22,7 @@ import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
-import { warehouseSubNavItems } from "@/config/warehouse-nav";
+import { warehouseNavItem } from "@/config/warehouse-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -107,10 +107,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }[] = [
     { title: "考勤", icon: CalendarCheck2, items: attendanceNavItemsForRole(me?.role) },
     { title: "种植", icon: Sprout, items: implantSubNavItems },
-    { title: "库存", icon: Package, items: warehouseSubNavItems },
   ];
 
   const orthodonticsLink = orthodonticsNavItem;
+  const warehouseLink = warehouseNavItem;
 
   return (
     <Sidebar {...props}>
@@ -156,6 +156,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <Smile className="shrink-0" />
                 <span>{orthodonticsLink.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="font-medium"
+                isActive={subPathActive(activePath, warehouseLink.url)}
+                render={
+                  <Link to={warehouseLink.url} onClick={() => onNavClick(warehouseLink.url)} />
+                }
+                tooltip={warehouseLink.title}
+              >
+                <Package className="shrink-0" />
+                <span>{warehouseLink.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             {me?.role === "admin" ? (

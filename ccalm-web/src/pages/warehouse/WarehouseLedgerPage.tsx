@@ -1,8 +1,7 @@
-﻿import * as React from "react";
+import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
-import { DatePickerField } from "@/components/date-picker-field";
 import { SortableTableHead } from "@/components/sortable-table-head";
 import { TruncateCell } from "@/components/truncate-cell";
 import { Button } from "@/components/ui/button";
@@ -313,9 +312,6 @@ export function WarehouseLedgerPage() {
     manufacturer: "",
     supplierName: "",
     currentQty: "0",
-    initialQty: "0",
-    initialUnitPrice: "0",
-    initialOccurDate: dayjs().format("YYYY-MM-DD"),
     enabled: true,
   });
   const [products, setProducts] = React.useState<WarehouseProduct[]>([]);
@@ -555,9 +551,6 @@ export function WarehouseLedgerPage() {
       manufacturer: "",
       supplierName: "",
       currentQty: "0",
-      initialQty: "1",
-      initialUnitPrice: "0",
-      initialOccurDate: dayjs().format("YYYY-MM-DD"),
       enabled: true,
     });
     setItemDialogOpen(true);
@@ -576,9 +569,6 @@ export function WarehouseLedgerPage() {
       manufacturer: item.manufacturer,
       supplierName: item.supplierName,
       currentQty: String(item.currentQty),
-      initialQty: "0",
-      initialUnitPrice: "0",
-      initialOccurDate: dayjs().format("YYYY-MM-DD"),
       enabled: item.enabled,
     });
     setItemDialogOpen(true);
@@ -648,7 +638,7 @@ export function WarehouseLedgerPage() {
         const matchedProduct = itemForm.productId
           ? null
           : findProductByIdentity(products, itemForm.name, itemForm.brand);
-        const created = await api<WarehouseItem>("POST", "/warehouse/items", {
+        await api<WarehouseItem>("POST", "/warehouse/items", {
           ...productFields,
           ...skuFields,
           ...(itemForm.productId
@@ -657,21 +647,7 @@ export function WarehouseLedgerPage() {
               ? { productId: matchedProduct.id }
               : { name: productFields.name }),
         });
-        const initialQty = Math.round(Number(itemForm.initialQty) || 0);
-        if (initialQty > 0) {
-          await api("POST", "/warehouse/txns", {
-            itemId: created.id,
-            type: "in",
-            bizType: "purchase",
-            qty: initialQty,
-            unitPrice: Number(itemForm.initialUnitPrice) || 0,
-            occurDate: itemForm.initialOccurDate,
-          });
-          setSelectedId(created.id);
-          toast.success("物品已创建并完成入库");
-        } else {
-          toast.success("物品已创建");
-        }
+        toast.success("物品已创建");
       }
       setItemDialogOpen(false);
       await Promise.all([loadItems(), loadTxns(txnPage)]);
@@ -1146,7 +1122,7 @@ export function WarehouseLedgerPage() {
             <DialogDescription>
               {editingItemId
                 ? "改为已有「名称+品牌」会并入该产品；改为新的名称或品牌且同组有多条规格时，仅本条会拆成新产品。修改库存时会自动登记调整流水。"
-                : "同一名称可对应不同品牌；选择下拉项或填写相同名称与品牌会归入已有产品。填写入库数量后将同时登记采购入库流水。"}
+                : "同一名称可对应不同品牌；选择下拉项或填写相同名称与品牌会归入已有产品。"}
             </DialogDescription>
           </DialogHeader>
           <FieldSet className="text-sm">
@@ -1260,58 +1236,6 @@ export function WarehouseLedgerPage() {
                   />
                 </FieldContent>
               </Field>
-              {!editingItemId ? (
-                <>
-                  <Field orientation="vertical">
-                    <FieldLabel>
-                      <FieldTitle>入库数量</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        className="w-full"
-                        type="number"
-                        min={0}
-                        value={itemForm.initialQty}
-                        onChange={(e) =>
-                          setItemForm((s) => ({ ...s, initialQty: e.target.value }))
-                        }
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldLabel>
-                      <FieldTitle>单价</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        className="w-full"
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={itemForm.initialUnitPrice}
-                        onChange={(e) =>
-                          setItemForm((s) => ({ ...s, initialUnitPrice: e.target.value }))
-                        }
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldLabel>
-                      <FieldTitle>入库日期</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <DatePickerField
-                        value={itemForm.initialOccurDate}
-                        onValueChange={(initialOccurDate) =>
-                          setItemForm((s) => ({ ...s, initialOccurDate }))
-                        }
-                        placeholder=""
-                        className="border-transparent bg-input/50 hover:bg-input/50 dark:hover:bg-input/50"
-                      />
-                    </FieldContent>
-                  </Field>
-                </>
-              ) : null}
             </FieldGroup>
           </FieldSet>
           <DialogFooter>
