@@ -527,7 +527,7 @@ export function WarehouseLedgerPage() {
             <Table className="w-full min-w-[1240px] table-fixed border-collapse">
               <colgroup>
                 <col style={{ width: SELECT_COL_W }} />
-                {(["code", "name", "category", "brand", "spec", "unit"] as const).map((id) => (
+                {(["name", "code", "category", "brand", "spec", "unit"] as const).map((id) => (
                   <col
                     key={id}
                     style={{
@@ -553,14 +553,14 @@ export function WarehouseLedgerPage() {
                     />
                   </TableHead>
                   <SortableTableHead
-                    label="编码"
-                    sortKey="code"
+                    label="名称"
+                    sortKey="name"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
                   />
                   <SortableTableHead
-                    label="名称"
-                    sortKey="name"
+                    label="编码"
+                    sortKey="code"
                     activeSort={itemSort}
                     onSort={toggleItemSort}
                   />
@@ -649,10 +649,10 @@ export function WarehouseLedgerPage() {
                                   />
                                 </TableCell>
                                 <TableCell className="min-w-0 max-w-0">
-                                  <TruncateCell>{item.code}</TruncateCell>
+                                  <TruncateCell>{item.name}</TruncateCell>
                                 </TableCell>
                                 <TableCell className="min-w-0 max-w-0">
-                                  <TruncateCell>{item.name}</TruncateCell>
+                                  <TruncateCell>{item.code}</TruncateCell>
                                 </TableCell>
                                 <TableCell className="min-w-0 max-w-0">
                                   <TruncateCell>{item.category}</TruncateCell>
