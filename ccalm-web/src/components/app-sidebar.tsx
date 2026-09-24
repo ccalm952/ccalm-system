@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarCheck2, ChevronRightIcon, Smile, Sprout, StickyNote, Wallet } from "lucide-react";
+import { CalendarCheck2, ChevronRightIcon, Package, Smile, Sprout, Wallet } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -21,8 +21,8 @@ import {
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
-import { memosNavItem } from "@/config/memos-nav";
 import { salaryNavItem } from "@/config/salary-nav";
+import { warehouseSubNavItems } from "@/config/warehouse-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -107,6 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }[] = [
     { title: "考勤", icon: CalendarCheck2, items: attendanceNavItemsForRole(me?.role) },
     { title: "种植", icon: Sprout, items: implantSubNavItems },
+    { title: "库存", icon: Package, items: warehouseSubNavItems },
   ];
 
   const orthodonticsLink = orthodonticsNavItem;
@@ -155,17 +156,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               >
                 <Smile className="shrink-0" />
                 <span>{orthodonticsLink.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="font-medium"
-                isActive={subPathActive(activePath, memosNavItem.url)}
-                render={<Link to={memosNavItem.url} onClick={() => onNavClick(memosNavItem.url)} />}
-                tooltip={memosNavItem.title}
-              >
-                <StickyNote className="shrink-0" />
-                <span>{memosNavItem.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             {me?.role === "admin" ? (

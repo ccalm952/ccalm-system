@@ -17,7 +17,7 @@ import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
-import { memosNavItem } from "@/config/memos-nav";
+import { warehouseSubNavItems } from "@/config/warehouse-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -68,9 +68,18 @@ export function MainLayout() {
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuLink render={<Link to={ROUTES.memos.root} />}>
-                    {memosNavItem.title}
-                  </NavigationMenuLink>
+                  <NavigationMenuTrigger>库存</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {warehouseSubNavItems.map((item) => (
+                      <NavigationMenuLink
+                        className="w-62"
+                        key={item.title}
+                        render={<Link to={item.url} />}
+                      >
+                        {item.title}
+                      </NavigationMenuLink>
+                    ))}
+                  </NavigationMenuContent>
                 </NavigationMenuItem>
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>
