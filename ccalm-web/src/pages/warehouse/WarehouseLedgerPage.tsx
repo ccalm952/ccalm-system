@@ -97,8 +97,8 @@ type ItemSort = {
 const SELECT_COL_W = "40px";
 const ACTIONS_COL_W = "160px";
 
-function productGroupKey(name: string) {
-  return name.trim().toLowerCase();
+function categoryGroupKey(category: string) {
+  return (category.trim() || "其他").toLowerCase();
 }
 
 function compareItems(a: WarehouseItem, b: WarehouseItem, sort: ItemSort): number {
@@ -265,12 +265,13 @@ export function WarehouseLedgerPage() {
     const order: string[] = [];
     const map = new Map<string, ProductGroup>();
     for (const item of displayItems) {
-      const key = productGroupKey(item.name);
+      const label = item.category.trim() || "其他";
+      const key = categoryGroupKey(item.category);
       let group = map.get(key);
       if (!group) {
         group = {
           key,
-          name: item.name.trim(),
+          name: label,
           items: [],
         };
         map.set(key, group);
