@@ -389,7 +389,7 @@ function computeEmployee(
       ? calcActualReceipt(
           ctx.totalIncome,
           emp.shareRatio,
-          ctx.globalSettings.actualReceiptDeductionRate,
+          ctx.globalSettings.doctorReceiptDeductionRate,
         )
       : 0;
   const plantingBonus = round2(
@@ -432,9 +432,13 @@ export function computeSalarySheet(
   const { utilities, rent, materials, planting, processing, other } = data.costItems;
   const costTotal = round2(materials + planting + other + processing);
 
+  // 汇总「实收入」仍按成本扣减；护士个人池改用总收入 × (1 − 护士扣减%)
   const netIncome = round2(data.summary.totalIncome - costTotal);
+  const nursePoolIncome = round2(
+    data.summary.totalIncome * (1 - context.globalSettings.nurseDeductionRate),
+  );
   const leavePools = calcLeavePools(
-    netIncome,
+    nursePoolIncome,
     data.summary.daysInMonth,
     data.leaveQuotas,
   );
