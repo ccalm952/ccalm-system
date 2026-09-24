@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
 import { SortableTableHead } from "@/components/sortable-table-head";
 import { TruncateCell } from "@/components/truncate-cell";
@@ -55,6 +56,7 @@ import {
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
+import { cn } from "@/lib/utils";
 
 type WarehouseProduct = {
   id: number;
@@ -79,12 +81,25 @@ type WarehouseItem = {
   enabled: boolean;
 };
 
+type ProductGroup = {
+  key: string;
+  name: string;
+  items: WarehouseItem[];
+};
+
 type ItemSortKey = "code" | "name" | "category" | "brand" | "spec" | "unit";
 
 type ItemSort = {
   key: ItemSortKey;
   dir: "asc" | "desc";
 };
+
+const SELECT_COL_W = "40px";
+const ACTIONS_COL_W = "160px";
+
+function productGroupKey(name: string) {
+  return name.trim().toLowerCase();
+}
 
 function compareItems(a: WarehouseItem, b: WarehouseItem, sort: ItemSort): number {
   const cmp = (a[sort.key] ?? "").toString().localeCompare((b[sort.key] ?? "").toString(), "zh-CN", {
@@ -216,6 +231,7 @@ export function WarehouseLedgerPage() {
   const [itemsLoading, setItemsLoading] = React.useState(true);
   const [itemSort, setItemSort] = React.useState<ItemSort | null>(null);
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
 
   const [itemDialogOpen, setItemDialogOpen] = React.useState(false);
   const [itemSubmitting, setItemSubmitting] = React.useState(false);
@@ -245,9 +261,44 @@ export function WarehouseLedgerPage() {
     return [...items].sort((a, b) => compareItems(a, b, itemSort));
   }, [items, itemSort]);
 
+  const productGroups = React.useMemo(() => {
+    const order: string[] = [];
+    const map = new Map<string, ProductGroup>();
+    for (const item of displayItems) {
+      const key = productGroupKey(item.name);
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          key,
+          name: item.name.trim(),
+          items: [],
+        };
+        map.set(key, group);
+        order.push(key);
+      }
+      group.items.push(item);
+    }
+    return order.map((key) => map.get(key)!);
+  }, [displayItems]);
+
+  const colCount = isAdmin ? 8 : 7;
+  const shareColCount = 6;
+  const reservedWidth = isAdmin
+    ? `calc(${SELECT_COL_W} + ${ACTIONS_COL_W})`
+    : SELECT_COL_W;
+
   const allSelected =
     displayItems.length > 0 && displayItems.every((item) => selection.has(item.id));
   const someSelected = displayItems.some((item) => selection.has(item.id));
+
+  function toggleGroupCollapse(key: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function toggleItemSort(key: ItemSortKey) {
     setItemSort((prev) => {
@@ -446,7 +497,8 @@ export function WarehouseLedgerPage() {
   }
 
   return (
-    <div className="flex flex-col p-4 md:p-6">
+    <div className="bg-background p-4">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center gap-2">
           <Input
@@ -470,9 +522,21 @@ export function WarehouseLedgerPage() {
             </Button>
           ) : null}
         </CardHeader>
-        <CardContent className="[&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
-          <ScrollArea className="w-full max-w-full">
-            <Table className="w-max">
+        <CardContent>
+          <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
+            <Table className="w-full min-w-[1240px] table-fixed border-collapse">
+              <colgroup>
+                <col style={{ width: SELECT_COL_W }} />
+                {(["code", "name", "category", "brand", "spec", "unit"] as const).map((id) => (
+                  <col
+                    key={id}
+                    style={{
+                      width: `calc((100% - ${reservedWidth}) / ${shareColCount})`,
+                    }}
+                  />
+                ))}
+                {isAdmin ? <col style={{ width: ACTIONS_COL_W }} /> : null}
+              </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -531,74 +595,108 @@ export function WarehouseLedgerPage() {
                 {itemsLoading && items.length === 0 ? (
                   Array.from({ length: 6 }).map((_, index) => (
                     <TableRow key={index}>
-                      {Array.from({ length: isAdmin ? 8 : 7 }).map((__, cellIndex) => (
-                        <TableCell key={cellIndex}>
+                      {Array.from({ length: colCount }).map((__, cellIndex) => (
+                        <TableCell
+                          key={cellIndex}
+                          className={cn(cellIndex > 0 && "min-w-0 max-w-0")}
+                        >
                           <Skeleton className="h-5 w-full" />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
-                ) : displayItems.length === 0 ? (
+                ) : productGroups.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 8 : 7}>暂无数据</TableCell>
+                    <TableCell colSpan={colCount}>暂无数据</TableCell>
                   </TableRow>
                 ) : (
-                  displayItems.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      onDoubleClick={isAdmin ? () => openEditItem(item) : undefined}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={selection.has(item.id)}
-                          onCheckedChange={() => toggleSel(item.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.code}</TruncateCell>
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.name}</TruncateCell>
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.category}</TruncateCell>
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.brand || "-"}</TruncateCell>
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.spec || "-"}</TruncateCell>
-                      </TableCell>
-                      <TableCell>
-                        <TruncateCell>{item.unit}</TruncateCell>
-                      </TableCell>
-                      {isAdmin ? (
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
+                  productGroups.map((group) => {
+                    const collapsed = collapsedGroups.has(group.key);
+                    return (
+                      <React.Fragment key={group.key}>
+                        <TableRow className="bg-muted/20">
+                          <TableCell colSpan={colCount} className="p-0">
                             <Button
                               type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditItem(item)}
+                              variant="ghost"
+                              className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2"
+                              onClick={() => toggleGroupCollapse(group.key)}
                             >
-                              编辑
+                              {collapsed ? (
+                                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                              ) : (
+                                <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+                              )}
+                              <span>{group.name}</span>
+                              <span className="text-muted-foreground">
+                                （{group.items.length}）
+                              </span>
                             </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setDeleteItemTarget(item);
-                                setDeleteItemOpen(true);
-                              }}
-                            >
-                              删除
-                            </Button>
-                          </div>
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))
+                          </TableCell>
+                        </TableRow>
+                        {!collapsed
+                          ? group.items.map((item) => (
+                              <TableRow
+                                key={item.id}
+                                onDoubleClick={
+                                  isAdmin ? () => openEditItem(item) : undefined
+                                }
+                              >
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selection.has(item.id)}
+                                    onCheckedChange={() => toggleSel(item.id)}
+                                  />
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.code}</TruncateCell>
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.name}</TruncateCell>
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.category}</TruncateCell>
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.brand || "-"}</TruncateCell>
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.spec || "-"}</TruncateCell>
+                                </TableCell>
+                                <TableCell className="min-w-0 max-w-0">
+                                  <TruncateCell>{item.unit}</TruncateCell>
+                                </TableCell>
+                                {isAdmin ? (
+                                  <TableCell>
+                                    <div className="flex items-center justify-center gap-2">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => openEditItem(item)}
+                                      >
+                                        编辑
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setDeleteItemTarget(item);
+                                          setDeleteItemOpen(true);
+                                        }}
+                                      >
+                                        删除
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                ) : null}
+                              </TableRow>
+                            ))
+                          : null}
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -747,6 +845,7 @@ export function WarehouseLedgerPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }
