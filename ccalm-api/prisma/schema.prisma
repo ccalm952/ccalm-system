@@ -53,6 +53,7 @@ model User {
   punchDevice          AttendancePunchDevice?
   punchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
   reviewedPunchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindReviewer")
+  warehouseTxnsOperated WarehouseTxn[]          @relation("WarehouseTxnOperator")
 }
 
 model GeofenceConfig {
@@ -267,6 +268,21 @@ enum OrthodonticsCategory {
   completed
 }
 
+enum WarehouseTxnType {
+  in
+  out
+  adjust
+}
+
+enum WarehouseTxnBizType {
+  purchase
+  use
+  return_in
+  return_out
+  adjust_in
+  adjust_out
+}
+
 /// 正畸随访名单（治疗中 / 矫治器 / 已完成）
 model OrthodonticsPatient {
   id              Int                   @id @default(autoincrement())
@@ -287,13 +303,56 @@ model OrthodonticsPatient {
   @@index([lastVisitDate])
 }
 
-/// 备忘录（Markdown；共享给登录用户）
-model Memo {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String   @default("")
-  category  String   @default("")
-  pinned    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model WarehouseProduct {
+  id             Int             @id @default(autoincrement())
+  name           String
+  category       String          @default("其他")
+  brand          String          @default("")
+  manufacturer   String          @default("")
+  supplierName   String          @default("")
+  defaultUnit    String          @default("个")
+  enabled        Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          WarehouseItem[]
+
+  @@unique([name, brand])
+  @@index([name])
+  @@index([category])
+}
+
+model WarehouseItem {
+  id                Int              @id @default(autoincrement())
+  productId         Int
+  product           WarehouseProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  code              String           @unique
+  spec              String           @default("")
+  unit              String           @default("个")
+  currentQty        Int              @default(0)
+  lastPurchasePrice Float            @default(0)
+  enabled           Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  txns              WarehouseTxn[]
+
+  @@unique([productId, spec])
+  @@index([productId])
+}
+
+model WarehouseTxn {
+  id             Int                 @id @default(autoincrement())
+  itemId         Int
+  item           WarehouseItem       @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  type           WarehouseTxnType
+  bizType        WarehouseTxnBizType
+  qty            Int
+  unitPrice      Float               @default(0)
+  amount         Float               @default(0)
+  occurDate      String
+  operatorUserId String?
+  operatorUser   User?               @relation("WarehouseTxnOperator", fields: [operatorUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime            @default(now())
+
+  @@index([itemId, occurDate])
+  @@index([type, occurDate])
 }

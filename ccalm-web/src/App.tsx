@@ -57,8 +57,10 @@ const UsersPage = lazy(() =>
 const SalaryPage = lazy(() =>
   import("./pages/salary/SalaryPage").then((m) => ({ default: m.SalaryPage })),
 );
-const MemosPage = lazy(() =>
-  import("./pages/memos/MemosPage").then((m) => ({ default: m.MemosPage })),
+const WarehouseSection = lazy(() =>
+  import("./pages/warehouse/WarehouseSection").then((m) => ({
+    default: m.WarehouseSection,
+  })),
 );
 
 function RouteFallback() {
@@ -170,7 +172,7 @@ function App() {
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 
-            <Route path={ROUTES.memos.root} element={<MemosPage />} />
+            <Route path="warehouse/*" element={<WarehouseSection />} />
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>

@@ -22,10 +22,13 @@ export const ROUTES = {
   orthodontics: {
     root: "/orthodontics",
   },
+  warehouse: {
+    root: "/warehouse",
+    ledger: "/warehouse/ledger",
+    stats: "/warehouse/stats",
+    consumption: "/warehouse/consumption",
+  },
   salary: {
     root: "/salary",
-  },
-  memos: {
-    root: "/memos",
   },
 } as const;
