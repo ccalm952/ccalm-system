@@ -140,6 +140,12 @@ export type SalaryGlobalSettings = {
   doctorReceiptDeductionRate: number;
   /** 护士奖金池扣减比例，净收入 = 总收入 × (1 − 该比例) */
   nurseDeductionRate: number;
+  /** 陈美珍池奖金比例（相对个人池），如 0.003 表示 0.3% */
+  chenPoolBonusRate: number;
+  /** 卢彤池奖金比例（相对个人池），如 0.003 表示 0.3% */
+  luPoolBonusRate: number;
+  /** 许桦婧池奖金比例（相对个人池），如 0.002 表示 0.2% */
+  xuPoolBonusRate: number;
   plantingBonusPerUnit: number;
   wuJiechenPlantingBonusPerUnit: number;
   /** 设备分期计划（可多笔；当月应摊金额自动汇总） */

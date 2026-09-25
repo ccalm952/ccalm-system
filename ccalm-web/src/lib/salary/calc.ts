@@ -13,7 +13,11 @@ import type {
   SalaryTierRates,
   SalaryTierThresholds,
 } from "./types";
-import { plantingBonusPerUnitForEmployee, tierRatesForTitle } from "./settings";
+import {
+  plantingBonusPerUnitForEmployee,
+  poolBonusRateForMode,
+  tierRatesForTitle,
+} from "./settings";
 
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -392,13 +396,6 @@ function calcTieredBonus(
   return round2(commission + plantingBonus - deductions);
 }
 
-function poolBonusRate(mode: SalaryEmployeeInput["bonusMode"]): number {
-  if (mode === "chen_pool") return 0.003;
-  if (mode === "lu_pool") return 0.003;
-  if (mode === "xu_pool") return 0.002;
-  return 0;
-}
-
 function poolAmount(
   mode: SalaryEmployeeInput["bonusMode"],
   pools: SalaryLeaveQuotas,
@@ -453,7 +450,8 @@ function computeEmployee(
           plantingBonus,
           deductions,
         )
-      : poolAmount(emp.bonusMode, ctx.leavePools) * poolBonusRate(emp.bonusMode) +
+      : poolAmount(emp.bonusMode, ctx.leavePools) *
+          poolBonusRateForMode(emp.bonusMode, ctx.globalSettings) +
         plantingBonus -
         deductions;
 

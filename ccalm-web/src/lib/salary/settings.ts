@@ -53,6 +53,9 @@ export function createDefaultSalaryGlobalSettings(): SalaryGlobalSettings {
     },
     doctorReceiptDeductionRate: 0.2,
     nurseDeductionRate: 0.2,
+    chenPoolBonusRate: 0.003,
+    luPoolBonusRate: 0.003,
+    xuPoolBonusRate: 0.002,
     plantingBonusPerUnit: 50,
     wuJiechenPlantingBonusPerUnit: 500,
     equipmentInstallments: [],
@@ -174,6 +177,9 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
       settings.nurseDeductionRate,
       defaults.nurseDeductionRate,
     ),
+    chenPoolBonusRate: numRate(settings.chenPoolBonusRate, defaults.chenPoolBonusRate),
+    luPoolBonusRate: numRate(settings.luPoolBonusRate, defaults.luPoolBonusRate),
+    xuPoolBonusRate: numRate(settings.xuPoolBonusRate, defaults.xuPoolBonusRate),
     plantingBonusPerUnit:
       typeof settings.plantingBonusPerUnit === "number"
         ? settings.plantingBonusPerUnit
@@ -201,4 +207,46 @@ export function tierRatesForTitle(
 ): SalaryTierRates {
   if (title === "执业医师") return settings.docTierRates;
   return settings.asstTierRates;
+}
+
+export function poolBonusRateForMode(
+  mode: "tiered" | "chen_pool" | "lu_pool" | "xu_pool",
+  settings: SalaryGlobalSettings,
+): number {
+  if (mode === "chen_pool") return settings.chenPoolBonusRate;
+  if (mode === "lu_pool") return settings.luPoolBonusRate;
+  if (mode === "xu_pool") return settings.xuPoolBonusRate;
+  return 0;
+}
+
+export function bonusRateSettingForMode(
+  mode: "tiered" | "chen_pool" | "lu_pool" | "xu_pool",
+  settings: SalaryGlobalSettings,
+): { rate: number; title: string; patchKey: keyof SalaryGlobalSettings } {
+  if (mode === "chen_pool") {
+    return {
+      rate: settings.chenPoolBonusRate,
+      title: "由设置中的陈美珍池比例",
+      patchKey: "chenPoolBonusRate",
+    };
+  }
+  if (mode === "lu_pool") {
+    return {
+      rate: settings.luPoolBonusRate,
+      title: "由设置中的卢彤池比例",
+      patchKey: "luPoolBonusRate",
+    };
+  }
+  if (mode === "xu_pool") {
+    return {
+      rate: settings.xuPoolBonusRate,
+      title: "由设置中的许桦婧池比例",
+      patchKey: "xuPoolBonusRate",
+    };
+  }
+  return {
+    rate: settings.doctorReceiptDeductionRate,
+    title: "由设置中的医生扣减",
+    patchKey: "doctorReceiptDeductionRate",
+  };
 }

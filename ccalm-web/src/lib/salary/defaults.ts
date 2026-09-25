@@ -399,10 +399,3 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     bonusMode: "tiered",
   };
 }
-
-export const BONUS_MODE_OPTIONS = [
-  { value: "tiered", label: "阶梯奖金" },
-  { value: "chen_pool", label: "陈美珍池" },
-  { value: "lu_pool", label: "卢彤池" },
-  { value: "xu_pool", label: "许桦婧池" },
-] as const;

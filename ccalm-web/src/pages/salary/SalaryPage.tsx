@@ -200,6 +200,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
+  const settingsSaveTimerRef = React.useRef<number | null>(null);
 
   const fetchMonth = React.useCallback(async (month: string, opts?: { persist?: boolean }) => {
     const persist = opts?.persist !== false;
@@ -393,6 +394,26 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         .finally(() => setSaving(false));
     }, 600);
   }, [lockSalary]);
+
+  const patchGlobalSettings = React.useCallback(
+    (patch: Partial<SalaryGlobalSettings>) => {
+      setGlobalSettings((prev) => {
+        const next = normalizeSalaryGlobalSettings({ ...prev, ...patch });
+        if (settingsSaveTimerRef.current) window.clearTimeout(settingsSaveTimerRef.current);
+        settingsSaveTimerRef.current = window.setTimeout(() => {
+          setSaving(true);
+          void api("PUT", "/salary/settings", { data: next }, salaryApi)
+            .catch((e) => {
+              if (handleSalaryAccessError(e, lockSalary)) return;
+              toast.error(errorMessage(e));
+            })
+            .finally(() => setSaving(false));
+        }, 600);
+        return next;
+      });
+    },
+    [lockSalary],
+  );
 
   const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =
@@ -668,6 +689,45 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           onChange={(nurseDeductionRate) =>
                             setSettingsDraft((prev) =>
                               prev ? { ...prev, nurseDeductionRate } : prev,
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>陈美珍池比例(%)</TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={settingsDraft.chenPoolBonusRate}
+                          onChange={(chenPoolBonusRate) =>
+                            setSettingsDraft((prev) =>
+                              prev ? { ...prev, chenPoolBonusRate } : prev,
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>卢彤池比例(%)</TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={settingsDraft.luPoolBonusRate}
+                          onChange={(luPoolBonusRate) =>
+                            setSettingsDraft((prev) =>
+                              prev ? { ...prev, luPoolBonusRate } : prev,
+                            )
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>许桦婧池比例(%)</TableCell>
+                      <TableCell>
+                        <RatePercentInput
+                          value={settingsDraft.xuPoolBonusRate}
+                          onChange={(xuPoolBonusRate) =>
+                            setSettingsDraft((prev) =>
+                              prev ? { ...prev, xuPoolBonusRate } : prev,
                             )
                           }
                         />
@@ -1077,6 +1137,8 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                         />
                         <SalaryEmployeeTable
                           computed={computed}
+                          globalSettings={globalSettings}
+                          patchGlobalSettings={patchGlobalSettings}
                           updateEmployee={updateEmployee}
                           removeEmployee={removeEmployee}
                           onAddEmployee={addEmployee}
