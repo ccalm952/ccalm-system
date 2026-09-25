@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -52,6 +53,7 @@ import {
 } from "@/lib/salary/schedule-leave";
 import type {
   SalaryEmployeeInput,
+  SalaryEquipmentInstallment,
   SalaryGlobalSettings,
   SalaryLeaveQuotas,
   SalarySheetData,
@@ -109,6 +111,7 @@ function computeWithCarryover(
   globalSettings: SalaryGlobalSettings,
 ): ReturnType<typeof computeSalarySheet> {
   return computeSalarySheet(sheet, {
+    month,
     globalSettings,
     priorBonusByName: buildPriorBonusMap(month, sheets, (m) =>
       previousSalaryMonth(m, monthList),
@@ -399,15 +402,21 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   }
 
   function openTierRateSettings() {
-    setSettingsDraft({ ...globalSettings });
+    setSettingsDraft({
+      ...globalSettings,
+      equipmentInstallments: globalSettings.equipmentInstallments.map((plan) => ({
+        ...plan,
+      })),
+    });
     setTierRateSettingsOpen(true);
   }
 
   async function confirmTierRateSettings() {
     if (!settingsDraft) return;
+    const next = normalizeSalaryGlobalSettings(settingsDraft);
     try {
-      await api("PUT", "/salary/settings", { data: settingsDraft }, salaryApi);
-      setGlobalSettings(settingsDraft);
+      await api("PUT", "/salary/settings", { data: next }, salaryApi);
+      setGlobalSettings(next);
       setTierRateSettingsOpen(false);
       toast.success("已保存");
     } catch (e) {
@@ -701,6 +710,161 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                             )
                           }
                         />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>设备分期</TableHead>
+                      <TableHead>总价</TableHead>
+                      <TableHead>期数</TableHead>
+                      <TableHead>起算月</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {settingsDraft.equipmentInstallments.map((plan) => (
+                      <TableRow key={plan.id}>
+                        <TableCell>
+                          <Input
+                            value={plan.name}
+                            onChange={(e) => {
+                              const name = e.target.value;
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      equipmentInstallments: prev.equipmentInstallments.map(
+                                        (row) =>
+                                          row.id === plan.id ? { ...row, name } : row,
+                                      ),
+                                    }
+                                  : prev,
+                              );
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <NumInput
+                            value={plan.totalAmount}
+                            onChange={(totalAmount) =>
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      equipmentInstallments: prev.equipmentInstallments.map(
+                                        (row) =>
+                                          row.id === plan.id
+                                            ? { ...row, totalAmount: Math.max(0, totalAmount) }
+                                            : row,
+                                      ),
+                                    }
+                                  : prev,
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <NumInput
+                            value={plan.months}
+                            onChange={(months) =>
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      equipmentInstallments: prev.equipmentInstallments.map(
+                                        (row) =>
+                                          row.id === plan.id
+                                            ? {
+                                                ...row,
+                                                months: Math.max(1, Math.round(months) || 1),
+                                              }
+                                            : row,
+                                      ),
+                                    }
+                                  : prev,
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            placeholder="YYYY-MM"
+                            value={plan.startMonth}
+                            onChange={(e) => {
+                              const startMonth = e.target.value;
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      equipmentInstallments: prev.equipmentInstallments.map(
+                                        (row) =>
+                                          row.id === plan.id ? { ...row, startMonth } : row,
+                                      ),
+                                    }
+                                  : prev,
+                              );
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      equipmentInstallments:
+                                        prev.equipmentInstallments.filter(
+                                          (row) => row.id !== plan.id,
+                                        ),
+                                    }
+                                  : prev,
+                              )
+                            }
+                          >
+                            <X />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const next: SalaryEquipmentInstallment = {
+                              id:
+                                typeof crypto !== "undefined" && "randomUUID" in crypto
+                                  ? crypto.randomUUID()
+                                  : `eq-${Date.now()}`,
+                              name: "",
+                              totalAmount: 0,
+                              months: 12,
+                              startMonth: dayjs().format("YYYY-MM"),
+                            };
+                            setSettingsDraft((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    equipmentInstallments: [
+                                      ...prev.equipmentInstallments,
+                                      next,
+                                    ],
+                                  }
+                                : prev,
+                            );
+                          }}
+                        >
+                          <Plus data-icon="inline-start" />
+                          添加设备分期
+                        </Button>
                       </TableCell>
                     </TableRow>
                   </TableBody>

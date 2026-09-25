@@ -78,6 +78,7 @@ function computedEmployee(
   globalSettings = settings
 ) {
   return computeSalarySheet(sheet(totalIncome, [input]), {
+    month: "2026-08",
     globalSettings,
   }).employees[0]
 }
@@ -115,6 +116,7 @@ describe("薪资计算", () => {
         }),
       ]),
       {
+        month: "2026-08",
         globalSettings: {
           ...settings,
           nurseDeductionRate: 0.25,
@@ -138,6 +140,7 @@ describe("薪资计算", () => {
         leaveQuotas: { chen: 0, lu: 30, xu: 30 },
       },
       {
+        month: "2026-08",
         globalSettings: {
           ...settings,
           nurseDeductionRate: 0.25,
@@ -154,7 +157,7 @@ describe("薪资计算", () => {
         employee({ id: "wu", name: "吴介尘", plantingCount: 2 }),
         employee({ id: "other", name: "其他员工", plantingCount: 2 }),
       ]),
-      { globalSettings: settings }
+      { month: "2026-08", globalSettings: settings }
     )
 
     expect(result.employees.map((row) => row.plantingBonus)).toEqual([
@@ -175,9 +178,52 @@ describe("薪资计算", () => {
 
     expect(priorBonusByName).toEqual({ 测试员工: -100 })
     const result = computeSalarySheet(february, {
+      month: "2026-02",
       globalSettings: settings,
       priorBonusByName,
     })
     expect(result.employees[0].deductedBase).toBe(900)
+  })
+
+  it("设备分期按起算月与期数计入成本，多笔加总，期满为 0", () => {
+    const base = sheet(100_000, [])
+    const withPlans = {
+      ...settings,
+      equipmentInstallments: [
+        {
+          id: "a",
+          name: "设备A",
+          totalAmount: 150_000,
+          months: 12,
+          startMonth: "2026-07",
+        },
+        {
+          id: "b",
+          name: "设备B",
+          totalAmount: 60_000,
+          months: 6,
+          startMonth: "2026-09",
+        },
+      ],
+    }
+
+    const jul = computeSalarySheet(base, { month: "2026-07", globalSettings: withPlans })
+    expect(jul.equipmentCost).toBe(12_500)
+    expect(jul.costGrandTotal).toBe(12_500)
+
+    const oct = computeSalarySheet(base, { month: "2026-10", globalSettings: withPlans })
+    expect(oct.equipmentCost).toBe(22_500)
+
+    const julNext = computeSalarySheet(base, {
+      month: "2027-07",
+      globalSettings: withPlans,
+    })
+    expect(julNext.equipmentCost).toBe(0)
+
+    const before = computeSalarySheet(base, {
+      month: "2026-06",
+      globalSettings: withPlans,
+    })
+    expect(before.equipmentCost).toBe(0)
   })
 })

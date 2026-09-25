@@ -2,6 +2,7 @@ import type {
   SalaryComputeContext,
   SalaryEmployeeComputed,
   SalaryEmployeeInput,
+  SalaryEquipmentInstallment,
   SalaryGlobalSettings,
   SalaryHousingFundInput,
   SalaryInsuranceInput,
@@ -298,6 +299,40 @@ function calcLeavePools(
   };
 }
 
+function monthOffset(startMonth: string, month: string): number {
+  const [sy, sm] = startMonth.split("-").map(Number);
+  const [my, mm] = month.split("-").map(Number);
+  if (![sy, sm, my, mm].every((n) => Number.isFinite(n))) return Number.NaN;
+  return (my - sy) * 12 + (mm - sm);
+}
+
+/** 单笔分期在指定月份的应摊金额；不在期内返回 0 */
+export function installmentAmountForMonth(
+  plan: SalaryEquipmentInstallment,
+  month: string,
+): number {
+  const offset = monthOffset(plan.startMonth, month);
+  if (!Number.isFinite(offset) || offset < 0 || offset >= plan.months) return 0;
+  if (plan.months <= 0 || plan.totalAmount <= 0) return 0;
+  const monthly = round2(plan.totalAmount / plan.months);
+  if (offset === plan.months - 1) {
+    return round2(plan.totalAmount - monthly * (plan.months - 1));
+  }
+  return monthly;
+}
+
+/** 多笔设备分期在指定月份的应摊合计 */
+export function calcEquipmentCostForMonth(
+  plans: SalaryEquipmentInstallment[],
+  month: string,
+): number {
+  let sum = 0;
+  for (const plan of plans) {
+    sum += installmentAmountForMonth(plan, month);
+  }
+  return round2(sum);
+}
+
 function calcActualReceipt(
   totalIncome: number,
   shareRatio: number,
@@ -475,6 +510,10 @@ export function computeSalarySheet(
   );
 
   const employeePayrollTotal = round2(totals.monthlySalary);
+  const equipmentCost = calcEquipmentCostForMonth(
+    context.globalSettings.equipmentInstallments,
+    context.month,
+  );
 
   const costGrandTotal = round2(
     utilities +
@@ -483,6 +522,7 @@ export function computeSalarySheet(
       planting +
       processing +
       other +
+      equipmentCost +
       insuranceEmployerTotal +
       employeePayrollTotal,
   );
@@ -500,6 +540,7 @@ export function computeSalarySheet(
       monthlySalary: round2(totals.monthlySalary),
     },
     insuranceEmployerTotal,
+    equipmentCost,
     costGrandTotal,
     remaining,
     employeePayrollTotal,
@@ -515,6 +556,7 @@ export function buildPriorBonusMap(
   const prev = getPrevious(month);
   if (!prev || !sheets[prev]) return {};
   return priorBonusMapFromSheet(sheets[prev], {
+    month: prev,
     globalSettings,
     priorBonusByName: buildPriorBonusMap(prev, sheets, getPrevious, globalSettings),
   });

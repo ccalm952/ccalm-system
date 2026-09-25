@@ -1,4 +1,9 @@
-import type { SalaryGlobalSettings, SalaryTierRates, SalaryTierThresholds } from "./types";
+import type {
+  SalaryEquipmentInstallment,
+  SalaryGlobalSettings,
+  SalaryTierRates,
+  SalaryTierThresholds,
+} from "./types";
 
 const WU_JIECHEN_NAME = "吴介尘";
 
@@ -49,6 +54,7 @@ export function createDefaultSalaryGlobalSettings(): SalaryGlobalSettings {
     nurseDeductionRate: 0.2,
     plantingBonusPerUnit: 50,
     wuJiechenPlantingBonusPerUnit: 500,
+    equipmentInstallments: [],
   };
 }
 
@@ -98,6 +104,35 @@ function normalizeTierThresholds(
   };
 }
 
+function normalizeEquipmentInstallments(value: unknown): SalaryEquipmentInstallment[] {
+  if (!Array.isArray(value)) return [];
+  const monthRe = /^\d{4}-\d{2}$/;
+  const result: SalaryEquipmentInstallment[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const row = raw as Partial<SalaryEquipmentInstallment>;
+    const id = typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    const totalAmount =
+      typeof row.totalAmount === "number" && Number.isFinite(row.totalAmount)
+        ? Math.max(0, row.totalAmount)
+        : NaN;
+    const months =
+      typeof row.months === "number" && Number.isFinite(row.months)
+        ? Math.max(1, Math.round(row.months))
+        : NaN;
+    const startMonth =
+      typeof row.startMonth === "string" && monthRe.test(row.startMonth.trim())
+        ? row.startMonth.trim()
+        : "";
+    if (!id || !name || !Number.isFinite(totalAmount) || !Number.isFinite(months) || !startMonth) {
+      continue;
+    }
+    result.push({ id, name, totalAmount, months, startMonth });
+  }
+  return result;
+}
+
 export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettings {
   const defaults = createDefaultSalaryGlobalSettings();
   if (!data || typeof data !== "object") return defaults;
@@ -127,6 +162,7 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
       typeof settings.wuJiechenPlantingBonusPerUnit === "number"
         ? settings.wuJiechenPlantingBonusPerUnit
         : defaults.wuJiechenPlantingBonusPerUnit,
+    equipmentInstallments: normalizeEquipmentInstallments(settings.equipmentInstallments),
   };
 }
 

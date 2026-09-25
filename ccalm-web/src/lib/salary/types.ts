@@ -62,6 +62,18 @@ export type SalaryCostItems = {
   other: number;
 };
 
+/** 设备分期计划（全局；按起算月与期数自动计入各月「设备」成本） */
+export type SalaryEquipmentInstallment = {
+  id: string;
+  name: string;
+  /** 设备总价 */
+  totalAmount: number;
+  /** 分期期数（月） */
+  months: number;
+  /** 起算月份 YYYY-MM */
+  startMonth: string;
+};
+
 export type SalaryCostLine = {
   id: string;
   label: string;
@@ -116,6 +128,8 @@ export type SalaryGlobalSettings = {
   nurseDeductionRate: number;
   plantingBonusPerUnit: number;
   wuJiechenPlantingBonusPerUnit: number;
+  /** 设备分期计划（可多笔；当月应摊金额自动汇总） */
+  equipmentInstallments: SalaryEquipmentInstallment[];
 };
 
 export type SalarySheetData = {
@@ -149,6 +163,8 @@ export type SalarySheetComputed = {
     monthlySalary: number;
   };
   insuranceEmployerTotal: number;
+  /** 当月设备分期应摊合计（由全局计划按月计算） */
+  equipmentCost: number;
   costGrandTotal: number;
   remaining: number;
   employeePayrollTotal: number;
@@ -156,5 +172,7 @@ export type SalarySheetComputed = {
 
 export type SalaryComputeContext = {
   globalSettings: SalaryGlobalSettings;
+  /** 当前计算月份 YYYY-MM，用于设备分期 */
+  month: string;
   priorBonusByName?: Record<string, number>;
 };
