@@ -223,30 +223,16 @@ export function bonusRateSettingForMode(
   mode: "tiered" | "chen_pool" | "lu_pool" | "xu_pool",
   settings: SalaryGlobalSettings,
 ): { rate: number; title: string; patchKey: keyof SalaryGlobalSettings } {
-  if (mode === "chen_pool") {
+  if (mode === "chen_pool" || mode === "lu_pool" || mode === "xu_pool") {
     return {
-      rate: settings.chenPoolBonusRate,
-      title: "由设置中的陈美珍池比例",
-      patchKey: "chenPoolBonusRate",
-    };
-  }
-  if (mode === "lu_pool") {
-    return {
-      rate: settings.luPoolBonusRate,
-      title: "由设置中的卢彤池比例",
-      patchKey: "luPoolBonusRate",
-    };
-  }
-  if (mode === "xu_pool") {
-    return {
-      rate: settings.xuPoolBonusRate,
-      title: "由设置中的许桦婧池比例",
-      patchKey: "xuPoolBonusRate",
+      rate: settings.nurseDeductionRate,
+      title: "护士扣减",
+      patchKey: "nurseDeductionRate",
     };
   }
   return {
     rate: settings.doctorReceiptDeductionRate,
-    title: "由设置中的医生扣减",
+    title: "医生扣减",
     patchKey: "doctorReceiptDeductionRate",
   };
 }

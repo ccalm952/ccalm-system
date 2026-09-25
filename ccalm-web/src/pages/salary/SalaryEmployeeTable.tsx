@@ -59,7 +59,7 @@ export function SalaryEmployeeTable({
         <TableRow>
           <TableHead>职称</TableHead>
           <TableHead>姓名</TableHead>
-          <TableHead>扣减/池比例(%)</TableHead>
+          <TableHead>扣减(%)</TableHead>
           <TableHead>底薪</TableHead>
           <TableHead>扣假后底薪</TableHead>
           <TableHead>实收比例</TableHead>
