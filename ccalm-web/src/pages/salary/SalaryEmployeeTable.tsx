@@ -1,14 +1,6 @@
 import * as React from "react";
 import { Plus, X } from "lucide-react";
 
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -18,16 +10,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { round2, type computeSalarySheet } from "@/lib/salary/calc";
-import { BONUS_MODE_OPTIONS } from "@/lib/salary/defaults";
-import type { SalaryEmployeeInput } from "@/lib/salary/types";
+import { bonusRateSettingForMode } from "@/lib/salary/settings";
+import type { SalaryEmployeeInput, SalaryGlobalSettings } from "@/lib/salary/types";
 
 import {
+  RatePercentInput,
   SalaryOutlineIconButton,
   SummaryDecimalInput,
 } from "./salary-table-inputs";
 
-type BonusModeOption = (typeof BONUS_MODE_OPTIONS)[number];
 type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
 function sumActualReceiptTotal(computed: SalarySheetComputed): number {
@@ -38,11 +35,15 @@ function sumActualReceiptTotal(computed: SalarySheetComputed): number {
 
 export function SalaryEmployeeTable({
   computed,
+  globalSettings,
+  patchGlobalSettings,
   updateEmployee,
   removeEmployee,
   onAddEmployee,
 }: {
   computed: SalarySheetComputed;
+  globalSettings: SalaryGlobalSettings;
+  patchGlobalSettings: (patch: Partial<SalaryGlobalSettings>) => void;
   updateEmployee: (index: number, patch: Partial<SalaryEmployeeInput>) => void;
   removeEmployee: (index: number) => void;
   onAddEmployee: () => void;
@@ -58,7 +59,7 @@ export function SalaryEmployeeTable({
         <TableRow>
           <TableHead>职称</TableHead>
           <TableHead>姓名</TableHead>
-          <TableHead>奖金类型</TableHead>
+          <TableHead>扣减/池比例(%)</TableHead>
           <TableHead>底薪</TableHead>
           <TableHead>扣假后底薪</TableHead>
           <TableHead>实收比例</TableHead>
@@ -76,109 +77,101 @@ export function SalaryEmployeeTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {computed.employees.map((row, index) => (
-          <TableRow key={row.id}>
-            <TableCell>
-              <Input
-                value={row.title}
-                placeholder="职称"
-                onChange={(e) => updateEmployee(index, { title: e.target.value })}
-              />
-            </TableCell>
-            <TableCell>
-              <Input
-                value={row.name}
-                placeholder="姓名"
-                onChange={(e) => updateEmployee(index, { name: e.target.value })}
-              />
-            </TableCell>
-            <TableCell>
-              <Combobox
-                items={[...BONUS_MODE_OPTIONS]}
-                value={
-                  BONUS_MODE_OPTIONS.find((opt) => opt.value === row.bonusMode) ?? null
-                }
-                onValueChange={(opt) => {
-                  if (opt) updateEmployee(index, { bonusMode: opt.value });
-                }}
-                itemToStringValue={(opt: BonusModeOption) => opt.label}
-              >
-                <ComboboxInput placeholder="选择类型" />
-                <ComboboxContent>
-                  <ComboboxEmpty>无匹配项</ComboboxEmpty>
-                  <ComboboxList>
-                    {(opt: BonusModeOption) => (
-                      <ComboboxItem key={opt.value} value={opt}>
-                        {opt.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
-            </TableCell>
-            <TableCell>
-              <Input
-                placeholder="底薪"
-                value={row.baseSalary}
-                onChange={(e) =>
-                  updateEmployee(index, { baseSalary: Number(e.target.value) })
-                }
-              />
-            </TableCell>
-            <TableCell>{row.deductedBase}</TableCell>
-            <TableCell>
-              <SummaryDecimalInput
-                value={row.shareRatio}
-                onCommit={(shareRatio) => updateEmployee(index, { shareRatio })}
-              />
-            </TableCell>
-            <TableCell>{row.actualReceipt}</TableCell>
-            <TableCell>{row.bonus}</TableCell>
-            <TableCell>
-              <Input
-                value={row.plantingCount}
-                onChange={(e) =>
-                  updateEmployee(index, { plantingCount: Number(e.target.value) })
-                }
-              />
-            </TableCell>
-            <TableCell>{row.plantingBonus}</TableCell>
-            <TableCell>{row.monthlySalary}</TableCell>
-            <TableCell>{row.socialInsurance}</TableCell>
-            <TableCell>{row.medicalInsurance}</TableCell>
-            <TableCell>
-              <Input
-                value={row.housingFund}
-                onChange={(e) =>
-                  updateEmployee(index, { housingFund: Number(e.target.value) })
-                }
-              />
-            </TableCell>
-            <TableCell>
-              <Input
-                value={row.leaveDays}
-                onChange={(e) =>
-                  updateEmployee(index, { leaveDays: Number(e.target.value) })
-                }
-              />
-            </TableCell>
-            <TableCell>{row.leaveOffset}</TableCell>
-            <TableCell>
-              <SalaryOutlineIconButton
-                aria-label="删除员工"
-                onClick={() => removeEmployee(index)}
-              >
-                <X className="size-3.5" />
-              </SalaryOutlineIconButton>
-            </TableCell>
-          </TableRow>
-        ))}
+        {computed.employees.map((row, index) => {
+          const rateSetting = bonusRateSettingForMode(row.bonusMode, globalSettings);
+          return (
+            <TableRow key={row.id}>
+              <TableCell>
+                <Input
+                  value={row.title}
+                  placeholder="职称"
+                  onChange={(e) => updateEmployee(index, { title: e.target.value })}
+                />
+              </TableCell>
+              <TableCell>
+                <Input
+                  value={row.name}
+                  placeholder="姓名"
+                  onChange={(e) => updateEmployee(index, { name: e.target.value })}
+                />
+              </TableCell>
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <RatePercentInput
+                      value={rateSetting.rate}
+                      onChange={(rate) =>
+                        patchGlobalSettings({ [rateSetting.patchKey]: rate })
+                      }
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>{rateSetting.title}</TooltipContent>
+                </Tooltip>
+              </TableCell>
+              <TableCell>
+                <Input
+                  placeholder="底薪"
+                  value={row.baseSalary}
+                  onChange={(e) =>
+                    updateEmployee(index, { baseSalary: Number(e.target.value) })
+                  }
+                />
+              </TableCell>
+              <TableCell>{row.deductedBase}</TableCell>
+              <TableCell>
+                <SummaryDecimalInput
+                  value={row.shareRatio}
+                  onCommit={(shareRatio) => updateEmployee(index, { shareRatio })}
+                />
+              </TableCell>
+              <TableCell>{row.actualReceipt}</TableCell>
+              <TableCell>{row.bonus}</TableCell>
+              <TableCell>
+                <Input
+                  value={row.plantingCount}
+                  onChange={(e) =>
+                    updateEmployee(index, { plantingCount: Number(e.target.value) })
+                  }
+                />
+              </TableCell>
+              <TableCell>{row.plantingBonus}</TableCell>
+              <TableCell>{row.monthlySalary}</TableCell>
+              <TableCell>{row.socialInsurance}</TableCell>
+              <TableCell>{row.medicalInsurance}</TableCell>
+              <TableCell>
+                <Input
+                  value={row.housingFund}
+                  onChange={(e) =>
+                    updateEmployee(index, { housingFund: Number(e.target.value) })
+                  }
+                />
+              </TableCell>
+              <TableCell>
+                <Input
+                  value={row.leaveDays}
+                  onChange={(e) =>
+                    updateEmployee(index, { leaveDays: Number(e.target.value) })
+                  }
+                />
+              </TableCell>
+              <TableCell>{row.leaveOffset}</TableCell>
+              <TableCell>
+                <SalaryOutlineIconButton
+                  aria-label="删除员工"
+                  onClick={() => removeEmployee(index)}
+                >
+                  <X className="size-3.5" />
+                </SalaryOutlineIconButton>
+              </TableCell>
+            </TableRow>
+          );
+        })}
         <TableRow>
           <TableCell />
           <TableCell />
           <TableCell />
           <TableCell />
-          <TableCell>{computed.totals.deductedBase}</TableCell>
+          <TableCell />
           <TableCell>{computed.totals.shareRatio}</TableCell>
           <TableCell>{actualReceiptTotal}</TableCell>
           <TableCell>{computed.totals.bonus}</TableCell>
