@@ -9,6 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -24,11 +29,21 @@ import {
   formatScheduleLeaveDays,
   scheduleLeaveSourceMonthLabel,
 } from "@/lib/salary/schedule-leave";
-import type { SalaryMaterialLine, SalarySheetData } from "@/lib/salary/types";
+import type {
+  SalaryMaterialLine,
+  SalaryOtherCostItem,
+  SalarySheetData,
+} from "@/lib/salary/types";
 
 import { NumInput, SummaryDecimalInput } from "./salary-table-inputs";
 
 type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
+
+type CostLinePreview = {
+  id: string;
+  name: string;
+  amount: number;
+};
 
 function newMaterialLine(): SalaryMaterialLine {
   return {
@@ -41,16 +56,46 @@ function newMaterialLine(): SalaryMaterialLine {
   };
 }
 
+function CostAmountHover({
+  total,
+  lines,
+}: {
+  total: number;
+  lines: CostLinePreview[];
+}) {
+  return (
+    <HoverCard>
+      <HoverCardTrigger render={<span />}>{total}</HoverCardTrigger>
+      <HoverCardContent>
+        {lines.length === 0 ? (
+          <div>暂无明细</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {lines.map((line) => (
+              <div key={line.id} className="flex justify-between gap-4">
+                <span>{line.name || "（未命名）"}</span>
+                <span>{line.amount}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 export function SalarySummaryTable({
   sheet,
   computed,
   month,
   patchSheet,
+  otherCostItems,
 }: {
   sheet: SalarySheetData;
   computed: SalarySheetComputed;
   month: string;
   patchSheet: (month: string, patch: SalarySheetData) => void;
+  otherCostItems: SalaryOtherCostItem[];
 }) {
   const [materialsOpen, setMaterialsOpen] = React.useState(false);
   const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([]);
@@ -176,7 +221,12 @@ export function SalarySummaryTable({
                 }
               />
             </TableCell>
-            <TableCell title="点击表头「材料」编辑明细">{sheet.costItems.materials}</TableCell>
+            <TableCell>
+              <CostAmountHover
+                total={sheet.costItems.materials}
+                lines={sheet.materialLines}
+              />
+            </TableCell>
             <TableCell>
               <SummaryDecimalInput
                 value={sheet.costItems.planting}
@@ -199,7 +249,9 @@ export function SalarySummaryTable({
                 }
               />
             </TableCell>
-            <TableCell title="由设置中的其他成本项目加总">{computed.otherCost}</TableCell>
+            <TableCell>
+              <CostAmountHover total={computed.otherCost} lines={otherCostItems} />
+            </TableCell>
             <TableCell title="由设置中的设备分期计划按月自动计算">
               {computed.equipmentCost}
             </TableCell>
