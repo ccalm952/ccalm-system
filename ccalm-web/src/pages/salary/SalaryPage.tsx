@@ -661,39 +661,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>实收扣减</TableHead>
+                      <TableHead>护士池比例</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell>医生扣减(%)</TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={settingsDraft.doctorReceiptDeductionRate}
-                          onChange={(doctorReceiptDeductionRate) =>
-                            setSettingsDraft((prev) =>
-                              prev
-                                ? { ...prev, doctorReceiptDeductionRate }
-                                : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>护士扣减(%)</TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={settingsDraft.nurseDeductionRate}
-                          onChange={(nurseDeductionRate) =>
-                            setSettingsDraft((prev) =>
-                              prev ? { ...prev, nurseDeductionRate } : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
                     <TableRow>
                       <TableCell>陈美珍池比例(%)</TableCell>
                       <TableCell>
