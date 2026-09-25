@@ -74,6 +74,13 @@ export type SalaryEquipmentInstallment = {
   startMonth: string;
 };
 
+/** 其他成本项目（全局；名称 + 费用，多笔加总进「其他」） */
+export type SalaryOtherCostItem = {
+  id: string;
+  name: string;
+  amount: number;
+};
+
 export type SalaryCostLine = {
   id: string;
   label: string;
@@ -130,6 +137,8 @@ export type SalaryGlobalSettings = {
   wuJiechenPlantingBonusPerUnit: number;
   /** 设备分期计划（可多笔；当月应摊金额自动汇总） */
   equipmentInstallments: SalaryEquipmentInstallment[];
+  /** 其他成本项目（可多笔；费用加总进「其他」） */
+  otherCostItems: SalaryOtherCostItem[];
 };
 
 export type SalarySheetData = {
@@ -165,6 +174,8 @@ export type SalarySheetComputed = {
   insuranceEmployerTotal: number;
   /** 当月设备分期应摊合计（由全局计划按月计算） */
   equipmentCost: number;
+  /** 其他成本合计（由全局其他成本项目加总） */
+  otherCost: number;
   costGrandTotal: number;
   remaining: number;
   employeePayrollTotal: number;
