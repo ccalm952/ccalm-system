@@ -9,12 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -45,6 +45,8 @@ type CostLinePreview = {
   amount: number;
 };
 
+type CostPreviewKey = "materials" | "other" | "grandTotal";
+
 function newMaterialLine(): SalaryMaterialLine {
   return {
     id:
@@ -56,17 +58,26 @@ function newMaterialLine(): SalaryMaterialLine {
   };
 }
 
-function CostAmountHover({
+function CostAmountPopover({
+  previewKey,
+  openKey,
+  onOpenKeyChange,
   total,
   lines,
 }: {
+  previewKey: CostPreviewKey;
+  openKey: CostPreviewKey | null;
+  onOpenKeyChange: (key: CostPreviewKey | null) => void;
   total: number;
   lines: CostLinePreview[];
 }) {
   return (
-    <HoverCard>
-      <HoverCardTrigger render={<Button variant="link" />}>{total}</HoverCardTrigger>
-      <HoverCardContent>
+    <Popover
+      open={openKey === previewKey}
+      onOpenChange={(open) => onOpenKeyChange(open ? previewKey : null)}
+    >
+      <PopoverTrigger render={<Button variant="link" />}>{total}</PopoverTrigger>
+      <PopoverContent>
         {lines.length === 0 ? (
           <div>暂无明细</div>
         ) : (
@@ -79,8 +90,8 @@ function CostAmountHover({
             ))}
           </div>
         )}
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -99,6 +110,7 @@ export function SalarySummaryTable({
 }) {
   const [materialsOpen, setMaterialsOpen] = React.useState(false);
   const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([]);
+  const [openPreview, setOpenPreview] = React.useState<CostPreviewKey | null>(null);
 
   function openMaterials() {
     setDraftLines(sheet.materialLines.map((line) => ({ ...line })));
@@ -234,7 +246,10 @@ export function SalarySummaryTable({
               />
             </TableCell>
             <TableCell>
-              <CostAmountHover
+              <CostAmountPopover
+                previewKey="materials"
+                openKey={openPreview}
+                onOpenKeyChange={setOpenPreview}
                 total={sheet.costItems.materials}
                 lines={sheet.materialLines}
               />
@@ -262,7 +277,13 @@ export function SalarySummaryTable({
               />
             </TableCell>
             <TableCell>
-              <CostAmountHover total={computed.otherCost} lines={otherCostItems} />
+              <CostAmountPopover
+                previewKey="other"
+                openKey={openPreview}
+                onOpenKeyChange={setOpenPreview}
+                total={computed.otherCost}
+                lines={otherCostItems}
+              />
             </TableCell>
             <TableCell title="由设置中的设备分期计划按月自动计算">
               {computed.equipmentCost}
@@ -270,7 +291,10 @@ export function SalarySummaryTable({
             <TableCell>{computed.insuranceEmployerTotal}</TableCell>
             <TableCell>{computed.employeePayrollTotal}</TableCell>
             <TableCell>
-              <CostAmountHover
+              <CostAmountPopover
+                previewKey="grandTotal"
+                openKey={openPreview}
+                onOpenKeyChange={setOpenPreview}
                 total={computed.costGrandTotal}
                 lines={costGrandTotalLines}
               />
