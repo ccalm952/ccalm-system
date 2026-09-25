@@ -65,7 +65,7 @@ function CostAmountHover({
 }) {
   return (
     <HoverCard>
-      <HoverCardTrigger render={<span />}>{total}</HoverCardTrigger>
+      <HoverCardTrigger render={<Button variant="link" />}>{total}</HoverCardTrigger>
       <HoverCardContent>
         {lines.length === 0 ? (
           <div>暂无明细</div>
