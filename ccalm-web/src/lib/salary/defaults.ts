@@ -16,10 +16,20 @@ import type {
 
 let employeeId = 0;
 function emp(
-  partial: Omit<SalarySheetData["employees"][number], "id">,
+  partial: Partial<Omit<SalarySheetData["employees"][number], "id">> &
+    Pick<SalarySheetData["employees"][number], "title" | "name" | "bonusMode">,
 ): SalarySheetData["employees"][number] {
   employeeId += 1;
-  return { id: `emp-${employeeId}`, deductionRate: 0.2, ...partial };
+  return {
+    id: `emp-${employeeId}`,
+    baseSalary: 5000,
+    shareRatio: 0,
+    plantingCount: 0,
+    leaveDays: 0,
+    housingFund: 0,
+    deductionRate: 0.2,
+    ...partial,
+  };
 }
 
 /** 根据 YYYY-MM（如 2026-06 / 标签 2606）返回当月自然日天数 */
