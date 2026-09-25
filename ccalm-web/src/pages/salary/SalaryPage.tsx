@@ -1073,6 +1073,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           computed={computed}
                           month={month}
                           patchSheet={patchSheet}
+                          otherCostItems={globalSettings.otherCostItems}
                         />
                         <SalaryEmployeeTable
                           computed={computed}
