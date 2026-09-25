@@ -23,6 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { computeSalarySheet } from "@/lib/salary/calc";
 import { sumMaterialLines } from "@/lib/salary/defaults";
 import {
@@ -191,23 +196,35 @@ export function SalarySummaryTable({
             <TableCell>{computed.netIncome}</TableCell>
             <TableCell>{computed.remaining}</TableCell>
             <TableCell>{(computed.profitRate * 100).toFixed(2)}%</TableCell>
-            <TableCell
-              title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
-              className="text-muted-foreground"
-            >
-              {formatScheduleLeaveDays(sheet.leaveQuotas.chen)}
+            <TableCell className="text-muted-foreground">
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  {formatScheduleLeaveDays(sheet.leaveQuotas.chen)}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+                </TooltipContent>
+              </Tooltip>
             </TableCell>
-            <TableCell
-              title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
-              className="text-muted-foreground"
-            >
-              {formatScheduleLeaveDays(sheet.leaveQuotas.lu)}
+            <TableCell className="text-muted-foreground">
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  {formatScheduleLeaveDays(sheet.leaveQuotas.lu)}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+                </TooltipContent>
+              </Tooltip>
             </TableCell>
-            <TableCell
-              title={`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
-              className="text-muted-foreground"
-            >
-              {formatScheduleLeaveDays(sheet.leaveQuotas.xu)}
+            <TableCell className="text-muted-foreground">
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  {formatScheduleLeaveDays(sheet.leaveQuotas.xu)}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`排班表 ${scheduleLeaveSourceMonthLabel(month)} 请假天数`}
+                </TooltipContent>
+              </Tooltip>
             </TableCell>
             <TableCell>
               <Input
@@ -285,8 +302,13 @@ export function SalarySummaryTable({
                 lines={otherCostItems}
               />
             </TableCell>
-            <TableCell title="由设置中的设备分期计划按月自动计算">
-              {computed.equipmentCost}
+            <TableCell>
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  {computed.equipmentCost}
+                </TooltipTrigger>
+                <TooltipContent>由设置中的设备分期计划按月自动计算</TooltipContent>
+              </Tooltip>
             </TableCell>
             <TableCell>{computed.insuranceEmployerTotal}</TableCell>
             <TableCell>{computed.employeePayrollTotal}</TableCell>

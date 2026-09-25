@@ -10,6 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { round2, type computeSalarySheet } from "@/lib/salary/calc";
 import { bonusRateSettingForMode } from "@/lib/salary/settings";
 import type { SalaryEmployeeInput, SalaryGlobalSettings } from "@/lib/salary/types";
@@ -90,13 +95,18 @@ export function SalaryEmployeeTable({
                   onChange={(e) => updateEmployee(index, { name: e.target.value })}
                 />
               </TableCell>
-              <TableCell title={rateSetting.title}>
-                <RatePercentInput
-                  value={rateSetting.rate}
-                  onChange={(rate) =>
-                    patchGlobalSettings({ [rateSetting.patchKey]: rate })
-                  }
-                />
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <RatePercentInput
+                      value={rateSetting.rate}
+                      onChange={(rate) =>
+                        patchGlobalSettings({ [rateSetting.patchKey]: rate })
+                      }
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>{rateSetting.title}</TooltipContent>
+                </Tooltip>
               </TableCell>
               <TableCell>
                 <Input
