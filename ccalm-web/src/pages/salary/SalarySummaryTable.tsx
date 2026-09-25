@@ -122,6 +122,18 @@ export function SalarySummaryTable({
     setMaterialsOpen(false);
   }
 
+  const costGrandTotalLines: CostLinePreview[] = [
+    { id: "utilities", name: "水电", amount: sheet.costItems.utilities },
+    { id: "rent", name: "租金", amount: sheet.costItems.rent },
+    { id: "materials", name: "材料", amount: sheet.costItems.materials },
+    { id: "planting", name: "种植", amount: sheet.costItems.planting },
+    { id: "processing", name: "加工", amount: sheet.costItems.processing },
+    { id: "other", name: "其他", amount: computed.otherCost },
+    { id: "equipment", name: "设备", amount: computed.equipmentCost },
+    { id: "insurance", name: "五险一金", amount: computed.insuranceEmployerTotal },
+    { id: "employee", name: "员工", amount: computed.employeePayrollTotal },
+  ];
+
   return (
     <>
       <Table className="table-fixed">
@@ -257,7 +269,12 @@ export function SalarySummaryTable({
             </TableCell>
             <TableCell>{computed.insuranceEmployerTotal}</TableCell>
             <TableCell>{computed.employeePayrollTotal}</TableCell>
-            <TableCell>{computed.costGrandTotal}</TableCell>
+            <TableCell>
+              <CostAmountHover
+                total={computed.costGrandTotal}
+                lines={costGrandTotalLines}
+              />
+            </TableCell>
           </TableRow>
         </TableBody>
       </Table>
