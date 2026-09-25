@@ -19,6 +19,7 @@ function employee(
     leaveDays: 0,
     housingFund: 0,
     bonusMode: "tiered",
+    deductionRate: 0.2,
     ...partial,
   }
 }
@@ -92,9 +93,8 @@ describe("薪资计算", () => {
     [100_001, 14_000.2],
   ])("在实收 %i 的档位边界计算奖金", (actualReceipt, bonus) => {
     expect(
-      computedEmployee(actualReceipt, employee(), {
+      computedEmployee(actualReceipt, employee({ deductionRate: 0 }), {
         ...settings,
-        doctorReceiptDeductionRate: 0,
       }).bonus
     ).toBe(bonus)
   })
@@ -105,7 +105,7 @@ describe("薪资计算", () => {
     expect(row.bonus).toBe(4_400)
   })
 
-  it("护士个人池按总收入×(1−护士扣减%)计算，请假与池比例不变", () => {
+  it("护士个人池按总收入×(1−个人扣减%)计算，请假与池比例不变", () => {
     const result = computeSalarySheet(
       sheet(100_000, [
         employee({
@@ -114,14 +114,12 @@ describe("薪资计算", () => {
           title: "护士",
           bonusMode: "chen_pool",
           shareRatio: 0,
+          deductionRate: 0.25,
         }),
       ]),
       {
         month: "2026-08",
-        globalSettings: {
-          ...settings,
-          nurseDeductionRate: 0.25,
-        },
+        globalSettings: settings,
       },
     )
     // 净收入 75000，请假 30 天 → 个人池 0 → 奖金 0
@@ -136,16 +134,14 @@ describe("薪资计算", () => {
             title: "护士",
             bonusMode: "chen_pool",
             shareRatio: 0,
+            deductionRate: 0.25,
           }),
         ]),
         leaveQuotas: { chen: 0, lu: 30, xu: 30 },
       },
       {
         month: "2026-08",
-        globalSettings: {
-          ...settings,
-          nurseDeductionRate: 0.25,
-        },
+        globalSettings: settings,
       },
     )
     // 个人池 = 75000，奖金 = 75000 × 0.003 = 225

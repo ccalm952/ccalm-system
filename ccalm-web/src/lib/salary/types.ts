@@ -19,6 +19,8 @@ export type SalaryEmployeeInput = {
   leaveDays: number;
   housingFund: number;
   bonusMode: SalaryBonusMode;
+  /** 个人扣减比例：阶梯为实收扣减，池行为护士扣减；如 0.2 表示 20% */
+  deductionRate: number;
 };
 
 export type SalaryInsuranceInput = {

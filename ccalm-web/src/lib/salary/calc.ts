@@ -14,6 +14,7 @@ import type {
   SalaryTierThresholds,
 } from "./types";
 import {
+  defaultDeductionRateForMode,
   plantingBonusPerUnitForEmployee,
   poolBonusRateForMode,
   tierRatesForTitle,
@@ -288,20 +289,37 @@ function employerHousingTotal(housing: SalaryHousingFundInput): number {
   return round2(housing.base * housing.employerRate * housing.employerCount);
 }
 
-function calcLeavePools(
-  netIncome: number,
-  daysInMonth: number,
+function poolLeaveDays(
+  mode: SalaryEmployeeInput["bonusMode"],
   quotas: SalaryLeaveQuotas,
-): SalaryLeaveQuotas {
-  if (daysInMonth <= 0) {
-    return { chen: 0, lu: 0, xu: 0 };
+): number {
+  if (mode === "chen_pool") return quotas.chen;
+  if (mode === "lu_pool") return quotas.lu;
+  if (mode === "xu_pool") return quotas.xu;
+  return 0;
+}
+
+/** 个人池 = 总收入×(1−个人扣减%) 按日出勤折算 */
+function calcPersonalLeavePool(
+  totalIncome: number,
+  deductionRate: number,
+  daysInMonth: number,
+  leaveDays: number,
+): number {
+  if (daysInMonth <= 0) return 0;
+  const poolIncome = totalIncome * (1 - deductionRate);
+  const daily = poolIncome / daysInMonth;
+  return round2(daily * (daysInMonth - leaveDays));
+}
+
+function resolveDeductionRate(
+  emp: SalaryEmployeeInput,
+  settings: SalaryGlobalSettings,
+): number {
+  if (typeof emp.deductionRate === "number" && Number.isFinite(emp.deductionRate)) {
+    return emp.deductionRate;
   }
-  const daily = netIncome / daysInMonth;
-  return {
-    chen: round2(daily * (daysInMonth - quotas.chen)),
-    lu: round2(daily * (daysInMonth - quotas.lu)),
-    xu: round2(daily * (daysInMonth - quotas.xu)),
-  };
+  return defaultDeductionRateForMode(emp.bonusMode, settings);
 }
 
 function monthOffset(startMonth: string, month: string): number {
@@ -396,16 +414,6 @@ function calcTieredBonus(
   return round2(commission + plantingBonus - deductions);
 }
 
-function poolAmount(
-  mode: SalaryEmployeeInput["bonusMode"],
-  pools: SalaryLeaveQuotas,
-): number {
-  if (mode === "chen_pool") return pools.chen;
-  if (mode === "lu_pool") return pools.lu;
-  if (mode === "xu_pool") return pools.xu;
-  return 0;
-}
-
 function computeEmployee(
   emp: SalaryEmployeeInput,
   ctx: {
@@ -413,7 +421,7 @@ function computeEmployee(
     globalSettings: SalaryGlobalSettings;
     daysInMonth: number;
     workingDays: number;
-    leavePools: SalaryLeaveQuotas;
+    leaveQuotas: SalaryLeaveQuotas;
     social: number;
     medical: number;
     priorBonusByName: Record<string, number>;
@@ -426,13 +434,10 @@ function computeEmployee(
   const priorBonus = ctx.priorBonusByName[emp.name] ?? 0;
   const priorBonusCarryover = Math.min(0, priorBonus);
   const deductedBase = round2(emp.baseSalary - leaveOffset + priorBonusCarryover);
+  const deductionRate = resolveDeductionRate(emp, ctx.globalSettings);
   const actualReceipt =
     emp.bonusMode === "tiered"
-      ? calcActualReceipt(
-          ctx.totalIncome,
-          emp.shareRatio,
-          ctx.globalSettings.doctorReceiptDeductionRate,
-        )
+      ? calcActualReceipt(ctx.totalIncome, emp.shareRatio, deductionRate)
       : 0;
   const plantingBonus = round2(
     emp.plantingCount *
@@ -450,7 +455,12 @@ function computeEmployee(
           plantingBonus,
           deductions,
         )
-      : poolAmount(emp.bonusMode, ctx.leavePools) *
+      : calcPersonalLeavePool(
+          ctx.totalIncome,
+          deductionRate,
+          ctx.daysInMonth,
+          poolLeaveDays(emp.bonusMode, ctx.leaveQuotas),
+        ) *
           poolBonusRateForMode(emp.bonusMode, ctx.globalSettings) +
         plantingBonus -
         deductions;
@@ -476,16 +486,7 @@ export function computeSalarySheet(
   const otherCost = calcOtherCostFromItems(context.globalSettings.otherCostItems);
   const costTotal = round2(materials + planting + otherCost + processing);
 
-  // 汇总「实收入」仍按成本扣减；护士个人池改用总收入 × (1 − 护士扣减%)
   const netIncome = round2(data.summary.totalIncome - costTotal);
-  const nursePoolIncome = round2(
-    data.summary.totalIncome * (1 - context.globalSettings.nurseDeductionRate),
-  );
-  const leavePools = calcLeavePools(
-    nursePoolIncome,
-    data.summary.daysInMonth,
-    data.leaveQuotas,
-  );
 
   const social = personalSocial(data.insurance);
   const medical = personalMedical(data.insurance);
@@ -497,7 +498,7 @@ export function computeSalarySheet(
       globalSettings: context.globalSettings,
       daysInMonth: data.summary.daysInMonth,
       workingDays: data.summary.workingDays,
-      leavePools,
+      leaveQuotas: data.leaveQuotas,
       social,
       medical,
       priorBonusByName,

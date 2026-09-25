@@ -219,20 +219,13 @@ export function poolBonusRateForMode(
   return 0;
 }
 
-export function bonusRateSettingForMode(
+/** 旧数据缺省时：阶梯用医生扣减默认，池行用护士扣减默认 */
+export function defaultDeductionRateForMode(
   mode: "tiered" | "chen_pool" | "lu_pool" | "xu_pool",
   settings: SalaryGlobalSettings,
-): { rate: number; title: string; patchKey: keyof SalaryGlobalSettings } {
+): number {
   if (mode === "chen_pool" || mode === "lu_pool" || mode === "xu_pool") {
-    return {
-      rate: settings.nurseDeductionRate,
-      title: "护士扣减",
-      patchKey: "nurseDeductionRate",
-    };
+    return settings.nurseDeductionRate;
   }
-  return {
-    rate: settings.doctorReceiptDeductionRate,
-    title: "医生扣减",
-    patchKey: "doctorReceiptDeductionRate",
-  };
+  return settings.doctorReceiptDeductionRate;
 }

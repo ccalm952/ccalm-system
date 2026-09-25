@@ -1,10 +1,12 @@
 import dayjs from "dayjs";
 
 import { round2 } from "./calc";
+import { defaultDeductionRateForMode } from "./settings";
 import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
+  SalaryGlobalSettings,
   SalaryMaterialLine,
   SalaryOperatingExpenses,
   SalaryOperatingLine,
@@ -17,7 +19,7 @@ function emp(
   partial: Omit<SalarySheetData["employees"][number], "id">,
 ): SalarySheetData["employees"][number] {
   employeeId += 1;
-  return { id: `emp-${employeeId}`, ...partial };
+  return { id: `emp-${employeeId}`, deductionRate: 0.2, ...partial };
 }
 
 /** 根据 YYYY-MM（如 2026-06 / 标签 2606）返回当月自然日天数 */
@@ -329,6 +331,36 @@ export function sumMaterialLines(lines: SalaryMaterialLine[]): number {
   return round2(lines.reduce((sum, line) => sum + line.amount, 0));
 }
 
+function normalizeEmployees(
+  employees: SalarySheetData["employees"],
+): SalarySheetData["employees"] {
+  return employees.map((row) => {
+    if (typeof row.deductionRate === "number" && Number.isFinite(row.deductionRate)) {
+      return row;
+    }
+    return { ...row, deductionRate: Number.NaN };
+  });
+}
+
+/** 缺省扣减时用全局医生/护士扣减默认值补齐（便于旧月数据迁移） */
+export function ensureEmployeeDeductionRates(
+  sheet: SalarySheetData,
+  settings: SalaryGlobalSettings,
+): SalarySheetData {
+  let changed = false;
+  const employees = sheet.employees.map((row) => {
+    if (typeof row.deductionRate === "number" && Number.isFinite(row.deductionRate)) {
+      return row;
+    }
+    changed = true;
+    return {
+      ...row,
+      deductionRate: defaultDeductionRateForMode(row.bonusMode, settings),
+    };
+  });
+  return changed ? { ...sheet, employees } : sheet;
+}
+
 export function normalizeSalarySheet(data: unknown, month: string): SalarySheetData {
   if (!data || typeof data !== "object") {
     return createDefaultSalarySheet(month);
@@ -354,7 +386,7 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
         workingDays: stripped.summary.workingDays || 25,
       },
       leaveQuotas: stripped.leaveQuotas,
-      employees: stripped.employees as SalarySheetData["employees"],
+      employees: normalizeEmployees(stripped.employees as SalarySheetData["employees"]),
       insurance: stripped.insurance,
       housingFund: stripped.housingFund,
       costItems: { ...costItems, materials },
@@ -397,5 +429,6 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     leaveDays: 0,
     housingFund: 0,
     bonusMode: "tiered",
+    deductionRate: 0.2,
   };
 }

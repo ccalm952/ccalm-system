@@ -46,6 +46,7 @@ import {
   formatSalaryMonthTab,
   isSalarySheetData,
   normalizeSalarySheet,
+  ensureEmployeeDeductionRates,
   previousSalaryMonth,
   resolveDefaultSalarySheet,
 } from "@/lib/salary/defaults";
@@ -200,7 +201,6 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
-  const settingsSaveTimerRef = React.useRef<number | null>(null);
 
   const fetchMonth = React.useCallback(async (month: string, opts?: { persist?: boolean }) => {
     const persist = opts?.persist !== false;
@@ -210,17 +210,26 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       undefined,
       salaryApi,
     );
-    const data = normalizeSalarySheet(res.data, month);
+    const data = ensureEmployeeDeductionRates(
+      normalizeSalarySheet(res.data, month),
+      globalSettings,
+    );
     const rawDays =
       isSalarySheetData(res.data) ? res.data.summary.daysInMonth : undefined;
+    const missingDeduction = (res.data?.employees ?? []).some(
+      (row) =>
+        !(typeof row.deductionRate === "number" && Number.isFinite(row.deductionRate)),
+    );
     if (
       persist &&
-      (!isSalarySheetData(res.data) || rawDays !== calendarDaysForMonth(month))
+      (!isSalarySheetData(res.data) ||
+        rawDays !== calendarDaysForMonth(month) ||
+        missingDeduction)
     ) {
       await api("PUT", `/salary/${month}`, { data }, salaryApi);
     }
     return data;
-  }, []);
+  }, [globalSettings]);
 
   const lockSalary = React.useCallback(() => {
     setSheets({});
@@ -394,26 +403,6 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         .finally(() => setSaving(false));
     }, 600);
   }, [lockSalary]);
-
-  const patchGlobalSettings = React.useCallback(
-    (patch: Partial<SalaryGlobalSettings>) => {
-      setGlobalSettings((prev) => {
-        const next = normalizeSalaryGlobalSettings({ ...prev, ...patch });
-        if (settingsSaveTimerRef.current) window.clearTimeout(settingsSaveTimerRef.current);
-        settingsSaveTimerRef.current = window.setTimeout(() => {
-          setSaving(true);
-          void api("PUT", "/salary/settings", { data: next }, salaryApi)
-            .catch((e) => {
-              if (handleSalaryAccessError(e, lockSalary)) return;
-              toast.error(errorMessage(e));
-            })
-            .finally(() => setSaving(false));
-        }, 600);
-        return next;
-      });
-    },
-    [lockSalary],
-  );
 
   const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =
@@ -1109,8 +1098,6 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                         />
                         <SalaryEmployeeTable
                           computed={computed}
-                          globalSettings={globalSettings}
-                          patchGlobalSettings={patchGlobalSettings}
                           updateEmployee={updateEmployee}
                           removeEmployee={removeEmployee}
                           onAddEmployee={addEmployee}
