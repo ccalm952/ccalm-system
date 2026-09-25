@@ -47,6 +47,7 @@ export function SalarySummaryTable({
           <TableHead>种植</TableHead>
           <TableHead>加工</TableHead>
           <TableHead>其他</TableHead>
+          <TableHead>设备</TableHead>
           <TableHead>五险一金</TableHead>
           <TableHead>员工</TableHead>
           <TableHead>成本总计</TableHead>
@@ -166,6 +167,7 @@ export function SalarySummaryTable({
               }
             />
           </TableCell>
+          <TableCell title="由设置中的设备分期计划按月自动计算">{computed.equipmentCost}</TableCell>
           <TableCell>{computed.insuranceEmployerTotal}</TableCell>
           <TableCell>{computed.employeePayrollTotal}</TableCell>
           <TableCell>{computed.costGrandTotal}</TableCell>
