@@ -77,6 +77,25 @@ import { SalarySummaryTable } from "./SalarySummaryTable";
 import { NumInput, RatePercentInput } from "./salary-table-inputs";
 import { SalaryTierRatesRow } from "./SalaryTierRatesRow";
 
+const SALARY_LAST_MONTH_KEY = "salary_last_month";
+
+function readLastSalaryMonth(): string {
+  try {
+    return localStorage.getItem(SALARY_LAST_MONTH_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeLastSalaryMonth(month: string) {
+  try {
+    if (!month) localStorage.removeItem(SALARY_LAST_MONTH_KEY);
+    else localStorage.setItem(SALARY_LAST_MONTH_KEY, month);
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 function sameLeaveQuotas(a: SalaryLeaveQuotas, b: SalaryLeaveQuotas): boolean {
   return a.chen === b.chen && a.lu === b.lu && a.xu === b.xu;
 }
@@ -215,6 +234,8 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     setMonths(list);
     setActiveMonth((prev) => {
       if (prev && list.includes(prev)) return prev;
+      const remembered = readLastSalaryMonth();
+      if (remembered && list.includes(remembered)) return remembered;
       return list[list.length - 1] ?? "";
     });
     return list;
@@ -349,6 +370,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
   React.useEffect(() => {
     if (activeMonth) void refreshScheduleLeaveQuotas(activeMonth);
   }, [activeMonth, refreshScheduleLeaveQuotas]);
+
+  React.useEffect(() => {
+    if (activeMonth) writeLastSalaryMonth(activeMonth);
+  }, [activeMonth]);
 
   React.useEffect(() => {
     if (activeMonth) void loadMonth(activeMonth);
