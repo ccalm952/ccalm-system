@@ -5,6 +5,7 @@ import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
+  SalaryMaterialLine,
   SalaryOperatingExpenses,
   SalaryOperatingLine,
   SalaryProcessingLine,
@@ -34,13 +35,24 @@ export function applyMonthCalendar(sheet: SalarySheetData, month: string): Salar
   };
 }
 
-/** 有自定义模板则按其生成该月表，否则用内置默认模板 */
+/** 有自定义模板则按其生成该月表，否则用内置默认模板；材料明细始终为空 */
 export function resolveDefaultSalarySheet(
   month: string,
   template: SalarySheetData | null | undefined,
 ): SalarySheetData {
-  if (template) return normalizeSalarySheet(template, month);
-  return createDefaultSalarySheet(month);
+  const sheet = template
+    ? normalizeSalarySheet(template, month)
+    : createDefaultSalarySheet(month);
+  return clearMaterialLines(sheet);
+}
+
+/** 设为默认时去掉材料明细，避免带到新月 */
+export function clearMaterialLines(sheet: SalarySheetData): SalarySheetData {
+  return {
+    ...sheet,
+    materialLines: [],
+    costItems: { ...sheet.costItems, materials: 0 },
+  };
 }
 
 function createDefaultSalarySheet(month: string): SalarySheetData {
@@ -184,6 +196,7 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
       processing: 0,
       other: 0,
     },
+    materialLines: [],
   };
 }
 
@@ -286,6 +299,36 @@ export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
   );
 }
 
+function normalizeMaterialLines(
+  raw: unknown,
+  materialsTotal: number,
+): SalaryMaterialLine[] {
+  if (Array.isArray(raw)) {
+    const lines: SalaryMaterialLine[] = [];
+    for (const item of raw) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Partial<SalaryMaterialLine>;
+      const id = typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
+      const name = typeof row.name === "string" ? row.name.trim() : "";
+      const amount =
+        typeof row.amount === "number" && Number.isFinite(row.amount)
+          ? Math.max(0, row.amount)
+          : NaN;
+      if (!id || !name || !Number.isFinite(amount)) continue;
+      lines.push({ id, name, amount });
+    }
+    return lines;
+  }
+  if (materialsTotal > 0) {
+    return [{ id: nextEntityId("mat"), name: "材料", amount: materialsTotal }];
+  }
+  return [];
+}
+
+export function sumMaterialLines(lines: SalaryMaterialLine[]): number {
+  return round2(lines.reduce((sum, line) => sum + line.amount, 0));
+}
+
 export function normalizeSalarySheet(data: unknown, month: string): SalarySheetData {
   if (!data || typeof data !== "object") {
     return createDefaultSalarySheet(month);
@@ -297,6 +340,13 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
     return createDefaultSalarySheet(month);
   }
 
+  const costItems = normalizeCostItems(stripped);
+  const materialLines = normalizeMaterialLines(
+    (stripped as { materialLines?: unknown }).materialLines,
+    costItems.materials,
+  );
+  const materials = sumMaterialLines(materialLines);
+
   return applyMonthCalendar(
     {
       summary: {
@@ -307,7 +357,8 @@ export function normalizeSalarySheet(data: unknown, month: string): SalarySheetD
       employees: stripped.employees as SalarySheetData["employees"],
       insurance: stripped.insurance,
       housingFund: stripped.housingFund,
-      costItems: normalizeCostItems(stripped),
+      costItems: { ...costItems, materials },
+      materialLines,
     },
     month,
   );

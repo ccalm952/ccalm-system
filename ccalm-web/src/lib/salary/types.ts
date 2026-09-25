@@ -62,6 +62,13 @@ export type SalaryCostItems = {
   other: number;
 };
 
+/** 当月材料成本明细（名称 + 金额） */
+export type SalaryMaterialLine = {
+  id: string;
+  name: string;
+  amount: number;
+};
+
 /** 设备分期计划（全局；按起算月与期数自动计入各月「设备」成本） */
 export type SalaryEquipmentInstallment = {
   id: string;
@@ -148,6 +155,8 @@ export type SalarySheetData = {
   insurance: SalaryInsuranceInput;
   housingFund: SalaryHousingFundInput;
   costItems: SalaryCostItems;
+  /** 当月材料明细；合计写入 / 计算 costItems.materials */
+  materialLines: SalaryMaterialLine[];
 };
 
 export type SalaryEmployeeComputed = SalaryEmployeeInput & {

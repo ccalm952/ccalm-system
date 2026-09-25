@@ -42,6 +42,7 @@ import {
   applyMonthCalendar,
   createEmptyEmployee,
   calendarDaysForMonth,
+  clearMaterialLines,
   formatSalaryMonthTab,
   isSalarySheetData,
   normalizeSalarySheet,
@@ -532,15 +533,16 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   onClick={() => {
                     void (async () => {
                       try {
+                        const data = clearMaterialLines(
+                          normalizeSalarySheet(sheet, activeMonth),
+                        );
                         await api(
                           "PUT",
                           "/salary/default",
-                          { data: sheet },
+                          { data },
                           salaryApi,
                         );
-                        setDefaultTemplate(
-                          normalizeSalarySheet(sheet, activeMonth),
-                        );
+                        setDefaultTemplate(data);
                         toast.success("已设为默认");
                       } catch (e) {
                         if (handleSalaryAccessError(e, lockSalary)) return;
