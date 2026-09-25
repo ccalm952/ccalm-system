@@ -226,4 +226,22 @@ describe("薪资计算", () => {
     })
     expect(before.equipmentCost).toBe(0)
   })
+
+  it("其他成本项目按设置加总进其他与成本总计", () => {
+    const base = sheet(100_000, [])
+    const withItems = {
+      ...settings,
+      otherCostItems: [
+        { id: "1", name: "广告", amount: 2000 },
+        { id: "2", name: "维修", amount: 500.5 },
+      ],
+    }
+    const result = computeSalarySheet(base, {
+      month: "2026-08",
+      globalSettings: withItems,
+    })
+    expect(result.otherCost).toBe(2500.5)
+    expect(result.netIncome).toBe(97_499.5)
+    expect(result.costGrandTotal).toBe(2500.5)
+  })
 })

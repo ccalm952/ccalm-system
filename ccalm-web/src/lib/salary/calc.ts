@@ -7,6 +7,7 @@ import type {
   SalaryHousingFundInput,
   SalaryInsuranceInput,
   SalaryLeaveQuotas,
+  SalaryOtherCostItem,
   SalarySheetComputed,
   SalarySheetData,
   SalaryTierRates,
@@ -333,6 +334,15 @@ export function calcEquipmentCostForMonth(
   return round2(sum);
 }
 
+/** 其他成本项目费用加总 */
+export function calcOtherCostFromItems(items: SalaryOtherCostItem[]): number {
+  let sum = 0;
+  for (const item of items) {
+    sum += item.amount;
+  }
+  return round2(sum);
+}
+
 function calcActualReceipt(
   totalIncome: number,
   shareRatio: number,
@@ -464,8 +474,9 @@ export function computeSalarySheet(
   data: SalarySheetData,
   context: SalaryComputeContext,
 ): SalarySheetComputed {
-  const { utilities, rent, materials, planting, processing, other } = data.costItems;
-  const costTotal = round2(materials + planting + other + processing);
+  const { utilities, rent, materials, planting, processing } = data.costItems;
+  const otherCost = calcOtherCostFromItems(context.globalSettings.otherCostItems);
+  const costTotal = round2(materials + planting + otherCost + processing);
 
   // 汇总「实收入」仍按成本扣减；护士个人池改用总收入 × (1 − 护士扣减%)
   const netIncome = round2(data.summary.totalIncome - costTotal);
@@ -521,7 +532,7 @@ export function computeSalarySheet(
       materials +
       planting +
       processing +
-      other +
+      otherCost +
       equipmentCost +
       insuranceEmployerTotal +
       employeePayrollTotal,
@@ -541,6 +552,7 @@ export function computeSalarySheet(
     },
     insuranceEmployerTotal,
     equipmentCost,
+    otherCost,
     costGrandTotal,
     remaining,
     employeePayrollTotal,

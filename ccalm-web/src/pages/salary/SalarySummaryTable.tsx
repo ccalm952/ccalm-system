@@ -156,16 +156,8 @@ export function SalarySummaryTable({
               }
             />
           </TableCell>
-          <TableCell>
-            <SummaryDecimalInput
-              value={sheet.costItems.other}
-              onCommit={(other) =>
-                patchSheet(month, {
-                  ...sheet,
-                  costItems: { ...sheet.costItems, other },
-                })
-              }
-            />
+          <TableCell title="由设置中的其他成本项目加总">
+            {computed.otherCost}
           </TableCell>
           <TableCell title="由设置中的设备分期计划按月自动计算">{computed.equipmentCost}</TableCell>
           <TableCell>{computed.insuranceEmployerTotal}</TableCell>

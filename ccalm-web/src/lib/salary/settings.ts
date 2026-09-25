@@ -1,6 +1,7 @@
 import type {
   SalaryEquipmentInstallment,
   SalaryGlobalSettings,
+  SalaryOtherCostItem,
   SalaryTierRates,
   SalaryTierThresholds,
 } from "./types";
@@ -55,6 +56,7 @@ export function createDefaultSalaryGlobalSettings(): SalaryGlobalSettings {
     plantingBonusPerUnit: 50,
     wuJiechenPlantingBonusPerUnit: 500,
     equipmentInstallments: [],
+    otherCostItems: [],
   };
 }
 
@@ -102,6 +104,24 @@ function normalizeTierThresholds(
     tier4: thresholds.tier4 as number,
     tier5: thresholds.tier5 as number,
   };
+}
+
+function normalizeOtherCostItems(value: unknown): SalaryOtherCostItem[] {
+  if (!Array.isArray(value)) return [];
+  const result: SalaryOtherCostItem[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const row = raw as Partial<SalaryOtherCostItem>;
+    const id = typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    const amount =
+      typeof row.amount === "number" && Number.isFinite(row.amount)
+        ? Math.max(0, row.amount)
+        : NaN;
+    if (!id || !name || !Number.isFinite(amount)) continue;
+    result.push({ id, name, amount });
+  }
+  return result;
 }
 
 function normalizeEquipmentInstallments(value: unknown): SalaryEquipmentInstallment[] {
@@ -163,6 +183,7 @@ export function normalizeSalaryGlobalSettings(data: unknown): SalaryGlobalSettin
         ? settings.wuJiechenPlantingBonusPerUnit
         : defaults.wuJiechenPlantingBonusPerUnit,
     equipmentInstallments: normalizeEquipmentInstallments(settings.equipmentInstallments),
+    otherCostItems: normalizeOtherCostItems(settings.otherCostItems),
   };
 }
 

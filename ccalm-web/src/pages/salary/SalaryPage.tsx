@@ -56,6 +56,7 @@ import type {
   SalaryEquipmentInstallment,
   SalaryGlobalSettings,
   SalaryLeaveQuotas,
+  SalaryOtherCostItem,
   SalarySheetData,
 } from "@/lib/salary/types";
 import {
@@ -407,6 +408,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       equipmentInstallments: globalSettings.equipmentInstallments.map((plan) => ({
         ...plan,
       })),
+      otherCostItems: globalSettings.otherCostItems.map((item) => ({ ...item })),
     });
     setTierRateSettingsOpen(true);
   }
@@ -864,6 +866,108 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                         >
                           <Plus data-icon="inline-start" />
                           添加设备分期
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>其他成本</TableHead>
+                      <TableHead>费用</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {settingsDraft.otherCostItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <Input
+                            value={item.name}
+                            onChange={(e) => {
+                              const name = e.target.value;
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      otherCostItems: prev.otherCostItems.map((row) =>
+                                        row.id === item.id ? { ...row, name } : row,
+                                      ),
+                                    }
+                                  : prev,
+                              );
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <NumInput
+                            value={item.amount}
+                            onChange={(amount) =>
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      otherCostItems: prev.otherCostItems.map((row) =>
+                                        row.id === item.id
+                                          ? { ...row, amount: Math.max(0, amount) }
+                                          : row,
+                                      ),
+                                    }
+                                  : prev,
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      otherCostItems: prev.otherCostItems.filter(
+                                        (row) => row.id !== item.id,
+                                      ),
+                                    }
+                                  : prev,
+                              )
+                            }
+                          >
+                            <X />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={3}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const next: SalaryOtherCostItem = {
+                              id:
+                                typeof crypto !== "undefined" && "randomUUID" in crypto
+                                  ? crypto.randomUUID()
+                                  : `oc-${Date.now()}`,
+                              name: "",
+                              amount: 0,
+                            };
+                            setSettingsDraft((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    otherCostItems: [...prev.otherCostItems, next],
+                                  }
+                                : prev,
+                            );
+                          }}
+                        >
+                          <Plus data-icon="inline-start" />
+                          添加其他成本
                         </Button>
                       </TableCell>
                     </TableRow>
