@@ -45,14 +45,15 @@ function insurancePayment(base: number, rate: number): number {
 }
 
 function insuranceRowTotal(
-  employerPayment: number,
+  base: number,
+  employerRate: number,
   employerCount: number,
-  personalPayment: number | null,
+  personalRate: number | null,
   personalCount: number | null,
 ): number {
-  const employer = round2(employerPayment * employerCount);
-  if (personalPayment == null || personalCount == null) return employer;
-  return round2(employer + round2(personalPayment * personalCount));
+  const employer = round2(base * employerRate * employerCount);
+  if (personalRate == null || personalCount == null) return employer;
+  return round2(employer + round2(base * personalRate * personalCount));
 }
 
 type InsuranceTableLine = {
@@ -132,9 +133,10 @@ export function computeInsuranceTable(
       personalPayment: pensionPersonalPayment,
       personalCount: insurance.pensionPersonalCount,
       rowTotal: insuranceRowTotal(
-        pensionEmployerPayment,
+        insurance.pensionBase,
+        insurance.pensionEmployerRate,
         insurance.pensionEmployerCount,
-        pensionPersonalPayment,
+        insurance.pensionPersonalRate,
         insurance.pensionPersonalCount,
       ),
     },
@@ -151,9 +153,10 @@ export function computeInsuranceTable(
       personalPayment: unemploymentPersonalPayment,
       personalCount: insurance.unemploymentPersonalCount,
       rowTotal: insuranceRowTotal(
-        unemploymentEmployerPayment,
+        insurance.unemploymentBase,
+        insurance.unemploymentEmployerRate,
         insurance.unemploymentEmployerCount,
-        unemploymentPersonalPayment,
+        insurance.unemploymentPersonalRate,
         insurance.unemploymentPersonalCount,
       ),
     },
@@ -170,7 +173,8 @@ export function computeInsuranceTable(
       personalPayment: null,
       personalCount: null,
       rowTotal: insuranceRowTotal(
-        injuryEmployerPayment,
+        insurance.injuryBase,
+        insurance.injuryEmployerRate,
         insurance.injuryEmployerCount,
         null,
         null,
@@ -189,9 +193,10 @@ export function computeInsuranceTable(
       personalPayment: medicalPersonalPayment,
       personalCount: insurance.medicalPersonalCount,
       rowTotal: insuranceRowTotal(
-        medicalEmployerPayment,
+        insurance.medicalBase,
+        insurance.medicalEmployerRate,
         insurance.medicalEmployerCount,
-        medicalPersonalPayment,
+        insurance.medicalPersonalRate,
         insurance.medicalPersonalCount,
       ),
     },
@@ -208,7 +213,8 @@ export function computeInsuranceTable(
       personalPayment: null,
       personalCount: null,
       rowTotal: insuranceRowTotal(
-        maternityEmployerPayment,
+        insurance.maternityBase,
+        insurance.maternityEmployerRate,
         insurance.maternityEmployerCount,
         null,
         null,
@@ -227,9 +233,10 @@ export function computeInsuranceTable(
       personalPayment: housingPersonalPayment,
       personalCount: housing.personalCount,
       rowTotal: insuranceRowTotal(
-        housingEmployerPayment,
+        housing.base,
+        housing.employerRate,
         housing.employerCount,
-        housingPersonalPayment,
+        housing.personalRate,
         housing.personalCount,
       ),
     },
@@ -268,21 +275,33 @@ export function computeInsuranceTable(
 }
 
 function employerInsuranceTotal(insurance: SalaryInsuranceInput): number {
-  const pension = round2(insurance.pensionBase * insurance.pensionEmployerRate);
+  const pension = round2(
+    insurance.pensionBase *
+      insurance.pensionEmployerRate *
+      insurance.pensionEmployerCount,
+  );
   const unemployment = round2(
-    insurance.unemploymentBase * insurance.unemploymentEmployerRate,
+    insurance.unemploymentBase *
+      insurance.unemploymentEmployerRate *
+      insurance.unemploymentEmployerCount,
   );
-  const injury = round2(insurance.injuryBase * insurance.injuryEmployerRate);
-  const medical = round2(insurance.medicalBase * insurance.medicalEmployerRate);
-  const maternity = round2(insurance.maternityBase * insurance.maternityEmployerRate);
+  const injury = round2(
+    insurance.injuryBase *
+      insurance.injuryEmployerRate *
+      insurance.injuryEmployerCount,
+  );
+  const medical = round2(
+    insurance.medicalBase *
+      insurance.medicalEmployerRate *
+      insurance.medicalEmployerCount,
+  );
+  const maternity = round2(
+    insurance.maternityBase *
+      insurance.maternityEmployerRate *
+      insurance.maternityEmployerCount,
+  );
 
-  return round2(
-    pension * insurance.pensionEmployerCount +
-      unemployment * insurance.unemploymentEmployerCount +
-      injury * insurance.injuryEmployerCount +
-      medical * insurance.medicalEmployerCount +
-      maternity * insurance.maternityEmployerCount,
-  );
+  return round2(pension + unemployment + injury + medical + maternity);
 }
 
 function employerHousingTotal(housing: SalaryHousingFundInput): number {
@@ -322,10 +341,14 @@ function resolveDeductionRate(
   return defaultDeductionRateForMode(emp.bonusMode, settings);
 }
 
+const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
+
 function monthOffset(startMonth: string, month: string): number {
+  if (!monthPattern.test(startMonth) || !monthPattern.test(month)) {
+    return Number.NaN;
+  }
   const [sy, sm] = startMonth.split("-").map(Number);
   const [my, mm] = month.split("-").map(Number);
-  if (![sy, sm, my, mm].every((n) => Number.isFinite(n))) return Number.NaN;
   return (my - sy) * 12 + (mm - sm);
 }
 
@@ -564,12 +587,33 @@ export function buildPriorBonusMap(
   getPrevious: (month: string) => string | null,
   globalSettings: SalaryGlobalSettings,
 ): Record<string, number> {
+  return collectPriorBonus(month, sheets, getPrevious, globalSettings, new Set([month]));
+}
+
+/**
+ * priorBonusByName 的逐月递归。visited 记录已展开的月份，避免
+ * getPrevious 成环（自环或 A→B→A）时无限递归直至 RangeError。
+ */
+function collectPriorBonus(
+  month: string,
+  sheets: Record<string, SalarySheetData>,
+  getPrevious: (month: string) => string | null,
+  globalSettings: SalaryGlobalSettings,
+  visited: Set<string>,
+): Record<string, number> {
   const prev = getPrevious(month);
-  if (!prev || !sheets[prev]) return {};
+  if (!prev || !sheets[prev] || visited.has(prev)) return {};
+  visited.add(prev);
   return priorBonusMapFromSheet(sheets[prev], {
     month: prev,
     globalSettings,
-    priorBonusByName: buildPriorBonusMap(prev, sheets, getPrevious, globalSettings),
+    priorBonusByName: collectPriorBonus(
+      prev,
+      sheets,
+      getPrevious,
+      globalSettings,
+      visited,
+    ),
   });
 }
 
