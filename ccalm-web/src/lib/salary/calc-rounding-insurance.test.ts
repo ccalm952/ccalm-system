@@ -585,10 +585,16 @@ describe("设备分期与其他成本加总", () => {
     ).toBe(0)
   })
 
-  it("非补零月份串仍会被解析（依赖上层校验）", () => {
-    const loose = { ...plan, startMonth: "2026-1" }
-    expect(installmentAmountForMonth(loose, "2026-01")).toBe(33.33)
-    expect(installmentAmountForMonth(loose, "2026-13")).toBe(0)
+  it("非补零或越界月份串一律视为无效", () => {
+    expect(
+      installmentAmountForMonth({ ...plan, startMonth: "2026-1" }, "2026-01"),
+    ).toBe(0)
+    expect(
+      installmentAmountForMonth({ ...plan, startMonth: "2026-01" }, "2026-1"),
+    ).toBe(0)
+    expect(
+      installmentAmountForMonth({ ...plan, startMonth: "2026-13" }, "2026-01"),
+    ).toBe(0)
   })
 
   it("多笔分期当月加总，空数组为 0", () => {

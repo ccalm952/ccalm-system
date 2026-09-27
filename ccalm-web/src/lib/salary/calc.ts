@@ -341,10 +341,14 @@ function resolveDeductionRate(
   return defaultDeductionRateForMode(emp.bonusMode, settings);
 }
 
+const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
+
 function monthOffset(startMonth: string, month: string): number {
+  if (!monthPattern.test(startMonth) || !monthPattern.test(month)) {
+    return Number.NaN;
+  }
   const [sy, sm] = startMonth.split("-").map(Number);
   const [my, mm] = month.split("-").map(Number);
-  if (![sy, sm, my, mm].every((n) => Number.isFinite(n))) return Number.NaN;
   return (my - sy) * 12 + (mm - sm);
 }
 
@@ -583,12 +587,33 @@ export function buildPriorBonusMap(
   getPrevious: (month: string) => string | null,
   globalSettings: SalaryGlobalSettings,
 ): Record<string, number> {
+  return collectPriorBonus(month, sheets, getPrevious, globalSettings, new Set([month]));
+}
+
+/**
+ * priorBonusByName 的逐月递归。visited 记录已展开的月份，避免
+ * getPrevious 成环（自环或 A→B→A）时无限递归直至 RangeError。
+ */
+function collectPriorBonus(
+  month: string,
+  sheets: Record<string, SalarySheetData>,
+  getPrevious: (month: string) => string | null,
+  globalSettings: SalaryGlobalSettings,
+  visited: Set<string>,
+): Record<string, number> {
   const prev = getPrevious(month);
-  if (!prev || !sheets[prev]) return {};
+  if (!prev || !sheets[prev] || visited.has(prev)) return {};
+  visited.add(prev);
   return priorBonusMapFromSheet(sheets[prev], {
     month: prev,
     globalSettings,
-    priorBonusByName: buildPriorBonusMap(prev, sheets, getPrevious, globalSettings),
+    priorBonusByName: collectPriorBonus(
+      prev,
+      sheets,
+      getPrevious,
+      globalSettings,
+      visited,
+    ),
   });
 }
 
