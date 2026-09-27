@@ -1,12 +1,12 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
 
-import "./index.css";
-import "@/lib/attendance/dayjs";
-import App from "./App.tsx";
-import { ThemeProvider } from "@/components/theme-provider.tsx";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import "./index.css"
+import "@/lib/attendance/dayjs"
+import App from "./App.tsx"
+import { ThemeProvider } from "@/components/theme-provider.tsx"
+import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -16,5 +16,5 @@ createRoot(document.getElementById("root")!).render(
         <Toaster position="top-center" />
       </TooltipProvider>
     </ThemeProvider>
-  </StrictMode>,
-);
+  </StrictMode>
+)

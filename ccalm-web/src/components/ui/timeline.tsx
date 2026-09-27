@@ -1,6 +1,6 @@
-import * as React from "react";
+import * as React from "react"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 /**
  * 纵向时间轴（可组合子组件）。
@@ -10,16 +10,30 @@ import { cn } from "@/lib/utils";
  * 每条 `TimelineItem` 默认 `items-center`：左侧时间、圆点、右侧内容在同一行内垂直居中。
  * 若要改回顶对齐，可在 `TimelineItem` 上传 `className="items-start"`。
  */
-function Timeline({ className, children, ...props }: React.ComponentProps<"div">) {
+function Timeline({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
-    <div data-slot="timeline" className={cn("flex flex-col gap-y-4", className)} {...props}>
+    <div
+      data-slot="timeline"
+      className={cn("flex flex-col gap-y-4", className)}
+      {...props}
+    >
       {children}
     </div>
-  );
+  )
 }
 
 function TimelineItem({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="timeline-item" className={cn("flex gap-4", className)} {...props} />;
+  return (
+    <div
+      data-slot="timeline-item"
+      className={cn("flex gap-4", className)}
+      {...props}
+    />
+  )
 }
 
 function TimelineTime({ className, ...props }: React.ComponentProps<"div">) {
@@ -29,14 +43,17 @@ function TimelineTime({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex shrink-0 items-center tabular-nums", className)}
       {...props}
     />
-  );
+  )
 }
 
-function TimelineIndicator({ className, ...props }: React.ComponentProps<"div">) {
+function TimelineIndicator({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="timeline-indicator"
-      className="flex w-4 shrink-0 self-stretch flex-col items-center"
+      className="flex w-4 shrink-0 flex-col items-center self-stretch"
       {...props}
     >
       <div
@@ -57,7 +74,7 @@ function TimelineIndicator({ className, ...props }: React.ComponentProps<"div">)
         aria-hidden
       />
     </div>
-  );
+  )
 }
 
 function TimelineContent({ className, ...props }: React.ComponentProps<"div">) {
@@ -67,23 +84,30 @@ function TimelineContent({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex min-w-0 flex-col gap-2", className)}
       {...props}
     />
-  );
+  )
 }
 
 function TimelineTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div data-slot="timeline-title" className={cn("text-sm font-medium", className)} {...props} />
-  );
+    <div
+      data-slot="timeline-title"
+      className={cn("text-sm font-medium", className)}
+      {...props}
+    />
+  )
 }
 
-function TimelineDescription({ className, ...props }: React.ComponentProps<"div">) {
+function TimelineDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="timeline-description"
       className={cn("text-muted-foreground", className)}
       {...props}
     />
-  );
+  )
 }
 
 /**
@@ -104,4 +128,4 @@ export {
   TimelineContent,
   TimelineTitle,
   TimelineDescription,
-};
+}

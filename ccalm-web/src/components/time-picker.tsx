@@ -1,16 +1,23 @@
-import { Field, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Field, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 export function TimePicker(props: {
-  id?: string;
-  label?: string;
-  value: string;
-  onChange: (value: string) => void;
-  className?: string;
-  disabled?: boolean;
+  id?: string
+  label?: string
+  value: string
+  onChange: (value: string) => void
+  className?: string
+  disabled?: boolean
 }) {
-  const { id = "time-picker", label = "时间", value, onChange, className, disabled } = props;
+  const {
+    id = "time-picker",
+    label = "时间",
+    value,
+    onChange,
+    className,
+    disabled,
+  } = props
 
   return (
     <Field className={className}>
@@ -25,9 +32,9 @@ export function TimePicker(props: {
         className={cn(
           "appearance-none bg-background",
           "[&::-webkit-calendar-picker-indicator]:hidden",
-          "[&::-webkit-calendar-picker-indicator]:appearance-none",
+          "[&::-webkit-calendar-picker-indicator]:appearance-none"
         )}
       />
     </Field>
-  );
+  )
 }

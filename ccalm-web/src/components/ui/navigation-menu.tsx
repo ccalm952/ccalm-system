@@ -72,7 +72,10 @@ function NavigationMenuTrigger({
       {...props}
     >
       {children}{" "}
-      <ChevronDownIcon className="relative top-px ml-1 size-3 transition duration-300 group-data-popup-open/navigation-menu-trigger:rotate-180 group-data-open/navigation-menu-trigger:rotate-180" aria-hidden="true" />
+      <ChevronDownIcon
+        className="relative top-px ml-1 size-3 transition duration-300 group-data-popup-open/navigation-menu-trigger:rotate-180 group-data-open/navigation-menu-trigger:rotate-180"
+        aria-hidden="true"
+      />
     </NavigationMenuPrimitive.Trigger>
   )
 }
@@ -128,10 +131,10 @@ function NavigationMenuLink({
 }: NavigationMenuPrimitive.Link.Props) {
   return (
     <NavigationMenuPrimitive.Link
-      data-slot="navigation-menu-link" 
+      data-slot="navigation-menu-link"
       className={cn(
         // CCALM: focus-visible:bg-muted，无 data-[active=true]:focus:bg-muted
-        "flex items-center h-9 gap-2 rounded-full px-2.5 py-1.5 text-sm font-medium transition-all outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-1 in-data-[slot=navigation-menu-content]:w-full in-data-[slot=navigation-menu-content]:whitespace-nowrap in-data-[slot=navigation-menu-content]:rounded-full in-data-[slot=navigation-menu-content]:p-2 in-data-[slot=navigation-menu-content]:font-normal data-[active=true]:bg-muted/50 data-[active=true]:hover:bg-muted [&_svg:not([class*='size-'])]:size-4",
+        "flex h-9 items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-medium transition-all outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-1 in-data-[slot=navigation-menu-content]:w-full in-data-[slot=navigation-menu-content]:rounded-full in-data-[slot=navigation-menu-content]:p-2 in-data-[slot=navigation-menu-content]:font-normal in-data-[slot=navigation-menu-content]:whitespace-nowrap data-[active=true]:bg-muted/50 data-[active=true]:hover:bg-muted [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

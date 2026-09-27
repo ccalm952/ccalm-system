@@ -49,11 +49,7 @@ function DialogCloseButton() {
     <DialogPrimitive.Close
       data-slot="dialog-close"
       render={
-        <Button
-          variant="ghost"
-          className="bg-secondary shrink-0"
-          size="icon"
-        />
+        <Button variant="ghost" className="shrink-0 bg-secondary" size="icon" />
       }
     >
       <XIcon />
@@ -93,7 +89,11 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, children, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"

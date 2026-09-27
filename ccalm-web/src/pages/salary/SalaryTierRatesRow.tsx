@@ -1,16 +1,16 @@
-import { TableCell, TableRow } from "@/components/ui/table";
-import type { SalaryTierRates } from "@/lib/salary/types";
+import { TableCell, TableRow } from "@/components/ui/table"
+import type { SalaryTierRates } from "@/lib/salary/types"
 
-import { RatePercentInput } from "./salary-table-inputs";
+import { RatePercentInput } from "./salary-table-inputs"
 
 export function SalaryTierRatesRow({
   label,
   rates,
   onChange,
 }: {
-  label: string;
-  rates: SalaryTierRates;
-  onChange: (rates: SalaryTierRates) => void;
+  label: string
+  rates: SalaryTierRates
+  onChange: (rates: SalaryTierRates) => void
 }) {
   const tiers: (keyof SalaryTierRates)[] = [
     "tier1Rate",
@@ -19,7 +19,7 @@ export function SalaryTierRatesRow({
     "tier4Rate",
     "tier5Rate",
     "tier6Rate",
-  ];
+  ]
   return (
     <TableRow>
       <TableCell>{label}</TableCell>
@@ -32,5 +32,5 @@ export function SalaryTierRatesRow({
         </TableCell>
       ))}
     </TableRow>
-  );
+  )
 }

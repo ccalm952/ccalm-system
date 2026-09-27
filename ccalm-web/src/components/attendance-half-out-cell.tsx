@@ -1,18 +1,21 @@
-import { AttendanceOutCell } from "@/components/attendance-out-cell";
-import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
-import { isHalfDeclaredRest, type RestHalf } from "@/lib/attendance/rest";
-import type { MakeupOutType, MakeupTodayGate } from "@/lib/attendance/makeup";
-import type { AttendanceMakeupRequest, AttendancePunchDayRow } from "@/lib/attendance/types";
+import { AttendanceOutCell } from "@/components/attendance-out-cell"
+import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme"
+import { isHalfDeclaredRest, type RestHalf } from "@/lib/attendance/rest"
+import type { MakeupOutType, MakeupTodayGate } from "@/lib/attendance/makeup"
+import type {
+  AttendanceMakeupRequest,
+  AttendancePunchDayRow,
+} from "@/lib/attendance/types"
 
 export function AttendanceHalfOutCell(props: {
-  row: AttendancePunchDayRow;
-  half: RestHalf;
-  type: MakeupOutType;
-  time: string | null;
-  makeupRequests?: AttendanceMakeupRequest[];
-  makeupTodayGate?: MakeupTodayGate;
-  adminDirect?: boolean;
-  onApply: () => void;
+  row: AttendancePunchDayRow
+  half: RestHalf
+  type: MakeupOutType
+  time: string | null
+  makeupRequests?: AttendanceMakeupRequest[]
+  makeupTodayGate?: MakeupTodayGate
+  adminDirect?: boolean
+  onApply: () => void
 }) {
   const {
     row,
@@ -23,10 +26,10 @@ export function AttendanceHalfOutCell(props: {
     makeupTodayGate,
     adminDirect,
     onApply,
-  } = props;
+  } = props
 
   if (isHalfDeclaredRest(row.declaredRest, half)) {
-    return <span className={attendanceMutedTextClass}>—</span>;
+    return <span className={attendanceMutedTextClass}>—</span>
   }
 
   if (adminDirect) {
@@ -40,7 +43,7 @@ export function AttendanceHalfOutCell(props: {
         makeupTodayGate={makeupTodayGate}
         onApply={onApply}
       />
-    );
+    )
   }
 
   return (
@@ -52,5 +55,5 @@ export function AttendanceHalfOutCell(props: {
       makeupTodayGate={makeupTodayGate}
       onApply={onApply}
     />
-  );
+  )
 }

@@ -119,7 +119,7 @@ describe("薪资计算", () => {
       {
         month: "2026-08",
         globalSettings: settings,
-      },
+      }
     )
     // 净收入 75000，请假 30 天 → 个人池 0 → 奖金 0
     expect(result.employees[0].bonus).toBe(0)
@@ -141,7 +141,7 @@ describe("薪资计算", () => {
       {
         month: "2026-08",
         globalSettings: settings,
-      },
+      }
     )
     // 个人池 = 75000，奖金 = 75000 × 0.003 = 225
     expect(withWork.employees[0].bonus).toBe(225)
@@ -203,11 +203,17 @@ describe("薪资计算", () => {
       ],
     }
 
-    const jul = computeSalarySheet(base, { month: "2026-07", globalSettings: withPlans })
+    const jul = computeSalarySheet(base, {
+      month: "2026-07",
+      globalSettings: withPlans,
+    })
     expect(jul.equipmentCost).toBe(12_500)
     expect(jul.costGrandTotal).toBe(12_500)
 
-    const oct = computeSalarySheet(base, { month: "2026-10", globalSettings: withPlans })
+    const oct = computeSalarySheet(base, {
+      month: "2026-10",
+      globalSettings: withPlans,
+    })
     expect(oct.equipmentCost).toBe(22_500)
 
     const julNext = computeSalarySheet(base, {

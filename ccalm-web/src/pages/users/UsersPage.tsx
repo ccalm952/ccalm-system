@@ -1,9 +1,9 @@
-import * as React from "react";
-import { Navigate } from "react-router-dom";
-import { Trash2Icon } from "lucide-react";
+import * as React from "react"
+import { Navigate } from "react-router-dom"
+import { Trash2Icon } from "lucide-react"
 
-import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/config/routes";
+import { Button } from "@/components/ui/button"
+import { ROUTES } from "@/config/routes"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+} from "@/components/ui/alert-dialog"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 import {
   Field,
   FieldContent,
@@ -31,8 +31,8 @@ import {
   FieldLabel,
   FieldSet,
   FieldTitle,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -40,10 +40,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
+} from "@/components/ui/select"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -51,101 +51,102 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import type { UserRole } from "@/lib/auth";
-import { useAuth } from "@/lib/use-auth";
-import { api } from "@/lib/api";
-import { errorMessage } from "@/lib/errorMessage";
-import { toast } from "sonner";
+} from "@/components/ui/table"
+import type { UserRole } from "@/lib/auth"
+import { useAuth } from "@/lib/use-auth"
+import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/errorMessage"
+import { toast } from "sonner"
 
 type UserRow = {
-  id: string;
-  username: string;
-  displayName: string;
-  role: UserRole;
-  leaveInitialBalance?: number;
-  createdAt: string;
-};
+  id: string
+  username: string
+  displayName: string
+  role: UserRole
+  leaveInitialBalance?: number
+  createdAt: string
+}
 
 type EditUserForm = Omit<UserRow, "leaveInitialBalance"> & {
-  password: string;
-  leaveInitialBalance: string;
-};
+  password: string
+  leaveInitialBalance: string
+}
 
 function isLeaveBalanceInput(raw: string): boolean {
-  return raw === "" || raw === "-" || /^-?\d*\.?\d*$/.test(raw);
+  return raw === "" || raw === "-" || /^-?\d*\.?\d*$/.test(raw)
 }
 
 function parseLeaveBalance(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (trimmed === "" || trimmed === "-") return null;
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
+  const trimmed = raw.trim()
+  if (trimmed === "" || trimmed === "-") return null
+  const n = Number(trimmed)
+  return Number.isFinite(n) ? n : null
 }
 
 export function UsersPage() {
-  const { me } = useAuth();
-  const [rows, setRows] = React.useState<UserRow[] | null>(null);
-  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const { me } = useAuth()
+  const [rows, setRows] = React.useState<UserRow[] | null>(null)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
 
   const roleItems = React.useMemo(
     () => [
       { label: "user", value: "user" },
       { label: "admin", value: "admin" },
     ],
-    [],
-  );
-  const [createOpen, setCreateOpen] = React.useState(false);
-  const [createSubmitting, setCreateSubmitting] = React.useState(false);
+    []
+  )
+  const [createOpen, setCreateOpen] = React.useState(false)
+  const [createSubmitting, setCreateSubmitting] = React.useState(false)
   const [newUser, setNewUser] = React.useState({
     username: "",
     displayName: "",
     password: "",
     role: "user" satisfies UserRole,
     leaveInitialBalance: "0",
-  });
+  })
 
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [editSubmitting, setEditSubmitting] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<EditUserForm | null>(null);
+  const [editOpen, setEditOpen] = React.useState(false)
+  const [editSubmitting, setEditSubmitting] = React.useState(false)
+  const [editUser, setEditUser] = React.useState<EditUserForm | null>(null)
 
-  const [userPendingDelete, setUserPendingDelete] = React.useState<UserRow | null>(null);
-  const [deleteUserOpen, setDeleteUserOpen] = React.useState(false);
-  const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
-  const adminCount = rows?.filter((row) => row.role === "admin").length ?? 0;
+  const [userPendingDelete, setUserPendingDelete] =
+    React.useState<UserRow | null>(null)
+  const [deleteUserOpen, setDeleteUserOpen] = React.useState(false)
+  const [deleteSubmitting, setDeleteSubmitting] = React.useState(false)
+  const adminCount = rows?.filter((row) => row.role === "admin").length ?? 0
 
   function deleteDisabledReason(row: UserRow): string | null {
-    if (row.id === me?.id) return "不能删除当前登录用户";
-    if (row.role === "admin" && adminCount <= 1) return "至少保留一个管理员";
-    return null;
+    if (row.id === me?.id) return "不能删除当前登录用户"
+    if (row.role === "admin" && adminCount <= 1) return "至少保留一个管理员"
+    return null
   }
 
   const load = React.useCallback(async () => {
-    if (!me || me.role !== "admin") return;
-    setLoadError(null);
-    const list = await api<UserRow[]>("GET", "/users");
-    setRows(list);
-  }, [me]);
+    if (!me || me.role !== "admin") return
+    setLoadError(null)
+    const list = await api<UserRow[]>("GET", "/users")
+    setRows(list)
+  }, [me])
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
+    let cancelled = false
+    ;(async () => {
       try {
-        await load();
-        if (cancelled) return;
+        await load()
+        if (cancelled) return
       } catch (e) {
-        if (cancelled) return;
-        setRows([]);
-        setLoadError(errorMessage(e));
+        if (cancelled) return
+        setRows([])
+        setLoadError(errorMessage(e))
       }
-    })();
+    })()
     return () => {
-      cancelled = true;
-    };
-  }, [load]);
+      cancelled = true
+    }
+  }, [load])
 
   if (me && me.role !== "admin") {
-    return <Navigate to={ROUTES.home} replace />;
+    return <Navigate to={ROUTES.home} replace />
   }
 
   return (
@@ -183,14 +184,20 @@ export function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((r) => {
-                      const disabledReason = deleteDisabledReason(r);
+                      const disabledReason = deleteDisabledReason(r)
                       return (
                         <TableRow key={r.id} className="border-t border-border">
-                          <TableCell className="w-[18%]">{r.username}</TableCell>
-                          <TableCell className="w-[18%]">{r.displayName}</TableCell>
+                          <TableCell className="w-[18%]">
+                            {r.username}
+                          </TableCell>
+                          <TableCell className="w-[18%]">
+                            {r.displayName}
+                          </TableCell>
                           <TableCell className="w-[12%]">{r.role}</TableCell>
                           <TableCell className="w-[12%]">
-                            {r.role === "user" ? (r.leaveInitialBalance ?? 0) : "-"}
+                            {r.role === "user"
+                              ? (r.leaveInitialBalance ?? 0)
+                              : "-"}
                           </TableCell>
                           <TableCell className="w-[18%] text-muted-foreground">
                             {new Date(r.createdAt).toLocaleString()}
@@ -204,9 +211,11 @@ export function UsersPage() {
                                   setEditUser({
                                     ...r,
                                     password: "",
-                                    leaveInitialBalance: String(r.leaveInitialBalance ?? 0),
-                                  });
-                                  setEditOpen(true);
+                                    leaveInitialBalance: String(
+                                      r.leaveInitialBalance ?? 0
+                                    ),
+                                  })
+                                  setEditOpen(true)
                                 }}
                               >
                                 编辑
@@ -217,8 +226,8 @@ export function UsersPage() {
                                 disabled={!!disabledReason}
                                 title={disabledReason ?? undefined}
                                 onClick={() => {
-                                  setUserPendingDelete(r);
-                                  setDeleteUserOpen(true);
+                                  setUserPendingDelete(r)
+                                  setDeleteUserOpen(true)
                                 }}
                               >
                                 删除
@@ -226,7 +235,7 @@ export function UsersPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      );
+                      )
                     })}
                   </TableBody>
                 </Table>
@@ -239,23 +248,25 @@ export function UsersPage() {
         <Dialog
           open={createOpen}
           onOpenChange={(open) => {
-            setCreateOpen(open);
+            setCreateOpen(open)
             if (!open) {
-              setCreateSubmitting(false);
+              setCreateSubmitting(false)
               setNewUser({
                 username: "",
                 displayName: "",
                 password: "",
                 role: "user",
                 leaveInitialBalance: "0",
-              });
+              })
             }
           }}
         >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>创建人员</DialogTitle>
-              <DialogDescription>创建后即可使用用户名和密码登录。</DialogDescription>
+              <DialogDescription>
+                创建后即可使用用户名和密码登录。
+              </DialogDescription>
             </DialogHeader>
 
             <FieldSet className="text-sm">
@@ -269,7 +280,12 @@ export function UsersPage() {
                       <Input
                         className="w-full"
                         value={newUser.username}
-                        onChange={(e) => setNewUser((s) => ({ ...s, username: e.target.value }))}
+                        onChange={(e) =>
+                          setNewUser((s) => ({
+                            ...s,
+                            username: e.target.value,
+                          }))
+                        }
                       />
                     </FieldContent>
                   </Field>
@@ -282,7 +298,12 @@ export function UsersPage() {
                         className="w-full"
                         type="password"
                         value={newUser.password}
-                        onChange={(e) => setNewUser((s) => ({ ...s, password: e.target.value }))}
+                        onChange={(e) =>
+                          setNewUser((s) => ({
+                            ...s,
+                            password: e.target.value,
+                          }))
+                        }
                       />
                     </FieldContent>
                   </Field>
@@ -314,8 +335,8 @@ export function UsersPage() {
                       <Select
                         value={newUser.role}
                         onValueChange={(v: string | null) => {
-                          if (!v) return;
-                          setNewUser((s) => ({ ...s, role: v as UserRole }));
+                          if (!v) return
+                          setNewUser((s) => ({ ...s, role: v as UserRole }))
                         }}
                         items={roleItems}
                       >
@@ -348,9 +369,12 @@ export function UsersPage() {
                         inputMode="decimal"
                         value={newUser.leaveInitialBalance}
                         onChange={(e) => {
-                          const raw = e.target.value;
-                          if (!isLeaveBalanceInput(raw)) return;
-                          setNewUser((s) => ({ ...s, leaveInitialBalance: raw }));
+                          const raw = e.target.value
+                          if (!isLeaveBalanceInput(raw)) return
+                          setNewUser((s) => ({
+                            ...s,
+                            leaveInitialBalance: raw,
+                          }))
                         }}
                       />
                     </FieldContent>
@@ -379,14 +403,17 @@ export function UsersPage() {
                 onClick={() => {
                   void (async () => {
                     try {
-                      setCreateSubmitting(true);
+                      setCreateSubmitting(true)
                       const leaveInitialBalance =
                         newUser.role === "user"
                           ? parseLeaveBalance(newUser.leaveInitialBalance)
-                          : undefined;
-                      if (newUser.role === "user" && leaveInitialBalance === null) {
-                        toast.error("请输入有效的初始假期额度");
-                        return;
+                          : undefined
+                      if (
+                        newUser.role === "user" &&
+                        leaveInitialBalance === null
+                      ) {
+                        toast.error("请输入有效的初始假期额度")
+                        return
                       }
                       await api("POST", "/users", {
                         username: newUser.username.trim(),
@@ -394,16 +421,16 @@ export function UsersPage() {
                         password: newUser.password,
                         role: newUser.role,
                         leaveInitialBalance,
-                      });
-                      toast.success("用户已创建");
-                      setCreateOpen(false);
-                      await load();
+                      })
+                      toast.success("用户已创建")
+                      setCreateOpen(false)
+                      await load()
                     } catch (e) {
-                      toast.error(errorMessage(e));
+                      toast.error(errorMessage(e))
                     } finally {
-                      setCreateSubmitting(false);
+                      setCreateSubmitting(false)
                     }
-                  })();
+                  })()
                 }}
               >
                 {createSubmitting ? "创建中…" : "创建"}
@@ -415,17 +442,19 @@ export function UsersPage() {
         <Dialog
           open={editOpen}
           onOpenChange={(open) => {
-            setEditOpen(open);
+            setEditOpen(open)
             if (!open) {
-              setEditSubmitting(false);
-              setEditUser(null);
+              setEditSubmitting(false)
+              setEditUser(null)
             }
           }}
         >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>编辑人员</DialogTitle>
-              <DialogDescription>可修改姓名、角色与密码（留空则不修改密码）。</DialogDescription>
+              <DialogDescription>
+                可修改姓名、角色与密码（留空则不修改密码）。
+              </DialogDescription>
             </DialogHeader>
 
             {editUser ? (
@@ -437,7 +466,11 @@ export function UsersPage() {
                         <FieldTitle>用户名</FieldTitle>
                       </FieldLabel>
                       <FieldContent>
-                        <Input className="w-full" value={editUser.username} disabled />
+                        <Input
+                          className="w-full"
+                          value={editUser.username}
+                          disabled
+                        />
                       </FieldContent>
                     </Field>
                     <Field className="flex-1" orientation="responsive">
@@ -450,7 +483,9 @@ export function UsersPage() {
                           type="password"
                           value={editUser.password}
                           onChange={(e) =>
-                            setEditUser((s) => (s ? { ...s, password: e.target.value } : s))
+                            setEditUser((s) =>
+                              s ? { ...s, password: e.target.value } : s
+                            )
                           }
                         />
                       </FieldContent>
@@ -467,7 +502,9 @@ export function UsersPage() {
                           className="w-full"
                           value={editUser.displayName}
                           onChange={(e) =>
-                            setEditUser((s) => (s ? { ...s, displayName: e.target.value } : s))
+                            setEditUser((s) =>
+                              s ? { ...s, displayName: e.target.value } : s
+                            )
                           }
                         />
                       </FieldContent>
@@ -480,8 +517,10 @@ export function UsersPage() {
                         <Select
                           value={editUser.role}
                           onValueChange={(v: string | null) => {
-                            if (!v) return;
-                            setEditUser((s) => (s ? { ...s, role: v as UserRole } : s));
+                            if (!v) return
+                            setEditUser((s) =>
+                              s ? { ...s, role: v as UserRole } : s
+                            )
                           }}
                           items={roleItems}
                         >
@@ -514,9 +553,11 @@ export function UsersPage() {
                           inputMode="decimal"
                           value={editUser.leaveInitialBalance}
                           onChange={(e) => {
-                            const raw = e.target.value;
-                            if (!isLeaveBalanceInput(raw)) return;
-                            setEditUser((s) => (s ? { ...s, leaveInitialBalance: raw } : s));
+                            const raw = e.target.value
+                            if (!isLeaveBalanceInput(raw)) return
+                            setEditUser((s) =>
+                              s ? { ...s, leaveInitialBalance: raw } : s
+                            )
                           }}
                         />
                       </FieldContent>
@@ -539,41 +580,43 @@ export function UsersPage() {
                 type="button"
                 disabled={editSubmitting || !editUser?.displayName.trim()}
                 onClick={() => {
-                  const u = editUser;
-                  if (!u) return;
-                  const original = rows?.find((r) => r.id === u.id);
+                  const u = editUser
+                  if (!u) return
+                  const original = rows?.find((r) => r.id === u.id)
                   if (
                     original?.role === "admin" &&
                     u.role === "user" &&
                     adminCount <= 1
                   ) {
-                    toast.error("至少保留一个管理员");
-                    return;
+                    toast.error("至少保留一个管理员")
+                    return
                   }
                   void (async () => {
                     try {
-                      setEditSubmitting(true);
+                      setEditSubmitting(true)
                       const leaveInitialBalance =
-                        u.role === "user" ? parseLeaveBalance(u.leaveInitialBalance) : undefined;
+                        u.role === "user"
+                          ? parseLeaveBalance(u.leaveInitialBalance)
+                          : undefined
                       if (u.role === "user" && leaveInitialBalance === null) {
-                        toast.error("请输入有效的初始假期额度");
-                        return;
+                        toast.error("请输入有效的初始假期额度")
+                        return
                       }
                       await api("PATCH", `/users/${u.id}`, {
                         displayName: u.displayName.trim(),
                         role: u.role,
                         password: u.password ? u.password : undefined,
                         leaveInitialBalance,
-                      });
-                      toast.success("用户已更新");
-                      setEditOpen(false);
-                      await load();
+                      })
+                      toast.success("用户已更新")
+                      setEditOpen(false)
+                      await load()
                     } catch (e) {
-                      toast.error(errorMessage(e));
+                      toast.error(errorMessage(e))
                     } finally {
-                      setEditSubmitting(false);
+                      setEditSubmitting(false)
                     }
-                  })();
+                  })()
                 }}
               >
                 {editSubmitting ? (
@@ -592,10 +635,10 @@ export function UsersPage() {
         <AlertDialog
           open={deleteUserOpen}
           onOpenChange={(open) => {
-            setDeleteUserOpen(open);
+            setDeleteUserOpen(open)
             if (!open) {
-              setDeleteSubmitting(false);
-              window.setTimeout(() => setUserPendingDelete(null), 150);
+              setDeleteSubmitting(false)
+              window.setTimeout(() => setUserPendingDelete(null), 150)
             }
           }}
         >
@@ -619,22 +662,22 @@ export function UsersPage() {
                 variant="destructive"
                 disabled={deleteSubmitting || !userPendingDelete}
                 onClick={(e) => {
-                  e.preventDefault();
-                  const u = userPendingDelete;
-                  if (!u) return;
+                  e.preventDefault()
+                  const u = userPendingDelete
+                  if (!u) return
                   void (async () => {
-                    setDeleteSubmitting(true);
+                    setDeleteSubmitting(true)
                     try {
-                      await api("DELETE", `/users/${u.id}`);
-                      await load();
-                      toast.success(`已删除用户：${u.username}`);
-                      setDeleteUserOpen(false);
+                      await api("DELETE", `/users/${u.id}`)
+                      await load()
+                      toast.success(`已删除用户：${u.username}`)
+                      setDeleteUserOpen(false)
                     } catch (err) {
-                      toast.error(errorMessage(err));
+                      toast.error(errorMessage(err))
                     } finally {
-                      setDeleteSubmitting(false);
+                      setDeleteSubmitting(false)
                     }
-                  })();
+                  })()
                 }}
               >
                 {deleteSubmitting ? "删除中…" : "删除"}
@@ -644,5 +687,5 @@ export function UsersPage() {
         </AlertDialog>
       </div>
     </div>
-  );
+  )
 }

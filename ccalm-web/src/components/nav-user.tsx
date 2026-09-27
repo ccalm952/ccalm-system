@@ -1,7 +1,7 @@
-import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import * as React from "react"
+import { useNavigate } from "react-router-dom"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,22 +9,22 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { PunchDeviceDialog } from "@/components/punch-device-dialog";
-import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
-import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
-import { api, setToken } from "@/lib/api";
-import { ROUTES } from "@/config/routes";
-import { errorMessage } from "@/lib/errorMessage";
-import type { AuthMe, UserRole } from "@/lib/auth";
-import { EllipsisVerticalIcon } from "lucide-react";
-import { toast } from "sonner";
+} from "@/components/ui/dropdown-menu"
+import { PunchDeviceDialog } from "@/components/punch-device-dialog"
+import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar"
+import { Spinner } from "@/components/ui/spinner"
+import { cn } from "@/lib/utils"
+import { api, setToken } from "@/lib/api"
+import { ROUTES } from "@/config/routes"
+import { errorMessage } from "@/lib/errorMessage"
+import type { AuthMe, UserRole } from "@/lib/auth"
+import { EllipsisVerticalIcon } from "lucide-react"
+import { toast } from "sonner"
 
 function avatarInitials(displayName: string) {
-  const t = displayName.trim();
-  if (!t) return "?";
-  return t.length <= 2 ? t : t.slice(0, 2);
+  const t = displayName.trim()
+  if (!t) return "?"
+  return t.length <= 2 ? t : t.slice(0, 2)
 }
 
 export function NavUser({
@@ -33,57 +33,62 @@ export function NavUser({
   onAvatarUpdated,
 }: {
   user: {
-    id: string;
-    name: string;
-    username?: string;
-    avatar: string;
-    role: UserRole;
-  };
-  variant?: "sidebar" | "header";
-  onAvatarUpdated?: (avatarUrl: string) => void;
+    id: string
+    name: string
+    username?: string
+    avatar: string
+    role: UserRole
+  }
+  variant?: "sidebar" | "header"
+  onAvatarUpdated?: (avatarUrl: string) => void
 }) {
-  const nav = useNavigate();
-  const { isMobile } = useSidebar();
-  const initials = avatarInitials(user.name);
-  const inMobileSidebar = variant === "sidebar" && isMobile;
-  const menuSide = inMobileSidebar ? "top" : variant === "sidebar" ? "right" : "bottom";
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const sidebarRootRef = React.useRef<HTMLElement | null>(null);
-  const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
-  const [deviceOpen, setDeviceOpen] = React.useState(false);
+  const nav = useNavigate()
+  const { isMobile } = useSidebar()
+  const initials = avatarInitials(user.name)
+  const inMobileSidebar = variant === "sidebar" && isMobile
+  const menuSide = inMobileSidebar
+    ? "top"
+    : variant === "sidebar"
+      ? "right"
+      : "bottom"
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+  const sidebarRootRef = React.useRef<HTMLElement | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = React.useState(false)
+  const [deviceOpen, setDeviceOpen] = React.useState(false)
 
   const handleAvatarFile = React.useCallback(
     async (file: File | undefined) => {
-      if (!file) return;
-      const form = new FormData();
-      form.append("avatar", file);
-      setUploadingAvatar(true);
+      if (!file) return
+      const form = new FormData()
+      form.append("avatar", file)
+      setUploadingAvatar(true)
       try {
-        const updated = await api<AuthMe>("POST", "/users/me/avatar", form);
-        onAvatarUpdated?.(updated.avatarUrl);
-        toast.success("头像已更新");
+        const updated = await api<AuthMe>("POST", "/users/me/avatar", form)
+        onAvatarUpdated?.(updated.avatarUrl)
+        toast.success("头像已更新")
       } catch (e) {
-        toast.error(errorMessage(e));
+        toast.error(errorMessage(e))
       } finally {
-        setUploadingAvatar(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        setUploadingAvatar(false)
+        if (fileInputRef.current) fileInputRef.current.value = ""
       }
     },
-    [onAvatarUpdated],
-  );
+    [onAvatarUpdated]
+  )
 
   const avatar = (
     <Avatar size="lg">
       <AvatarImage src={user.avatar} alt={user.name} />
       <AvatarFallback>{initials}</AvatarFallback>
     </Avatar>
-  );
+  )
 
   const menuContent = (
     <DropdownMenuContent
       className={cn(
         "min-w-56 rounded-lg",
-        inMobileSidebar && "duration-0 data-open:animate-none data-closed:animate-none",
+        inMobileSidebar &&
+          "duration-0 data-open:animate-none data-closed:animate-none"
       )}
       container={inMobileSidebar ? sidebarRootRef : undefined}
       side={menuSide}
@@ -91,8 +96,13 @@ export function NavUser({
       sideOffset={8}
     >
       <DropdownMenuGroup>
-        <DropdownMenuItem onClick={() => setDeviceOpen(true)}>打卡设备</DropdownMenuItem>
-        <DropdownMenuItem disabled={uploadingAvatar} onClick={() => fileInputRef.current?.click()}>
+        <DropdownMenuItem onClick={() => setDeviceOpen(true)}>
+          打卡设备
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={uploadingAvatar}
+          onClick={() => fileInputRef.current?.click()}
+        >
           {uploadingAvatar ? (
             <>
               <Spinner data-icon="inline-start" />
@@ -107,20 +117,18 @@ export function NavUser({
       <DropdownMenuItem
         variant="destructive"
         onClick={() => {
-          setToken(null);
-          nav(ROUTES.auth.login);
+          setToken(null)
+          nav(ROUTES.auth.login)
         }}
       >
         退出登录
       </DropdownMenuItem>
     </DropdownMenuContent>
-  );
+  )
 
   const trigger =
     variant === "sidebar" ? (
-      <DropdownMenuTrigger
-        render={<SidebarMenuButton size="lg" />}
-      >
+      <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
         {avatar}
         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
           <span className="truncate font-medium">{user.name}</span>
@@ -133,13 +141,13 @@ export function NavUser({
           <button
             type="button"
             className={cn(
-              "flex h-8 max-w-[200px] shrink-0 items-center gap-2 rounded-md px-1.5 outline-none transition-colors",
+              "flex h-8 max-w-[200px] shrink-0 items-center gap-2 rounded-md px-1.5 transition-colors outline-none",
               "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50",
               "data-pressed:bg-muted data-pressed:text-foreground dark:data-pressed:bg-muted/50",
               "data-popup-open:bg-muted data-popup-open:text-foreground dark:data-popup-open:bg-muted/50",
               "data-open:bg-muted data-open:text-foreground dark:data-open:bg-muted/50",
               "aria-expanded:bg-muted aria-expanded:text-foreground dark:aria-expanded:bg-muted/50",
-              "focus-visible:bg-muted focus-visible:text-foreground dark:focus-visible:bg-muted/50",
+              "focus-visible:bg-muted focus-visible:text-foreground dark:focus-visible:bg-muted/50"
             )}
           />
         }
@@ -148,11 +156,13 @@ export function NavUser({
         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
           <span className="truncate font-medium">{user.name}</span>
           {user.username ? (
-            <span className="truncate text-xs text-muted-foreground">{user.username}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {user.username}
+            </span>
           ) : null}
         </div>
       </DropdownMenuTrigger>
-    );
+    )
 
   return (
     <>
@@ -167,7 +177,8 @@ export function NavUser({
         <div
           className="contents"
           ref={(node) => {
-            sidebarRootRef.current = node?.closest("[data-slot=sidebar]") ?? null;
+            sidebarRootRef.current =
+              node?.closest("[data-slot=sidebar]") ?? null
           }}
         >
           {trigger}
@@ -180,5 +191,5 @@ export function NavUser({
         isAdmin={user.role === "admin"}
       />
     </>
-  );
+  )
 }

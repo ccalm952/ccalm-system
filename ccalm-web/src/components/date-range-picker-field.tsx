@@ -1,44 +1,48 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import type { DateRange } from "react-day-picker";
+import * as React from "react"
+import { format } from "date-fns"
+import { zhCN } from "date-fns/locale"
+import { CalendarIcon } from "lucide-react"
+import type { DateRange } from "react-day-picker"
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 export type DateRangeValue = {
-  from: string;
-  to: string;
-};
+  from: string
+  to: string
+}
 
 type DateRangePickerFieldProps = {
-  value: DateRangeValue;
-  onValueChange: (value: DateRangeValue) => void;
-  className?: string;
-  disabled?: boolean;
-  placeholder?: string;
-};
+  value: DateRangeValue
+  onValueChange: (value: DateRangeValue) => void
+  className?: string
+  disabled?: boolean
+  placeholder?: string
+}
 
 function toSelectedRange(value: DateRangeValue): DateRange | undefined {
-  const from = value.from ? new Date(`${value.from}T00:00:00`) : undefined;
-  const to = value.to ? new Date(`${value.to}T00:00:00`) : undefined;
-  if (!from && !to) return undefined;
-  return { from, to };
+  const from = value.from ? new Date(`${value.from}T00:00:00`) : undefined
+  const to = value.to ? new Date(`${value.to}T00:00:00`) : undefined
+  if (!from && !to) return undefined
+  return { from, to }
 }
 
 function formatRangeLabel(value: DateRangeValue): string {
-  const from = value.from ? new Date(`${value.from}T00:00:00`) : undefined;
-  const to = value.to ? new Date(`${value.to}T00:00:00`) : undefined;
+  const from = value.from ? new Date(`${value.from}T00:00:00`) : undefined
+  const to = value.to ? new Date(`${value.to}T00:00:00`) : undefined
   if (from && to) {
-    return `${format(from, "yyyy年M月d日", { locale: zhCN })} - ${format(to, "yyyy年M月d日", { locale: zhCN })}`;
+    return `${format(from, "yyyy年M月d日", { locale: zhCN })} - ${format(to, "yyyy年M月d日", { locale: zhCN })}`
   }
-  if (from) return format(from, "yyyy年M月d日", { locale: zhCN });
-  return "";
+  if (from) return format(from, "yyyy年M月d日", { locale: zhCN })
+  return ""
 }
 
 export function DateRangePickerField({
@@ -48,9 +52,9 @@ export function DateRangePickerField({
   disabled,
   placeholder = "选择日期范围",
 }: DateRangePickerFieldProps) {
-  const [open, setOpen] = React.useState(false);
-  const selected = React.useMemo(() => toSelectedRange(value), [value]);
-  const label = formatRangeLabel(value);
+  const [open, setOpen] = React.useState(false)
+  const selected = React.useMemo(() => toSelectedRange(value), [value])
+  const label = formatRangeLabel(value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,7 +66,7 @@ export function DateRangePickerField({
             data-empty={!label}
             className={cn(
               "w-[280px] justify-start text-left font-normal data-[empty=true]:text-muted-foreground",
-              className,
+              className
             )}
           />
         }
@@ -81,13 +85,13 @@ export function DateRangePickerField({
             onValueChange({
               from: range?.from ? format(range.from, "yyyy-MM-dd") : "",
               to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
-            });
+            })
             if (range?.from && range?.to) {
-              setOpen(false);
+              setOpen(false)
             }
           }}
         />
       </PopoverContent>
     </Popover>
-  );
+  )
 }

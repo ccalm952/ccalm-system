@@ -1,4 +1,4 @@
-import { ROUTES } from "@/config/routes";
+import { ROUTES } from "@/config/routes"
 
 export const implantSubNavItems: { title: string; url: string }[] = [
   { title: "种植记录", url: ROUTES.implant.records },
@@ -6,4 +6,4 @@ export const implantSubNavItems: { title: string; url: string }[] = [
   { title: "待种植", url: ROUTES.implant.pending },
   { title: "统计", url: ROUTES.implant.stats },
   { title: "库存", url: ROUTES.implant.inventory },
-];
+]
