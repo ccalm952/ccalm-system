@@ -127,7 +127,6 @@ function makeSheet(
       materials: 0,
       planting: 0,
       processing: 0,
-      other: 0,
     },
     materialLines: [],
     ...overrides,
@@ -529,10 +528,9 @@ describe("computeSalarySheet 核心计算", () => {
         materials: 3000,
         planting: 400,
         processing: 600,
-        other: 9999,
       },
     })
-    // costItems.other 不参与计算，其他成本只来自全局设置
+    // 其他成本只来自全局设置，不来自当月 costItems
     expect(result.otherCost).toBe(0)
     expect(result.netIncome).toBe(96_000)
     expect(result.costGrandTotal).toBe(7000)
