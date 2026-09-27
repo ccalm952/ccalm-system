@@ -48,7 +48,7 @@ function emptyHousing(): SalaryHousingFundInput {
 
 function makeSheet(
   insurance: SalaryInsuranceInput,
-  housingFund: SalaryHousingFundInput,
+  housingFund: SalaryHousingFundInput
 ): SalarySheetData {
   return {
     summary: { totalIncome: 0, daysInMonth: 30, workingDays: 25 },
@@ -69,7 +69,7 @@ function makeSheet(
 
 function sheetEmployerTotal(
   insurance: SalaryInsuranceInput,
-  housingFund: SalaryHousingFundInput,
+  housingFund: SalaryHousingFundInput
 ): number {
   return computeSalarySheet(makeSheet(insurance, housingFund), {
     month: "2026-08",
@@ -133,7 +133,7 @@ describe("五险一金取整口径统一", () => {
       const table = computeInsuranceTable(emptyInsurance(), housing)
 
       expect(table.groupTotals.housing).toBe(
-        sheetEmployerTotal(emptyInsurance(), housing),
+        sheetEmployerTotal(emptyInsurance(), housing)
       )
     }
   })
@@ -147,7 +147,7 @@ describe("五险一金取整口径统一", () => {
     }
 
     expect(
-      computeInsuranceTable(emptyInsurance(), housing).groupTotals.housing,
+      computeInsuranceTable(emptyInsurance(), housing).groupTotals.housing
     ).toBe(110.06)
   })
 })

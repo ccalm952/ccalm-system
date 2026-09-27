@@ -116,7 +116,7 @@ describe("buildPriorBonusMap 依赖链防环", () => {
   it("自环不再无限递归", () => {
     const selfLoop = () => "2026-09"
     expect(() =>
-      buildPriorBonusMap("2026-09", sheets, selfLoop, settings),
+      buildPriorBonusMap("2026-09", sheets, selfLoop, settings)
     ).not.toThrow()
   })
 
@@ -124,7 +124,7 @@ describe("buildPriorBonusMap 依赖链防环", () => {
     const twoCycle = (month: string) =>
       month === "2026-09" ? "2026-08" : "2026-09"
     expect(() =>
-      buildPriorBonusMap("2026-09", sheets, twoCycle, settings),
+      buildPriorBonusMap("2026-09", sheets, twoCycle, settings)
     ).not.toThrow()
   })
 

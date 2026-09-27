@@ -1,20 +1,20 @@
-import * as React from "react";
-import { Plus, X } from "lucide-react";
+import * as React from "react"
+import { Plus, X } from "lucide-react"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 import {
   Table,
   TableBody,
@@ -22,35 +22,35 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import type { computeSalarySheet } from "@/lib/salary/calc";
-import { sumMaterialLines } from "@/lib/salary/defaults";
+} from "@/components/ui/tooltip"
+import type { computeSalarySheet } from "@/lib/salary/calc"
+import { sumMaterialLines } from "@/lib/salary/defaults"
 import {
   formatScheduleLeaveDays,
   scheduleLeaveSourceMonthLabel,
-} from "@/lib/salary/schedule-leave";
+} from "@/lib/salary/schedule-leave"
 import type {
   SalaryMaterialLine,
   SalaryOtherCostItem,
   SalarySheetData,
-} from "@/lib/salary/types";
+} from "@/lib/salary/types"
 
-import { NumInput, SummaryDecimalInput } from "./salary-table-inputs";
+import { NumInput, SummaryDecimalInput } from "./salary-table-inputs"
 
-type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
+type SalarySheetComputed = ReturnType<typeof computeSalarySheet>
 
 type CostLinePreview = {
-  id: string;
-  name: string;
-  amount: number;
-};
+  id: string
+  name: string
+  amount: number
+}
 
-type CostPreviewKey = "materials" | "other" | "grandTotal";
+type CostPreviewKey = "materials" | "other" | "grandTotal"
 
 function newMaterialLine(): SalaryMaterialLine {
   return {
@@ -60,7 +60,7 @@ function newMaterialLine(): SalaryMaterialLine {
         : `mat-${Date.now()}`,
     name: "",
     amount: 0,
-  };
+  }
 }
 
 function CostAmountPopover({
@@ -70,18 +70,20 @@ function CostAmountPopover({
   total,
   lines,
 }: {
-  previewKey: CostPreviewKey;
-  openKey: CostPreviewKey | null;
-  onOpenKeyChange: (key: CostPreviewKey | null) => void;
-  total: number;
-  lines: CostLinePreview[];
+  previewKey: CostPreviewKey
+  openKey: CostPreviewKey | null
+  onOpenKeyChange: (key: CostPreviewKey | null) => void
+  total: number
+  lines: CostLinePreview[]
 }) {
   return (
     <Popover
       open={openKey === previewKey}
       onOpenChange={(open) => onOpenKeyChange(open ? previewKey : null)}
     >
-      <PopoverTrigger render={<Button variant="link" />}>{total}</PopoverTrigger>
+      <PopoverTrigger render={<Button variant="link" />}>
+        {total}
+      </PopoverTrigger>
       <PopoverContent>
         {lines.length === 0 ? (
           <div>暂无明细</div>
@@ -97,7 +99,7 @@ function CostAmountPopover({
         )}
       </PopoverContent>
     </Popover>
-  );
+  )
 }
 
 export function SalarySummaryTable({
@@ -107,19 +109,21 @@ export function SalarySummaryTable({
   patchSheet,
   otherCostItems,
 }: {
-  sheet: SalarySheetData;
-  computed: SalarySheetComputed;
-  month: string;
-  patchSheet: (month: string, patch: SalarySheetData) => void;
-  otherCostItems: SalaryOtherCostItem[];
+  sheet: SalarySheetData
+  computed: SalarySheetComputed
+  month: string
+  patchSheet: (month: string, patch: SalarySheetData) => void
+  otherCostItems: SalaryOtherCostItem[]
 }) {
-  const [materialsOpen, setMaterialsOpen] = React.useState(false);
-  const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([]);
-  const [openPreview, setOpenPreview] = React.useState<CostPreviewKey | null>(null);
+  const [materialsOpen, setMaterialsOpen] = React.useState(false)
+  const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([])
+  const [openPreview, setOpenPreview] = React.useState<CostPreviewKey | null>(
+    null
+  )
 
   function openMaterials() {
-    setDraftLines(sheet.materialLines.map((line) => ({ ...line })));
-    setMaterialsOpen(true);
+    setDraftLines(sheet.materialLines.map((line) => ({ ...line })))
+    setMaterialsOpen(true)
   }
 
   function commitMaterials() {
@@ -129,14 +133,14 @@ export function SalarySummaryTable({
         name: line.name.trim(),
         amount: Math.max(0, line.amount),
       }))
-      .filter((line) => line.name.length > 0);
-    const materials = sumMaterialLines(materialLines);
+      .filter((line) => line.name.length > 0)
+    const materials = sumMaterialLines(materialLines)
     patchSheet(month, {
       ...sheet,
       materialLines,
       costItems: { ...sheet.costItems, materials },
-    });
-    setMaterialsOpen(false);
+    })
+    setMaterialsOpen(false)
   }
 
   const costGrandTotalLines: CostLinePreview[] = [
@@ -147,9 +151,13 @@ export function SalarySummaryTable({
     { id: "processing", name: "加工", amount: sheet.costItems.processing },
     { id: "other", name: "其他", amount: computed.otherCost },
     { id: "equipment", name: "设备", amount: computed.equipmentCost },
-    { id: "insurance", name: "五险一金", amount: computed.insuranceEmployerTotal },
+    {
+      id: "insurance",
+      name: "五险一金",
+      amount: computed.insuranceEmployerTotal,
+    },
     { id: "employee", name: "员工", amount: computed.employeePayrollTotal },
-  ];
+  ]
 
   return (
     <>
@@ -307,7 +315,9 @@ export function SalarySummaryTable({
                 <TooltipTrigger render={<span />}>
                   {computed.equipmentCost}
                 </TooltipTrigger>
-                <TooltipContent>由设置中的设备分期计划按月自动计算</TooltipContent>
+                <TooltipContent>
+                  由设置中的设备分期计划按月自动计算
+                </TooltipContent>
               </Tooltip>
             </TableCell>
             <TableCell>{computed.insuranceEmployerTotal}</TableCell>
@@ -345,12 +355,12 @@ export function SalarySummaryTable({
                     <Input
                       value={line.name}
                       onChange={(e) => {
-                        const name = e.target.value;
+                        const name = e.target.value
                         setDraftLines((prev) =>
                           prev.map((row) =>
-                            row.id === line.id ? { ...row, name } : row,
-                          ),
-                        );
+                            row.id === line.id ? { ...row, name } : row
+                          )
+                        )
                       }}
                     />
                   </TableCell>
@@ -362,8 +372,8 @@ export function SalarySummaryTable({
                           prev.map((row) =>
                             row.id === line.id
                               ? { ...row, amount: Math.max(0, amount) }
-                              : row,
-                          ),
+                              : row
+                          )
                         )
                       }
                     />
@@ -374,7 +384,9 @@ export function SalarySummaryTable({
                       variant="outline"
                       size="icon"
                       onClick={() =>
-                        setDraftLines((prev) => prev.filter((row) => row.id !== line.id))
+                        setDraftLines((prev) =>
+                          prev.filter((row) => row.id !== line.id)
+                        )
                       }
                     >
                       <X />
@@ -387,7 +399,9 @@ export function SalarySummaryTable({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setDraftLines((prev) => [...prev, newMaterialLine()])}
+                    onClick={() =>
+                      setDraftLines((prev) => [...prev, newMaterialLine()])
+                    }
                   >
                     <Plus data-icon="inline-start" />
                     添加材料
@@ -397,7 +411,11 @@ export function SalarySummaryTable({
             </TableBody>
           </Table>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setMaterialsOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setMaterialsOpen(false)}
+            >
               取消
             </Button>
             <Button type="button" onClick={commitMaterials}>
@@ -407,5 +425,5 @@ export function SalarySummaryTable({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

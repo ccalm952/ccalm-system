@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "sonner"
 
 export async function batchDelete<T>(
   items: T[],
@@ -7,15 +7,15 @@ export async function batchDelete<T>(
   const results = await Promise.all(
     items.map(async (item) => {
       try {
-        await deleteOne(item);
-        return true;
+        await deleteOne(item)
+        return true
       } catch {
-        return false;
+        return false
       }
     })
-  );
-  const ok = results.filter(Boolean).length;
-  return { ok, fail: items.length - ok };
+  )
+  const ok = results.filter(Boolean).length
+  return { ok, fail: items.length - ok }
 }
 
 export function toastBatchDeleteResult(
@@ -24,12 +24,12 @@ export function toastBatchDeleteResult(
   unit = "条"
 ): void {
   if (fail === 0) {
-    toast.success(`已删除 ${ok} ${unit}`);
-    return;
+    toast.success(`已删除 ${ok} ${unit}`)
+    return
   }
   if (ok === 0) {
-    toast.error("删除失败");
-    return;
+    toast.error("删除失败")
+    return
   }
-  toast.warning(`已删除 ${ok}/${ok + fail} ${unit}，${fail} ${unit}失败`);
+  toast.warning(`已删除 ${ok}/${ok + fail} ${unit}，${fail} ${unit}失败`)
 }

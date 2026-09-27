@@ -1,12 +1,8 @@
-import * as React from "react";
+import * as React from "react"
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 import {
   deciduousInUi,
   palmerLabel,
@@ -14,24 +10,24 @@ import {
   shortcutDeciduous,
   shortcutPermanent,
   type UiQuadrant,
-} from "@/lib/tooth-fdi";
+} from "@/lib/tooth-fdi"
 
 type ToothChartDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   /** 当前已选 FDI；打开时作为草稿初始值 */
-  value: number[];
-  onConfirm: (fdis: number[]) => void;
-};
+  value: number[]
+  onConfirm: (fdis: number[]) => void
+}
 
 function ToothCell({
   fdi,
   selected,
   onToggle,
 }: {
-  fdi: number;
-  selected: boolean;
-  onToggle: () => void;
+  fdi: number
+  selected: boolean
+  onToggle: () => void
 }) {
   return (
     <button
@@ -42,12 +38,12 @@ function ToothCell({
         "h-7 w-7 text-xs sm:h-[32px] sm:w-[32px] sm:text-sm",
         selected
           ? "border-teal-600 bg-teal-500 text-white"
-          : "border-border bg-background hover:bg-muted",
+          : "border-border bg-background hover:bg-muted"
       )}
     >
       {palmerLabel(fdi)}
     </button>
-  );
+  )
 }
 
 function ToothRow({
@@ -56,13 +52,18 @@ function ToothRow({
   toggle,
   alignEnd,
 }: {
-  fdis: number[];
-  selected: Set<number>;
-  toggle: (n: number) => void;
-  alignEnd?: boolean;
+  fdis: number[]
+  selected: Set<number>
+  toggle: (n: number) => void
+  alignEnd?: boolean
 }) {
   return (
-    <div className={cn("flex gap-0.5 sm:gap-1", alignEnd ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "flex gap-0.5 sm:gap-1",
+        alignEnd ? "justify-end" : "justify-start"
+      )}
+    >
       {fdis.map((n) => (
         <ToothCell
           key={n}
@@ -72,16 +73,16 @@ function ToothRow({
         />
       ))}
     </div>
-  );
+  )
 }
 
 /** 恒牙后牙 6–8；前牙/前磨牙 1–5（手机两行布局用） */
 function splitPermanent(q: UiQuadrant) {
-  const perm = permanentInUi(q);
+  const perm = permanentInUi(q)
   return {
     posterior: perm.filter((n) => n % 10 >= 6),
     anterior: perm.filter((n) => n % 10 <= 5),
-  };
+  }
 }
 
 function QuadrantBlock({
@@ -90,39 +91,64 @@ function QuadrantBlock({
   toggle,
   deciduousFirst,
 }: {
-  q: UiQuadrant;
-  selected: Set<number>;
-  toggle: (n: number) => void;
+  q: UiQuadrant
+  selected: Set<number>
+  toggle: (n: number) => void
   /** 上半口：乳牙在上、恒牙在下 */
-  deciduousFirst?: boolean;
+  deciduousFirst?: boolean
 }) {
-  const perm = permanentInUi(q);
-  const dec = deciduousInUi(q);
-  const { posterior, anterior } = splitPermanent(q);
+  const perm = permanentInUi(q)
+  const dec = deciduousInUi(q)
+  const { posterior, anterior } = splitPermanent(q)
   /** 靠中线 */
-  const alignCenter = q === "UR" || q === "LR";
+  const alignCenter = q === "UR" || q === "LR"
   /** 靠外侧（后牙行） */
-  const alignOuter = !alignCenter;
+  const alignOuter = !alignCenter
 
   const deciduousRow = (
-    <ToothRow fdis={dec} selected={selected} toggle={toggle} alignEnd={alignCenter} />
-  );
+    <ToothRow
+      fdis={dec}
+      selected={selected}
+      toggle={toggle}
+      alignEnd={alignCenter}
+    />
+  )
   const permanentDesktop = (
     <div className="hidden sm:block">
       <ToothRow fdis={perm} selected={selected} toggle={toggle} />
     </div>
-  );
+  )
   const permanentMobile = deciduousFirst ? (
     <div className="flex flex-col gap-0.5 sm:hidden">
-      <ToothRow fdis={posterior} selected={selected} toggle={toggle} alignEnd={alignOuter} />
-      <ToothRow fdis={anterior} selected={selected} toggle={toggle} alignEnd={alignCenter} />
+      <ToothRow
+        fdis={posterior}
+        selected={selected}
+        toggle={toggle}
+        alignEnd={alignOuter}
+      />
+      <ToothRow
+        fdis={anterior}
+        selected={selected}
+        toggle={toggle}
+        alignEnd={alignCenter}
+      />
     </div>
   ) : (
     <div className="flex flex-col gap-0.5 sm:hidden">
-      <ToothRow fdis={anterior} selected={selected} toggle={toggle} alignEnd={alignCenter} />
-      <ToothRow fdis={posterior} selected={selected} toggle={toggle} alignEnd={alignOuter} />
+      <ToothRow
+        fdis={anterior}
+        selected={selected}
+        toggle={toggle}
+        alignEnd={alignCenter}
+      />
+      <ToothRow
+        fdis={posterior}
+        selected={selected}
+        toggle={toggle}
+        alignEnd={alignOuter}
+      />
     </div>
-  );
+  )
 
   return (
     <div className="flex flex-col gap-0.5 sm:gap-1">
@@ -140,7 +166,7 @@ function QuadrantBlock({
         </>
       )}
     </div>
-  );
+  )
 }
 
 export function ToothChartDialog({
@@ -149,42 +175,42 @@ export function ToothChartDialog({
   value,
   onConfirm,
 }: ToothChartDialogProps) {
-  const [draft, setDraft] = React.useState<Set<number>>(() => new Set(value));
+  const [draft, setDraft] = React.useState<Set<number>>(() => new Set(value))
 
   React.useEffect(() => {
-    if (open) setDraft(new Set(value));
-  }, [open, value]);
+    if (open) setDraft(new Set(value))
+  }, [open, value])
 
   function toggle(n: number) {
     setDraft((prev) => {
-      const next = new Set(prev);
-      if (next.has(n)) next.delete(n);
-      else next.add(n);
-      return next;
-    });
+      const next = new Set(prev)
+      if (next.has(n)) next.delete(n)
+      else next.add(n)
+      return next
+    })
   }
 
   function applyShortcut(nums: number[]) {
     setDraft((prev) => {
-      const next = new Set(prev);
-      const allOn = nums.every((n) => next.has(n));
+      const next = new Set(prev)
+      const allOn = nums.every((n) => next.has(n))
       if (allOn) {
-        for (const n of nums) next.delete(n);
+        for (const n of nums) next.delete(n)
       } else {
-        for (const n of nums) next.add(n);
+        for (const n of nums) next.add(n)
       }
-      return next;
-    });
+      return next
+    })
   }
 
   function clearAll() {
-    setDraft(new Set());
+    setDraft(new Set())
   }
 
   function confirm() {
-    const list = [...draft].filter((n) => !Number.isNaN(n));
-    onConfirm(list.filter((n) => n > 0));
-    onOpenChange(false);
+    const list = [...draft].filter((n) => !Number.isNaN(n))
+    onConfirm(list.filter((n) => n > 0))
+    onOpenChange(false)
   }
 
   const shortcuts: { label: string; nums: number[] }[] = [
@@ -192,7 +218,7 @@ export function ToothChartDialog({
     { label: "下口-乳", nums: shortcutDeciduous("lower") },
     { label: "上口-恒", nums: shortcutPermanent("upper") },
     { label: "下口-恒", nums: shortcutPermanent("lower") },
-  ];
+  ]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,18 +239,33 @@ export function ToothChartDialog({
                 {s.label}
               </Button>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={clearAll}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearAll}
+            >
               清空
             </Button>
           </div>
 
           <div className="mx-auto grid w-fit grid-cols-[auto_1px_auto] items-stretch">
             <div className="pr-2 sm:pr-[12px]">
-              <QuadrantBlock q="UR" selected={draft} toggle={toggle} deciduousFirst />
+              <QuadrantBlock
+                q="UR"
+                selected={draft}
+                toggle={toggle}
+                deciduousFirst
+              />
             </div>
             <div className="row-span-3 w-px bg-border" />
             <div className="pl-2 sm:pl-[12px]">
-              <QuadrantBlock q="UL" selected={draft} toggle={toggle} deciduousFirst />
+              <QuadrantBlock
+                q="UL"
+                selected={draft}
+                toggle={toggle}
+                deciduousFirst
+              />
             </div>
 
             <div className="flex items-center gap-2 py-0 sm:py-[6px]">
@@ -248,7 +289,11 @@ export function ToothChartDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+          >
             取消
           </Button>
           <Button type="button" onClick={confirm}>
@@ -257,5 +302,5 @@ export function ToothChartDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

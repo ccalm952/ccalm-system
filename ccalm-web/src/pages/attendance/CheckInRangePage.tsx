@@ -1,195 +1,218 @@
-import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import * as React from "react"
+import { useNavigate } from "react-router-dom"
 
-import { AmapMap } from "@/components/AmapMap";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { requestAmapGeolocation } from "@/lib/amap-geolocate";
+import { AmapMap } from "@/components/AmapMap"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
+import { requestAmapGeolocation } from "@/lib/amap-geolocate"
 import {
   geocodeDisplayAddress,
   reverseGeocodeDisplayAddress,
   searchAddressSuggestions,
   type PlaceSuggestion,
-} from "@/lib/amap-regeo";
-import type { GeofenceConfig } from "@/lib/attendance/types";
-import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
-import { ROUTES } from "@/config/routes";
-import { api, type ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/use-auth";
-import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+} from "@/lib/amap-regeo"
+import type { GeofenceConfig } from "@/lib/attendance/types"
+import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme"
+import { ROUTES } from "@/config/routes"
+import { api, type ApiError } from "@/lib/api"
+import { useAuth } from "@/lib/use-auth"
+import { errorMessage } from "@/lib/errorMessage"
+import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
-const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 };
+const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 }
 const DEFAULT_GEOFENCE: GeofenceConfig = {
   enabled: false,
   centerLat: DEFAULT_CENTER.lat,
   centerLng: DEFAULT_CENTER.lng,
   radiusM: 200,
   label: "门诊大楼",
-};
-
+}
 
 export function CheckInRangePage() {
-  const navigate = useNavigate();
-  const { me } = useAuth();
-  const [ready, setReady] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<string | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
-  const [shouldAutoRefreshLocation, setShouldAutoRefreshLocation] = React.useState(false);
-  const [radius, setRadius] = React.useState(DEFAULT_GEOFENCE.radiusM);
-  const [placeName, setPlaceName] = React.useState(DEFAULT_GEOFENCE.label);
+  const navigate = useNavigate()
+  const { me } = useAuth()
+  const [ready, setReady] = React.useState(false)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
+  const [reloadKey, setReloadKey] = React.useState(0)
+  const [shouldAutoRefreshLocation, setShouldAutoRefreshLocation] =
+    React.useState(false)
+  const [radius, setRadius] = React.useState(DEFAULT_GEOFENCE.radiusM)
+  const [placeName, setPlaceName] = React.useState(DEFAULT_GEOFENCE.label)
   const [center, setCenter] = React.useState({
     lat: DEFAULT_GEOFENCE.centerLat,
     lng: DEFAULT_GEOFENCE.centerLng,
-  });
-  const [geolocating, setGeolocating] = React.useState(false);
-  const [savingGeofence, setSavingGeofence] = React.useState(false);
-  const [placeInputFocused, setPlaceInputFocused] = React.useState(false);
-  const [placeSuggestions, setPlaceSuggestions] = React.useState<PlaceSuggestion[]>([]);
-  const [loadingPlaceSuggestions, setLoadingPlaceSuggestions] = React.useState(false);
-  const regeoSeqRef = React.useRef(0);
-  const suggestionSeqRef = React.useRef(0);
-  const didAutoRefreshLocationRef = React.useRef(false);
+  })
+  const [geolocating, setGeolocating] = React.useState(false)
+  const [savingGeofence, setSavingGeofence] = React.useState(false)
+  const [placeInputFocused, setPlaceInputFocused] = React.useState(false)
+  const [placeSuggestions, setPlaceSuggestions] = React.useState<
+    PlaceSuggestion[]
+  >([])
+  const [loadingPlaceSuggestions, setLoadingPlaceSuggestions] =
+    React.useState(false)
+  const regeoSeqRef = React.useRef(0)
+  const suggestionSeqRef = React.useRef(0)
+  const didAutoRefreshLocationRef = React.useRef(false)
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
+    let cancelled = false
+    ;(async () => {
       try {
-        if (!me) return;
-        if (cancelled) return;
+        if (!me) return
+        if (cancelled) return
         if (me.role !== "admin") {
-          navigate(ROUTES.home, { replace: true });
-          return;
+          navigate(ROUTES.home, { replace: true })
+          return
         }
 
-        const geofence = await api<GeofenceConfig>("GET", "/attendance/geofence");
-        if (cancelled) return;
-        setRadius(Math.max(1, Number(geofence.radiusM) || DEFAULT_GEOFENCE.radiusM));
-        setPlaceName(geofence.label || DEFAULT_GEOFENCE.label);
+        const geofence = await api<GeofenceConfig>(
+          "GET",
+          "/attendance/geofence"
+        )
+        if (cancelled) return
+        setRadius(
+          Math.max(1, Number(geofence.radiusM) || DEFAULT_GEOFENCE.radiusM)
+        )
+        setPlaceName(geofence.label || DEFAULT_GEOFENCE.label)
         setCenter({
           lat: Number(geofence.centerLat) || DEFAULT_GEOFENCE.centerLat,
           lng: Number(geofence.centerLng) || DEFAULT_GEOFENCE.centerLng,
-        });
-        setShouldAutoRefreshLocation(!geofence.enabled);
-        setLoadError(null);
-        setReady(true);
+        })
+        setShouldAutoRefreshLocation(!geofence.enabled)
+        setLoadError(null)
+        setReady(true)
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled) return
         // 401 由 api.ts 全局处理
-        if ((e as ApiError).status === 401) return;
-        const msg = errorMessage(e);
-        setLoadError(msg);
-        toast.error(msg);
+        if ((e as ApiError).status === 401) return
+        const msg = errorMessage(e)
+        setLoadError(msg)
+        toast.error(msg)
       }
-    })();
+    })()
     return () => {
-      cancelled = true;
-    };
-  }, [navigate, me, reloadKey]);
+      cancelled = true
+    }
+  }, [navigate, me, reloadKey])
 
   const updateCenterWithAddress = React.useCallback(
     async (nextCenter: { lat: number; lng: number }) => {
-      const seq = ++regeoSeqRef.current;
-      setCenter(nextCenter);
+      const seq = ++regeoSeqRef.current
+      setCenter(nextCenter)
       try {
-        const address = await reverseGeocodeDisplayAddress(nextCenter.lat, nextCenter.lng);
-        if (seq !== regeoSeqRef.current || !address) return;
-        setPlaceName(address);
+        const address = await reverseGeocodeDisplayAddress(
+          nextCenter.lat,
+          nextCenter.lng
+        )
+        if (seq !== regeoSeqRef.current || !address) return
+        setPlaceName(address)
       } catch (e) {
-        if (seq !== regeoSeqRef.current) return;
-        toast.error(errorMessage(e));
+        if (seq !== regeoSeqRef.current) return
+        toast.error(errorMessage(e))
       }
     },
-    [],
-  );
+    []
+  )
 
   const refreshLocation = React.useCallback(async () => {
-    setGeolocating(true);
+    setGeolocating(true)
     try {
-      const { lat, lng } = await requestAmapGeolocation();
-      await updateCenterWithAddress({ lat, lng });
+      const { lat, lng } = await requestAmapGeolocation()
+      await updateCenterWithAddress({ lat, lng })
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     } finally {
-      setGeolocating(false);
+      setGeolocating(false)
     }
-  }, [updateCenterWithAddress]);
+  }, [updateCenterWithAddress])
 
   React.useEffect(() => {
-    const keyword = placeName.trim();
-    const seq = ++suggestionSeqRef.current;
+    const keyword = placeName.trim()
+    const seq = ++suggestionSeqRef.current
     if (!placeInputFocused || !keyword) {
-      setPlaceSuggestions([]);
-      setLoadingPlaceSuggestions(false);
-      return;
+      setPlaceSuggestions([])
+      setLoadingPlaceSuggestions(false)
+      return
     }
 
-    setLoadingPlaceSuggestions(true);
+    setLoadingPlaceSuggestions(true)
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const suggestions = await searchAddressSuggestions(keyword);
-          if (seq !== suggestionSeqRef.current) return;
-          setPlaceSuggestions(suggestions);
+          const suggestions = await searchAddressSuggestions(keyword)
+          if (seq !== suggestionSeqRef.current) return
+          setPlaceSuggestions(suggestions)
         } catch {
-          if (seq !== suggestionSeqRef.current) return;
-          setPlaceSuggestions([]);
+          if (seq !== suggestionSeqRef.current) return
+          setPlaceSuggestions([])
         } finally {
-          if (seq === suggestionSeqRef.current) setLoadingPlaceSuggestions(false);
+          if (seq === suggestionSeqRef.current)
+            setLoadingPlaceSuggestions(false)
         }
-      })();
-    }, 300);
+      })()
+    }, 300)
 
-    return () => window.clearTimeout(timer);
-  }, [placeInputFocused, placeName]);
+    return () => window.clearTimeout(timer)
+  }, [placeInputFocused, placeName])
 
   const selectPlaceSuggestion = React.useCallback(
     async (suggestion: PlaceSuggestion) => {
-      suggestionSeqRef.current += 1;
-      setPlaceInputFocused(false);
-      setPlaceSuggestions([]);
+      suggestionSeqRef.current += 1
+      setPlaceInputFocused(false)
+      setPlaceSuggestions([])
 
-      const displayName = [suggestion.address, suggestion.name].filter(Boolean).join(" ");
-      setPlaceName(displayName);
+      const displayName = [suggestion.address, suggestion.name]
+        .filter(Boolean)
+        .join(" ")
+      setPlaceName(displayName)
       try {
-        if (typeof suggestion.lat === "number" && typeof suggestion.lng === "number") {
-          await updateCenterWithAddress({ lat: suggestion.lat, lng: suggestion.lng });
-          return;
+        if (
+          typeof suggestion.lat === "number" &&
+          typeof suggestion.lng === "number"
+        ) {
+          await updateCenterWithAddress({
+            lat: suggestion.lat,
+            lng: suggestion.lng,
+          })
+          return
         }
 
-        const result = await geocodeDisplayAddress(displayName);
-        setPlaceName(result.address);
-        await updateCenterWithAddress({ lat: result.lat, lng: result.lng });
+        const result = await geocodeDisplayAddress(displayName)
+        setPlaceName(result.address)
+        await updateCenterWithAddress({ lat: result.lat, lng: result.lng })
       } catch (e) {
-        toast.error(errorMessage(e));
+        toast.error(errorMessage(e))
       }
     },
-    [updateCenterWithAddress],
-  );
+    [updateCenterWithAddress]
+  )
 
   React.useEffect(() => {
-    if (!ready) return;
-    if (!shouldAutoRefreshLocation) return;
-    if (didAutoRefreshLocationRef.current) return;
-    didAutoRefreshLocationRef.current = true;
-    void refreshLocation();
-  }, [ready, refreshLocation, shouldAutoRefreshLocation]);
+    if (!ready) return
+    if (!shouldAutoRefreshLocation) return
+    if (didAutoRefreshLocationRef.current) return
+    didAutoRefreshLocationRef.current = true
+    void refreshLocation()
+  }, [ready, refreshLocation, shouldAutoRefreshLocation])
 
   const saveCurrentGeofence = React.useCallback(async () => {
-    const nextRadius = Math.max(1, Math.round(Number(radius) || DEFAULT_GEOFENCE.radiusM));
-    const label = placeName.trim();
+    const nextRadius = Math.max(
+      1,
+      Math.round(Number(radius) || DEFAULT_GEOFENCE.radiusM)
+    )
+    const label = placeName.trim()
     if (!label) {
-      toast.error("地点名称不能为空");
-      return;
+      toast.error("地点名称不能为空")
+      return
     }
     if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
-      toast.error("中心点坐标不合法");
-      return;
+      toast.error("中心点坐标不合法")
+      return
     }
 
-    setSavingGeofence(true);
+    setSavingGeofence(true)
     try {
       await api("PUT", "/attendance/geofence", {
         enabled: true,
@@ -197,36 +220,36 @@ export function CheckInRangePage() {
         centerLng: center.lng,
         radiusM: nextRadius,
         label,
-      });
-      setRadius(nextRadius);
-      setPlaceName(label);
-      toast.success("已保存全站打卡范围");
+      })
+      setRadius(nextRadius)
+      setPlaceName(label)
+      toast.success("已保存全站打卡范围")
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     } finally {
-      setSavingGeofence(false);
+      setSavingGeofence(false)
     }
-  }, [center.lat, center.lng, placeName, radius]);
+  }, [center.lat, center.lng, placeName, radius])
 
   const clearRemoteGeofence = React.useCallback(async () => {
-    regeoSeqRef.current += 1;
-    suggestionSeqRef.current += 1;
-    setRadius(DEFAULT_GEOFENCE.radiusM);
-    setPlaceName(DEFAULT_GEOFENCE.label);
-    setCenter(DEFAULT_CENTER);
-    setPlaceSuggestions([]);
-    setPlaceInputFocused(false);
+    regeoSeqRef.current += 1
+    suggestionSeqRef.current += 1
+    setRadius(DEFAULT_GEOFENCE.radiusM)
+    setPlaceName(DEFAULT_GEOFENCE.label)
+    setCenter(DEFAULT_CENTER)
+    setPlaceSuggestions([])
+    setPlaceInputFocused(false)
 
-    setSavingGeofence(true);
+    setSavingGeofence(true)
     try {
-      await api("PUT", "/attendance/geofence", DEFAULT_GEOFENCE);
-      toast.success("已清除全站打卡范围");
+      await api("PUT", "/attendance/geofence", DEFAULT_GEOFENCE)
+      toast.success("已清除全站打卡范围")
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     } finally {
-      setSavingGeofence(false);
+      setSavingGeofence(false)
     }
-  }, []);
+  }, [])
 
   if (!ready) {
     if (loadError) {
@@ -236,20 +259,20 @@ export function CheckInRangePage() {
           <Button
             type="button"
             onClick={() => {
-              setLoadError(null);
-              setReloadKey((k) => k + 1);
+              setLoadError(null)
+              setReloadKey((k) => k + 1)
             }}
           >
             重试
           </Button>
         </div>
-      );
+      )
     }
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <Spinner />
       </div>
-    );
+    )
   }
 
   return (
@@ -268,8 +291,8 @@ export function CheckInRangePage() {
                 pattern="[0-9]*"
                 value={Number.isNaN(radius) ? "" : radius}
                 onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setRadius(Number.isNaN(v) ? 0 : v);
+                  const v = Number(e.target.value)
+                  setRadius(Number.isNaN(v) ? 0 : v)
                 }}
               />
             </div>
@@ -284,16 +307,21 @@ export function CheckInRangePage() {
                   value={placeName}
                   onFocus={() => setPlaceInputFocused(true)}
                   onBlur={() => {
-                    window.setTimeout(() => setPlaceInputFocused(false), 100);
+                    window.setTimeout(() => setPlaceInputFocused(false), 100)
                   }}
                   onChange={(e) => {
-                    setPlaceName(e.target.value);
+                    setPlaceName(e.target.value)
                   }}
                 />
                 {placeInputFocused && placeName.trim() ? (
                   <div className="absolute top-full z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
                     {loadingPlaceSuggestions ? (
-                      <div className={cn("flex items-center gap-2 px-3 py-2 text-sm", attendanceMutedTextClass)}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 text-sm",
+                          attendanceMutedTextClass
+                        )}
+                      >
                         <Spinner data-icon="inline-start" />
                         搜索中…
                       </div>
@@ -308,14 +336,26 @@ export function CheckInRangePage() {
                         >
                           <span>{suggestion.name}</span>
                           {suggestion.address ? (
-                            <span className={cn("text-xs", attendanceMutedTextClass)}>
+                            <span
+                              className={cn(
+                                "text-xs",
+                                attendanceMutedTextClass
+                              )}
+                            >
                               {suggestion.address}
                             </span>
                           ) : null}
                         </button>
                       ))
                     ) : (
-                      <div className={cn("px-3 py-2 text-sm", attendanceMutedTextClass)}>未找到匹配地点</div>
+                      <div
+                        className={cn(
+                          "px-3 py-2 text-sm",
+                          attendanceMutedTextClass
+                        )}
+                      >
+                        未找到匹配地点
+                      </div>
                     )}
                   </div>
                 ) : null}
@@ -328,7 +368,12 @@ export function CheckInRangePage() {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" disabled={geolocating} onClick={refreshLocation}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={geolocating}
+              onClick={refreshLocation}
+            >
               {geolocating ? (
                 <>
                   <Spinner data-icon="inline-start" />
@@ -338,7 +383,11 @@ export function CheckInRangePage() {
                 "刷新定位"
               )}
             </Button>
-            <Button type="button" disabled={savingGeofence} onClick={saveCurrentGeofence}>
+            <Button
+              type="button"
+              disabled={savingGeofence}
+              onClick={saveCurrentGeofence}
+            >
               {savingGeofence ? (
                 <>
                   <Spinner data-icon="inline-start" />
@@ -367,12 +416,12 @@ export function CheckInRangePage() {
               radiusMeters={radius}
               markerDraggable
               onPickCenter={(nextCenter) => {
-                void updateCenterWithAddress(nextCenter);
+                void updateCenterWithAddress(nextCenter)
               }}
             />
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

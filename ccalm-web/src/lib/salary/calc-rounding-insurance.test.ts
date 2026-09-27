@@ -587,13 +587,13 @@ describe("设备分期与其他成本加总", () => {
 
   it("非补零或越界月份串一律视为无效", () => {
     expect(
-      installmentAmountForMonth({ ...plan, startMonth: "2026-1" }, "2026-01"),
+      installmentAmountForMonth({ ...plan, startMonth: "2026-1" }, "2026-01")
     ).toBe(0)
     expect(
-      installmentAmountForMonth({ ...plan, startMonth: "2026-01" }, "2026-1"),
+      installmentAmountForMonth({ ...plan, startMonth: "2026-01" }, "2026-1")
     ).toBe(0)
     expect(
-      installmentAmountForMonth({ ...plan, startMonth: "2026-13" }, "2026-01"),
+      installmentAmountForMonth({ ...plan, startMonth: "2026-13" }, "2026-01")
     ).toBe(0)
   })
 

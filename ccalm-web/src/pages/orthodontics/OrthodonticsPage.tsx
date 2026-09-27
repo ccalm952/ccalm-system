@@ -1,9 +1,9 @@
-import * as React from "react";
-import dayjs from "dayjs";
-import { Plus, SearchIcon, X } from "lucide-react";
-import { toast } from "sonner";
+import * as React from "react"
+import dayjs from "dayjs"
+import { Plus, SearchIcon, X } from "lucide-react"
+import { toast } from "sonner"
 
-import { TablePagination } from "@/components/table-pagination";
+import { TablePagination } from "@/components/table-pagination"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,10 +13,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Combobox,
   ComboboxContent,
@@ -24,18 +24,22 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-} from "@/components/ui/combobox";
+} from "@/components/ui/combobox"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Spinner } from "@/components/ui/spinner";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -43,46 +47,46 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { DatePickerField } from "@/components/date-picker-field";
-import { api } from "@/lib/api";
-import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
-import { errorMessage } from "@/lib/errorMessage";
-import { paginateRows } from "@/lib/pagination";
+} from "@/components/ui/table"
+import { DatePickerField } from "@/components/date-picker-field"
+import { api } from "@/lib/api"
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete"
+import { errorMessage } from "@/lib/errorMessage"
+import { paginateRows } from "@/lib/pagination"
 import {
   ORTHODONTICS_CATEGORY_OPTIONS,
   orthodonticsCategoryLabel,
   type OrthodonticsCategory,
-} from "@/lib/orthodontics/categories";
-import { cn } from "@/lib/utils";
+} from "@/lib/orthodontics/categories"
+import { cn } from "@/lib/utils"
 
 type OrthodonticsRow = {
-  id: number;
-  category: OrthodonticsCategory;
-  chartNo: string;
-  name: string;
-  phone: string;
-  applianceModel: string;
-  lastVisitDate: string | null;
-  daysSinceLastVisit: number | null;
-  followUp: string;
-  remark: string;
-  doctor: string;
-};
+  id: number
+  category: OrthodonticsCategory
+  chartNo: string
+  name: string
+  phone: string
+  applianceModel: string
+  lastVisitDate: string | null
+  daysSinceLastVisit: number | null
+  followUp: string
+  remark: string
+  doctor: string
+}
 
 type FormState = {
-  category: OrthodonticsCategory;
-  chartNo: string;
-  name: string;
-  phone: string;
-  applianceModel: string;
-  lastVisitDate: string;
-  remark: string;
-  doctor: string;
-};
+  category: OrthodonticsCategory
+  chartNo: string
+  name: string
+  phone: string
+  applianceModel: string
+  lastVisitDate: string
+  remark: string
+  doctor: string
+}
 
-const OVERDUE_DAYS = 30;
-const ORTHODONTICS_TABLE_SELECT_COL_W = "40px";
+const OVERDUE_DAYS = 30
+const ORTHODONTICS_TABLE_SELECT_COL_W = "40px"
 const ORTHODONTICS_SHARE_COLS = [
   "category",
   "chartNo",
@@ -94,9 +98,9 @@ const ORTHODONTICS_SHARE_COLS = [
   "remark",
   "doctor",
   "actions",
-] as const;
-const TABLE_ROW_HEIGHT_PX = 40;
-const ORTHODONTICS_TABLE_COL_COUNT = 1 + ORTHODONTICS_SHARE_COLS.length;
+] as const
+const TABLE_ROW_HEIGHT_PX = 40
+const ORTHODONTICS_TABLE_COL_COUNT = 1 + ORTHODONTICS_SHARE_COLS.length
 
 function emptyForm(category: OrthodonticsCategory): FormState {
   return {
@@ -108,7 +112,7 @@ function emptyForm(category: OrthodonticsCategory): FormState {
     lastVisitDate: "",
     remark: "",
     doctor: "",
-  };
+  }
 }
 
 function formFromRow(row: OrthodonticsRow): FormState {
@@ -121,11 +125,11 @@ function formFromRow(row: OrthodonticsRow): FormState {
     lastVisitDate: row.lastVisitDate ?? "",
     remark: row.remark,
     doctor: row.doctor,
-  };
+  }
 }
 
 function isOverdue(days: number | null): boolean {
-  return days != null && days > OVERDUE_DAYS;
+  return days != null && days > OVERDUE_DAYS
 }
 
 function patientBody(
@@ -140,7 +144,7 @@ function patientBody(
     | "followUp"
     | "remark"
     | "doctor"
-  >,
+  >
 ) {
   return {
     category: row.category,
@@ -152,78 +156,76 @@ function patientBody(
     followUp: row.followUp,
     remark: row.remark,
     doctor: row.doctor,
-  };
+  }
 }
 
 export function OrthodonticsPage() {
   const [activeCategory, setActiveCategory] =
-    React.useState<OrthodonticsCategory>("treating");
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [rows, setRows] = React.useState<OrthodonticsRow[]>([]);
-  const [selection, setSelection] = React.useState<Set<number>>(new Set());
-  const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [form, setForm] = React.useState<FormState>(emptyForm("treating"));
-  const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
-  const [loading, setLoading] = React.useState(true);
-  const editIdRef = React.useRef<number | null>(null);
+    React.useState<OrthodonticsCategory>("treating")
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [rows, setRows] = React.useState<OrthodonticsRow[]>([])
+  const [selection, setSelection] = React.useState<Set<number>>(new Set())
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const [form, setForm] = React.useState<FormState>(emptyForm("treating"))
+  const [page, setPage] = React.useState(1)
+  const [pageSize, setPageSize] = React.useState(20)
+  const [loading, setLoading] = React.useState(true)
+  const editIdRef = React.useRef<number | null>(null)
 
   const load = React.useCallback(async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const params = new URLSearchParams({ category: activeCategory });
-      const q = searchQuery.trim();
-      if (q) params.set("q", q);
+      const params = new URLSearchParams({ category: activeCategory })
+      const q = searchQuery.trim()
+      if (q) params.set("q", q)
       const data = await api<OrthodonticsRow[]>(
         "GET",
-        `/orthodontics/patients?${params.toString()}`,
-      );
-      setRows(Array.isArray(data) ? data : []);
-      setSelection(new Set());
+        `/orthodontics/patients?${params.toString()}`
+      )
+      setRows(Array.isArray(data) ? data : [])
+      setSelection(new Set())
     } catch (e) {
-      toast.error(errorMessage(e));
-      setRows([]);
+      toast.error(errorMessage(e))
+      setRows([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery])
 
   React.useEffect(() => {
-    setPage(1);
-  }, [activeCategory, searchQuery, pageSize]);
+    setPage(1)
+  }, [activeCategory, searchQuery, pageSize])
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
-      void load();
-    }, 300);
-    return () => window.clearTimeout(id);
-  }, [load]);
+      void load()
+    }, 300)
+    return () => window.clearTimeout(id)
+  }, [load])
 
   function openCreate() {
-    editIdRef.current = null;
-    setForm(emptyForm(activeCategory));
-    setDialogOpen(true);
+    editIdRef.current = null
+    setForm(emptyForm(activeCategory))
+    setDialogOpen(true)
   }
 
   function openEdit(row: OrthodonticsRow) {
-    editIdRef.current = row.id;
-    setForm(formFromRow(row));
-    setDialogOpen(true);
+    editIdRef.current = row.id
+    setForm(formFromRow(row))
+    setDialogOpen(true)
   }
 
   async function markCompleted(row: OrthodonticsRow) {
     try {
-      await api(
-        "PUT",
-        `/orthodontics/patients/${row.id}`,
-        { ...patientBody({ ...row, category: "completed" }) },
-      );
-      toast.success("已移至已完成");
-      await load();
+      await api("PUT", `/orthodontics/patients/${row.id}`, {
+        ...patientBody({ ...row, category: "completed" }),
+      })
+      toast.success("已移至已完成")
+      await load()
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     }
   }
 
@@ -235,27 +237,27 @@ export function OrthodonticsPage() {
         patientBody({
           ...row,
           lastVisitDate: dayjs().format("YYYY-MM-DD"),
-        }),
-      );
-      toast.success("已更新就诊");
-      await load();
+        })
+      )
+      toast.success("已更新就诊")
+      await load()
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     }
   }
 
   async function save() {
-    const name = form.name.trim();
+    const name = form.name.trim()
     if (!name) {
-      toast.error("请填写姓名");
-      return;
+      toast.error("请填写姓名")
+      return
     }
-    setSaving(true);
+    setSaving(true)
     try {
       const existing =
         editIdRef.current == null
           ? null
-          : (rows.find((row) => row.id === editIdRef.current) ?? null);
+          : (rows.find((row) => row.id === editIdRef.current) ?? null)
       const body = {
         category: form.category,
         chartNo: form.chartNo.trim(),
@@ -266,58 +268,53 @@ export function OrthodonticsPage() {
         followUp: existing?.followUp ?? "",
         remark: form.remark.trim(),
         doctor: form.doctor.trim(),
-      };
-      if (editIdRef.current == null) {
-        await api("POST", "/orthodontics/patients", body);
-        toast.success("已添加");
-      } else {
-        await api("PUT", `/orthodontics/patients/${editIdRef.current}`, body);
-        toast.success("已保存");
       }
-      setDialogOpen(false);
-      await load();
+      if (editIdRef.current == null) {
+        await api("POST", "/orthodontics/patients", body)
+        toast.success("已添加")
+      } else {
+        await api("PUT", `/orthodontics/patients/${editIdRef.current}`, body)
+        toast.success("已保存")
+      }
+      setDialogOpen(false)
+      await load()
     } catch (e) {
-      toast.error(errorMessage(e));
+      toast.error(errorMessage(e))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
   }
 
   async function confirmDelete() {
-    const selected = rows.filter((row) => selection.has(row.id));
+    const selected = rows.filter((row) => selection.has(row.id))
     if (!selected.length) {
-      setDeleteOpen(false);
-      return;
+      setDeleteOpen(false)
+      return
     }
     try {
       const { ok, fail } = await batchDelete(selected, (row) =>
-        api("DELETE", `/orthodontics/patients/${row.id}`),
-      );
-      toastBatchDeleteResult(ok, fail);
-      await load();
+        api("DELETE", `/orthodontics/patients/${row.id}`)
+      )
+      toastBatchDeleteResult(ok, fail)
+      await load()
     } finally {
-      setDeleteOpen(false);
+      setDeleteOpen(false)
     }
   }
 
   function toggleSel(id: number) {
     setSelection((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  const {
-    total,
-    totalPages,
-    currentPage,
-    pageRows,
-    emptyRowCount,
-  } = paginateRows(rows, page, pageSize);
+  const { total, totalPages, currentPage, pageRows, emptyRowCount } =
+    paginateRows(rows, page, pageSize)
   const allSelected =
-    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
+    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id))
 
   return (
     <div className="flex flex-col p-4 md:p-6">
@@ -366,131 +363,165 @@ export function OrthodonticsPage() {
         <CardContent className="flex flex-col gap-(--card-spacing)">
           <div className="relative">
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
-            <Table className="w-full min-w-[1246px] table-fixed border-collapse">
-              <colgroup>
-                <col style={{ width: ORTHODONTICS_TABLE_SELECT_COL_W }} />
-                {ORTHODONTICS_SHARE_COLS.map((id) => (
-                  <col
-                    key={id}
-                    style={{
-                      width: `calc((100% - ${ORTHODONTICS_TABLE_SELECT_COL_W}) / ${ORTHODONTICS_SHARE_COLS.length})`,
-                    }}
-                  />
-                ))}
-              </colgroup>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Checkbox
-                      checked={allSelected}
-                      indeterminate={
-                        !allSelected && rows.some((row) => selection.has(row.id))
-                      }
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelection((prev) => {
-                            const next = new Set(prev);
-                            for (const row of pageRows) next.add(row.id);
-                            return next;
-                          });
-                        } else {
-                          setSelection((prev) => {
-                            const next = new Set(prev);
-                            for (const row of pageRows) next.delete(row.id);
-                            return next;
-                          });
-                        }
+              <Table className="w-full min-w-[1246px] table-fixed border-collapse">
+                <colgroup>
+                  <col style={{ width: ORTHODONTICS_TABLE_SELECT_COL_W }} />
+                  {ORTHODONTICS_SHARE_COLS.map((id) => (
+                    <col
+                      key={id}
+                      style={{
+                        width: `calc((100% - ${ORTHODONTICS_TABLE_SELECT_COL_W}) / ${ORTHODONTICS_SHARE_COLS.length})`,
                       }}
                     />
-                  </TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">标签</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">病历号</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">姓名</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">型号</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">电话</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">上次就诊</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">距离上次就诊</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">备注</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">医生</TableHead>
-                  <TableHead className="min-w-0 max-w-0 text-center">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
-                {pageRows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>
+                  ))}
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
                       <Checkbox
-                        checked={selection.has(row.id)}
-                        onCheckedChange={() => toggleSel(row.id)}
+                        checked={allSelected}
+                        indeterminate={
+                          !allSelected &&
+                          rows.some((row) => selection.has(row.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelection((prev) => {
+                              const next = new Set(prev)
+                              for (const row of pageRows) next.add(row.id)
+                              return next
+                            })
+                          } else {
+                            setSelection((prev) => {
+                              const next = new Set(prev)
+                              for (const row of pageRows) next.delete(row.id)
+                              return next
+                            })
+                          }
+                        }}
                       />
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">
-                      {orthodonticsCategoryLabel(row.category)}
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.chartNo}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.name}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.applianceModel}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.phone}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">
-                      {row.lastVisitDate
-                        ? dayjs(row.lastVisitDate).format("YYYY-MM-DD")
-                        : ""}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "min-w-0 max-w-0 truncate",
-                        isOverdue(row.daysSinceLastVisit) && "text-destructive",
-                      )}
-                    >
-                      {row.daysSinceLastVisit == null
-                        ? ""
-                        : `${row.daysSinceLastVisit} 天`}
-                    </TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.remark}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 truncate">{row.doctor}</TableCell>
-                    <TableCell className="min-w-0 max-w-0 whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => openEdit(row)}
-                        >
-                          编辑
-                        </Button>
-                        {row.category === "treating" ? (
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      标签
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      病历号
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      姓名
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      型号
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      电话
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      上次就诊
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      距离上次就诊
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      备注
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      医生
+                    </TableHead>
+                    <TableHead className="max-w-0 min-w-0 text-center">
+                      操作
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
+                  {pageRows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selection.has(row.id)}
+                          onCheckedChange={() => toggleSel(row.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {orthodonticsCategoryLabel(row.category)}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.chartNo}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.name}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.applianceModel}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.phone}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.lastVisitDate
+                          ? dayjs(row.lastVisitDate).format("YYYY-MM-DD")
+                          : ""}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "max-w-0 min-w-0 truncate",
+                          isOverdue(row.daysSinceLastVisit) &&
+                            "text-destructive"
+                        )}
+                      >
+                        {row.daysSinceLastVisit == null
+                          ? ""
+                          : `${row.daysSinceLastVisit} 天`}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.remark}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 truncate">
+                        {row.doctor}
+                      </TableCell>
+                      <TableCell className="max-w-0 min-w-0 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => void markCompleted(row)}
+                            onClick={() => openEdit(row)}
                           >
-                            完成
+                            编辑
                           </Button>
-                        ) : null}
-                        {row.category !== "completed" ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => void markVisitedToday(row)}
-                          >
-                            就诊
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {emptyRowCount > 0 ? (
-                  <TableRow className="border-b-0 !bg-background hover:!bg-transparent">
-                    <TableCell
-                      colSpan={ORTHODONTICS_TABLE_COL_COUNT}
-                      className="p-0"
-                      style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
-                    />
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-            <ScrollBar orientation="horizontal" />
+                          {row.category === "treating" ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => void markCompleted(row)}
+                            >
+                              完成
+                            </Button>
+                          ) : null}
+                          {row.category !== "completed" ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => void markVisitedToday(row)}
+                            >
+                              就诊
+                            </Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {emptyRowCount > 0 ? (
+                    <TableRow className="border-b-0 !bg-background hover:!bg-transparent">
+                      <TableCell
+                        colSpan={ORTHODONTICS_TABLE_COL_COUNT}
+                        className="p-0"
+                        style={{ height: emptyRowCount * TABLE_ROW_HEIGHT_PX }}
+                      />
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
             {loading ? (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
@@ -522,11 +553,11 @@ export function OrthodonticsPage() {
               items={[...ORTHODONTICS_CATEGORY_OPTIONS]}
               value={
                 ORTHODONTICS_CATEGORY_OPTIONS.find(
-                  (opt) => opt.value === form.category,
+                  (opt) => opt.value === form.category
                 ) ?? null
               }
               onValueChange={(opt) => {
-                if (opt) setForm((f) => ({ ...f, category: opt.value }));
+                if (opt) setForm((f) => ({ ...f, category: opt.value }))
               }}
               itemToStringValue={(opt) => opt.label}
             >
@@ -545,7 +576,9 @@ export function OrthodonticsPage() {
             <Input
               placeholder="病历号"
               value={form.chartNo}
-              onChange={(e) => setForm((f) => ({ ...f, chartNo: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, chartNo: e.target.value }))
+              }
             />
             <Input
               placeholder="姓名"
@@ -562,7 +595,9 @@ export function OrthodonticsPage() {
             <Input
               placeholder="电话"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
             />
             <DatePickerField
               value={form.lastVisitDate}
@@ -574,12 +609,16 @@ export function OrthodonticsPage() {
             <Input
               placeholder="备注"
               value={form.remark}
-              onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, remark: e.target.value }))
+              }
             />
             <Input
               placeholder="医生"
               value={form.doctor}
-              onChange={(e) => setForm((f) => ({ ...f, doctor: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, doctor: e.target.value }))
+              }
             />
           </div>
           <DialogFooter>
@@ -614,5 +653,5 @@ export function OrthodonticsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }
