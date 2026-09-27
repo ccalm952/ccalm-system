@@ -68,7 +68,6 @@ function sheet(
       materials: 0,
       planting: 0,
       processing: 0,
-      other: 0,
     },
     materialLines: [],
   }

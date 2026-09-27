@@ -61,7 +61,6 @@ export type SalaryCostItems = {
   materials: number;
   planting: number;
   processing: number;
-  other: number;
 };
 
 /** 当月材料成本明细（名称 + 金额） */

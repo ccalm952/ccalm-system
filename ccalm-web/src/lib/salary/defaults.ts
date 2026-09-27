@@ -206,7 +206,6 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
       materials: 0,
       planting: 0,
       processing: 0,
-      other: 0,
     },
     materialLines: [],
   };
@@ -268,7 +267,6 @@ function normalizeCostItems(data: {
       materials: num(items.materials),
       planting: num(items.planting),
       processing: num(items.processing),
-      other: num(items.other),
     };
   }
 
@@ -282,11 +280,6 @@ function normalizeCostItems(data: {
     materials: costAmountByLabel(costs, "材料"),
     planting: costAmountByLabel(costs, "种植"),
     processing: round2(processingLines.reduce((sum, line) => sum + line.amount, 0)),
-    other: round2(
-      costs
-        .filter((line) => line.label !== "材料" && line.label !== "种植")
-        .reduce((sum, line) => sum + line.amount, 0),
-    ),
   };
 }
 
