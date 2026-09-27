@@ -45,14 +45,15 @@ function insurancePayment(base: number, rate: number): number {
 }
 
 function insuranceRowTotal(
-  employerPayment: number,
+  base: number,
+  employerRate: number,
   employerCount: number,
-  personalPayment: number | null,
+  personalRate: number | null,
   personalCount: number | null,
 ): number {
-  const employer = round2(employerPayment * employerCount);
-  if (personalPayment == null || personalCount == null) return employer;
-  return round2(employer + round2(personalPayment * personalCount));
+  const employer = round2(base * employerRate * employerCount);
+  if (personalRate == null || personalCount == null) return employer;
+  return round2(employer + round2(base * personalRate * personalCount));
 }
 
 type InsuranceTableLine = {
@@ -132,9 +133,10 @@ export function computeInsuranceTable(
       personalPayment: pensionPersonalPayment,
       personalCount: insurance.pensionPersonalCount,
       rowTotal: insuranceRowTotal(
-        pensionEmployerPayment,
+        insurance.pensionBase,
+        insurance.pensionEmployerRate,
         insurance.pensionEmployerCount,
-        pensionPersonalPayment,
+        insurance.pensionPersonalRate,
         insurance.pensionPersonalCount,
       ),
     },
@@ -151,9 +153,10 @@ export function computeInsuranceTable(
       personalPayment: unemploymentPersonalPayment,
       personalCount: insurance.unemploymentPersonalCount,
       rowTotal: insuranceRowTotal(
-        unemploymentEmployerPayment,
+        insurance.unemploymentBase,
+        insurance.unemploymentEmployerRate,
         insurance.unemploymentEmployerCount,
-        unemploymentPersonalPayment,
+        insurance.unemploymentPersonalRate,
         insurance.unemploymentPersonalCount,
       ),
     },
@@ -170,7 +173,8 @@ export function computeInsuranceTable(
       personalPayment: null,
       personalCount: null,
       rowTotal: insuranceRowTotal(
-        injuryEmployerPayment,
+        insurance.injuryBase,
+        insurance.injuryEmployerRate,
         insurance.injuryEmployerCount,
         null,
         null,
@@ -189,9 +193,10 @@ export function computeInsuranceTable(
       personalPayment: medicalPersonalPayment,
       personalCount: insurance.medicalPersonalCount,
       rowTotal: insuranceRowTotal(
-        medicalEmployerPayment,
+        insurance.medicalBase,
+        insurance.medicalEmployerRate,
         insurance.medicalEmployerCount,
-        medicalPersonalPayment,
+        insurance.medicalPersonalRate,
         insurance.medicalPersonalCount,
       ),
     },
@@ -208,7 +213,8 @@ export function computeInsuranceTable(
       personalPayment: null,
       personalCount: null,
       rowTotal: insuranceRowTotal(
-        maternityEmployerPayment,
+        insurance.maternityBase,
+        insurance.maternityEmployerRate,
         insurance.maternityEmployerCount,
         null,
         null,
@@ -227,9 +233,10 @@ export function computeInsuranceTable(
       personalPayment: housingPersonalPayment,
       personalCount: housing.personalCount,
       rowTotal: insuranceRowTotal(
-        housingEmployerPayment,
+        housing.base,
+        housing.employerRate,
         housing.employerCount,
-        housingPersonalPayment,
+        housing.personalRate,
         housing.personalCount,
       ),
     },
@@ -268,21 +275,33 @@ export function computeInsuranceTable(
 }
 
 function employerInsuranceTotal(insurance: SalaryInsuranceInput): number {
-  const pension = round2(insurance.pensionBase * insurance.pensionEmployerRate);
+  const pension = round2(
+    insurance.pensionBase *
+      insurance.pensionEmployerRate *
+      insurance.pensionEmployerCount,
+  );
   const unemployment = round2(
-    insurance.unemploymentBase * insurance.unemploymentEmployerRate,
+    insurance.unemploymentBase *
+      insurance.unemploymentEmployerRate *
+      insurance.unemploymentEmployerCount,
   );
-  const injury = round2(insurance.injuryBase * insurance.injuryEmployerRate);
-  const medical = round2(insurance.medicalBase * insurance.medicalEmployerRate);
-  const maternity = round2(insurance.maternityBase * insurance.maternityEmployerRate);
+  const injury = round2(
+    insurance.injuryBase *
+      insurance.injuryEmployerRate *
+      insurance.injuryEmployerCount,
+  );
+  const medical = round2(
+    insurance.medicalBase *
+      insurance.medicalEmployerRate *
+      insurance.medicalEmployerCount,
+  );
+  const maternity = round2(
+    insurance.maternityBase *
+      insurance.maternityEmployerRate *
+      insurance.maternityEmployerCount,
+  );
 
-  return round2(
-    pension * insurance.pensionEmployerCount +
-      unemployment * insurance.unemploymentEmployerCount +
-      injury * insurance.injuryEmployerCount +
-      medical * insurance.medicalEmployerCount +
-      maternity * insurance.maternityEmployerCount,
-  );
+  return round2(pension + unemployment + injury + medical + maternity);
 }
 
 function employerHousingTotal(housing: SalaryHousingFundInput): number {
