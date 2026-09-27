@@ -28,8 +28,13 @@ async function bootstrap() {
     })
   )
 
+  const corsOrigins = (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
   app.enableCors({
-    origin: [/^http:\/\/localhost:\d+$/],
+    origin: corsOrigins.length ? corsOrigins : [/^http:\/\/localhost:\d+$/],
     credentials: true,
   })
 
