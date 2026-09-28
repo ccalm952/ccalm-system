@@ -20,8 +20,32 @@ import {
   tierRatesForTitle,
 } from "./settings"
 
+/**
+ * 保留两位小数。
+ *
+ * 目标语义是「按十进制书写意图四舍五入」（1.005 → 1.01）。注意 1.005 在二进制
+ * 浮点里实际是 1.00499999999999989…，直接舍入会得到 1.00，所以必须补偿。
+ *
+ * 三点关键：
+ * - 补偿不能用固定绝对值。原先加 `Number.EPSILON`（2.22e-16），对 1.005 有效，
+ *   但对 1234567.005 这种量级小了 16 个数量级，会静默舍错。
+ *   这里改用指数记数法按十进制字符串缩放，从根上绕开 `n * 100` 的浮点误差。
+ * - 负数的 .5 一律「远离零」（-1.005 → -1.01），与正数对称。`Math.round` 本身
+ *   朝 +∞ 取整，直接使用会让负数在 .5 处截断。
+ * - 结果为 0 时不返回 -0，避免界面把「0.00」渲染成「-0.00」。
+ */
 export function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100
+  if (!Number.isFinite(n)) return n
+  // 超过 double 能表示「分」的范围时，两位小数已无意义
+  if (Math.abs(n) >= Number.MAX_SAFE_INTEGER / 100) return n
+  const sign = n < 0 ? -1 : 1
+  const abs = Math.abs(n)
+  const shifted = Number(`${abs}e2`)
+  // 走到这里只剩 |n| < 1e-6 的情况（String() 会转科学计数法），必然舍入为 0
+  if (!Number.isFinite(shifted)) return 0
+  const magnitude = Number(`${Math.round(shifted)}e-2`)
+  const result = sign * magnitude
+  return result === 0 ? 0 : result
 }
 
 function round0(n: number): number {
