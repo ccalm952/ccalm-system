@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { computeInsuranceTable, computeSalarySheet } from "./calc"
+import { computeInsuranceTable, computeSalarySheet, round2 } from "./calc"
 import { createDefaultSalaryGlobalSettings } from "./settings"
 import type {
   SalaryHousingFundInput,
@@ -79,8 +79,9 @@ function sheetEmployerTotal(
 
 describe("五险一金取整口径统一", () => {
   it("社保各行与汇总都用 round2(base×rate×count)，只舍入一次", () => {
-    // 3333×0.005 的精确值是 16.665，旧口径先舍成 16.67 再乘 5 得 83.35；
-    // 汇总口径只舍入一次得 83.32。两者不一致。
+    // 3333 × 0.005 × 5 的精确值是 83.325。
+    // 更早的口径先舍单人（round2(16.665) = 16.67）再乘 5 得 83.35；
+    // 统一为只舍入一次后，round2 内部会先吸附上游乘法噪声，得到精确的 83.33。
     const insurance = {
       ...emptyInsurance(),
       pensionBase: 3333,
@@ -91,8 +92,8 @@ describe("五险一金取整口径统一", () => {
     const table = computeInsuranceTable(insurance, emptyHousing())
     const pension = table.lines.find((line) => line.key === "pension")
 
-    expect(pension?.rowTotal).toBe(83.32)
-    expect(table.groupTotals.social).toBe(83.32)
+    expect(pension?.rowTotal).toBe(83.33)
+    expect(table.groupTotals.social).toBe(83.33)
   })
 
   it("公积金行与汇总口径一致（此前会差 0.03）", () => {
@@ -105,8 +106,8 @@ describe("五险一金取整口径统一", () => {
 
     const table = computeInsuranceTable(emptyInsurance(), housing)
 
-    expect(table.groupTotals.housing).toBe(83.32)
-    expect(sheetEmployerTotal(emptyInsurance(), housing)).toBe(83.32)
+    expect(table.groupTotals.housing).toBe(83.33)
+    expect(sheetEmployerTotal(emptyInsurance(), housing)).toBe(83.33)
   })
 
   it("表格合计与薪资表汇总在多种数值下都相等", () => {
@@ -149,5 +150,17 @@ describe("五险一金取整口径统一", () => {
     expect(
       computeInsuranceTable(emptyInsurance(), housing).groupTotals.housing
     ).toBe(110.06)
+  })
+
+  it("上游连乘的浮点噪声会被 round2 吸附", () => {
+    // 连乘自身就会丢精度（精确值是 83.325，改变结合顺序只能把误差挪到别处）
+    expect(3333 * 0.005 * 5).not.toBe(83.325)
+    expect(7337 * 0.005 * 3).toBe(110.055)
+
+    // 吸附后仍能得到精确结果
+    expect(round2(3333 * 0.005 * 5)).toBe(83.33)
+    expect(round2(7337 * 0.005 * 3)).toBe(110.06)
+    // 右结合会算错的那个组合，吸附后同样正确
+    expect(round2(7337 * (0.005 * 3))).toBe(110.06)
   })
 })
