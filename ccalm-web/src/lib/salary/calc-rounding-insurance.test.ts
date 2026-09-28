@@ -166,23 +166,45 @@ describe("round2 两位小数舍入", () => {
     expect(round2(-100)).toBe(-100)
   })
 
-  it("负数半分向正无穷取整，与正数不对称", () => {
-    // Math.round 对 .5 一律向 +∞，故负数半分偏「大」
-    expect(round2(-1.005)).toBe(-1)
-    expect(round2(-2.675)).toBe(-2.67)
-    expect(round2(-10.235)).toBe(-10.23)
+  it("负数半分与正数对称（远离零）", () => {
+    expect(round2(-1.005)).toBe(-1.01)
+    expect(round2(-2.675)).toBe(-2.68)
+    expect(round2(-10.235)).toBe(-10.24)
+    expect(round2(-100.005)).toBe(-100.01)
   })
 
-  it("不足半分归零，负数为负零", () => {
+  it("不足半分归零，且不返回负零", () => {
     expect(round2(0.004)).toBe(0)
     expect(round2(1e-9)).toBe(0)
-    expect(Object.is(round2(-0.004), -0)).toBe(true)
-    expect(Object.is(round2(-1e-9), -0)).toBe(true)
+    expect(round2(-0.004)).toBe(0)
+    expect(Object.is(round2(-0.004), 0)).toBe(true)
+    expect(Object.is(round2(-1e-9), 0)).toBe(true)
+    // 负零会让 1/x 变成 -Infinity，也会被 Intl 渲染成 "-0.00"
+    expect(1 / round2(-0.004)).toBe(Infinity)
   })
 
-  it("EPSILON 补偿在百万级失效（已知精度局限）", () => {
-    expect(round2(1_234_567.005)).toBe(1_234_567)
-    expect(round2(9_999_999.995)).toBe(9_999_999.99)
+  it("百万级同样能正确进位", () => {
+    expect(round2(1_234_567.005)).toBe(1_234_567.01)
+    expect(round2(9_999_999.995)).toBe(10_000_000)
+  })
+
+  it("负数在大数量级下同样对称", () => {
+    expect(round2(-1_234_567.005)).toBe(-1_234_567.01)
+    expect(round2(-9_999_999.995)).toBe(-10_000_000)
+  })
+
+  it("非有限值原样透传", () => {
+    expect(round2(NaN)).toBeNaN()
+    expect(round2(Infinity)).toBe(Infinity)
+    expect(round2(-Infinity)).toBe(-Infinity)
+  })
+
+  it("超出 double 能表示「分」的量级原样返回", () => {
+    // 2^53 / 100 以上，double 已无法表示到分
+    expect(round2(1e21)).toBe(1e21)
+    expect(round2(Number.MAX_SAFE_INTEGER / 100)).toBe(
+      Number.MAX_SAFE_INTEGER / 100
+    )
   })
 })
 
