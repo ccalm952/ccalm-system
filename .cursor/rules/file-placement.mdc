@@ -1,0 +1,47 @@
+---
+description: 组件与逻辑的存放位置约定
+alwaysApply: true
+---
+
+# 文件放哪
+
+## 前端 ccalm-web/src
+
+| 内容 | 位置 |
+|---|---|
+| shadcn 原语 | `components/ui/` |
+| 跨功能复用的通用组件（日期选择、分页、截断、地图等） | `components/` |
+| 布局外壳（侧边栏、顶栏、主题） | `components/` |
+| 只服务单个功能的组件 | `pages/<功能>/` |
+| 纯函数逻辑（不依赖 React） | `lib/<功能>/` |
+| 路由页面 | `pages/<功能>/<功能>Page.tsx` |
+
+## 后端 ccalm-api/src
+
+| 内容 | 位置 |
+|---|---|
+| 业务模块 | `modules/<功能>/` |
+| 模块内的纯逻辑 | `modules/<功能>/` 同级 |
+| DTO | `modules/<功能>/dto/` |
+| 跨模块工具 | `common/` |
+
+## 测试
+
+与源码同目录，命名 `<模块>.test.ts`。
+
+## 存量例外（不必迁移）
+
+`components/` 下现有的单功能组件 —— `attendance-in-cell.tsx`、
+`attendance-out-cell.tsx`、`attendance-half-out-cell.tsx`、
+`makeup-request-dialog.tsx`、`makeup-todo-button.tsx`、
+`rest-action-dialog.tsx`、`punch-device-dialog.tsx`、
+`salary-unlock-dialog.tsx`，以及 `components/tooth-chart/` ——
+属历史遗留，**保持原样**；新增组件按上表放置。
+
+## 前后端共享的领域规则
+
+考勤规则（编辑窗口、补卡窗口、排休判定）在前后端**各有一份实现**。
+
+- **后端是权威**：它决定请求是否被接受
+- 前端那份只用于 UX 预判（提前禁用按钮、给出提示）
+- 改动任一侧时**必须同步另一侧**；两边各有对应测试，漂移会在测试里暴露
