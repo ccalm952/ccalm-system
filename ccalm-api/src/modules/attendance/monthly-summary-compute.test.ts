@@ -83,10 +83,11 @@ describe("overtimeMinutesForOutTimes", () => {
     expect(overtimeMinutesForOutTimes("13:00", "19:00", bad)).toBe(0)
   })
 
-  it("下班卡时间非法时结果变成 NaN（无兜底）", () => {
-    expect(Number.isNaN(overtimeMinutesForOutTimes("abc", null, SHIFT))).toBe(
-      true
-    )
+  it("下班卡时间非法时该半天不计加班，不会产生 NaN", () => {
+    expect(overtimeMinutesForOutTimes("abc", null, SHIFT)).toBe(0)
+    expect(overtimeMinutesForOutTimes(null, "abc", SHIFT)).toBe(0)
+    // 一侧非法时，另一侧仍应正常计算
+    expect(overtimeMinutesForOutTimes("abc", "19:00", SHIFT)).toBe(60)
   })
 })
 

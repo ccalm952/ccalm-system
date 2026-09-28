@@ -65,13 +65,17 @@ export function overtimeMinutesForOutTimes(
   )
   let overtime = 0
   if (morningOut && Number.isFinite(normalMorningEnd)) {
-    overtime += Math.max(0, minutesFromMidnight(morningOut) - normalMorningEnd)
+    const actualMorningOut = minutesFromMidnight(morningOut)
+    // 非法打卡时间（脏数据）不能参与计算，否则 NaN 会污染整月加班分钟数
+    if (Number.isFinite(actualMorningOut)) {
+      overtime += Math.max(0, actualMorningOut - normalMorningEnd)
+    }
   }
   if (afternoonOut && Number.isFinite(normalAfternoonEnd)) {
-    overtime += Math.max(
-      0,
-      minutesFromMidnight(afternoonOut) - normalAfternoonEnd
-    )
+    const actualAfternoonOut = minutesFromMidnight(afternoonOut)
+    if (Number.isFinite(actualAfternoonOut)) {
+      overtime += Math.max(0, actualAfternoonOut - normalAfternoonEnd)
+    }
   }
   return overtime
 }
