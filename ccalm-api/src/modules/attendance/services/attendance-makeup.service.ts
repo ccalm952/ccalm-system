@@ -7,11 +7,11 @@ import {
 import dayjs from "dayjs"
 import customParseFormat from "dayjs/plugin/customParseFormat"
 
-import { isPrismaUniqueViolation } from "../../common/prisma-errors"
-import { PrismaService } from "../../prisma/prisma.service"
+import { isPrismaUniqueViolation } from "../../../common/prisma-errors"
+import { PrismaService } from "../../../prisma/prisma.service"
 import { AttendanceScheduleService } from "./attendance-schedule.service"
 import { MakeupEventsService } from "./makeup-events.service"
-import { attendanceDayjs, formatAttendanceDate } from "./attendance-dayjs"
+import { attendanceDayjs, formatAttendanceDate } from "../core/attendance-dayjs"
 import {
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
@@ -20,12 +20,12 @@ import {
   makeupSlotsEnv,
   type MakeupSlotDenyReason,
   type PendingMakeup,
-} from "./makeup-slots"
-import { type MakeupTodayGate } from "./attendance-makeup-today-gate"
-import type { MakeupSlotType } from "./makeup-today-gate"
-import { DEFAULT_SHIFT_ROW } from "./defaults"
-import type { CreateMakeupRequestDto } from "./dto/makeup-request.dto"
-import { shouldAutoMakeupOut } from "./auto-makeup-out"
+} from "../core/makeup-slots"
+import { type MakeupTodayGate } from "../core/attendance-makeup-today-gate"
+import type { MakeupSlotType } from "../core/makeup-today-gate"
+import { DEFAULT_SHIFT_ROW } from "../core/defaults"
+import type { CreateMakeupRequestDto } from "../dto/makeup-request.dto"
+import { shouldAutoMakeupOut } from "../core/auto-makeup-out"
 
 dayjs.extend(customParseFormat)
 
