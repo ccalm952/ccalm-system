@@ -33,13 +33,18 @@ import {
  * - 负数的 .5 一律「远离零」（-1.005 → -1.01），与正数对称。`Math.round` 本身
  *   朝 +∞ 取整，直接使用会让负数在 .5 处截断。
  * - 结果为 0 时不返回 -0，避免界面把「0.00」渲染成「-0.00」。
+ * - 入库前先按 10 位小数吸附，消除**上游乘法**累积的浮点噪声：连续相乘会让
+ *   3333 × 0.005 × 5 变成 83.32499999999999（精确值是 83.325），不吸附就会
+ *   舍成 83.32。实测改变乘法结合顺序只能把误差挪到别的数值上，无法根治；
+ *   在舍入前吸附才是通用解法（且不影响下方已有的舍入语义）。
  */
 export function round2(n: number): number {
   if (!Number.isFinite(n)) return n
   // 超过 double 能表示「分」的范围时，两位小数已无意义
   if (Math.abs(n) >= Number.MAX_SAFE_INTEGER / 100) return n
-  const sign = n < 0 ? -1 : 1
-  const abs = Math.abs(n)
+  const snapped = Number(n.toFixed(10))
+  const sign = snapped < 0 ? -1 : 1
+  const abs = Math.abs(snapped)
   const shifted = Number(`${abs}e2`)
   // 走到这里只剩 |n| < 1e-6 的情况（String() 会转科学计数法），必然舍入为 0
   if (!Number.isFinite(shifted)) return 0
