@@ -36,7 +36,13 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 | `dialog.tsx` | `DialogContent` | `gap-x-4 gap-y-4`（非 `gap-6`）；支持 `overlayClassName` |
 | `dialog.tsx` | `DialogFooter` | `flex flex-row justify-end gap-4`（非窄屏 `flex-col-reverse`） |
 | `sonner.tsx` | `useTheme` | 从 `@/components/theme-provider` 导入（非 `next-themes`） |
-| `hover-card.tsx` | `cn` 导入 | 从 `@/lib/utils` 导入（非错误的 `cn`） |
+
+## 已删除的 registry 组件
+
+`badge.tsx` 与 `hover-card.tsx` 因无人引用已删除（`hover-card` 的用途被
+`Popover` 取代）。如后续需要，用 `npx shadcn@latest add <组件名>` 重新拉取；
+`hover-card.tsx` 曾有的定制是把 `cn` 改为从 `@/lib/utils` 导入，官方 base-rhea
+版本已一致，无需恢复。
 
 ## 已废弃定制（base-rhea 同步后勿恢复）
 

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
-export type DateRangeValue = {
+type DateRangeValue = {
   from: string
   to: string
 }
