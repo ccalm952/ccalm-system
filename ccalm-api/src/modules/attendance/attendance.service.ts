@@ -4,9 +4,9 @@ import { createHash } from "node:crypto"
 
 import { isPrismaUniqueViolation } from "../../common/prisma-errors"
 import { PrismaService } from "../../prisma/prisma.service"
-import { AttendanceScheduleService } from "./attendance-schedule.service"
-import { attendanceDayjs, formatAttendanceDate } from "./attendance-dayjs"
-import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./defaults"
+import { AttendanceScheduleService } from "./services/attendance-schedule.service"
+import { attendanceDayjs, formatAttendanceDate } from "./core/attendance-dayjs"
+import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./core/defaults"
 import type { UpsertGeofenceDto } from "./dto/geofence.dto"
 import type { UpsertShiftDto } from "./dto/shift.dto"
 import type { PunchDto } from "./dto/punch.dto"
@@ -15,8 +15,8 @@ import {
   fmtOvertimeMinutes,
   monthSummaryBounds,
   overtimeMinutesForOutTimes,
-} from "./monthly-summary-compute"
-import { minutesFromMidnight } from "./time"
+} from "./core/monthly-summary-compute"
+import { minutesFromMidnight } from "./core/time"
 
 const GLOBAL_CONFIG_ID = "global" as const
 

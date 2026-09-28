@@ -1,4 +1,4 @@
-import "./modules/attendance/attendance-dayjs"
+import "./modules/attendance/core/attendance-dayjs"
 
 import { NestFactory } from "@nestjs/core"
 import type { NestExpressApplication } from "@nestjs/platform-express"
