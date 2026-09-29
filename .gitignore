@@ -15,6 +15,8 @@ coverage
 *.tsbuildinfo
 .env
 *.local
+ccalm-miniprogram/utils/config.local.js
+ccalm-miniprogram/node_modules/
 ccalm-api/uploads/
 
 # Editor directories and files

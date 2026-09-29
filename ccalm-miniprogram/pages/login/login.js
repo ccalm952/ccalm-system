@@ -1,3 +1,4 @@
+const Toast = require("@vant/weapp/toast/toast")
 const { request, wxLoginCode } = require("../../utils/api")
 const { setStoredAuth } = require("../../utils/auth")
 
@@ -16,20 +17,25 @@ Page({
   },
 
   onUsername(e) {
-    this.setData({ username: e.detail.value })
+    const v = e.detail
+    this.setData({ username: typeof v === "string" ? v : v?.value || "" })
   },
 
   onPassword(e) {
-    this.setData({ password: e.detail.value })
+    const v = e.detail
+    this.setData({ password: typeof v === "string" ? v : v?.value || "" })
   },
 
   async startWechatLogin() {
     this.setData({ step: "loading", error: "", bindTicket: "" })
     try {
       const code = await wxLoginCode()
-      const res = await request("POST", "/auth/wechat/login", { code }, {
-        skipAuth: true,
-      })
+      const res = await request(
+        "POST",
+        "/auth/wechat/login",
+        { code },
+        { skipAuth: true }
+      )
       if (res.status === "bound") {
         setStoredAuth({
           accessToken: res.accessToken,
@@ -59,7 +65,7 @@ Page({
       this.setData({ error: "请先完成微信登录" })
       return
     }
-    if (!username.trim() || !password) {
+    if (!String(username || "").trim() || !password) {
       this.setData({ error: "请填写账号和密码" })
       return
     }
@@ -70,7 +76,7 @@ Page({
         "/auth/wechat/bind",
         {
           bindTicket,
-          username: username.trim(),
+          username: String(username).trim(),
           password,
         },
         { skipAuth: true }
@@ -80,6 +86,7 @@ Page({
         deviceToken: res.deviceToken,
         user: res.user,
       })
+      Toast.success("绑定成功")
       wx.reLaunch({ url: "/pages/punch/punch" })
     } catch (err) {
       this.setData({ error: err.message || "绑定失败" })
