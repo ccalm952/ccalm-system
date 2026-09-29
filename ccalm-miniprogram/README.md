@@ -11,12 +11,15 @@ WECHAT_APPID=wxf9d517b49440cd79
 WECHAT_APPSECRET=<AppSecret>
 ```
 
-2. 高德 Web 服务 Key（中文地址）：
+2. 高德 **Web服务** Key（中文地址）：
 
 ```bash
 cp utils/config.local.example.js utils/config.local.js
-# 编辑 utils/config.local.js，填入与 ccalm-web/.env 中 VITE_AMAP_KEY 相同的 Key
+# 编辑 utils/config.local.js，填入「Web服务」Key
 ```
+
+注意：网页 `.env` 里的 `VITE_AMAP_KEY` 一般是 **Web端/JS API**，小程序逆地理不能用，否则会 `USERKEY_PLAT_NOMATCH`，只显示坐标。  
+请到 [高德开放平台](https://console.amap.com/dev/key/app) 新建 Key，类型选 **Web服务**。
 
 3. 微信公众平台 request 合法域名：
 

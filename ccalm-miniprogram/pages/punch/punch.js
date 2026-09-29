@@ -295,10 +295,13 @@ Page({
     try {
       const loc = await getLocation()
       let address = ""
+      let geoError = ""
       try {
-        address = await reverseGeocode(loc.latitude, loc.longitude)
+        const geo = await reverseGeocode(loc.latitude, loc.longitude)
+        address = (geo && geo.address) || ""
+        geoError = (geo && geo.error) || ""
       } catch (_) {
-        // ignore
+        geoError = "地址解析失败"
       }
       this.setData({
         lat: loc.latitude,
@@ -308,6 +311,9 @@ Page({
           `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`,
         locating: false,
       })
+      if (geoError) {
+        toast(geoError)
+      }
       await this.autoPunch(loc.latitude, loc.longitude, address)
     } catch (err) {
       this.setData({
