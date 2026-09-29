@@ -136,6 +136,10 @@ export class AttendancePunchDeviceUnbindService {
       await tx.attendancePunchDevice.deleteMany({
         where: { userId: req.userId },
       })
+      await tx.user.updateMany({
+        where: { id: req.userId },
+        data: { wechatOpenId: null },
+      })
 
       const row = await tx.attendancePunchDeviceUnbindRequest.findUnique({
         where: { id: requestId },

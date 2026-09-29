@@ -6,6 +6,7 @@ import { AuthController } from "./auth.controller"
 import { AuthService } from "./auth.service"
 import { JwtAuthGuard } from "./jwt-auth.guard"
 import { JwtStrategy } from "./jwt.strategy"
+import { WechatService } from "./wechat.service"
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { JwtStrategy } from "./jwt.strategy"
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  providers: [AuthService, WechatService, JwtStrategy, JwtAuthGuard],
   exports: [AuthService],
 })
 export class AuthModule {}

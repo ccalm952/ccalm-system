@@ -4,8 +4,9 @@
 
 ```text
 ccalm-system/
-  ccalm-web/  # React + Vite 前端
-  ccalm-api/  # NestJS + Prisma 后端
+  ccalm-web/          # React + Vite 前端
+  ccalm-api/          # NestJS + Prisma 后端
+  ccalm-miniprogram/  # 微信小程序（考勤打卡 MVP）
 ```
 
 ## 本地开发
@@ -21,6 +22,8 @@ PORT=3000
 DATABASE_URL="postgresql://ccalm:<你的密码>@localhost:5432/ccalm_system?schema=public"
 JWT_SECRET="change_me"
 SALARY_PIN="8264"
+WECHAT_APPID="<小程序 AppID>"
+WECHAT_APPSECRET="<小程序 AppSecret>"
 ```
 
 初始化数据库并启动后端：
@@ -120,9 +123,19 @@ PORT=3000
 DATABASE_URL="postgresql://ccalm:<数据库密码>@127.0.0.1:5432/ccalm_system?schema=public"
 JWT_SECRET="<替换为高强度随机字符串>"
 SALARY_PIN="8264"
+WECHAT_APPID="<小程序 AppID>"
+WECHAT_APPSECRET="<小程序 AppSecret>"
 ```
 
-不要提交真实 `.env`。`JWT_SECRET` 建议使用至少 32 位随机字符串。`SALARY_PIN` 为薪资页二次验证密码（前端输入框当前限 4 位数字），生产环境务必改成私密值。
+不要提交真实 `.env`。`JWT_SECRET` 建议使用至少 32 位随机字符串。`SALARY_PIN` 为薪资页二次验证密码（前端输入框当前限 4 位数字），生产环境务必改成私密值。`WECHAT_APPSECRET` 仅放服务端，用于小程序 `code2session`。
+
+### 打卡小程序
+
+目录：`ccalm-miniprogram/`。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
+
+微信公众平台配置 request 合法域名：`www.ccalm.xyz`（与现站同域，API 为 `https://www.ccalm.xyz/api`）。
+
+流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码 `POST /api/auth/wechat/bind`；打卡时 `deviceToken` 为微信 `openid`。管理员解绑打卡设备会同时清除微信绑定。
 
 ### 5) 初始化数据库
 
