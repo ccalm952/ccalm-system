@@ -12,6 +12,8 @@ import type { Request } from "express"
 import { Public } from "./public.decorator"
 import { AuthService } from "./auth.service"
 import { LoginDto } from "./dto/login.dto"
+import { WechatBindDto } from "./dto/wechat-bind.dto"
+import { WechatLoginDto } from "./dto/wechat-login.dto"
 import { JwtAuthGuard } from "./jwt-auth.guard"
 
 @Controller("auth")
@@ -23,6 +25,22 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     const accessToken = await this.auth.login(dto.username, dto.password)
     return { accessToken }
+  }
+
+  @Public()
+  @Post("wechat/login")
+  async wechatLogin(@Body() dto: WechatLoginDto) {
+    return await this.auth.wechatLogin(dto.code)
+  }
+
+  @Public()
+  @Post("wechat/bind")
+  async wechatBind(@Body() dto: WechatBindDto) {
+    return await this.auth.wechatBind(
+      dto.bindTicket,
+      dto.username,
+      dto.password
+    )
   }
 
   @Get("me")

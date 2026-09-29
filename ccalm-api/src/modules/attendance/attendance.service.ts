@@ -256,7 +256,13 @@ export class AttendanceService {
   }
 
   async unbindPunchDevice(userId: string) {
-    await this.prisma.attendancePunchDevice.deleteMany({ where: { userId } })
+    await this.prisma.$transaction(async (tx) => {
+      await tx.attendancePunchDevice.deleteMany({ where: { userId } })
+      await tx.user.updateMany({
+        where: { id: userId },
+        data: { wechatOpenId: null },
+      })
+    })
     return { ok: true }
   }
 

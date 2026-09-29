@@ -1,0 +1,32 @@
+<view class="card">
+  <view class="hello">{{displayName}}</view>
+  <view class="muted">{{todayLabel}}</view>
+  <view class="clock">{{nowText}}</view>
+</view>
+
+<view class="card">
+  <view class="section-title">今日打卡</view>
+  <view wx:if="{{!records.length}}" class="muted">暂无记录</view>
+  <view wx:for="{{records}}" wx:key="id" class="record-row">
+    <text>{{item.label}}</text>
+    <text>{{item.timeText}}</text>
+  </view>
+</view>
+
+<view class="card">
+  <view class="section-title">打卡</view>
+  <view class="punch-grid">
+    <button
+      wx:for="{{punchButtons}}"
+      wx:key="type"
+      class="punch-btn"
+      disabled="{{punching || item.done}}"
+      data-type="{{item.type}}"
+      bindtap="onPunch"
+    >
+      {{item.label}}{{item.done ? " ✓" : ""}}
+    </button>
+  </view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <button style="margin-top: 24rpx" bindtap="logout">退出登录</button>
+</view>

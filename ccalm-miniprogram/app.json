@@ -1,0 +1,18 @@
+{
+  "pages": ["pages/login/login", "pages/punch/punch"],
+  "window": {
+    "navigationBarTitleText": "CCALM 打卡",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f5f5",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于考勤打卡定位校验"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"]
+}
