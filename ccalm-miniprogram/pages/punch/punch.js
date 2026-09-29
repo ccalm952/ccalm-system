@@ -1,4 +1,4 @@
-const Toast = require("@vant/weapp/toast/toast")
+const { toast, success, fail } = require("../../utils/toast")
 const { request, getLocation } = require("../../utils/api")
 const { getStoredAuth, clearStoredAuth } = require("../../utils/auth")
 const { reverseGeocode } = require("../../utils/amap")
@@ -48,6 +48,7 @@ Page({
     lat: 0,
     lng: 0,
     todaySteps: [],
+    todayActive: 0,
     stats: [],
     monthRows: [],
     actionSheetShow: false,
@@ -76,7 +77,7 @@ Page({
 
   onShow() {
     const auth = getStoredAuth()
-    if (!auth?.accessToken || !auth?.deviceToken) {
+    if (!auth || !auth.accessToken || !auth.deviceToken) {
       wx.reLaunch({ url: "/pages/login/login" })
       return
     }
@@ -84,7 +85,7 @@ Page({
     this.tick()
     if (this.timer) clearInterval(this.timer)
     this.timer = setInterval(() => this.tick(), 1000)
-    this.reloadAll()
+    this.reloadAll().catch(() => {})
   },
 
   onHide() {
@@ -120,29 +121,44 @@ Page({
       this.todayRecords = Array.isArray(bundle.today) ? bundle.today : []
       this.monthSummary = bundle.monthly || null
       this.makeupRequests = Array.isArray(makeups) ? makeups : []
-      this.applyView()
+      try {
+        this.applyView()
+      } catch (viewErr) {
+        console.error("applyView failed", viewErr)
+        fail("页面渲染失败")
+      }
     } catch (err) {
       if (err.status === 401) {
         wx.reLaunch({ url: "/pages/login/login" })
         return
       }
-      Toast.fail(err.message || "加载失败")
+      fail(err.message || "加载失败")
     }
   },
 
   applyView() {
-    const today = todayYmd()
     const map = todayTypeMap(this.todayRecords)
-    const todaySteps = ["morning_in", "morning_out", "afternoon_in", "afternoon_out"]
+    const todaySteps = [
+      "morning_in",
+      "morning_out",
+      "afternoon_in",
+      "afternoon_out",
+    ]
       .filter((t) => map[t])
       .map((t) => {
         const r = map[t]
+        const lat = Number(r.latitude)
+        const lng = Number(r.longitude)
         const desc = r.address
           ? r.address
-          : `${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}`
+          : Number.isFinite(lat) && Number.isFinite(lng)
+            ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+            : ""
         return {
           text: PUNCH_LABEL[t],
-          desc: `${formatHm(r.punchTime)} · ${desc}`,
+          desc: desc
+            ? `${formatHm(r.punchTime)} · ${desc}`
+            : formatHm(r.punchTime),
         }
       })
 
@@ -198,7 +214,12 @@ Page({
     })
     this.rowMap = rowMap
 
-    this.setData({ todaySteps, stats, monthRows })
+    this.setData({
+      todaySteps,
+      todayActive: Math.max(todaySteps.length - 1, 0),
+      stats,
+      monthRows,
+    })
   },
 
   buildCell(row, slotKey, gate, editCtx) {
@@ -293,17 +314,17 @@ Page({
         locating: false,
         locError: err.message || "定位失败",
       })
-      Toast.fail(err.message || "定位失败")
+      fail(err.message || "定位失败")
     }
   },
 
   async autoPunch(lat, lng, address) {
     if (!this.shift) {
-      Toast("班次未加载")
+      toast("班次未加载")
       return
     }
     if (this.fence && this.fence.enabled && !insideFence(lat, lng, this.fence)) {
-      Toast("不在打卡范围内")
+      toast("不在打卡范围内")
       return
     }
     const todayRow =
@@ -321,7 +342,7 @@ Page({
       at: new Date(),
     })
     if (!type) {
-      Toast("不在打卡时间内")
+      toast("不在打卡时间内")
       return
     }
 
@@ -335,10 +356,10 @@ Page({
         address: address || "",
         deviceToken: auth.deviceToken,
       })
-      Toast.success("打卡成功")
+      success("打卡成功")
       await this.reloadAll()
     } catch (err) {
-      Toast.fail(err.message || "打卡失败")
+      fail(err.message || "打卡失败")
     } finally {
       this.setData({ punching: false })
     }
@@ -436,19 +457,19 @@ Page({
           date: pending.date,
           half: pending.half,
         })
-        Toast.success("休息登记成功")
+        success("休息登记成功")
       } else {
         await request("POST", "/attendance/rest/clear", {
           date: pending.date,
           half: pending.half,
         })
-        Toast.success("已取消休息登记")
+        success("已取消休息登记")
       }
       this.setData({ restDialogShow: false })
       this.restPending = null
       await this.reloadAll()
     } catch (err) {
-      Toast.fail(err.message || "操作失败")
+      fail(err.message || "操作失败")
     }
   },
 
@@ -480,11 +501,11 @@ Page({
         type: this.data.makeupType,
         time: this.data.makeupTime,
       })
-      Toast.success("补卡申请已提交")
+      success("补卡申请已提交")
       this.setData({ makeupShow: false, makeupSubmitting: false })
       await this.reloadAll()
     } catch (err) {
-      Toast.fail(err.message || "提交失败")
+      fail(err.message || "提交失败")
       this.setData({ makeupSubmitting: false })
     }
   },

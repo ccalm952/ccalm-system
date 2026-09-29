@@ -27,7 +27,7 @@
     <block wx:else>
       <van-steps
         steps="{{todaySteps}}"
-        active="{{todaySteps.length}}"
+        active="{{todayActive}}"
         direction="vertical"
         active-color="#323233"
       />

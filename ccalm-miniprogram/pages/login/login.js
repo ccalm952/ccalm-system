@@ -1,4 +1,4 @@
-const Toast = require("@vant/weapp/toast/toast")
+const { success } = require("../../utils/toast")
 const { request, wxLoginCode } = require("../../utils/api")
 const { setStoredAuth } = require("../../utils/auth")
 
@@ -86,7 +86,7 @@ Page({
         deviceToken: res.deviceToken,
         user: res.user,
       })
-      Toast.success("绑定成功")
+      success("绑定成功")
       wx.reLaunch({ url: "/pages/punch/punch" })
     } catch (err) {
       this.setData({ error: err.message || "绑定失败" })
