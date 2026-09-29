@@ -428,8 +428,8 @@ Page({
     if (mode === "clear") {
       message = `确认取消 ${dayLabel} ${halfLabel}休息登记？`
     } else if (
-      (half === "morning" && row?.declaredRest === "afternoon_rest") ||
-      (half === "afternoon" && row?.declaredRest === "morning_rest")
+      (half === "morning" && row && row.declaredRest === "afternoon_rest") ||
+      (half === "afternoon" && row && row.declaredRest === "morning_rest")
     ) {
       message = `确认将 ${dayLabel} 登记为全天休息？`
     } else {

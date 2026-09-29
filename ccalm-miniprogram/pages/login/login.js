@@ -18,12 +18,16 @@ Page({
 
   onUsername(e) {
     const v = e.detail
-    this.setData({ username: typeof v === "string" ? v : v?.value || "" })
+    this.setData({
+      username: typeof v === "string" ? v : (v && v.value) || "",
+    })
   },
 
   onPassword(e) {
     const v = e.detail
-    this.setData({ password: typeof v === "string" ? v : v?.value || "" })
+    this.setData({
+      password: typeof v === "string" ? v : (v && v.value) || "",
+    })
   },
 
   async startWechatLogin() {
