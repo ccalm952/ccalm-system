@@ -21,8 +21,11 @@ deploy_setup_ssh() {
   fi
   if [[ -n "${DEPLOY_SSH_TARGET:-}" ]]; then
     DEPLOY_TARGET="$DEPLOY_SSH_TARGET"
+  elif [[ -n "${DEPLOY_SSH_USER:-}" && -n "${DEPLOY_SSH_HOST:-}" ]]; then
+    DEPLOY_TARGET="${DEPLOY_SSH_USER}@${DEPLOY_SSH_HOST}"
   else
-    DEPLOY_TARGET="${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}"
+    echo "缺少部署目标。请配置 DEPLOY_SSH_TARGET，或同时配置 Secret：DEPLOY_SSH_USER 与 DEPLOY_SSH_HOST。" >&2
+    exit 1
   fi
 }
 
@@ -56,6 +59,10 @@ deploy_remote_pull() {
   local expected_sha="$1"
   deploy_ssh "set -euo pipefail
 cd ${DEPLOY_PROJECT_DIR}
+old_lock=\"\"
+if [[ -f pnpm-lock.yaml ]]; then
+  old_lock=\"\$(sha256sum pnpm-lock.yaml | awk '{print \$1}')\"
+fi
 git fetch ${DEPLOY_GIT_REMOTE} ${DEPLOY_GIT_BRANCH}
 git checkout -B ${DEPLOY_GIT_BRANCH} FETCH_HEAD
 git reset --hard ${expected_sha}
@@ -64,7 +71,13 @@ if command -v corepack >/dev/null 2>&1; then
   corepack prepare pnpm@11.21.0 --activate >/dev/null 2>&1 || true
 fi
 export PATH=\"/root/.local/share/pnpm/bin:\$PATH\"
-pnpm install --frozen-lockfile
+new_lock=\"\$(sha256sum pnpm-lock.yaml | awk '{print \$1}')\"
+if [[ \"\$old_lock\" != \"\$new_lock\" || ! -d node_modules ]]; then
+  echo \"依赖变更或缺少 node_modules，执行 pnpm install --frozen-lockfile\"
+  pnpm install --frozen-lockfile
+else
+  echo \"pnpm-lock.yaml 未变化，跳过 install\"
+fi
 echo \"remote HEAD=\$(git rev-parse HEAD) pnpm=\$(pnpm -v)\"
 "
 }

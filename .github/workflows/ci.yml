@@ -7,6 +7,15 @@ on:
   push:
     branches:
       - master
+    # 仅文档/小程序/编辑器配置变更时不跑完整 CI，也不触发后续 Deploy
+    paths-ignore:
+      - "ccalm-miniprogram/**"
+      - "README.md"
+      - ".cursor/**"
+      - ".editorconfig"
+      - ".gitattributes"
+      - ".prettierignore"
+      - ".prettierrc"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
