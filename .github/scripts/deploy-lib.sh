@@ -21,11 +21,8 @@ deploy_setup_ssh() {
   fi
   if [[ -n "${DEPLOY_SSH_TARGET:-}" ]]; then
     DEPLOY_TARGET="$DEPLOY_SSH_TARGET"
-  elif [[ -n "${DEPLOY_SSH_USER:-}" && -n "${DEPLOY_SSH_HOST:-}" ]]; then
-    DEPLOY_TARGET="${DEPLOY_SSH_USER}@${DEPLOY_SSH_HOST}"
   else
-    echo "缺少部署目标。请配置 DEPLOY_SSH_TARGET，或同时配置 DEPLOY_SSH_USER 与 DEPLOY_SSH_HOST。" >&2
-    exit 1
+    DEPLOY_TARGET="${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}"
   fi
 }
 

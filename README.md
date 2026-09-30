@@ -235,8 +235,8 @@ location /api/ {
 需在仓库 Secrets 配置：
 
 - `DEPLOY_SSH_KEY`（必填）：部署用私钥
-- `DEPLOY_SSH_HOST`（必填）：服务器主机名或 IP
-- `DEPLOY_SSH_USER`（必填）：SSH 登录用户
+- `DEPLOY_SSH_HOST`（可选，默认 `106.53.206.11`）：服务器主机名或 IP
+- `DEPLOY_SSH_USER`（可选，默认 `root`）：SSH 登录用户
 
 部署成功后网站根目录会写入 `deploy-version.json`（含 SHA、模式、时间），并校验服务器 `git HEAD` 与目标提交一致；API 部署还会请求 `/api/auth/me`（期望 `401`/`200`，含短暂重试）。
 
