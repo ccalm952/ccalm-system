@@ -7,7 +7,6 @@ DEPLOY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_ROOT_DIR="$(cd "$DEPLOY_LIB_DIR/../.." && pwd)"
 
 DEPLOY_KEY_PATH="${DEPLOY_SSH_KEY_PATH:-${HOME}/.ssh/ccalm_deploy}"
-DEPLOY_TARGET="${DEPLOY_SSH_TARGET:-${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}}"
 DEPLOY_PROJECT_DIR="${DEPLOY_PROJECT_DIR:-/opt/ccalm-system}"
 DEPLOY_WEB_ROOT="${DEPLOY_WEB_ROOT:-/opt/1panel/www/sites/www.ccalm.xyz/index}"
 DEPLOY_GIT_REMOTE="${DEPLOY_GIT_REMOTE:-https://github.com/ccalm952/ccalm-system}"
@@ -20,7 +19,14 @@ deploy_setup_ssh() {
     echo "缺少部署密钥 ${DEPLOY_KEY_PATH}。请在 GitHub Secrets 配置 DEPLOY_SSH_KEY。" >&2
     exit 1
   fi
-  DEPLOY_TARGET="${DEPLOY_SSH_TARGET:-${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}}"
+  if [[ -n "${DEPLOY_SSH_TARGET:-}" ]]; then
+    DEPLOY_TARGET="$DEPLOY_SSH_TARGET"
+  elif [[ -n "${DEPLOY_SSH_USER:-}" && -n "${DEPLOY_SSH_HOST:-}" ]]; then
+    DEPLOY_TARGET="${DEPLOY_SSH_USER}@${DEPLOY_SSH_HOST}"
+  else
+    echo "缺少部署目标。请配置 DEPLOY_SSH_TARGET，或同时配置 DEPLOY_SSH_USER 与 DEPLOY_SSH_HOST。" >&2
+    exit 1
+  fi
 }
 
 deploy_ssh_opts() {
@@ -61,7 +67,7 @@ if command -v corepack >/dev/null 2>&1; then
   corepack prepare pnpm@11.21.0 --activate >/dev/null 2>&1 || true
 fi
 export PATH=\"/root/.local/share/pnpm/bin:\$PATH\"
-pnpm install --frozen-lockfile || pnpm install
+pnpm install --frozen-lockfile
 echo \"remote HEAD=\$(git rev-parse HEAD) pnpm=\$(pnpm -v)\"
 "
 }
@@ -130,7 +136,8 @@ deploy_classify_scope() {
         has_api=1
         has_web=1
         ;;
-      README.md|.cursor/*|.gitignore)
+      # 小程序与文档不触发服务器前后端部署
+      ccalm-miniprogram/*|ccalm-miniprogram|README.md|.cursor/*|.gitignore|.editorconfig|.gitattributes|.prettierignore|.prettierrc)
         ;;
       *)
         has_other=1

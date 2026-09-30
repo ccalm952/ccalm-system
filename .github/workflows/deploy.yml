@@ -1,9 +1,11 @@
 name: Deploy
 
+# 推送到 master 时先跑 CI；CI 成功后再部署，避免与 CI 重复检查。
+# 也可手动 workflow_dispatch（会先跑完整检查）。
 on:
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       scope:
@@ -22,7 +24,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.decide.outputs.should_deploy }}
+      sha: ${{ steps.decide.outputs.sha }}
+      scope: ${{ steps.decide.outputs.scope }}
+    steps:
+      - name: Decide whether to deploy
+        id: decide
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "scope=${{ github.event.inputs.scope || 'auto' }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          conclusion="${{ github.event.workflow_run.conclusion }}"
+          event="${{ github.event.workflow_run.event }}"
+          branch="${{ github.event.workflow_run.head_branch }}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+
+          if [ "$conclusion" = "success" ] && [ "$event" = "push" ] && [ "$branch" = "master" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+            echo "scope=auto" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "跳过部署：conclusion=${conclusion} event=${event} branch=${branch}"
+          echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          echo "sha=" >> "$GITHUB_OUTPUT"
+          echo "scope=auto" >> "$GITHUB_OUTPUT"
+
   check:
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -31,6 +71,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -62,39 +104,56 @@ jobs:
         run: pnpm build
 
   deploy:
-    needs: check
+    needs: [gate, check]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.gate.outputs.should_deploy == 'true' &&
+      (
+        (github.event_name == 'workflow_run' && needs.check.result == 'skipped') ||
+        (github.event_name == 'workflow_dispatch' && needs.check.result == 'success')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
 
       - name: Setup SSH key
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
         run: |
+          set -euo pipefail
           if [ -z "${DEPLOY_SSH_KEY:-}" ]; then
             echo "缺少 GitHub Secret: DEPLOY_SSH_KEY" >&2
+            exit 1
+          fi
+          if [ -z "${DEPLOY_SSH_HOST:-}" ]; then
+            echo "缺少 GitHub Secret: DEPLOY_SSH_HOST" >&2
             exit 1
           fi
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ccalm_deploy
           chmod 600 ~/.ssh/ccalm_deploy
-          HOST="${{ secrets.DEPLOY_SSH_HOST }}"
-          HOST="${HOST:-106.53.206.11}"
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -H "$DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy by changed scope
         env:
           DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
-          DEPLOY_EXPECTED_SHA: ${{ github.sha }}
-          DEPLOY_BEFORE_SHA: ${{ github.event.before }}
-          DEPLOY_SCOPE: ${{ github.event.inputs.scope || 'auto' }}
+          DEPLOY_EXPECTED_SHA: ${{ needs.gate.outputs.sha }}
+          DEPLOY_SCOPE: ${{ needs.gate.outputs.scope }}
         run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_SSH_HOST:-}" ] || [ -z "${DEPLOY_SSH_USER:-}" ]; then
+            echo "缺少 GitHub Secret: DEPLOY_SSH_HOST 或 DEPLOY_SSH_USER" >&2
+            exit 1
+          fi
           export DEPLOY_SSH_KEY_PATH="$HOME/.ssh/ccalm_deploy"
-          export DEPLOY_SSH_TARGET="${DEPLOY_SSH_USER:-root}@${DEPLOY_SSH_HOST:-106.53.206.11}"
+          export DEPLOY_SSH_TARGET="${DEPLOY_SSH_USER}@${DEPLOY_SSH_HOST}"
           chmod +x .github/scripts/deploy.sh
           bash .github/scripts/deploy.sh

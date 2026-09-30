@@ -228,13 +228,15 @@ location /api/ {
 
 生产发布由 **GitHub Actions** 工作流 `Deploy` 负责（脚本在 `.github/scripts/`，不经过 Cursor Agent）。
 
-合并到 `master` 后会自动 SSH 部署；也可在 Actions 里手动 `workflow_dispatch`，并选择 `auto` / `web` / `api` / `all`。
+推送到 `master` 后先跑 `CI`；**仅当 CI 成功** 时才触发 `Deploy`（避免重复 lint/build）。也可在 Actions 里手动 `workflow_dispatch`（会先跑完整检查），并选择 `auto` / `web` / `api` / `all`。
+
+`auto` 范围：只改 `ccalm-web` 部署前端；只改 `ccalm-api`（或根依赖）部署后端；两边都有则全量；仅改小程序/文档则跳过服务器部署。
 
 需在仓库 Secrets 配置：
 
 - `DEPLOY_SSH_KEY`（必填）：部署用私钥
-- `DEPLOY_SSH_HOST`（可选，默认 `106.53.206.11`）
-- `DEPLOY_SSH_USER`（可选，默认 `root`）
+- `DEPLOY_SSH_HOST`（必填）：服务器主机名或 IP
+- `DEPLOY_SSH_USER`（必填）：SSH 登录用户
 
 部署成功后网站根目录会写入 `deploy-version.json`（含 SHA、模式、时间），并校验服务器 `git HEAD` 与目标提交一致；API 部署还会请求 `/api/auth/me`（期望 `401`/`200`，含短暂重试）。
 
