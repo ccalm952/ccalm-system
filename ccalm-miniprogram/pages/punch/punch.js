@@ -1,6 +1,6 @@
 const { toast, success, fail } = require("../../utils/toast")
 const { request, getLocation } = require("../../utils/api")
-const { getStoredAuth, clearStoredAuth } = require("../../utils/auth")
+const { getStoredAuth } = require("../../utils/auth")
 const { reverseGeocode } = require("../../utils/amap")
 const {
   monthKey,
@@ -36,6 +36,9 @@ const SLOT_META = {
 function hasOvertime(str) {
   return !!(str && str !== "0" && str !== "0分钟" && str !== "0小时")
 }
+
+/** 对齐网页：同一次小程序会话只自动定位一次 */
+let didSessionAutoLocate = false
 
 Page({
   data: {
@@ -85,7 +88,14 @@ Page({
     this.tick()
     if (this.timer) clearInterval(this.timer)
     this.timer = setInterval(() => this.tick(), 1000)
-    this.reloadAll().catch(() => {})
+    this.bootstrap().catch(() => {})
+  },
+
+  async bootstrap() {
+    await this.reloadAll()
+    if (didSessionAutoLocate) return
+    didSessionAutoLocate = true
+    await this.onRefreshLocate()
   },
 
   onHide() {
@@ -184,7 +194,7 @@ Page({
         value: hasOvertime(monthly.overtimeStr)
           ? monthly.overtimeStr
           : "0",
-        tone: hasOvertime(monthly.overtimeStr) ? "ok" : "",
+        tone: hasOvertime(monthly.overtimeStr) ? "" : "muted",
       },
       {
         label: "剩余假期",
@@ -516,8 +526,4 @@ Page({
     }
   },
 
-  logout() {
-    clearStoredAuth()
-    wx.reLaunch({ url: "/pages/login/login" })
-  },
 })

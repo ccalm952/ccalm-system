@@ -1,6 +1,6 @@
 let Toast
 try {
-  const mod = require("@vant/weapp/toast/toast")
+  const mod = require("../miniprogram_npm/@vant/weapp/toast/toast")
   Toast = mod && (mod.default || mod)
 } catch (_) {
   Toast = null
