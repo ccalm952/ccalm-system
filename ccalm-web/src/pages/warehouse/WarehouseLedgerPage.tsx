@@ -55,7 +55,6 @@ import {
 } from "@/components/ui/combobox"
 import { api } from "@/lib/api"
 import { errorMessage } from "@/lib/errorMessage"
-import { useAuth } from "@/lib/use-auth"
 import { cn } from "@/lib/utils"
 
 type WarehouseProduct = {
@@ -238,8 +237,6 @@ const emptyForm = {
 }
 
 export function WarehouseLedgerPage() {
-  const { me } = useAuth()
-  const isAdmin = me?.role === "admin"
   const [items, setItems] = React.useState<WarehouseItem[]>([])
   const [q, setQ] = React.useState("")
   const [itemsLoading, setItemsLoading] = React.useState(true)
@@ -299,11 +296,9 @@ export function WarehouseLedgerPage() {
     return order.map((key) => map.get(key)!)
   }, [displayItems])
 
-  const colCount = isAdmin ? 8 : 7
+  const colCount = 8
   const shareColCount = 6
-  const reservedWidth = isAdmin
-    ? `calc(${SELECT_COL_W} + ${ACTIONS_COL_W})`
-    : SELECT_COL_W
+  const reservedWidth = `calc(${SELECT_COL_W} + ${ACTIONS_COL_W})`
 
   const allSelected =
     displayItems.length > 0 &&
@@ -535,11 +530,9 @@ export function WarehouseLedgerPage() {
             >
               复制编码
             </Button>
-            {isAdmin ? (
-              <Button type="button" variant="outline" onClick={openCreateItem}>
-                新增
-              </Button>
-            ) : null}
+            <Button type="button" variant="outline" onClick={openCreateItem}>
+              新增
+            </Button>
           </CardHeader>
           <CardContent>
             <ScrollArea className="w-full max-w-full [&_[data-slot=table-container]]:w-auto [&_[data-slot=table-container]]:overflow-x-visible">
@@ -563,7 +556,7 @@ export function WarehouseLedgerPage() {
                       }}
                     />
                   ))}
-                  {isAdmin ? <col style={{ width: ACTIONS_COL_W }} /> : null}
+                  <col style={{ width: ACTIONS_COL_W }} />
                 </colgroup>
                 <TableHeader>
                   <TableRow>
@@ -618,9 +611,7 @@ export function WarehouseLedgerPage() {
                       activeSort={itemSort}
                       onSort={toggleItemSort}
                     />
-                    {isAdmin ? (
-                      <TableHead className="text-center">操作</TableHead>
-                    ) : null}
+                    <TableHead className="text-center">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -672,11 +663,7 @@ export function WarehouseLedgerPage() {
                             ? group.items.map((item) => (
                                 <TableRow
                                   key={item.id}
-                                  onDoubleClick={
-                                    isAdmin
-                                      ? () => openEditItem(item)
-                                      : undefined
-                                  }
+                                  onDoubleClick={() => openEditItem(item)}
                                 >
                                   <TableCell>
                                     <Checkbox
@@ -706,31 +693,29 @@ export function WarehouseLedgerPage() {
                                   <TableCell className="max-w-0 min-w-0">
                                     <TruncateCell>{item.unit}</TruncateCell>
                                   </TableCell>
-                                  {isAdmin ? (
-                                    <TableCell>
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => openEditItem(item)}
-                                        >
-                                          编辑
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setDeleteItemTarget(item)
-                                            setDeleteItemOpen(true)
-                                          }}
-                                        >
-                                          删除
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  ) : null}
+                                  <TableCell>
+                                    <div className="flex items-center justify-center gap-2">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => openEditItem(item)}
+                                      >
+                                        编辑
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setDeleteItemTarget(item)
+                                          setDeleteItemOpen(true)
+                                        }}
+                                      >
+                                        删除
+                                      </Button>
+                                    </div>
+                                  </TableCell>
                                 </TableRow>
                               ))
                             : null}
