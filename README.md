@@ -131,11 +131,16 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 
 ### 打卡小程序
 
-目录：`ccalm-miniprogram/`。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
+目录：`ccalm-miniprogram/`（Vant Weapp）。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
 
-微信公众平台配置 request 合法域名：`www.ccalm.xyz`（与现站同域，API 为 `https://www.ccalm.xyz/api`）。
+微信公众平台 request 合法域名：
 
-流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码 `POST /api/auth/wechat/bind`；打卡时 `deviceToken` 为微信 `openid`。管理员解绑打卡设备会同时清除微信绑定。
+- `https://www.ccalm.xyz`（API）
+- `https://restapi.amap.com`（中文地址逆地理）
+
+高德 Key：复制 `ccalm-miniprogram/utils/config.local.example.js` 为 `config.local.js`，填入高德控制台 **Web服务** 类型 Key（不是网页用的 JS API Key）。
+
+流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
 
 ### 5) 初始化数据库
 

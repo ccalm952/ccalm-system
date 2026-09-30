@@ -1,10 +1,10 @@
 {
-  "pages": ["pages/login/login", "pages/punch/punch"],
+  "pages": ["pages/punch/punch", "pages/login/login"],
   "window": {
     "navigationBarTitleText": "CCALM 打卡",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f5f5",
+    "backgroundColor": "#f7f8fa",
     "backgroundTextStyle": "dark"
   },
   "style": "v2",

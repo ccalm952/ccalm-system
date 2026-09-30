@@ -4,18 +4,24 @@
   margin-bottom: 8rpx;
 }
 
-.field {
-  margin-top: 24rpx;
+.loading-wrap {
+  margin-top: 48rpx;
+  display: flex;
+  justify-content: center;
 }
 
-.label {
-  margin-bottom: 8rpx;
-  color: #444;
+.form-group {
+  margin: 32rpx 0 0 !important;
 }
 
-.input {
-  padding: 16rpx 20rpx;
-  border: 1px solid #ddd;
-  border-radius: 12rpx;
-  background: #fff;
+.bind-btn {
+  margin-top: 32rpx !important;
+}
+
+.retry-btn {
+  margin-top: 24rpx !important;
+}
+
+.error {
+  margin-top: 16rpx;
 }

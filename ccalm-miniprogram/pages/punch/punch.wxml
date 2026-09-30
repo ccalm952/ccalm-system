@@ -1,32 +1,133 @@
-<view class="card">
-  <view class="hello">{{displayName}}</view>
-  <view class="muted">{{todayLabel}}</view>
-  <view class="clock">{{nowText}}</view>
-</view>
-
-<view class="card">
-  <view class="section-title">今日打卡</view>
-  <view wx:if="{{!records.length}}" class="muted">暂无记录</view>
-  <view wx:for="{{records}}" wx:key="id" class="record-row">
-    <text>{{item.label}}</text>
-    <text>{{item.timeText}}</text>
-  </view>
-</view>
-
-<view class="card">
-  <view class="section-title">打卡</view>
-  <view class="punch-grid">
-    <button
-      wx:for="{{punchButtons}}"
-      wx:key="type"
-      class="punch-btn"
-      disabled="{{punching || item.done}}"
-      data-type="{{item.type}}"
-      bindtap="onPunch"
+<view class="page">
+  <view class="card punch-hero">
+    <view class="clock">{{nowText}}</view>
+    <view class="date">{{todayLabel}}</view>
+    <view class="loc muted" wx:if="{{locating}}">定位中…</view>
+    <view class="loc error" wx:elif="{{locError}}">{{locError}}</view>
+    <view class="loc muted" wx:elif="{{address}}">{{address}}</view>
+    <view class="loc muted" wx:elif="{{lat}}">{{lat}}, {{lng}}</view>
+    <view class="loc muted" wx:else>尚未获取定位</view>
+    <van-button
+      type="primary"
+      plain
+      hairline
+      size="small"
+      loading="{{locating || punching}}"
+      disabled="{{locating || punching}}"
+      bind:click="onRefreshLocate"
     >
-      {{item.label}}{{item.done ? " ✓" : ""}}
-    </button>
+      {{locating || punching ? "定位中…" : "刷新定位"}}
+    </van-button>
   </view>
-  <view wx:if="{{error}}" class="error">{{error}}</view>
-  <button style="margin-top: 24rpx" bindtap="logout">退出登录</button>
+
+  <view class="card">
+    <block wx:if="{{!todaySteps.length}}">
+      <van-empty description="今日未打卡" />
+    </block>
+    <block wx:else>
+      <van-steps
+        steps="{{todaySteps}}"
+        active="{{todayActive}}"
+        direction="vertical"
+        active-color="#323233"
+      />
+    </block>
+  </view>
+
+  <view class="card">
+    <van-grid column-num="5" border="{{false}}">
+      <van-grid-item wx:for="{{stats}}" wx:key="label" use-slot>
+        <view class="stat-item">
+          <view class="stat-value {{item.tone}}">{{item.value}}</view>
+          <view class="stat-label muted">{{item.label}}</view>
+        </view>
+      </van-grid-item>
+    </van-grid>
+
+    <view class="table">
+      <view class="tr th">
+        <view class="td">日期</view>
+        <view class="td">上午上班</view>
+        <view class="td">上午下班</view>
+        <view class="td">下午上班</view>
+        <view class="td">下午下班</view>
+      </view>
+      <view
+        class="tr"
+        wx:for="{{monthRows}}"
+        wx:key="date"
+      >
+        <view class="td">{{item.day}}</view>
+        <view
+          class="td cell {{item.morningIn.tone}}"
+          data-date="{{item.date}}"
+          data-slot="morningIn"
+          bindtap="onCellTap"
+        >{{item.morningIn.text}}</view>
+        <view
+          class="td cell {{item.morningOut.tone}}"
+          data-date="{{item.date}}"
+          data-slot="morningOut"
+          bindtap="onCellTap"
+        >{{item.morningOut.text}}</view>
+        <view
+          class="td cell {{item.afternoonIn.tone}}"
+          data-date="{{item.date}}"
+          data-slot="afternoonIn"
+          bindtap="onCellTap"
+        >{{item.afternoonIn.text}}</view>
+        <view
+          class="td cell {{item.afternoonOut.tone}}"
+          data-date="{{item.date}}"
+          data-slot="afternoonOut"
+          bindtap="onCellTap"
+        >{{item.afternoonOut.text}}</view>
+      </view>
+    </view>
+  </view>
+
+  <van-button block type="default" bind:click="logout">退出登录</van-button>
 </view>
+
+<van-action-sheet
+  show="{{actionSheetShow}}"
+  actions="{{actionSheetActions}}"
+  cancel-text="取消"
+  bind:close="onActionClose"
+  bind:select="onActionSelect"
+/>
+
+<van-dialog
+  use-slot
+  title="{{restDialogTitle}}"
+  show="{{restDialogShow}}"
+  show-cancel-button
+  confirm-button-text="确认"
+  bind:close="onRestClose"
+  bind:confirm="onRestConfirm"
+>
+  <view class="dialog-body">{{restDialogMessage}}</view>
+</van-dialog>
+
+<van-popup show="{{makeupShow}}" position="bottom" round bind:close="onMakeupClose">
+  <view class="makeup-panel">
+    <view class="makeup-title">申请补卡</view>
+    <view class="muted">日期：{{makeupDateLabel}}</view>
+    <view class="muted">类型：{{makeupTypeLabel}}</view>
+    <view class="makeup-time-label">补卡时间</view>
+    <picker mode="time" value="{{makeupTime}}" bindchange="onMakeupTimeChange">
+      <view class="makeup-time">{{makeupTime}}</view>
+    </picker>
+    <van-button
+      type="primary"
+      block
+      loading="{{makeupSubmitting}}"
+      disabled="{{makeupSubmitting}}"
+      bind:click="onMakeupSubmit"
+    >
+      提交申请
+    </van-button>
+  </view>
+</van-popup>
+
+<van-toast id="van-toast" />

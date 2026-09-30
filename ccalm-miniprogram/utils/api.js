@@ -7,7 +7,7 @@ function request(method, path, data, opts = {}) {
     "content-type": "application/json",
     ...(opts.header || {}),
   }
-  if (!opts.skipAuth && auth?.accessToken) {
+  if (!opts.skipAuth && auth && auth.accessToken) {
     header.Authorization = `Bearer ${auth.accessToken}`
   }
 
