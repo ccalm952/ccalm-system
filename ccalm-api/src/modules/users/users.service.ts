@@ -43,7 +43,7 @@ export class UsersService {
         displayName: input.displayName,
         role: input.role,
         leaveInitialBalance:
-          input.role === "user" && typeof input.leaveInitialBalance === "number"
+          typeof input.leaveInitialBalance === "number"
             ? input.leaveInitialBalance
             : 0,
       },

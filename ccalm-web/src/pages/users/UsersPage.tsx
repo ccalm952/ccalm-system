@@ -195,9 +195,7 @@ export function UsersPage() {
                           </TableCell>
                           <TableCell className="w-[12%]">{r.role}</TableCell>
                           <TableCell className="w-[12%]">
-                            {r.role === "user"
-                              ? (r.leaveInitialBalance ?? 0)
-                              : "-"}
+                            {r.leaveInitialBalance ?? 0}
                           </TableCell>
                           <TableCell className="w-[18%] text-muted-foreground">
                             {new Date(r.createdAt).toLocaleString()}
@@ -357,29 +355,27 @@ export function UsersPage() {
                   </Field>
                 </FieldGroup>
 
-                {newUser.role === "user" ? (
-                  <Field orientation="responsive">
-                    <FieldLabel>
-                      <FieldTitle>初始假期额度</FieldTitle>
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        className="w-full"
-                        type="text"
-                        inputMode="decimal"
-                        value={newUser.leaveInitialBalance}
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          if (!isLeaveBalanceInput(raw)) return
-                          setNewUser((s) => ({
-                            ...s,
-                            leaveInitialBalance: raw,
-                          }))
-                        }}
-                      />
-                    </FieldContent>
-                  </Field>
-                ) : null}
+                <Field orientation="responsive">
+                  <FieldLabel>
+                    <FieldTitle>初始假期额度</FieldTitle>
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input
+                      className="w-full"
+                      type="text"
+                      inputMode="decimal"
+                      value={newUser.leaveInitialBalance}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        if (!isLeaveBalanceInput(raw)) return
+                        setNewUser((s) => ({
+                          ...s,
+                          leaveInitialBalance: raw,
+                        }))
+                      }}
+                    />
+                  </FieldContent>
+                </Field>
               </div>
             </FieldSet>
 
@@ -404,14 +400,10 @@ export function UsersPage() {
                   void (async () => {
                     try {
                       setCreateSubmitting(true)
-                      const leaveInitialBalance =
-                        newUser.role === "user"
-                          ? parseLeaveBalance(newUser.leaveInitialBalance)
-                          : undefined
-                      if (
-                        newUser.role === "user" &&
-                        leaveInitialBalance === null
-                      ) {
+                      const leaveInitialBalance = parseLeaveBalance(
+                        newUser.leaveInitialBalance,
+                      )
+                      if (leaveInitialBalance === null) {
                         toast.error("请输入有效的初始假期额度")
                         return
                       }
@@ -541,28 +533,26 @@ export function UsersPage() {
                     </Field>
                   </FieldGroup>
 
-                  {editUser.role === "user" ? (
-                    <Field orientation="responsive">
-                      <FieldLabel>
-                        <FieldTitle>初始假期额度</FieldTitle>
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input
-                          className="w-full"
-                          type="text"
-                          inputMode="decimal"
-                          value={editUser.leaveInitialBalance}
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            if (!isLeaveBalanceInput(raw)) return
-                            setEditUser((s) =>
-                              s ? { ...s, leaveInitialBalance: raw } : s
-                            )
-                          }}
-                        />
-                      </FieldContent>
-                    </Field>
-                  ) : null}
+                  <Field orientation="responsive">
+                    <FieldLabel>
+                      <FieldTitle>初始假期额度</FieldTitle>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        className="w-full"
+                        type="text"
+                        inputMode="decimal"
+                        value={editUser.leaveInitialBalance}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (!isLeaveBalanceInput(raw)) return
+                          setEditUser((s) =>
+                            s ? { ...s, leaveInitialBalance: raw } : s
+                          )
+                        }}
+                      />
+                    </FieldContent>
+                  </Field>
                 </div>
               </FieldSet>
             ) : null}
@@ -594,11 +584,10 @@ export function UsersPage() {
                   void (async () => {
                     try {
                       setEditSubmitting(true)
-                      const leaveInitialBalance =
-                        u.role === "user"
-                          ? parseLeaveBalance(u.leaveInitialBalance)
-                          : undefined
-                      if (u.role === "user" && leaveInitialBalance === null) {
+                      const leaveInitialBalance = parseLeaveBalance(
+                        u.leaveInitialBalance,
+                      )
+                      if (leaveInitialBalance === null) {
                         toast.error("请输入有效的初始假期额度")
                         return
                       }
