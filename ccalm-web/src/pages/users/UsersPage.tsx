@@ -401,7 +401,7 @@ export function UsersPage() {
                     try {
                       setCreateSubmitting(true)
                       const leaveInitialBalance = parseLeaveBalance(
-                        newUser.leaveInitialBalance,
+                        newUser.leaveInitialBalance
                       )
                       if (leaveInitialBalance === null) {
                         toast.error("请输入有效的初始假期额度")
@@ -585,7 +585,7 @@ export function UsersPage() {
                     try {
                       setEditSubmitting(true)
                       const leaveInitialBalance = parseLeaveBalance(
-                        u.leaveInitialBalance,
+                        u.leaveInitialBalance
                       )
                       if (leaveInitialBalance === null) {
                         toast.error("请输入有效的初始假期额度")
