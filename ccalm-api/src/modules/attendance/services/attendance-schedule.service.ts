@@ -224,7 +224,6 @@ export class AttendanceScheduleService {
     const [monthAllowance, users] = await Promise.all([
       this.getMonthAllowance(month),
       this.prisma.user.findMany({
-        where: { role: "user" },
         orderBy: [{ displayName: "asc" }, { username: "asc" }],
         select: {
           id: true,
