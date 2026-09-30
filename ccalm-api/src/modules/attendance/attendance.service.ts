@@ -445,7 +445,6 @@ export class AttendanceService {
     if (!bounds) throw new BadRequestException("月份不合法")
 
     const users = await this.prisma.user.findMany({
-      where: { role: "user" },
       orderBy: [{ displayName: "asc" }, { username: "asc" }],
       select: { id: true, displayName: true, username: true },
     })
