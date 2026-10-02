@@ -1,20 +1,29 @@
+<image
+  class="wallpaper"
+  src="{{wallpaperSrc}}"
+  mode="aspectFill"
+/>
 <view class="page">
   <view class="card punch-hero">
     <view class="clock">{{nowText}}</view>
     <view class="date">{{todayLabel}}</view>
-    <view class="loc muted" wx:if="{{locating}}">定位中…</view>
-    <view class="loc error" wx:elif="{{locError}}">{{locError}}</view>
+    <view class="loc error" wx:if="{{locError}}">{{locError}}</view>
     <view class="loc muted" wx:elif="{{address}}">{{address}}</view>
     <view class="loc muted" wx:elif="{{lat}}">{{lat}}, {{lng}}</view>
     <view class="loc muted" wx:else>尚未获取定位</view>
-    <button
-      class="ghost-btn"
-      loading="{{locating || punching}}"
-      disabled="{{locating || punching}}"
-      bindtap="onRefreshLocate"
-    >
-      {{locating || punching ? "定位中…" : "刷新定位"}}
-    </button>
+    <view class="locate-btn-wrap">
+      <van-button
+        round
+        size="small"
+        type="default"
+        custom-class="locate-btn"
+        loading="{{locating || punching}}"
+        disabled="{{locating || punching}}"
+        bind:click="onRefreshLocate"
+      >
+        {{locating || punching ? "" : "刷新定位"}}
+      </van-button>
+    </view>
   </view>
 
   <view class="card">
@@ -23,13 +32,22 @@
         <view class="today-empty-title">今日未打卡</view>
       </view>
     </block>
-    <block wx:else>
-      <van-steps
-        steps="{{todaySteps}}"
-        active="{{todayActive}}"
-        direction="vertical"
-      />
-    </block>
+    <view class="timeline-wrap" wx:else>
+      <view class="timeline">
+        <view class="timeline-item" wx:for="{{todaySteps}}" wx:key="type">
+          <view class="timeline-time">{{item.time}}</view>
+          <view class="timeline-indicator">
+            <view class="timeline-line timeline-line-before"></view>
+            <view class="timeline-dot"></view>
+            <view class="timeline-line timeline-line-after"></view>
+          </view>
+          <view class="timeline-content">
+            <view class="timeline-title">{{item.text}}</view>
+            <view class="timeline-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 
   <view class="card card-stats">

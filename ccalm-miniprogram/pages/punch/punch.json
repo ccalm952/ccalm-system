@@ -1,11 +1,13 @@
 {
   "navigationBarTitleText": "考勤打卡",
+  "navigationBarBackgroundColor": "#0a0a0a",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#0a0a0a",
   "usingComponents": {
     "van-button": "@vant/weapp/button/index",
     "van-dialog": "@vant/weapp/dialog/index",
     "van-action-sheet": "@vant/weapp/action-sheet/index",
     "van-popup": "@vant/weapp/popup/index",
-    "van-toast": "@vant/weapp/toast/index",
-    "van-steps": "@vant/weapp/steps/index"
+    "van-toast": "@vant/weapp/toast/index"
   }
 }

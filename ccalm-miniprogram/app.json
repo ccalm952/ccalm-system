@@ -1,5 +1,6 @@
 {
   "pages": ["pages/punch/punch", "pages/login/login"],
+  "darkmode": true,
   "window": {
     "navigationBarTitleText": "CCALM 打卡",
     "navigationBarBackgroundColor": "#ffffff",

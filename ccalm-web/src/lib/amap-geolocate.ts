@@ -26,9 +26,7 @@ type AMapApi = { Geolocation: AMapGeolocation }
 function getKey(): string {
   const key = (import.meta.env.VITE_AMAP_KEY ?? "").trim()
   if (!key) {
-    throw new Error(
-      "未配置 VITE_AMAP_KEY。请在 ccalm-web/.env 中配置高德 Web 端（JS API）Key 后重启开发服务。"
-    )
+    throw new Error("未配置VITE_AMAP_KEY。")
   }
   return key
 }

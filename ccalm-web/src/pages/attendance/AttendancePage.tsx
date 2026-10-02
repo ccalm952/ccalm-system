@@ -47,7 +47,6 @@ import {
   attendanceBrandTextClass,
   attendanceErrorTextClass,
   attendanceMutedTextClass,
-  attendanceTableHeaderClass,
   hasOvertime,
   summaryMissingSlotsClass,
   summaryOvertimeClass,
@@ -630,340 +629,345 @@ export function AttendancePage() {
   }
 
   return (
-    <div className="min-h-svh bg-background p-4">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardContent className="flex flex-col items-center gap-2">
-              <LiveClock />
-              <div className="text-center text-sm">
-                {loc.lat ? (
-                  <div className={attendanceMutedTextClass}>
-                    {formatCurrentLocation(loc)}
-                  </div>
-                ) : loc.locating ? (
-                  <div className={attendanceMutedTextClass}>定位中…</div>
-                ) : showLocationFailed ? (
-                  <div className={attendanceErrorTextClass}>定位失败</div>
-                ) : (
-                  <div className={attendanceMutedTextClass}>尚未获取定位</div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap justify-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={loc.locating}
-                  onClick={refreshLocation}
-                >
-                  {loc.locating ? (
-                    <>
-                      <Spinner data-icon="inline-start" />
-                      定位中…
-                    </>
+    <>
+      <div className="pointer-events-none fixed inset-0 z-0 bg-background bg-[url(/background-light.png)] [background-size:auto] [background-position:center_top] bg-no-repeat dark:bg-[url(/background-dark.png)]" />
+      <div className="relative z-10 p-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col gap-4">
+            <Card className="bg-card/30">
+              <CardContent className="flex flex-col items-center gap-2">
+                <LiveClock />
+                <div className="text-center text-sm">
+                  {loc.lat ? (
+                    <div className={attendanceMutedTextClass}>
+                      {formatCurrentLocation(loc)}
+                    </div>
+                  ) : loc.locating ? (
+                    <div className={attendanceMutedTextClass}>定位中…</div>
+                  ) : showLocationFailed ? (
+                    <div className={attendanceErrorTextClass}>定位失败</div>
                   ) : (
-                    "刷新定位"
+                    <div className={attendanceMutedTextClass}>尚未获取定位</div>
                   )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent>
-              {!hasAnyTodayPunch ? (
-                <Empty className="h-full bg-muted/30">
-                  <EmptyHeader>
-                    <EmptyTitle>今日未打卡</EmptyTitle>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <div className="flex justify-center">
-                  <Timeline className="w-fit max-w-full gap-y-0">
-                    {punchTypes.map((t) => {
-                      const r = todayTypeMap[t]
-                      if (!r) return null
-                      return (
-                        <TimelineItem key={t} className="py-1">
-                          <TimelineTime>
-                            {dayjs(r.punchTime).format("HH:mm")}
-                          </TimelineTime>
-                          <TimelineIndicator />
-                          <TimelineContent>
-                            <TimelineTitle className={attendanceBrandTextClass}>
-                              {ATTENDANCE_PUNCH_TYPE_LABEL[t]}
-                            </TimelineTitle>
-                            <TimelineDescription>
-                              {r.address
-                                ? r.address
-                                : `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`}
-                            </TimelineDescription>
-                          </TimelineContent>
-                        </TimelineItem>
-                      )
-                    })}
-                  </Timeline>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardContent className="flex flex-col gap-4">
-              {!monthSummary ? (
-                <div className="grid grid-cols-3 md:grid-cols-5">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <div key={index} className="space-y-2">
-                      <Skeleton className="mx-auto h-5 w-12" />
-                      <Skeleton className="mx-auto h-4 w-16" />
-                    </div>
-                  ))}
+                <div className="flex flex-wrap justify-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={loc.locating}
+                    onClick={refreshLocation}
+                  >
+                    {loc.locating ? (
+                      <>
+                        <Spinner data-icon="inline-start" />
+                        定位中…
+                      </>
+                    ) : (
+                      "刷新定位"
+                    )}
+                  </Button>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 md:grid-cols-5">
-                    <div className="text-center">
-                      <div className="text-sm">
-                        {formatDayCount(monthSummary.attendanceDays)}
-                      </div>
-                      <div className="text-sm">出勤天数</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm">
-                        {formatDayCount(monthSummary.restDays)}
-                      </div>
-                      <div className="text-sm">休息天数</div>
-                    </div>
-                    <div className="text-center">
-                      <div
-                        className={cn(
-                          "text-sm",
-                          summaryMissingSlotsClass(monthSummary.missingSlots)
-                        )}
-                      >
-                        {monthSummary.missingSlots}
-                      </div>
-                      <div className="text-sm">缺卡</div>
-                    </div>
-                    <div className="text-center">
-                      <div
-                        className={cn(
-                          "text-sm",
-                          summaryOvertimeClass(monthSummary.overtimeStr)
-                        )}
-                      >
-                        {hasOvertime(monthSummary.overtimeStr)
-                          ? monthSummary.overtimeStr
-                          : "0"}
-                      </div>
-                      <div className="text-sm">加班</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm">
-                        {formatDayCount(monthSummary.remainingLeave ?? 0)}
-                      </div>
-                      <div className="text-sm">剩余假期</div>
-                    </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/30">
+              <CardContent>
+                {!hasAnyTodayPunch ? (
+                  <Empty className="h-full">
+                    <EmptyHeader>
+                      <EmptyTitle>今日未打卡</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
+                ) : (
+                  <div className="flex justify-center">
+                    <Timeline className="w-fit max-w-full gap-y-0">
+                      {punchTypes.map((t) => {
+                        const r = todayTypeMap[t]
+                        if (!r) return null
+                        return (
+                          <TimelineItem key={t} className="py-1">
+                            <TimelineTime>
+                              {dayjs(r.punchTime).format("HH:mm")}
+                            </TimelineTime>
+                            <TimelineIndicator />
+                            <TimelineContent>
+                              <TimelineTitle
+                                className={attendanceBrandTextClass}
+                              >
+                                {ATTENDANCE_PUNCH_TYPE_LABEL[t]}
+                              </TimelineTitle>
+                              <TimelineDescription>
+                                {r.address
+                                  ? r.address
+                                  : `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`}
+                              </TimelineDescription>
+                            </TimelineContent>
+                          </TimelineItem>
+                        )
+                      })}
+                    </Timeline>
                   </div>
+                )}
+              </CardContent>
+            </Card>
 
-                  <ScrollArea>
-                    <div className="min-w-[660px]">
-                      <Table className="w-full table-fixed">
-                        <TableHeader className={attendanceTableHeaderClass}>
-                          <TableRow>
-                            <TableHead className="w-1/5 text-center">
-                              日期
-                            </TableHead>
-                            <TableHead className="w-1/5 text-center">
-                              上午上班
-                            </TableHead>
-                            <TableHead className="w-1/5 text-center">
-                              上午下班
-                            </TableHead>
-                            <TableHead className="w-1/5 text-center">
-                              下午上班
-                            </TableHead>
-                            <TableHead className="w-1/5 text-center">
-                              下午下班
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {monthSummary.rows.map((r) => (
-                            <TableRow key={r.date}>
-                              <TableCell className="w-1/5 text-center">
-                                {dayOfMonth(r.date)}
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "w-1/5 text-center",
-                                  attendanceInCellClass(
-                                    r,
-                                    "morning",
-                                    r.morningIn
-                                  )
-                                )}
-                              >
-                                <AttendanceInCell
-                                  row={r}
-                                  half="morning"
-                                  time={r.morningIn}
-                                  makeupRequests={makeupRequests}
-                                  makeupTodayGate={makeupTodayGate}
-                                  onDeclare={() =>
-                                    setRestDialog({
-                                      date: r.date,
-                                      half: "morning",
-                                      mode: "declare",
-                                      declaredRest: r.declaredRest,
-                                    })
-                                  }
-                                  onClear={() =>
-                                    setRestDialog({
-                                      date: r.date,
-                                      half: "morning",
-                                      mode: "clear",
-                                      declaredRest: r.declaredRest,
-                                    })
-                                  }
-                                  onMakeup={(type) =>
-                                    setMakeupDialog({ date: r.date, type })
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "w-1/5 text-center",
-                                  attendanceOutCellClass(
-                                    r,
-                                    "morning",
-                                    r.morningOut,
-                                    cellClassOptions
-                                  )
-                                )}
-                              >
-                                <AttendanceHalfOutCell
-                                  row={r}
-                                  half="morning"
-                                  type="morning_out"
-                                  time={r.morningOut}
-                                  makeupRequests={makeupRequests}
-                                  makeupTodayGate={makeupTodayGate}
-                                  onApply={() =>
-                                    setMakeupDialog({
-                                      date: r.date,
-                                      type: "morning_out",
-                                    })
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "w-1/5 text-center",
-                                  attendanceInCellClass(
-                                    r,
-                                    "afternoon",
-                                    r.afternoonIn
-                                  )
-                                )}
-                              >
-                                <AttendanceInCell
-                                  row={r}
-                                  half="afternoon"
-                                  time={r.afternoonIn}
-                                  makeupRequests={makeupRequests}
-                                  makeupTodayGate={makeupTodayGate}
-                                  onDeclare={() =>
-                                    setRestDialog({
-                                      date: r.date,
-                                      half: "afternoon",
-                                      mode: "declare",
-                                      declaredRest: r.declaredRest,
-                                    })
-                                  }
-                                  onClear={() =>
-                                    setRestDialog({
-                                      date: r.date,
-                                      half: "afternoon",
-                                      mode: "clear",
-                                      declaredRest: r.declaredRest,
-                                    })
-                                  }
-                                  onMakeup={(type) =>
-                                    setMakeupDialog({ date: r.date, type })
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  "w-1/5 text-center",
-                                  attendanceOutCellClass(
-                                    r,
-                                    "afternoon",
-                                    r.afternoonOut,
-                                    cellClassOptions
-                                  )
-                                )}
-                              >
-                                <AttendanceHalfOutCell
-                                  row={r}
-                                  half="afternoon"
-                                  type="afternoon_out"
-                                  time={r.afternoonOut}
-                                  makeupRequests={makeupRequests}
-                                  makeupTodayGate={makeupTodayGate}
-                                  onApply={() =>
-                                    setMakeupDialog({
-                                      date: r.date,
-                                      type: "afternoon_out",
-                                    })
-                                  }
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+            <Card className="bg-card/30">
+              <CardContent className="flex flex-col gap-4">
+                {!monthSummary ? (
+                  <div className="grid grid-cols-3 md:grid-cols-5">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <div key={index} className="space-y-2">
+                        <Skeleton className="mx-auto h-5 w-12" />
+                        <Skeleton className="mx-auto h-4 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 md:grid-cols-5">
+                      <div className="text-center">
+                        <div className="text-sm">
+                          {formatDayCount(monthSummary.attendanceDays)}
+                        </div>
+                        <div className="text-sm">出勤天数</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm">
+                          {formatDayCount(monthSummary.restDays)}
+                        </div>
+                        <div className="text-sm">休息天数</div>
+                      </div>
+                      <div className="text-center">
+                        <div
+                          className={cn(
+                            "text-sm",
+                            summaryMissingSlotsClass(monthSummary.missingSlots)
+                          )}
+                        >
+                          {monthSummary.missingSlots}
+                        </div>
+                        <div className="text-sm">缺卡</div>
+                      </div>
+                      <div className="text-center">
+                        <div
+                          className={cn(
+                            "text-sm",
+                            summaryOvertimeClass(monthSummary.overtimeStr)
+                          )}
+                        >
+                          {hasOvertime(monthSummary.overtimeStr)
+                            ? monthSummary.overtimeStr
+                            : "0"}
+                        </div>
+                        <div className="text-sm">加班</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm">
+                          {formatDayCount(monthSummary.remainingLeave ?? 0)}
+                        </div>
+                        <div className="text-sm">剩余假期</div>
+                      </div>
                     </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                </>
-              )}
-            </CardContent>
-          </Card>
+
+                    <ScrollArea>
+                      <div className="min-w-[660px]">
+                        <Table className="w-full table-fixed">
+                          <TableHeader className={attendanceMutedTextClass}>
+                            <TableRow>
+                              <TableHead className="w-1/5 text-center">
+                                日期
+                              </TableHead>
+                              <TableHead className="w-1/5 text-center">
+                                上午上班
+                              </TableHead>
+                              <TableHead className="w-1/5 text-center">
+                                上午下班
+                              </TableHead>
+                              <TableHead className="w-1/5 text-center">
+                                下午上班
+                              </TableHead>
+                              <TableHead className="w-1/5 text-center">
+                                下午下班
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {monthSummary.rows.map((r) => (
+                              <TableRow key={r.date}>
+                                <TableCell className="w-1/5 text-center">
+                                  {dayOfMonth(r.date)}
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "w-1/5 text-center",
+                                    attendanceInCellClass(
+                                      r,
+                                      "morning",
+                                      r.morningIn
+                                    )
+                                  )}
+                                >
+                                  <AttendanceInCell
+                                    row={r}
+                                    half="morning"
+                                    time={r.morningIn}
+                                    makeupRequests={makeupRequests}
+                                    makeupTodayGate={makeupTodayGate}
+                                    onDeclare={() =>
+                                      setRestDialog({
+                                        date: r.date,
+                                        half: "morning",
+                                        mode: "declare",
+                                        declaredRest: r.declaredRest,
+                                      })
+                                    }
+                                    onClear={() =>
+                                      setRestDialog({
+                                        date: r.date,
+                                        half: "morning",
+                                        mode: "clear",
+                                        declaredRest: r.declaredRest,
+                                      })
+                                    }
+                                    onMakeup={(type) =>
+                                      setMakeupDialog({ date: r.date, type })
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "w-1/5 text-center",
+                                    attendanceOutCellClass(
+                                      r,
+                                      "morning",
+                                      r.morningOut,
+                                      cellClassOptions
+                                    )
+                                  )}
+                                >
+                                  <AttendanceHalfOutCell
+                                    row={r}
+                                    half="morning"
+                                    type="morning_out"
+                                    time={r.morningOut}
+                                    makeupRequests={makeupRequests}
+                                    makeupTodayGate={makeupTodayGate}
+                                    onApply={() =>
+                                      setMakeupDialog({
+                                        date: r.date,
+                                        type: "morning_out",
+                                      })
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "w-1/5 text-center",
+                                    attendanceInCellClass(
+                                      r,
+                                      "afternoon",
+                                      r.afternoonIn
+                                    )
+                                  )}
+                                >
+                                  <AttendanceInCell
+                                    row={r}
+                                    half="afternoon"
+                                    time={r.afternoonIn}
+                                    makeupRequests={makeupRequests}
+                                    makeupTodayGate={makeupTodayGate}
+                                    onDeclare={() =>
+                                      setRestDialog({
+                                        date: r.date,
+                                        half: "afternoon",
+                                        mode: "declare",
+                                        declaredRest: r.declaredRest,
+                                      })
+                                    }
+                                    onClear={() =>
+                                      setRestDialog({
+                                        date: r.date,
+                                        half: "afternoon",
+                                        mode: "clear",
+                                        declaredRest: r.declaredRest,
+                                      })
+                                    }
+                                    onMakeup={(type) =>
+                                      setMakeupDialog({ date: r.date, type })
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "w-1/5 text-center",
+                                    attendanceOutCellClass(
+                                      r,
+                                      "afternoon",
+                                      r.afternoonOut,
+                                      cellClassOptions
+                                    )
+                                  )}
+                                >
+                                  <AttendanceHalfOutCell
+                                    row={r}
+                                    half="afternoon"
+                                    type="afternoon_out"
+                                    time={r.afternoonOut}
+                                    makeupRequests={makeupRequests}
+                                    makeupTodayGate={makeupTodayGate}
+                                    onApply={() =>
+                                      setMakeupDialog({
+                                        date: r.date,
+                                        type: "afternoon_out",
+                                      })
+                                    }
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {makeupDialog ? (
+          <MakeupRequestDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setMakeupDialog(null)
+            }}
+            date={makeupDialog.date}
+            type={makeupDialog.type}
+            onSuccess={() => {
+              void reloadAfterMutation()
+            }}
+          />
+        ) : null}
+
+        {restDialog ? (
+          <RestActionDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setRestDialog(null)
+            }}
+            date={restDialog.date}
+            half={restDialog.half}
+            mode={restDialog.mode}
+            declaredRest={restDialog.declaredRest}
+            onSuccess={() => {
+              void reloadAfterMutation()
+            }}
+          />
+        ) : null}
       </div>
-
-      {makeupDialog ? (
-        <MakeupRequestDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setMakeupDialog(null)
-          }}
-          date={makeupDialog.date}
-          type={makeupDialog.type}
-          onSuccess={() => {
-            void reloadAfterMutation()
-          }}
-        />
-      ) : null}
-
-      {restDialog ? (
-        <RestActionDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setRestDialog(null)
-          }}
-          date={restDialog.date}
-          half={restDialog.half}
-          mode={restDialog.mode}
-          declaredRest={restDialog.declaredRest}
-          onSuccess={() => {
-            void reloadAfterMutation()
-          }}
-        />
-      ) : null}
-    </div>
+    </>
   )
 }

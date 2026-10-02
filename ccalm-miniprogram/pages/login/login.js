@@ -1,9 +1,11 @@
 const { success } = require("../../utils/toast")
 const { request, wxLoginCode } = require("../../utils/api")
 const { setStoredAuth } = require("../../utils/auth")
+const { wallpaperSrc, bindWallpaper } = require("../../utils/theme")
 
 Page({
   data: {
+    wallpaperSrc: wallpaperSrc("light"),
     step: "loading",
     bindTicket: "",
     username: "",
@@ -12,8 +14,23 @@ Page({
     error: "",
   },
 
-  onLoad() {
+  unbindTheme: null,
+
+  onLoad(query) {
+    this.unbindTheme = bindWallpaper(this)
+    // 预览绑定页：wx.reLaunch({ url: "/pages/login/login?preview=1" })
+    if (query && query.preview === "1") {
+      this.setData({ step: "bind", bindTicket: "" })
+      return
+    }
     this.startWechatLogin()
+  },
+
+  onUnload() {
+    if (this.unbindTheme) {
+      this.unbindTheme()
+      this.unbindTheme = null
+    }
   },
 
   onUsername(e) {
