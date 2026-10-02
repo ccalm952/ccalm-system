@@ -47,7 +47,6 @@ import {
   attendanceBrandTextClass,
   attendanceErrorTextClass,
   attendanceMutedTextClass,
-  attendanceTableHeaderClass,
   hasOvertime,
   summaryMissingSlotsClass,
   summaryOvertimeClass,
@@ -630,10 +629,12 @@ export function AttendancePage() {
   }
 
   return (
-    <div className="min-h-svh bg-background p-4">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-col gap-4">
-          <Card>
+    <>
+      <div className="pointer-events-none fixed inset-0 z-0 bg-background bg-[url(/background-light.png)] bg-no-repeat [background-position:center_top] [background-size:auto] dark:bg-[url(/background-dark.png)]" />
+      <div className="relative z-10 p-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col gap-4">
+            <Card className="bg-card/30">
             <CardContent className="flex flex-col items-center gap-2">
               <LiveClock />
               <div className="text-center text-sm">
@@ -670,10 +671,10 @@ export function AttendancePage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card/30">
             <CardContent>
               {!hasAnyTodayPunch ? (
-                <Empty className="h-full bg-muted/30">
+                <Empty className="h-full">
                   <EmptyHeader>
                     <EmptyTitle>今日未打卡</EmptyTitle>
                   </EmptyHeader>
@@ -709,7 +710,7 @@ export function AttendancePage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card/30">
             <CardContent className="flex flex-col gap-4">
               {!monthSummary ? (
                 <div className="grid grid-cols-3 md:grid-cols-5">
@@ -770,7 +771,7 @@ export function AttendancePage() {
                   <ScrollArea>
                     <div className="min-w-[660px]">
                       <Table className="w-full table-fixed">
-                        <TableHeader className={attendanceTableHeaderClass}>
+                        <TableHeader className={attendanceMutedTextClass}>
                           <TableRow>
                             <TableHead className="w-1/5 text-center">
                               日期
@@ -964,6 +965,7 @@ export function AttendancePage() {
           }}
         />
       ) : null}
-    </div>
+      </div>
+    </>
   )
 }

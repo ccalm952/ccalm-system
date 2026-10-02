@@ -32,8 +32,8 @@ export function MainLayout() {
   return (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar collapsible="offcanvas" />
-      <SidebarInset>
-        <header className="sticky top-0 z-40 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b bg-background px-4 py-2">
+      <SidebarInset className="bg-transparent">
+        <header className="sticky top-0 z-40 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-border/40 bg-background/30 px-4 py-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <SidebarTrigger className="size-9" />
             <NavigationMenu className="hidden md:block">

@@ -1,54 +1,184 @@
-/* 色彩：Vant Weapp 推荐色板 */
+/* 尺寸对齐网页窄屏 AttendancePage */
+
+page {
+  background: #0a0a0a;
+  --punch-accent: #3a6f9c;
+  --punch-text: #1a2d42;
+  --punch-text-2: #2f4660;
+  --punch-text-3: #45607a;
+  --punch-text-glow: 0 0 4px rgba(255, 255, 255, 0.85),
+    0 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+.wallpaper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  padding: 16px;
+  padding-bottom: 16px;
+  gap: 16px;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.48);
+  border-color: rgba(255, 255, 255, 0.55);
+  padding: 20px;
+  border-radius: 24px;
+}
+
+.muted {
+  color: var(--punch-text-3);
+  text-shadow: var(--punch-text-glow);
+}
 
 .punch-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+  gap: 8px;
   text-align: center;
 }
 
 .clock {
-  font-size: 96rpx;
+  font-size: 48px;
+  line-height: 1;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  color: var(--van-text-color);
+  color: var(--punch-text);
+  text-shadow: var(--punch-text-glow);
 }
 
 .date {
-  font-size: 28rpx;
-  color: var(--van-text-color-3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--punch-text-2);
+  text-shadow: var(--punch-text-glow);
 }
 
 .loc {
-  font-size: 28rpx;
-  padding: 0 12rpx;
+  font-size: 14px;
+  line-height: 20px;
   word-break: break-all;
+  color: var(--punch-text-2);
+  text-shadow: var(--punch-text-glow);
 }
 
-/* 对齐 van-button plain primary 文字色 */
-.ghost-btn {
-  margin: 0;
-  padding: 12rpx 24rpx;
-  min-height: 64rpx;
-  line-height: 1.25;
-  font-size: 28rpx;
+.locate-btn-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.locate-btn {
+  color: var(--punch-text) !important;
+  background: transparent !important;
+  border: none !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 12px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.locate-btn.van-button--disabled {
+  opacity: 0.5 !important;
+}
+
+.timeline-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.timeline-time {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--punch-text);
+  text-shadow: var(--punch-text-glow);
+}
+
+.timeline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: rgba(58, 111, 156, 0.35);
+}
+
+.timeline-line-before {
+  margin-top: -4px;
+}
+
+.timeline-line-after {
+  margin-bottom: -4px;
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--punch-accent);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.7);
+}
+
+.timeline-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-title {
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 500;
-  color: var(--van-primary-color);
-  background: transparent;
-  border: none;
-  border-radius: 32rpx;
+  color: var(--punch-text);
+  text-shadow: var(--punch-text-glow);
 }
 
-.ghost-btn::after {
-  border: none;
-}
-
-.ghost-btn[disabled] {
-  color: var(--van-primary-color);
-  background: transparent;
-  opacity: 0.5;
+.timeline-desc {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--punch-text-3);
+  word-break: break-all;
+  text-shadow: var(--punch-text-glow);
 }
 
 .today-empty {
@@ -56,24 +186,24 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 96rpx 48rpx;
+  padding: 48px;
   text-align: center;
-  background: var(--van-active-color);
-  border-radius: 44rpx;
   box-sizing: border-box;
+  border-radius: 22px;
 }
 
 .today-empty-title {
-  font-size: 36rpx;
+  font-size: 18px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-  color: var(--van-text-color-2);
+  letter-spacing: -0.025em;
+  color: var(--punch-text-2);
+  text-shadow: var(--punch-text-glow);
 }
 
 .card-stats {
   display: flex;
   flex-direction: column;
-  gap: 32rpx;
+  gap: 16px;
 }
 
 .stats {
@@ -87,20 +217,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
-  padding: 8rpx 0;
+  gap: 0;
+  padding: 0;
   text-align: center;
 }
 
 .stat-value,
 .stat-label {
-  font-size: 28rpx;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 400;
-  color: var(--van-text-color);
+  color: var(--punch-text);
+  text-shadow: var(--punch-text-glow);
 }
 
 .stat-label {
-  color: var(--van-text-color-2);
+  color: var(--punch-text-2);
 }
 
 .stat-value.warn {
@@ -108,7 +240,7 @@
 }
 
 .stat-value.muted {
-  color: var(--van-text-color-3);
+  color: var(--punch-text-3);
 }
 
 .table-scroll {
@@ -116,46 +248,54 @@
 }
 
 .table {
-  min-width: 1320rpx;
-  border-top: 1px solid var(--van-border-color);
+  min-width: 660px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .tr {
   display: flex;
-  border-bottom: 1px solid var(--van-border-color);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .th {
-  background: var(--van-background-color);
+  background: none;
 }
 
 .td {
   flex: 1;
   min-width: 0;
   width: 20%;
-  padding: 20rpx 8rpx;
+  height: 40px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  font-size: 28rpx;
-  color: var(--van-text-color);
+  font-size: 14px;
+  color: var(--punch-text);
   box-sizing: border-box;
+  text-shadow: var(--punch-text-glow);
+  white-space: nowrap;
 }
 
 .th .td {
-  color: var(--van-text-color-3);
-  font-weight: 400;
+  color: var(--punch-text-2);
+  font-weight: 500;
 }
 
-/* 可点击单元格：Vant info 蓝 */
 .cell {
-  color: var(--van-info-color);
+  color: var(--punch-accent);
+  text-shadow: var(--punch-text-glow);
 }
 
 .cell.plain {
-  color: var(--van-text-color);
+  color: var(--punch-text);
+  text-shadow: var(--punch-text-glow);
 }
 
 .cell.muted {
-  color: var(--van-text-color-3);
+  color: var(--punch-text-3);
+  text-shadow: var(--punch-text-glow);
 }
 
 .cell.pending {
@@ -163,35 +303,35 @@
 }
 
 .dialog-body {
-  padding: 24rpx 32rpx 8rpx;
-  font-size: 28rpx;
+  padding: 12px 16px 4px;
+  font-size: 14px;
   color: var(--van-text-color);
 }
 
 .makeup-panel {
-  padding: 40rpx;
+  padding: 20px;
 }
 
 .makeup-title {
-  font-size: 32rpx;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 16rpx;
+  margin-bottom: 8px;
   color: var(--van-text-color);
 }
 
 .makeup-time-label {
-  margin-top: 24rpx;
-  margin-bottom: 8rpx;
+  margin-top: 12px;
+  margin-bottom: 4px;
   color: var(--van-text-color-2);
 }
 
 .makeup-time {
-  padding: 20rpx;
+  padding: 10px;
   border: 1px solid var(--van-border-color);
-  border-radius: 24rpx;
-  margin-bottom: 32rpx;
+  border-radius: 12px;
+  margin-bottom: 16px;
   text-align: center;
-  font-size: 32rpx;
+  font-size: 16px;
   color: var(--van-text-color);
   background: var(--van-background-color-light);
 }

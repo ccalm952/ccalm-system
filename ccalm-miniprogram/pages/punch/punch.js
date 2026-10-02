@@ -25,6 +25,7 @@ const {
   halfHasPunch,
   slotTime,
 } = require("../../utils/punch-logic")
+const { wallpaperSrc, bindWallpaper } = require("../../utils/theme")
 
 const SLOT_META = {
   morningIn: { type: "morning_in", half: "morning", kind: "in" },
@@ -42,6 +43,7 @@ let didSessionAutoLocate = false
 
 Page({
   data: {
+    wallpaperSrc: wallpaperSrc("light"),
     nowText: "00:00:00",
     todayLabel: "",
     locating: false,
@@ -51,7 +53,6 @@ Page({
     lat: 0,
     lng: 0,
     todaySteps: [],
-    todayActive: 0,
     stats: [],
     monthRows: [],
     actionSheetShow: false,
@@ -69,6 +70,7 @@ Page({
   },
 
   timer: null,
+  unbindTheme: null,
   shift: null,
   fence: null,
   todayRecords: [],
@@ -77,6 +79,10 @@ Page({
   pendingAction: null,
   restPending: null,
   rowMap: {},
+
+  onLoad() {
+    this.unbindTheme = bindWallpaper(this)
+  },
 
   onShow() {
     const auth = getStoredAuth()
@@ -109,6 +115,10 @@ Page({
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
+    }
+    if (this.unbindTheme) {
+      this.unbindTheme()
+      this.unbindTheme = null
     }
   },
 
@@ -165,10 +175,10 @@ Page({
             ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
             : ""
         return {
+          type: t,
+          time: formatHm(r.punchTime),
           text: PUNCH_LABEL[t],
-          desc: desc
-            ? `${formatHm(r.punchTime)} · ${desc}`
-            : formatHm(r.punchTime),
+          desc,
         }
       })
 
@@ -226,7 +236,6 @@ Page({
 
     this.setData({
       todaySteps,
-      todayActive: Math.max(todaySteps.length - 1, 0),
       stats,
       monthRows,
     })

@@ -1,33 +1,42 @@
+<image
+  class="wallpaper"
+  src="{{wallpaperSrc}}"
+  mode="aspectFill"
+/>
 <view class="page">
   <view class="card">
-    <view class="title">CCALM 打卡</view>
     <view class="muted">首次使用请用现有账号绑定微信</view>
 
     <view wx:if="{{step === 'loading'}}" class="loading-wrap">
-      <van-loading size="24px">正在微信登录…</van-loading>
+      <van-loading size="24px" color="#3a6f9c">正在微信登录…</van-loading>
     </view>
 
     <block wx:elif="{{step === 'bind'}}">
-      <van-cell-group inset custom-class="form-group">
-        <van-field
-          label="账号"
-          value="{{username}}"
-          placeholder="请输入账号"
-          clearable
-          bind:change="onUsername"
-        />
-        <van-field
-          label="密码"
-          value="{{password}}"
-          password
-          placeholder="请输入密码"
-          clearable
-          bind:change="onPassword"
-        />
-      </van-cell-group>
+      <van-field
+        border="{{ false }}"
+        input-align="left"
+        custom-class="login-field"
+        value="{{username}}"
+        placeholder="请输入账号"
+        clearable
+        bind:change="onUsername"
+      />
+      <van-field
+        border="{{ false }}"
+        input-align="left"
+        custom-class="login-field"
+        value="{{password}}"
+        password
+        placeholder="请输入密码"
+        clearable
+        bind:change="onPassword"
+      />
       <van-button
-        type="primary"
+        round
         block
+        size="small"
+        type="primary"
+        color="#3a6f9c"
         loading="{{submitting}}"
         disabled="{{submitting}}"
         custom-class="bind-btn"
@@ -38,17 +47,6 @@
     </block>
 
     <view wx:if="{{error}}" class="error">{{error}}</view>
-
-    <van-button
-      wx:if="{{step !== 'loading'}}"
-      block
-      plain
-      hairline
-      custom-class="retry-btn"
-      bind:click="startWechatLogin"
-    >
-      重新微信登录
-    </van-button>
   </view>
 </view>
 
