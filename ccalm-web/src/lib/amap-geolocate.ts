@@ -26,9 +26,7 @@ type AMapApi = { Geolocation: AMapGeolocation }
 function getKey(): string {
   const key = (import.meta.env.VITE_AMAP_KEY ?? "").trim()
   if (!key) {
-    throw new Error(
-      "未配置VITE_AMAP_KEY。"
-    )
+    throw new Error("未配置VITE_AMAP_KEY。")
   }
   return key
 }

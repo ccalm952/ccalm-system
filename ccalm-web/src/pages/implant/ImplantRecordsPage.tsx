@@ -212,7 +212,7 @@ export function ImplantRecordsPage() {
     <div className="flex h-[calc(100svh-3.5rem)] flex-col overflow-hidden bg-background p-4">
       <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
         <Card className="flex min-h-0 flex-1 flex-col">
-          <CardHeader className="flex shrink-0 min-w-0 flex-col gap-3 space-y-0 md:flex-row md:flex-nowrap md:items-center md:justify-between">
+          <CardHeader className="flex min-w-0 shrink-0 flex-col gap-3 space-y-0 md:flex-row md:flex-nowrap md:items-center md:justify-between">
             <div className="flex w-full min-w-0 flex-1 flex-nowrap items-center gap-2">
               <InputGroup className="min-w-0 flex-1 md:max-w-md">
                 <InputGroupAddon align="inline-start">
