@@ -3,6 +3,10 @@
   "packOptions": {
     "ignore": [
       {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
         "type": "file",
         "value": "README.md"
       },
@@ -45,6 +49,14 @@
       {
         "type": "folder",
         "value": "miniprogram_npm/@vant/weapp/common/style"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram_npm/@vant/weapp/cell-group"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram_npm/@vant/weapp/steps"
       },
       {
         "type": "folder",
