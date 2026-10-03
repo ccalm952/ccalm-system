@@ -1,6 +1,6 @@
 const WALLPAPER = {
-  light: "/assets/background-mobile-light.png",
-  dark: "/assets/background-mobile-dark.png",
+  light: "/assets/background-mobile-light.jpg",
+  dark: "/assets/background-mobile-dark.jpg",
 }
 
 function resolveTheme() {
