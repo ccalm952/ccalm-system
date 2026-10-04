@@ -5,8 +5,32 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import bcrypt from "bcrypt";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 
+import { API_ROOT } from "../../common/api-root";
 import { PrismaService } from "../../prisma/prisma.service";
+
+const avatarUrlPrefix = "/api/uploads/avatars/";
+const avatarUploadDir = path.join(API_ROOT, "uploads", "avatars");
+
+async function removeLocalAvatarFile(avatarUrl: string | null | undefined) {
+  if (!avatarUrl?.startsWith(avatarUrlPrefix)) return;
+  const filename = avatarUrl.slice(avatarUrlPrefix.length);
+  if (
+    !filename ||
+    filename.includes("/") ||
+    filename.includes("\\") ||
+    filename.includes("..")
+  ) {
+    return;
+  }
+  try {
+    await unlink(path.join(avatarUploadDir, filename));
+  } catch {
+    // 旧文件缺失或删失败不影响本次上传
+  }
+}
 
 @Injectable()
 export class UsersService {
@@ -122,7 +146,13 @@ export class UsersService {
   }
 
   async updateAvatar(userId: string, avatarUrl: string) {
-    return await this.prisma.user.update({
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    if (!existing) throw new NotFoundException("用户不存在");
+
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
       select: {
@@ -136,6 +166,11 @@ export class UsersService {
         updatedAt: true,
       },
     });
+
+    if (existing.avatarUrl && existing.avatarUrl !== avatarUrl) {
+      await removeLocalAvatarFile(existing.avatarUrl);
+    }
+    return updated;
   }
 
   async deleteByAdmin(params: { actorUserId: string; targetUserId: string }) {
