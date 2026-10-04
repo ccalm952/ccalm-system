@@ -1,12 +1,14 @@
 import * as React from "react";
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   restrictToParentElement,
@@ -85,10 +87,7 @@ function SortableEmployeeRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({
-    id: row.id,
-    animateLayoutChanges: () => false,
-  });
+  } = useSortable({ id: row.id });
 
   return (
     <TableRow
@@ -98,9 +97,7 @@ function SortableEmployeeRow({
           transform ? { ...transform, x: 0 } : null,
         ),
         transition,
-        opacity: isDragging ? 0.5 : undefined,
-        position: "relative",
-        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0 : undefined,
       }}
     >
       <TableCell>
@@ -203,6 +200,34 @@ function SortableEmployeeRow({
   );
 }
 
+function EmployeeDragPreview({ row }: { row: SalaryEmployeeComputed }) {
+  return (
+    <Table className="table-fixed bg-background opacity-50 shadow-md">
+      <TableBody>
+        <TableRow>
+          <TableCell>{row.title || "职称"}</TableCell>
+          <TableCell>{row.name || "姓名"}</TableCell>
+          <TableCell />
+          <TableCell>{row.baseSalary}</TableCell>
+          <TableCell>{row.deductedBase}</TableCell>
+          <TableCell>{row.shareRatio}</TableCell>
+          <TableCell>{row.actualReceipt}</TableCell>
+          <TableCell>{row.bonus}</TableCell>
+          <TableCell>{row.plantingCount}</TableCell>
+          <TableCell>{row.plantingBonus}</TableCell>
+          <TableCell>{row.monthlySalary}</TableCell>
+          <TableCell>{row.socialInsurance}</TableCell>
+          <TableCell>{row.medicalInsurance}</TableCell>
+          <TableCell>{row.housingFund}</TableCell>
+          <TableCell>{row.leaveDays}</TableCell>
+          <TableCell>{row.leaveOffset}</TableCell>
+          <TableCell />
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+}
+
 export function SalaryEmployeeTable({
   computed,
   updateEmployee,
@@ -216,11 +241,13 @@ export function SalaryEmployeeTable({
   onAddEmployee: () => void;
   onReorderEmployees: (activeId: string, overId: string) => void;
 }) {
+  const [activeId, setActiveId] = React.useState<string | null>(null);
   const actualReceiptTotal = React.useMemo(
     () => sumActualReceiptTotal(computed),
     [computed],
   );
   const employeeIds = computed.employees.map((row) => row.id);
+  const activeRow = computed.employees.find((row) => row.id === activeId);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -230,10 +257,18 @@ export function SalaryEmployeeTable({
     }),
   );
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    onReorderEmployees(String(active.id), String(over.id));
+    setActiveId(null);
+    if (!event.over || event.active.id === event.over.id) return;
+    onReorderEmployees(String(event.active.id), String(event.over.id));
+  }
+
+  function handleDragCancel() {
+    setActiveId(null);
   }
 
   return (
@@ -241,7 +276,9 @@ export function SalaryEmployeeTable({
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <Table className="table-fixed">
         <TableHeader>
@@ -308,6 +345,9 @@ export function SalaryEmployeeTable({
           </TableRow>
         </TableBody>
       </Table>
+      <DragOverlay dropAnimation={null}>
+        {activeRow ? <EmployeeDragPreview row={activeRow} /> : null}
+      </DragOverlay>
     </DndContext>
   );
 }

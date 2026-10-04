@@ -350,14 +350,17 @@ export function sumMaterialLines(lines: SalaryMaterialLine[]): number {
 function normalizeEmployees(
   employees: SalarySheetData["employees"],
 ): SalarySheetData["employees"] {
+  const ids = new Set<string>();
   return employees.map((row) => {
+    const id = ids.has(row.id) ? nextEntityId("emp") : row.id;
+    ids.add(id);
     if (
       typeof row.deductionRate === "number" &&
       Number.isFinite(row.deductionRate)
     ) {
-      return row;
+      return id === row.id ? row : { ...row, id };
     }
-    return { ...row, deductionRate: Number.NaN };
+    return { ...row, id, deductionRate: Number.NaN };
   });
 }
 
@@ -442,7 +445,8 @@ export function formatSalaryMonthTab(month: string): string {
 let entitySeq = 0;
 function nextEntityId(prefix: string): string {
   entitySeq += 1;
-  return `${prefix}-${entitySeq}`;
+  const uuid = globalThis.crypto?.randomUUID?.();
+  return uuid ? `${prefix}-${uuid}` : `${prefix}-${Date.now()}-${entitySeq}`;
 }
 
 export function createEmptyEmployee(): SalarySheetData["employees"][number] {
