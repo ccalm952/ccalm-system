@@ -2,68 +2,68 @@ import {
   metaHelper,
   tableFeatures,
   type ColumnDef,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import type {
   ImplantRecordRow,
   RecordsTableMeta,
-} from "./implant-records-types"
+} from "./implant-records-types";
 
 export const recordsTableFeatures = tableFeatures({
   tableMeta: metaHelper<RecordsTableMeta>(),
-})
+});
 
 function phase2DisplayDate(
   addMonths: (visitDate: string, months: number) => string,
   visitDate: string,
-  remarkMonths: string | null
+  remarkMonths: string | null,
 ): string {
-  const months = remarkMonths?.trim()
-  if (!months || !/^\d+$/.test(months)) return ""
-  const value = parseInt(months, 10)
-  if (!Number.isFinite(value) || value < 0) return ""
-  return addMonths(visitDate, value)
+  const months = remarkMonths?.trim();
+  if (!months || !/^\d+$/.test(months)) return "";
+  const value = parseInt(months, 10);
+  if (!Number.isFinite(value) || value < 0) return "";
+  return addMonths(visitDate, value);
 }
 
 export function createImplantRecordsColumns(
   addMonths: (visitDate: string, months: number) => string,
-  openEdit: (row: ImplantRecordRow) => void
+  openEdit: (row: ImplantRecordRow) => void,
 ): Array<ColumnDef<typeof recordsTableFeatures, ImplantRecordRow>> {
   return [
     {
       id: "select",
       header: ({ table }) => {
-        const meta = table.options.meta
-        const modelRows = table.getRowModel().rows
-        const selection = meta?.selection
+        const meta = table.options.meta;
+        const modelRows = table.getRowModel().rows;
+        const selection = meta?.selection;
         const allSelected =
           modelRows.length > 0 &&
-          modelRows.every((row) => selection?.has(row.id))
-        const someSelected = modelRows.some((row) => selection?.has(row.id))
+          modelRows.every((row) => selection?.has(row.id));
+        const someSelected = modelRows.some((row) => selection?.has(row.id));
         return (
           <Checkbox
             checked={allSelected}
             indeterminate={!allSelected && someSelected}
             onCheckedChange={(value) => {
-              if (value) meta?.selectAllRows?.()
-              else meta?.clearSelection?.()
+              if (value) meta?.selectAllRows?.();
+              else meta?.clearSelection?.();
             }}
           />
-        )
+        );
       },
       cell: ({ row, table }) => {
-        const selection = table.options.meta?.selection
-        const toggle = table.options.meta?.toggleSel
+        const selection = table.options.meta?.selection;
+        const toggle = table.options.meta?.toggleSel;
         return (
           <Checkbox
             checked={selection?.has(row.id) ?? false}
             onCheckedChange={() => toggle?.(row.id)}
             onClick={(event) => event.stopPropagation()}
           />
-        )
+        );
       },
     },
     { id: "patientName", accessorKey: "patientName", header: "姓名" },
@@ -77,7 +77,7 @@ export function createImplantRecordsColumns(
         phase2DisplayDate(
           addMonths,
           row.original.visitDate,
-          row.original.remark
+          row.original.remark,
         ),
     },
     {
@@ -118,13 +118,13 @@ export function createImplantRecordsColumns(
           type="button"
           variant="secondary"
           onClick={(event) => {
-            event.stopPropagation()
-            openEdit(row.original)
+            event.stopPropagation();
+            openEdit(row.original);
           }}
         >
           编辑
         </Button>
       ),
     },
-  ]
+  ];
 }

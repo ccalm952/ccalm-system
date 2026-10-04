@@ -3,30 +3,12 @@
 page {
   height: 100%;
   background: #0a0a0a;
-  --punch-accent: #3a6f9c;
-  --punch-text: #1a2d42;
-  --punch-text-2: #2f4660;
-  --punch-text-3: #45607a;
-  --punch-text-glow: 0 0 4px rgba(255, 255, 255, 0.85),
-    0 1px 1px rgba(255, 255, 255, 0.7);
   --cell-background-color: transparent;
   --cell-border-color: transparent;
   --cell-vertical-padding: 0;
   --cell-line-height: 32px;
   --field-input-text-color: var(--punch-text);
   --field-placeholder-text-color: var(--punch-text-3);
-}
-
-.wallpaper {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
 }
 
 .page {

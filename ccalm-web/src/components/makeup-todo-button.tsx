@@ -1,83 +1,83 @@
-import * as React from "react"
-import dayjs from "dayjs"
+import * as React from "react";
+import dayjs from "dayjs";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner"
+} from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ATTENDANCE_MAKEUP_REQUEST_STATUS_LABEL,
   ATTENDANCE_PUNCH_TYPE_LABEL,
   type AttendanceMakeupRequest,
   type AttendancePunchDeviceUnbindRequest,
-} from "@/lib/attendance/types"
+} from "@/lib/attendance/types";
 import {
   attendanceMutedTextClass,
   makeupRequestStatusTextClass,
   makeupTodoBadgeClass,
-} from "@/lib/attendance/attendance-theme"
-import { formatMakeupTime } from "@/lib/attendance/makeup"
-import { api, subscribeMakeupEvents } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { useAuth } from "@/lib/use-auth"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+} from "@/lib/attendance/attendance-theme";
+import { formatMakeupTime } from "@/lib/attendance/makeup";
+import { api, subscribeMakeupEvents } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { useAuth } from "@/lib/use-auth";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-type TodoTab = "mine" | "pending"
+type TodoTab = "mine" | "pending";
 
 function MakeupRequestCard(props: {
-  item: AttendanceMakeupRequest
-  showUser?: boolean
-  mode: "mine" | "review"
-  onChanged: () => void
+  item: AttendanceMakeupRequest;
+  showUser?: boolean;
+  mode: "mine" | "review";
+  onChanged: () => void;
 }) {
-  const { item, showUser = false, mode, onChanged } = props
-  const [rejectOpen, setRejectOpen] = React.useState(false)
-  const [acting, setActing] = React.useState(false)
+  const { item, showUser = false, mode, onChanged } = props;
+  const [rejectOpen, setRejectOpen] = React.useState(false);
+  const [acting, setActing] = React.useState(false);
 
   async function approve() {
-    setActing(true)
+    setActing(true);
     try {
-      await api("POST", `/attendance/makeup-requests/${item.id}/approve`)
-      toast.success("已通过补卡申请")
-      onChanged()
+      await api("POST", `/attendance/makeup-requests/${item.id}/approve`);
+      toast.success("已通过补卡申请");
+      onChanged();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setActing(false)
+      setActing(false);
     }
   }
 
   async function reject() {
-    setActing(true)
+    setActing(true);
     try {
-      await api("POST", `/attendance/makeup-requests/${item.id}/reject`)
-      toast.success("已拒绝补卡申请")
-      setRejectOpen(false)
-      onChanged()
+      await api("POST", `/attendance/makeup-requests/${item.id}/reject`);
+      toast.success("已拒绝补卡申请");
+      setRejectOpen(false);
+      onChanged();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setActing(false)
+      setActing(false);
     }
   }
 
-  const statusClass = makeupRequestStatusTextClass(item.status)
+  const statusClass = makeupRequestStatusTextClass(item.status);
 
   return (
     <>
@@ -152,53 +152,53 @@ function MakeupRequestCard(props: {
         </Dialog>
       ) : null}
     </>
-  )
+  );
 }
 
 function DeviceUnbindRequestCard(props: {
-  item: AttendancePunchDeviceUnbindRequest
-  showUser?: boolean
-  mode: "mine" | "review"
-  onChanged: () => void
+  item: AttendancePunchDeviceUnbindRequest;
+  showUser?: boolean;
+  mode: "mine" | "review";
+  onChanged: () => void;
 }) {
-  const { item, showUser = false, mode, onChanged } = props
-  const [rejectOpen, setRejectOpen] = React.useState(false)
-  const [acting, setActing] = React.useState(false)
+  const { item, showUser = false, mode, onChanged } = props;
+  const [rejectOpen, setRejectOpen] = React.useState(false);
+  const [acting, setActing] = React.useState(false);
 
   async function approve() {
-    setActing(true)
+    setActing(true);
     try {
       await api(
         "POST",
-        `/attendance/punch-device/unbind-requests/${item.id}/approve`
-      )
-      toast.success("已通过解绑申请")
-      onChanged()
+        `/attendance/punch-device/unbind-requests/${item.id}/approve`,
+      );
+      toast.success("已通过解绑申请");
+      onChanged();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setActing(false)
+      setActing(false);
     }
   }
 
   async function reject() {
-    setActing(true)
+    setActing(true);
     try {
       await api(
         "POST",
-        `/attendance/punch-device/unbind-requests/${item.id}/reject`
-      )
-      toast.success("已拒绝解绑申请")
-      setRejectOpen(false)
-      onChanged()
+        `/attendance/punch-device/unbind-requests/${item.id}/reject`,
+      );
+      toast.success("已拒绝解绑申请");
+      setRejectOpen(false);
+      onChanged();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setActing(false)
+      setActing(false);
     }
   }
 
-  const statusClass = makeupRequestStatusTextClass(item.status)
+  const statusClass = makeupRequestStatusTextClass(item.status);
 
   return (
     <>
@@ -269,37 +269,37 @@ function DeviceUnbindRequestCard(props: {
         </Dialog>
       ) : null}
     </>
-  )
+  );
 }
 
 function RequestList(props: {
-  loading: boolean
-  items: AttendanceMakeupRequest[]
-  emptyText: string
-  mode: "mine" | "review"
-  showUser?: boolean
-  onChanged: () => void
+  loading: boolean;
+  items: AttendanceMakeupRequest[];
+  emptyText: string;
+  mode: "mine" | "review";
+  showUser?: boolean;
+  onChanged: () => void;
 }) {
-  const { loading, items, emptyText, mode, showUser, onChanged } = props
+  const { loading, items, emptyText, mode, showUser, onChanged } = props;
 
   if (loading) {
     return (
       <div
         className={cn(
           "flex items-center gap-2 text-sm",
-          attendanceMutedTextClass
+          attendanceMutedTextClass,
         )}
       >
         <Spinner data-icon="inline-start" />
         加载中…
       </div>
-    )
+    );
   }
   if (items.length === 0) {
-    if (!emptyText) return null
+    if (!emptyText) return null;
     return (
       <div className={cn("text-sm", attendanceMutedTextClass)}>{emptyText}</div>
-    )
+    );
   }
   return (
     <>
@@ -313,37 +313,37 @@ function RequestList(props: {
         />
       ))}
     </>
-  )
+  );
 }
 
 function DeviceUnbindRequestList(props: {
-  loading: boolean
-  items: AttendancePunchDeviceUnbindRequest[]
-  emptyText: string
-  mode: "mine" | "review"
-  showUser?: boolean
-  onChanged: () => void
+  loading: boolean;
+  items: AttendancePunchDeviceUnbindRequest[];
+  emptyText: string;
+  mode: "mine" | "review";
+  showUser?: boolean;
+  onChanged: () => void;
 }) {
-  const { loading, items, emptyText, mode, showUser, onChanged } = props
+  const { loading, items, emptyText, mode, showUser, onChanged } = props;
 
   if (loading) {
     return (
       <div
         className={cn(
           "flex items-center gap-2 text-sm",
-          attendanceMutedTextClass
+          attendanceMutedTextClass,
         )}
       >
         <Spinner data-icon="inline-start" />
         加载中…
       </div>
-    )
+    );
   }
   if (items.length === 0) {
-    if (!emptyText) return null
+    if (!emptyText) return null;
     return (
       <div className={cn("text-sm", attendanceMutedTextClass)}>{emptyText}</div>
-    )
+    );
   }
   return (
     <>
@@ -357,29 +357,29 @@ function DeviceUnbindRequestList(props: {
         />
       ))}
     </>
-  )
+  );
 }
 
 function TodoMineSection(props: {
-  loading: boolean
-  makeupItems: AttendanceMakeupRequest[]
-  unbindItems: AttendancePunchDeviceUnbindRequest[]
-  onChanged: () => void
+  loading: boolean;
+  makeupItems: AttendanceMakeupRequest[];
+  unbindItems: AttendancePunchDeviceUnbindRequest[];
+  onChanged: () => void;
 }) {
-  const { loading, makeupItems, unbindItems, onChanged } = props
+  const { loading, makeupItems, unbindItems, onChanged } = props;
 
   if (loading) {
     return (
       <div
         className={cn(
           "flex items-center gap-2 text-sm",
-          attendanceMutedTextClass
+          attendanceMutedTextClass,
         )}
       >
         <Spinner data-icon="inline-start" />
         加载中…
       </div>
-    )
+    );
   }
 
   if (makeupItems.length === 0 && unbindItems.length === 0) {
@@ -387,7 +387,7 @@ function TodoMineSection(props: {
       <div className={cn("text-sm", attendanceMutedTextClass)}>
         暂无申请记录
       </div>
-    )
+    );
   }
 
   return (
@@ -407,35 +407,35 @@ function TodoMineSection(props: {
         onChanged={onChanged}
       />
     </>
-  )
+  );
 }
 
 function TodoPendingSection(props: {
-  loading: boolean
-  makeupItems: AttendanceMakeupRequest[]
-  unbindItems: AttendancePunchDeviceUnbindRequest[]
-  onChanged: () => void
+  loading: boolean;
+  makeupItems: AttendanceMakeupRequest[];
+  unbindItems: AttendancePunchDeviceUnbindRequest[];
+  onChanged: () => void;
 }) {
-  const { loading, makeupItems, unbindItems, onChanged } = props
+  const { loading, makeupItems, unbindItems, onChanged } = props;
 
   if (loading) {
     return (
       <div
         className={cn(
           "flex items-center gap-2 text-sm",
-          attendanceMutedTextClass
+          attendanceMutedTextClass,
         )}
       >
         <Spinner data-icon="inline-start" />
         加载中…
       </div>
-    )
+    );
   }
 
   if (makeupItems.length === 0 && unbindItems.length === 0) {
     return (
       <div className={cn("text-sm", attendanceMutedTextClass)}>暂无待办</div>
-    )
+    );
   }
 
   return (
@@ -457,103 +457,103 @@ function TodoPendingSection(props: {
         onChanged={onChanged}
       />
     </>
-  )
+  );
 }
 
 export function MakeupTodoButton() {
-  const { me } = useAuth()
-  const [open, setOpen] = React.useState(false)
-  const [tab, setTab] = React.useState<TodoTab>("mine")
+  const { me } = useAuth();
+  const [open, setOpen] = React.useState(false);
+  const [tab, setTab] = React.useState<TodoTab>("mine");
   const [mineItems, setMineItems] = React.useState<AttendanceMakeupRequest[]>(
-    []
-  )
+    [],
+  );
   const [pendingItems, setPendingItems] = React.useState<
     AttendanceMakeupRequest[]
-  >([])
+  >([]);
   const [mineUnbindItems, setMineUnbindItems] = React.useState<
     AttendancePunchDeviceUnbindRequest[]
-  >([])
+  >([]);
   const [pendingUnbindItems, setPendingUnbindItems] = React.useState<
     AttendancePunchDeviceUnbindRequest[]
-  >([])
-  const [loading, setLoading] = React.useState(false)
+  >([]);
+  const [loading, setLoading] = React.useState(false);
 
-  const isAdmin = me?.role === "admin"
+  const isAdmin = me?.role === "admin";
   const badgeCount = isAdmin
     ? pendingItems.length + pendingUnbindItems.length
     : mineItems.filter((item) => item.status === "pending").length +
-      mineUnbindItems.filter((item) => item.status === "pending").length
+      mineUnbindItems.filter((item) => item.status === "pending").length;
 
   const load = React.useCallback(async () => {
-    if (!me) return
-    setLoading(true)
+    if (!me) return;
+    setLoading(true);
     try {
       const [mine, mineUnbind] = await Promise.all([
         api<AttendanceMakeupRequest[]>(
           "GET",
-          "/attendance/makeup-requests/mine"
+          "/attendance/makeup-requests/mine",
         ),
         api<AttendancePunchDeviceUnbindRequest[]>(
           "GET",
-          "/attendance/punch-device/unbind-requests/mine"
+          "/attendance/punch-device/unbind-requests/mine",
         ),
-      ])
-      setMineItems(mine)
-      setMineUnbindItems(mineUnbind)
+      ]);
+      setMineItems(mine);
+      setMineUnbindItems(mineUnbind);
       if (isAdmin) {
         const [list, unbindList] = await Promise.all([
           api<AttendanceMakeupRequest[]>(
             "GET",
-            "/attendance/makeup-requests?status=pending"
+            "/attendance/makeup-requests?status=pending",
           ),
           api<AttendancePunchDeviceUnbindRequest[]>(
             "GET",
-            "/attendance/punch-device/unbind-requests?status=pending"
+            "/attendance/punch-device/unbind-requests?status=pending",
           ),
-        ])
-        setPendingItems(list)
-        setPendingUnbindItems(unbindList)
+        ]);
+        setPendingItems(list);
+        setPendingUnbindItems(unbindList);
       } else {
-        setPendingItems([])
-        setPendingUnbindItems([])
+        setPendingItems([]);
+        setPendingUnbindItems([]);
       }
     } catch {
-      setMineItems([])
-      setPendingItems([])
-      setMineUnbindItems([])
-      setPendingUnbindItems([])
+      setMineItems([]);
+      setPendingItems([]);
+      setMineUnbindItems([]);
+      setPendingUnbindItems([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [isAdmin, me])
+  }, [isAdmin, me]);
 
   React.useEffect(() => {
-    void load()
-  }, [load])
+    void load();
+  }, [load]);
 
   React.useEffect(() => {
-    if (open) void load()
-  }, [open, load])
+    if (open) void load();
+  }, [open, load]);
 
   React.useEffect(() => {
-    if (!me) return
+    if (!me) return;
     const unsubscribe = subscribeMakeupEvents(() => {
-      if (document.visibilityState === "hidden") return
-      void load()
-    })
+      if (document.visibilityState === "hidden") return;
+      void load();
+    });
 
     const onVisible = () => {
-      if (document.visibilityState === "visible") void load()
-    }
-    document.addEventListener("visibilitychange", onVisible)
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      document.removeEventListener("visibilitychange", onVisible)
-      unsubscribe()
-    }
-  }, [me, load])
+      document.removeEventListener("visibilitychange", onVisible);
+      unsubscribe();
+    };
+  }, [me, load]);
 
-  if (!me) return null
+  if (!me) return null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -623,5 +623,5 @@ export function MakeupTodoButton() {
         </Tabs>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

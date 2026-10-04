@@ -1,42 +1,42 @@
-import type { MakeupSlotType } from "./makeup-today-gate"
-import type { ScheduleShiftType } from "./schedule-inference"
+import type { MakeupSlotType } from "./makeup-today-gate";
+import type { ScheduleShiftType } from "./schedule-inference";
 
 export type DayPunchRow = {
-  date: string
-  morningIn: string | null
-  morningOut: string | null
-  afternoonIn: string | null
-  afternoonOut: string | null
-  declaredRest?: ScheduleShiftType | null
-}
+  date: string;
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+  declaredRest?: ScheduleShiftType | null;
+};
 
 function isMorningScheduleRest(
-  declaredRest: ScheduleShiftType | null | undefined
+  declaredRest: ScheduleShiftType | null | undefined,
 ): boolean {
-  return declaredRest === "full_rest" || declaredRest === "morning_rest"
+  return declaredRest === "full_rest" || declaredRest === "morning_rest";
 }
 
 function isAfternoonScheduleRest(
-  declaredRest: ScheduleShiftType | null | undefined
+  declaredRest: ScheduleShiftType | null | undefined,
 ): boolean {
-  return declaredRest === "full_rest" || declaredRest === "afternoon_rest"
+  return declaredRest === "full_rest" || declaredRest === "afternoon_rest";
 }
 
 export function isPunchBlockedByScheduleRest(
   type: MakeupSlotType,
-  declaredRest: ScheduleShiftType | null | undefined
+  declaredRest: ScheduleShiftType | null | undefined,
 ): boolean {
   if (
     (type === "morning_in" || type === "morning_out") &&
     isMorningScheduleRest(declaredRest)
   ) {
-    return true
+    return true;
   }
   if (
     (type === "afternoon_in" || type === "afternoon_out") &&
     isAfternoonScheduleRest(declaredRest)
   ) {
-    return true
+    return true;
   }
-  return false
+  return false;
 }

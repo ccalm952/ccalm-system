@@ -5,14 +5,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { computeInsuranceTable } from "@/lib/salary/calc"
+} from "@/components/ui/table";
+import { computeInsuranceTable } from "@/lib/salary/calc";
 import type {
   SalaryHousingFundInput,
   SalaryInsuranceInput,
-} from "@/lib/salary/types"
+} from "@/lib/salary/types";
 
-import { NumInput, RatePercentInput } from "./salary-table-inputs"
+import { NumInput, RatePercentInput } from "./salary-table-inputs";
 
 export function InsuranceFundTable({
   insurance,
@@ -20,18 +20,18 @@ export function InsuranceFundTable({
   onInsuranceChange,
   onHousingChange,
 }: {
-  insurance: SalaryInsuranceInput
-  housingFund: SalaryHousingFundInput
-  onInsuranceChange: (patch: Partial<SalaryInsuranceInput>) => void
-  onHousingChange: (patch: Partial<SalaryHousingFundInput>) => void
+  insurance: SalaryInsuranceInput;
+  housingFund: SalaryHousingFundInput;
+  onInsuranceChange: (patch: Partial<SalaryInsuranceInput>) => void;
+  onHousingChange: (patch: Partial<SalaryHousingFundInput>) => void;
 }) {
   const { lines, groupTotals, groupSubtotals } = computeInsuranceTable(
     insurance,
-    housingFund
-  )
-  const socialLines = lines.filter((line) => line.group === "social")
-  const medicalLines = lines.filter((line) => line.group === "medical")
-  const housingLine = lines.find((line) => line.group === "housing")!
+    housingFund,
+  );
+  const socialLines = lines.filter((line) => line.group === "social");
+  const medicalLines = lines.filter((line) => line.group === "medical");
+  const housingLine = lines.find((line) => line.group === "housing")!;
 
   function renderInsuranceRow(
     line: (typeof lines)[number],
@@ -41,7 +41,7 @@ export function InsuranceFundTable({
     groupSubtotal: { employer: number; personal: number | null },
     patchBase: (value: number) => void,
     patchEmployer: (patch: { rate?: number; count?: number }) => void,
-    patchPersonal: (patch: { rate?: number; count?: number }) => void
+    patchPersonal: (patch: { rate?: number; count?: number }) => void,
   ) {
     return (
       <TableRow key={line.key}>
@@ -111,7 +111,7 @@ export function InsuranceFundTable({
           <TableCell rowSpan={groupLines.length}>{groupTotal}</TableCell>
         ) : null}
       </TableRow>
-    )
+    );
   }
 
   const socialPatches = [
@@ -153,7 +153,7 @@ export function InsuranceFundTable({
         }),
       personal: () => undefined,
     },
-  ]
+  ];
 
   const medicalPatches = [
     {
@@ -180,7 +180,7 @@ export function InsuranceFundTable({
         }),
       personal: () => undefined,
     },
-  ]
+  ];
 
   return (
     <Table className="table-fixed">
@@ -216,8 +216,8 @@ export function InsuranceFundTable({
             groupSubtotals.social,
             row.base,
             row.employer,
-            row.personal
-          )
+            row.personal,
+          ),
         )}
         {medicalPatches.map((row, idx) =>
           renderInsuranceRow(
@@ -228,8 +228,8 @@ export function InsuranceFundTable({
             groupSubtotals.medical,
             row.base,
             row.employer,
-            row.personal
-          )
+            row.personal,
+          ),
         )}
         <TableRow key="housing">
           <TableCell>公积金</TableCell>
@@ -273,5 +273,5 @@ export function InsuranceFundTable({
         </TableRow>
       </TableBody>
     </Table>
-  )
+  );
 }

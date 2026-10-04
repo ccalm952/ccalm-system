@@ -1,54 +1,54 @@
-import type { Dayjs } from "dayjs"
+import type { Dayjs } from "dayjs";
 
 import {
   attendanceDayjs,
   attendanceTodayStart,
   formatAttendanceTime,
-} from "./attendance-dayjs"
-import { applyDayAttendance, countMakeupButtonSlots } from "./makeup-slots"
-import { leaveDaysForShift } from "./schedule-inference"
-import { minutesFromMidnight } from "./time"
+} from "./attendance-dayjs";
+import { applyDayAttendance, countMakeupButtonSlots } from "./makeup-slots";
+import { leaveDaysForShift } from "./schedule-inference";
+import { minutesFromMidnight } from "./time";
 
 export type MonthlySummaryRow = {
-  date: string
-  morningIn: string | null
-  morningOut: string | null
-  afternoonIn: string | null
-  afternoonOut: string | null
-  morningOutIsMakeup: boolean
-  afternoonOutIsMakeup: boolean
-  declaredRest: "full_rest" | "morning_rest" | "afternoon_rest" | null
-  overtimeMinutes: number
-  overtimeStr: string
-}
+  date: string;
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+  morningOutIsMakeup: boolean;
+  afternoonOutIsMakeup: boolean;
+  declaredRest: "full_rest" | "morning_rest" | "afternoon_rest" | null;
+  overtimeMinutes: number;
+  overtimeStr: string;
+};
 
 type PunchRecord = {
-  punchDate: string
-  punchTime: Date
-  type: string
-  source: string
-}
+  punchDate: string;
+  punchTime: Date;
+  type: string;
+  source: string;
+};
 
 type PendingMakeup = {
-  date: string
-  type: string
-  status: string
-}
+  date: string;
+  type: string;
+  status: string;
+};
 
 type MonthlySummaryShift = {
-  morningInWindowEnd: string
-  afternoonInWindowEnd: string
-  overtimeMorningNormalEnd: string
-  overtimeAfternoonNormalEnd: string
-}
+  morningInWindowEnd: string;
+  afternoonInWindowEnd: string;
+  overtimeMorningNormalEnd: string;
+  overtimeAfternoonNormalEnd: string;
+};
 
 export function fmtOvertimeMinutes(m: number): string {
-  if (m <= 0) return "-"
-  const h = Math.floor(m / 60)
-  const mm = m % 60
-  if (h <= 0) return `${mm}分钟`
-  if (mm <= 0) return `${h}小时`
-  return `${h}小时${mm}分钟`
+  if (m <= 0) return "-";
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  if (h <= 0) return `${mm}分钟`;
+  if (mm <= 0) return `${h}小时`;
+  return `${h}小时${mm}分钟`;
 }
 
 export function overtimeMinutesForOutTimes(
@@ -57,47 +57,47 @@ export function overtimeMinutesForOutTimes(
   shift: Pick<
     MonthlySummaryShift,
     "overtimeMorningNormalEnd" | "overtimeAfternoonNormalEnd"
-  >
+  >,
 ): number {
-  const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd)
+  const normalMorningEnd = minutesFromMidnight(shift.overtimeMorningNormalEnd);
   const normalAfternoonEnd = minutesFromMidnight(
-    shift.overtimeAfternoonNormalEnd
-  )
-  let overtime = 0
+    shift.overtimeAfternoonNormalEnd,
+  );
+  let overtime = 0;
   if (morningOut && Number.isFinite(normalMorningEnd)) {
-    const actualMorningOut = minutesFromMidnight(morningOut)
+    const actualMorningOut = minutesFromMidnight(morningOut);
     // 非法打卡时间（脏数据）不能参与计算，否则 NaN 会污染整月加班分钟数
     if (Number.isFinite(actualMorningOut)) {
-      overtime += Math.max(0, actualMorningOut - normalMorningEnd)
+      overtime += Math.max(0, actualMorningOut - normalMorningEnd);
     }
   }
   if (afternoonOut && Number.isFinite(normalAfternoonEnd)) {
-    const actualAfternoonOut = minutesFromMidnight(afternoonOut)
+    const actualAfternoonOut = minutesFromMidnight(afternoonOut);
     if (Number.isFinite(actualAfternoonOut)) {
-      overtime += Math.max(0, actualAfternoonOut - normalAfternoonEnd)
+      overtime += Math.max(0, actualAfternoonOut - normalAfternoonEnd);
     }
   }
-  return overtime
+  return overtime;
 }
 
 export function computeMonthlySummaryAggregate(params: {
-  start: Dayjs
-  end: Dayjs
-  todayYmd: string
+  start: Dayjs;
+  end: Dayjs;
+  todayYmd: string;
   declaredScheduleMap: Map<
     string,
     "full_rest" | "morning_rest" | "afternoon_rest"
-  >
-  records: PunchRecord[]
-  shift: MonthlySummaryShift
-  pendingMakeups?: PendingMakeup[]
+  >;
+  records: PunchRecord[];
+  shift: MonthlySummaryShift;
+  pendingMakeups?: PendingMakeup[];
 }): {
-  attendanceDays: number
-  restDays: number
-  missingSlots: number
-  overtimeMinutes: number
-  overtimeStr: string
-  rows: MonthlySummaryRow[]
+  attendanceDays: number;
+  restDays: number;
+  missingSlots: number;
+  overtimeMinutes: number;
+  overtimeStr: string;
+  rows: MonthlySummaryRow[];
 } {
   const {
     start,
@@ -106,35 +106,35 @@ export function computeMonthlySummaryAggregate(params: {
     records,
     shift,
     pendingMakeups = [],
-  } = params
+  } = params;
 
-  const byDate = new Map<string, PunchRecord[]>()
+  const byDate = new Map<string, PunchRecord[]>();
   for (const r of records) {
-    const key = r.punchDate
-    const arr = byDate.get(key) ?? []
-    arr.push(r)
-    byDate.set(key, arr)
+    const key = r.punchDate;
+    const arr = byDate.get(key) ?? [];
+    arr.push(r);
+    byDate.set(key, arr);
   }
 
   const gate = {
     morningInWindowEnd: shift.morningInWindowEnd,
     afternoonInWindowEnd: shift.afternoonInWindowEnd,
-  }
+  };
 
-  let attendanceDays = 0
-  let restDays = 0
-  let missingSlots = 0
-  let overtimeMinutes = 0
-  const rows: MonthlySummaryRow[] = []
+  let attendanceDays = 0;
+  let restDays = 0;
+  let missingSlots = 0;
+  let overtimeMinutes = 0;
+  const rows: MonthlySummaryRow[] = [];
 
   for (
     let d = end;
     d.isAfter(start, "day") || d.isSame(start, "day");
     d = d.subtract(1, "day")
   ) {
-    const ymd = d.format("YYYY-MM-DD")
-    const declaredRest = declaredScheduleMap.get(ymd) ?? null
-    const dayRecords = (byDate.get(ymd) ?? []).slice()
+    const ymd = d.format("YYYY-MM-DD");
+    const declaredRest = declaredScheduleMap.get(ymd) ?? null;
+    const dayRecords = (byDate.get(ymd) ?? []).slice();
     const row: MonthlySummaryRow = {
       date: ymd,
       morningIn: null,
@@ -146,19 +146,19 @@ export function computeMonthlySummaryAggregate(params: {
       declaredRest,
       overtimeMinutes: 0,
       overtimeStr: "-",
-    }
+    };
 
     for (const r of dayRecords) {
-      const hm = formatAttendanceTime(r.punchTime)
-      if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm
+      const hm = formatAttendanceTime(r.punchTime);
+      if (r.type === "morning_in" && !row.morningIn) row.morningIn = hm;
       if (r.type === "morning_out") {
-        row.morningOut = hm
-        row.morningOutIsMakeup = r.source === "makeup"
+        row.morningOut = hm;
+        row.morningOutIsMakeup = r.source === "makeup";
       }
-      if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm
+      if (r.type === "afternoon_in" && !row.afternoonIn) row.afternoonIn = hm;
       if (r.type === "afternoon_out") {
-        row.afternoonOut = hm
-        row.afternoonOutIsMakeup = r.source === "makeup"
+        row.afternoonOut = hm;
+        row.afternoonOutIsMakeup = r.source === "makeup";
       }
     }
 
@@ -167,26 +167,26 @@ export function computeMonthlySummaryAggregate(params: {
       row.morningOut ||
       row.afternoonIn ||
       row.afternoonOut
-    )
+    );
     if (declaredRest) {
-      restDays += leaveDaysForShift(declaredRest)
+      restDays += leaveDaysForShift(declaredRest);
     }
     if (hasAny) {
-      attendanceDays += applyDayAttendance(row)
+      attendanceDays += applyDayAttendance(row);
     }
 
-    missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate)
+    missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate);
 
     const overtime = overtimeMinutesForOutTimes(
       row.morningOut,
       row.afternoonOut,
-      shift
-    )
-    row.overtimeMinutes = overtime
-    row.overtimeStr = fmtOvertimeMinutes(overtime)
-    overtimeMinutes += overtime
+      shift,
+    );
+    row.overtimeMinutes = overtime;
+    row.overtimeStr = fmtOvertimeMinutes(overtime);
+    overtimeMinutes += overtime;
 
-    rows.push(row)
+    rows.push(row);
   }
 
   return {
@@ -196,20 +196,20 @@ export function computeMonthlySummaryAggregate(params: {
     overtimeMinutes,
     overtimeStr: fmtOvertimeMinutes(overtimeMinutes),
     rows,
-  }
+  };
 }
 
 export function monthSummaryBounds(month: string) {
-  const base = attendanceDayjs(`${month}-01`, "YYYY-MM-DD")
-  if (!base.isValid()) return null
-  const start = base.startOf("month")
-  const today = attendanceTodayStart()
-  const end = base.isSame(today, "month") ? today : base.endOf("month")
+  const base = attendanceDayjs(`${month}-01`, "YYYY-MM-DD");
+  if (!base.isValid()) return null;
+  const start = base.startOf("month");
+  const today = attendanceTodayStart();
+  const end = base.isSame(today, "month") ? today : base.endOf("month");
   return {
     start,
     end,
     todayYmd: today.format("YYYY-MM-DD"),
     startDate: start.format("YYYY-MM-DD"),
     rangeEnd: end.format("YYYY-MM-DD"),
-  }
+  };
 }

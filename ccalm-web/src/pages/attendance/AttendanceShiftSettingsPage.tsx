@@ -1,90 +1,90 @@
-import * as React from "react"
-import { useNavigate } from "react-router-dom"
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import {
   DEFAULT_SHIFT,
   isValidHHMM,
   minutesFromMidnight,
   shiftFromBackend,
   type BackendShiftDto,
-} from "@/lib/attendance/shift"
-import type { AttendanceShiftFullConfig } from "@/lib/attendance/types"
-import { attendanceSectionTitleClass } from "@/lib/attendance/attendance-theme"
-import { ROUTES } from "@/config/routes"
-import { api, type ApiError } from "@/lib/api"
-import { useAuth } from "@/lib/use-auth"
-import { errorMessage } from "@/lib/errorMessage"
-import { toast } from "sonner"
+} from "@/lib/attendance/shift";
+import type { AttendanceShiftFullConfig } from "@/lib/attendance/types";
+import { attendanceSectionTitleClass } from "@/lib/attendance/attendance-theme";
+import { ROUTES } from "@/config/routes";
+import { api, type ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
+import { errorMessage } from "@/lib/errorMessage";
+import { toast } from "sonner";
 
 function cloneShift(v: AttendanceShiftFullConfig): AttendanceShiftFullConfig {
-  return JSON.parse(JSON.stringify(v)) as AttendanceShiftFullConfig
+  return JSON.parse(JSON.stringify(v)) as AttendanceShiftFullConfig;
 }
 
 export function AttendanceShiftSettingsPage() {
-  const navigate = useNavigate()
-  const { me } = useAuth()
-  const [ready, setReady] = React.useState(false)
-  const [loadError, setLoadError] = React.useState<string | null>(null)
-  const [reloadKey, setReloadKey] = React.useState(0)
+  const navigate = useNavigate();
+  const { me } = useAuth();
+  const [ready, setReady] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
   const [form, setForm] = React.useState<AttendanceShiftFullConfig>(() =>
-    cloneShift(DEFAULT_SHIFT)
-  )
+    cloneShift(DEFAULT_SHIFT),
+  );
 
   React.useEffect(() => {
-    let cancelled = false
-    ;(async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        if (!me) return
-        if (cancelled) return
+        if (!me) return;
+        if (cancelled) return;
         if (me.role !== "admin") {
-          navigate(ROUTES.home, { replace: true })
-          return
+          navigate(ROUTES.home, { replace: true });
+          return;
         }
-        const d = await api<BackendShiftDto>("GET", "/attendance/shift")
-        if (cancelled) return
-        setForm(cloneShift(shiftFromBackend(d)))
-        setLoadError(null)
-        setReady(true)
+        const d = await api<BackendShiftDto>("GET", "/attendance/shift");
+        if (cancelled) return;
+        setForm(cloneShift(shiftFromBackend(d)));
+        setLoadError(null);
+        setReady(true);
       } catch (e) {
-        if (cancelled) return
+        if (cancelled) return;
         // 401 由 api.ts 全局处理
-        if ((e as ApiError).status === 401) return
-        const msg = errorMessage(e)
-        setLoadError(msg)
-        toast.error(msg)
+        if ((e as ApiError).status === 401) return;
+        const msg = errorMessage(e);
+        setLoadError(msg);
+        toast.error(msg);
       }
-    })()
+    })();
     return () => {
-      cancelled = true
-    }
-  }, [navigate, me, reloadKey])
+      cancelled = true;
+    };
+  }, [navigate, me, reloadKey]);
 
   function update<K extends keyof AttendanceShiftFullConfig>(
     k: K,
-    v: AttendanceShiftFullConfig[K]
+    v: AttendanceShiftFullConfig[K],
   ) {
-    setForm((s) => ({ ...s, [k]: v }))
+    setForm((s) => ({ ...s, [k]: v }));
   }
 
   function updateMorning<K extends keyof AttendanceShiftFullConfig["morning"]>(
     k: K,
-    v: string
+    v: string,
   ) {
-    setForm((s) => ({ ...s, morning: { ...s.morning, [k]: v } }))
+    setForm((s) => ({ ...s, morning: { ...s.morning, [k]: v } }));
   }
 
   function updateAfternoon<
     K extends keyof AttendanceShiftFullConfig["afternoon"],
   >(k: K, v: string) {
-    setForm((s) => ({ ...s, afternoon: { ...s.afternoon, [k]: v } }))
+    setForm((s) => ({ ...s, afternoon: { ...s.afternoon, [k]: v } }));
   }
 
   function validate(): boolean {
-    const m = form.morning
-    const a = form.afternoon
+    const m = form.morning;
+    const a = form.afternoon;
     const pairs: Array<[string, string]> = [
       ["上午开始", m.rangeStart],
       ["上午结束", m.rangeEnd],
@@ -100,43 +100,43 @@ export function AttendanceShiftSettingsPage() {
       ["下午上班可打结束", form.afternoonInWindowEnd],
       ["下午下班可打开始", form.afternoonOutWindowStart],
       ["下午下班可打结束", form.afternoonOutWindowEnd],
-    ]
+    ];
     for (const [label, value] of pairs) {
-      const trimmed = String(value || "").trim()
+      const trimmed = String(value || "").trim();
       if (!trimmed) {
-        toast.error(`${label}不能为空`)
-        return false
+        toast.error(`${label}不能为空`);
+        return false;
       }
       if (!isValidHHMM(trimmed)) {
-        toast.error(`${label}格式不正确`)
-        return false
+        toast.error(`${label}格式不正确`);
+        return false;
       }
     }
-    const inStart = minutesFromMidnight(form.morningInWindowStart.trim())
-    const inEnd = minutesFromMidnight(form.morningInWindowEnd.trim())
+    const inStart = minutesFromMidnight(form.morningInWindowStart.trim());
+    const inEnd = minutesFromMidnight(form.morningInWindowEnd.trim());
     if (inStart > inEnd) {
-      toast.error("上午上班可打开始须早于或等于结束时间")
-      return false
+      toast.error("上午上班可打开始须早于或等于结束时间");
+      return false;
     }
-    const outStart = minutesFromMidnight(form.morningOutWindowStart.trim())
-    const outEnd = minutesFromMidnight(form.morningOutWindowEnd.trim())
+    const outStart = minutesFromMidnight(form.morningOutWindowStart.trim());
+    const outEnd = minutesFromMidnight(form.morningOutWindowEnd.trim());
     if (outStart > outEnd) {
-      toast.error("上午下班可打开始须早于或等于结束时间")
-      return false
+      toast.error("上午下班可打开始须早于或等于结束时间");
+      return false;
     }
-    const aInStart = minutesFromMidnight(form.afternoonInWindowStart.trim())
-    const aInEnd = minutesFromMidnight(form.afternoonInWindowEnd.trim())
+    const aInStart = minutesFromMidnight(form.afternoonInWindowStart.trim());
+    const aInEnd = minutesFromMidnight(form.afternoonInWindowEnd.trim());
     if (aInStart > aInEnd) {
-      toast.error("下午上班可打开始须早于或等于结束时间")
-      return false
+      toast.error("下午上班可打开始须早于或等于结束时间");
+      return false;
     }
-    const aOutStart = minutesFromMidnight(form.afternoonOutWindowStart.trim())
-    const aOutEnd = minutesFromMidnight(form.afternoonOutWindowEnd.trim())
+    const aOutStart = minutesFromMidnight(form.afternoonOutWindowStart.trim());
+    const aOutEnd = minutesFromMidnight(form.afternoonOutWindowEnd.trim());
     if (aOutStart > aOutEnd) {
-      toast.error("下午下班可打开始须早于或等于结束时间")
-      return false
+      toast.error("下午下班可打开始须早于或等于结束时间");
+      return false;
     }
-    return true
+    return true;
   }
 
   if (!ready) {
@@ -147,20 +147,20 @@ export function AttendanceShiftSettingsPage() {
           <Button
             type="button"
             onClick={() => {
-              setLoadError(null)
-              setReloadKey((k) => k + 1)
+              setLoadError(null);
+              setReloadKey((k) => k + 1);
             }}
           >
             重试
           </Button>
         </div>
-      )
+      );
     }
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -337,7 +337,7 @@ export function AttendanceShiftSettingsPage() {
             <Button
               type="button"
               onClick={() => {
-                if (!validate()) return
+                if (!validate()) return;
                 void (async () => {
                   try {
                     await api("PUT", "/attendance/shift", {
@@ -358,12 +358,12 @@ export function AttendanceShiftSettingsPage() {
                       overtimeMorningNormalEnd: form.overtimeMorningNormalEnd,
                       overtimeAfternoonNormalEnd:
                         form.overtimeAfternoonNormalEnd,
-                    })
-                    toast.success("已保存")
+                    });
+                    toast.success("已保存");
                   } catch (e) {
-                    toast.error(errorMessage(e))
+                    toast.error(errorMessage(e));
                   }
-                })()
+                })();
               }}
             >
               保存
@@ -372,7 +372,7 @@ export function AttendanceShiftSettingsPage() {
               type="button"
               variant="secondary"
               onClick={() => {
-                setForm(cloneShift(DEFAULT_SHIFT))
+                setForm(cloneShift(DEFAULT_SHIFT));
                 void (async () => {
                   try {
                     await api("PUT", "/attendance/shift", {
@@ -398,12 +398,12 @@ export function AttendanceShiftSettingsPage() {
                         DEFAULT_SHIFT.overtimeMorningNormalEnd,
                       overtimeAfternoonNormalEnd:
                         DEFAULT_SHIFT.overtimeAfternoonNormalEnd,
-                    })
-                    toast.success("已恢复默认")
+                    });
+                    toast.success("已恢复默认");
                   } catch (e) {
-                    toast.error(errorMessage(e))
+                    toast.error(errorMessage(e));
                   }
-                })()
+                })();
               }}
             >
               恢复默认
@@ -412,5 +412,5 @@ export function AttendanceShiftSettingsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

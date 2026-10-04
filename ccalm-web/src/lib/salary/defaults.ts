@@ -1,8 +1,8 @@
-import dayjs from "dayjs"
+import dayjs from "dayjs";
 
-import { round2 } from "./calc"
-import { defaultDeductionRateForMode } from "./settings"
-import { stripLegacySalarySheet } from "./strip-legacy"
+import { round2 } from "./calc";
+import { defaultDeductionRateForMode } from "./settings";
+import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
   SalaryCostLine,
@@ -12,14 +12,14 @@ import type {
   SalaryOperatingLine,
   SalaryProcessingLine,
   SalarySheetData,
-} from "./types"
+} from "./types";
 
-let employeeId = 0
+let employeeId = 0;
 function emp(
   partial: Partial<Omit<SalarySheetData["employees"][number], "id">> &
-    Pick<SalarySheetData["employees"][number], "title" | "name" | "bonusMode">
+    Pick<SalarySheetData["employees"][number], "title" | "name" | "bonusMode">,
 ): SalarySheetData["employees"][number] {
-  employeeId += 1
+  employeeId += 1;
   return {
     id: `emp-${employeeId}`,
     baseSalary: 5000,
@@ -29,17 +29,17 @@ function emp(
     housingFund: 0,
     deductionRate: 0.2,
     ...partial,
-  }
+  };
 }
 
 /** 根据 YYYY-MM（如 2026-06 / 标签 2606）返回当月自然日天数 */
 export function calendarDaysForMonth(month: string): number {
-  return dayjs(`${month}-01`).daysInMonth()
+  return dayjs(`${month}-01`).daysInMonth();
 }
 
 export function applyMonthCalendar(
   sheet: SalarySheetData,
-  month: string
+  month: string,
 ): SalarySheetData {
   return {
     ...sheet,
@@ -47,18 +47,18 @@ export function applyMonthCalendar(
       ...sheet.summary,
       daysInMonth: calendarDaysForMonth(month),
     },
-  }
+  };
 }
 
 /** 有自定义模板则按其生成该月表，否则用内置默认模板；材料明细始终为空 */
 export function resolveDefaultSalarySheet(
   month: string,
-  template: SalarySheetData | null | undefined
+  template: SalarySheetData | null | undefined,
 ): SalarySheetData {
   const sheet = template
     ? normalizeSalarySheet(template, month)
-    : createDefaultSalarySheet(month)
-  return clearMaterialLines(sheet)
+    : createDefaultSalarySheet(month);
+  return clearMaterialLines(sheet);
 }
 
 /** 设为默认时去掉材料明细，避免带到新月 */
@@ -67,12 +67,12 @@ export function clearMaterialLines(sheet: SalarySheetData): SalarySheetData {
     ...sheet,
     materialLines: [],
     costItems: { ...sheet.costItems, materials: 0 },
-  }
+  };
 }
 
 function createDefaultSalarySheet(month: string): SalarySheetData {
-  employeeId = 0
-  const daysInMonth = calendarDaysForMonth(month)
+  employeeId = 0;
+  const daysInMonth = calendarDaysForMonth(month);
 
   return {
     summary: {
@@ -211,11 +211,11 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
       processing: 0,
     },
     materialLines: [],
-  }
+  };
 }
 
 function isLegacyOperatingExpenses(
-  operating: unknown
+  operating: unknown,
 ): operating is SalaryOperatingExpenses {
   return (
     operating != null &&
@@ -223,66 +223,66 @@ function isLegacyOperatingExpenses(
     !Array.isArray(operating) &&
     "utilities" in operating &&
     "rent" in operating
-  )
+  );
 }
 
 function isOperatingLine(value: unknown): value is SalaryOperatingLine {
-  if (!value || typeof value !== "object") return false
-  const line = value as SalaryOperatingLine
+  if (!value || typeof value !== "object") return false;
+  const line = value as SalaryOperatingLine;
   return (
     typeof line.id === "string" &&
     typeof line.label === "string" &&
     typeof line.amount === "number"
-  )
+  );
 }
 
 function normalizeOperatingExpenses(operating: unknown): SalaryOperatingLine[] {
   if (Array.isArray(operating)) {
-    return operating.filter(isOperatingLine).map((line) => ({ ...line }))
+    return operating.filter(isOperatingLine).map((line) => ({ ...line }));
   }
   if (isLegacyOperatingExpenses(operating)) {
     return [
       { id: nextEntityId("op"), label: "水电", amount: operating.utilities },
       { id: nextEntityId("op"), label: "租金", amount: operating.rent },
-    ]
+    ];
   }
   return [
     { id: nextEntityId("op"), label: "水电", amount: 3000 },
     { id: nextEntityId("op"), label: "租金", amount: 7500 },
-  ]
+  ];
 }
 
 function costAmountByLabel(
   lines: { label: string; amount: number }[],
-  label: string
+  label: string,
 ): number {
-  return lines.find((line) => line.label === label)?.amount ?? 0
+  return lines.find((line) => line.label === label)?.amount ?? 0;
 }
 
 function normalizeCostItems(data: {
-  costItems?: Partial<SalaryCostItems>
-  costs?: SalaryCostLine[]
-  processing?: SalaryProcessingLine[]
-  operating?: unknown
+  costItems?: Partial<SalaryCostItems>;
+  costs?: SalaryCostLine[];
+  processing?: SalaryProcessingLine[];
+  operating?: unknown;
 }): SalaryCostItems {
   if (data.costItems && typeof data.costItems === "object") {
-    const items = data.costItems
+    const items = data.costItems;
     const num = (value: unknown) => {
-      const n = Number(value)
-      return Number.isFinite(n) ? n : 0
-    }
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    };
     return {
       utilities: num(items.utilities),
       rent: num(items.rent),
       materials: num(items.materials),
       planting: num(items.planting),
       processing: num(items.processing),
-    }
+    };
   }
 
-  const operating = normalizeOperatingExpenses(data.operating)
-  const costs = Array.isArray(data.costs) ? data.costs : []
-  const processingLines = Array.isArray(data.processing) ? data.processing : []
+  const operating = normalizeOperatingExpenses(data.operating);
+  const costs = Array.isArray(data.costs) ? data.costs : [];
+  const processingLines = Array.isArray(data.processing) ? data.processing : [];
 
   return {
     utilities: costAmountByLabel(operating, "水电"),
@@ -290,20 +290,20 @@ function normalizeCostItems(data: {
     materials: costAmountByLabel(costs, "材料"),
     planting: costAmountByLabel(costs, "种植"),
     processing: round2(
-      processingLines.reduce((sum, line) => sum + line.amount, 0)
+      processingLines.reduce((sum, line) => sum + line.amount, 0),
     ),
-  }
+  };
 }
 
 type SalarySheetDataLike = SalarySheetData & {
-  costs?: SalaryCostLine[]
-  processing?: SalaryProcessingLine[]
-  operating?: unknown
-}
+  costs?: SalaryCostLine[];
+  processing?: SalaryProcessingLine[];
+  operating?: unknown;
+};
 
 export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
-  if (!data || typeof data !== "object") return false
-  const sheet = data as SalarySheetDataLike
+  if (!data || typeof data !== "object") return false;
+  const sheet = data as SalarySheetDataLike;
   return (
     sheet.summary != null &&
     Array.isArray(sheet.employees) &&
@@ -313,96 +313,96 @@ export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
       Array.isArray(sheet.processing) ||
       Array.isArray(sheet.operating) ||
       isLegacyOperatingExpenses(sheet.operating))
-  )
+  );
 }
 
 function normalizeMaterialLines(
   raw: unknown,
-  materialsTotal: number
+  materialsTotal: number,
 ): SalaryMaterialLine[] {
   if (Array.isArray(raw)) {
-    const lines: SalaryMaterialLine[] = []
+    const lines: SalaryMaterialLine[] = [];
     for (const item of raw) {
-      if (!item || typeof item !== "object") continue
-      const row = item as Partial<SalaryMaterialLine>
+      if (!item || typeof item !== "object") continue;
+      const row = item as Partial<SalaryMaterialLine>;
       const id =
-        typeof row.id === "string" && row.id.trim() ? row.id.trim() : ""
-      const name = typeof row.name === "string" ? row.name.trim() : ""
+        typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
+      const name = typeof row.name === "string" ? row.name.trim() : "";
       const amount =
         typeof row.amount === "number" && Number.isFinite(row.amount)
           ? Math.max(0, row.amount)
-          : NaN
-      if (!id || !name || !Number.isFinite(amount)) continue
-      lines.push({ id, name, amount })
+          : NaN;
+      if (!id || !name || !Number.isFinite(amount)) continue;
+      lines.push({ id, name, amount });
     }
-    return lines
+    return lines;
   }
   if (materialsTotal > 0) {
-    return [{ id: nextEntityId("mat"), name: "材料", amount: materialsTotal }]
+    return [{ id: nextEntityId("mat"), name: "材料", amount: materialsTotal }];
   }
-  return []
+  return [];
 }
 
 export function sumMaterialLines(lines: SalaryMaterialLine[]): number {
-  return round2(lines.reduce((sum, line) => sum + line.amount, 0))
+  return round2(lines.reduce((sum, line) => sum + line.amount, 0));
 }
 
 function normalizeEmployees(
-  employees: SalarySheetData["employees"]
+  employees: SalarySheetData["employees"],
 ): SalarySheetData["employees"] {
   return employees.map((row) => {
     if (
       typeof row.deductionRate === "number" &&
       Number.isFinite(row.deductionRate)
     ) {
-      return row
+      return row;
     }
-    return { ...row, deductionRate: Number.NaN }
-  })
+    return { ...row, deductionRate: Number.NaN };
+  });
 }
 
 /** 缺省扣减时用全局医生/护士扣减默认值补齐（便于旧月数据迁移） */
 export function ensureEmployeeDeductionRates(
   sheet: SalarySheetData,
-  settings: SalaryGlobalSettings
+  settings: SalaryGlobalSettings,
 ): SalarySheetData {
-  let changed = false
+  let changed = false;
   const employees = sheet.employees.map((row) => {
     if (
       typeof row.deductionRate === "number" &&
       Number.isFinite(row.deductionRate)
     ) {
-      return row
+      return row;
     }
-    changed = true
+    changed = true;
     return {
       ...row,
       deductionRate: defaultDeductionRateForMode(row.bonusMode, settings),
-    }
-  })
-  return changed ? { ...sheet, employees } : sheet
+    };
+  });
+  return changed ? { ...sheet, employees } : sheet;
 }
 
 export function normalizeSalarySheet(
   data: unknown,
-  month: string
+  month: string,
 ): SalarySheetData {
   if (!data || typeof data !== "object") {
-    return createDefaultSalarySheet(month)
+    return createDefaultSalarySheet(month);
   }
 
-  const stripped = stripLegacySalarySheet(data as Record<string, unknown>)
+  const stripped = stripLegacySalarySheet(data as Record<string, unknown>);
 
   if (!isSalarySheetData(stripped)) {
-    return createDefaultSalarySheet(month)
+    return createDefaultSalarySheet(month);
   }
 
-  const costItems = normalizeCostItems(stripped)
+  const costItems = normalizeCostItems(stripped);
   const materialLines = normalizeMaterialLines(
     (stripped as { materialLines?: unknown }).materialLines,
-    costItems.materials
-  )
-  const materials = sumMaterialLines(materialLines)
+    costItems.materials,
+  );
+  const materials = sumMaterialLines(materialLines);
 
   return applyMonthCalendar(
     {
@@ -412,37 +412,37 @@ export function normalizeSalarySheet(
       },
       leaveQuotas: stripped.leaveQuotas,
       employees: normalizeEmployees(
-        stripped.employees as SalarySheetData["employees"]
+        stripped.employees as SalarySheetData["employees"],
       ),
       insurance: stripped.insurance,
       housingFund: stripped.housingFund,
       costItems: { ...costItems, materials },
       materialLines,
     },
-    month
-  )
+    month,
+  );
 }
 /** 上一自然月；传入已有月份时仅当上月也在列表中才返回 */
 export function previousSalaryMonth(
   month: string,
-  existingMonths?: Iterable<string>
+  existingMonths?: Iterable<string>,
 ): string | null {
-  const prev = dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM")
-  if (existingMonths === undefined) return prev
+  const prev = dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM");
+  if (existingMonths === undefined) return prev;
   const set =
-    existingMonths instanceof Set ? existingMonths : new Set(existingMonths)
-  return set.has(prev) ? prev : null
+    existingMonths instanceof Set ? existingMonths : new Set(existingMonths);
+  return set.has(prev) ? prev : null;
 }
 
 export function formatSalaryMonthTab(month: string): string {
-  const [y, m] = month.split("-")
-  return `${y.slice(2)}${m}`
+  const [y, m] = month.split("-");
+  return `${y.slice(2)}${m}`;
 }
 
-let entitySeq = 0
+let entitySeq = 0;
 function nextEntityId(prefix: string): string {
-  entitySeq += 1
-  return `${prefix}-${entitySeq}`
+  entitySeq += 1;
+  return `${prefix}-${entitySeq}`;
 }
 
 export function createEmptyEmployee(): SalarySheetData["employees"][number] {
@@ -457,5 +457,5 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     housingFund: 0,
     bonusMode: "tiered",
     deductionRate: 0.2,
-  }
+  };
 }

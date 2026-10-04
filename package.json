@@ -17,13 +17,15 @@
     "test": "pnpm -C ccalm-web test && pnpm -C ccalm-api test",
     "lint:web": "pnpm -C ccalm-web lint",
     "lint:api": "pnpm -C ccalm-api lint:check",
-    "lint": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint:check",
-    "lint:fix": "pnpm -C ccalm-web lint --fix && pnpm -C ccalm-api lint",
+    "lint:mp": "npm --prefix ccalm-miniprogram run lint",
+    "lint": "pnpm -C ccalm-web lint && pnpm -C ccalm-api lint:check && npm --prefix ccalm-miniprogram run lint",
+    "lint:fix": "pnpm -C ccalm-web lint --fix && pnpm -C ccalm-api lint && npm --prefix ccalm-miniprogram run lint:fix",
     "typecheck:web": "pnpm -C ccalm-web typecheck",
     "typecheck:api": "pnpm -C ccalm-api typecheck",
     "typecheck": "pnpm -C ccalm-web typecheck && pnpm -C ccalm-api typecheck",
     "format:web": "pnpm -C ccalm-web format",
     "format:api": "pnpm -C ccalm-api format",
-    "format": "pnpm -C ccalm-web format && pnpm -C ccalm-api format"
+    "format:mp": "npm --prefix ccalm-miniprogram run format",
+    "format": "pnpm -C ccalm-web format && pnpm -C ccalm-api format && npm --prefix ccalm-miniprogram run format"
   }
 }

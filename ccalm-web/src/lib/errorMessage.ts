@@ -10,7 +10,7 @@ const FIELD_LABELS: Record<string, string> = {
   role: "角色",
   deviceToken: "打卡设备",
   initialLeaveBalance: "初始假期额度",
-}
+};
 
 const NEST_DEFAULT_MESSAGES: Record<string, string> = {
   Forbidden: "无权限",
@@ -18,85 +18,85 @@ const NEST_DEFAULT_MESSAGES: Record<string, string> = {
   "Not Found": "资源不存在",
   "Bad Request": "请求参数不合法",
   "Internal Server Error": "服务器错误",
-}
+};
 
 function fieldLabel(name: string): string {
-  return FIELD_LABELS[name] ?? name
+  return FIELD_LABELS[name] ?? name;
 }
 
 function translateOneMessage(message: string): string {
-  const trimmed = message.trim()
-  if (!trimmed) return trimmed
+  const trimmed = message.trim();
+  if (!trimmed) return trimmed;
 
-  const nest = NEST_DEFAULT_MESSAGES[trimmed]
-  if (nest) return nest
+  const nest = NEST_DEFAULT_MESSAGES[trimmed];
+  if (nest) return nest;
 
-  const http = /^HTTP (\d+)$/.exec(trimmed)
-  if (http) return `请求失败（${http[1]}）`
+  const http = /^HTTP (\d+)$/.exec(trimmed);
+  if (http) return `请求失败（${http[1]}）`;
 
-  let m = /^property (\w+) should not exist$/i.exec(trimmed)
-  if (m) return `包含不允许的字段：${fieldLabel(m[1])}`
+  let m = /^property (\w+) should not exist$/i.exec(trimmed);
+  if (m) return `包含不允许的字段：${fieldLabel(m[1])}`;
 
-  m = /^(\w+) should not exist$/i.exec(trimmed)
-  if (m) return `包含不允许的字段：${fieldLabel(m[1])}`
+  m = /^(\w+) should not exist$/i.exec(trimmed);
+  if (m) return `包含不允许的字段：${fieldLabel(m[1])}`;
 
-  m = /^(\w+) should not be empty$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}不能为空`
+  m = /^(\w+) should not be empty$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}不能为空`;
 
-  m = /^(\w+) must be a string$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}须为文本`
+  m = /^(\w+) must be a string$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}须为文本`;
 
   m = /^(\w+) must be a number conforming to the specified constraints$/.exec(
-    trimmed
-  )
-  if (m) return `${fieldLabel(m[1])}须为数字`
+    trimmed,
+  );
+  if (m) return `${fieldLabel(m[1])}须为数字`;
 
-  m = /^(\w+) must be a number$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}须为数字`
+  m = /^(\w+) must be a number$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}须为数字`;
 
-  m = /^(\w+) must be an integer number$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}须为整数`
+  m = /^(\w+) must be an integer number$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}须为整数`;
 
-  m = /^(\w+) must be a boolean value$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}须为是/否`
+  m = /^(\w+) must be a boolean value$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}须为是/否`;
 
-  m = /^(\w+) must not be less than (\d+(?:\.\d+)?)$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}不能小于 ${m[2]}`
+  m = /^(\w+) must not be less than (\d+(?:\.\d+)?)$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}不能小于 ${m[2]}`;
 
-  m = /^(\w+) must match .+ regular expression$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}格式不正确`
+  m = /^(\w+) must match .+ regular expression$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}格式不正确`;
 
-  m = /^(\w+) must be one of the following values: .+$/.exec(trimmed)
-  if (m) return `${fieldLabel(m[1])}取值不合法`
+  m = /^(\w+) must be one of the following values: .+$/.exec(trimmed);
+  if (m) return `${fieldLabel(m[1])}取值不合法`;
 
-  return trimmed
+  return trimmed;
 }
 
 function translateUserFacingMessage(message: string): string {
   if (message.includes("; ")) {
-    return message.split("; ").map(translateOneMessage).join("；")
+    return message.split("; ").map(translateOneMessage).join("；");
   }
-  return translateOneMessage(message)
+  return translateOneMessage(message);
 }
 
 /** 将异常转为可展示文案 */
 export function errorMessage(e: unknown): string {
-  let raw = ""
-  if (e instanceof Error) raw = e.message
-  else if (typeof e === "string") raw = e
+  let raw = "";
+  if (e instanceof Error) raw = e.message;
+  else if (typeof e === "string") raw = e;
   else if (e != null && typeof e === "object" && "message" in e) {
-    const m = (e as { message: unknown }).message
-    if (typeof m === "string") raw = m
+    const m = (e as { message: unknown }).message;
+    if (typeof m === "string") raw = m;
     else if (Array.isArray(m)) {
-      const parts = m.filter((x): x is string => typeof x === "string")
-      if (parts.length) raw = parts.join("; ")
+      const parts = m.filter((x): x is string => typeof x === "string");
+      if (parts.length) raw = parts.join("; ");
     }
   } else {
     try {
-      raw = JSON.stringify(e)
+      raw = JSON.stringify(e);
     } catch {
-      raw = String(e)
+      raw = String(e);
     }
   }
-  return translateUserFacingMessage(raw)
+  return translateUserFacingMessage(raw);
 }

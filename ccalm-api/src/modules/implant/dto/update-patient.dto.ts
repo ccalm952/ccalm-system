@@ -1,28 +1,28 @@
-import { Type } from "class-transformer"
-import { IsInt, IsOptional, IsString, Min } from "class-validator"
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, IsString, Min } from "class-validator";
 
 export class UpdateImplantPatientDto {
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  phone!: string
-
-  @IsOptional()
-  @IsString()
-  gender?: string
+  phone!: string;
 
   @IsOptional()
   @IsString()
-  chartNo?: string
+  gender?: string;
 
   @IsOptional()
   @IsString()
-  birthday?: string | null
+  chartNo?: string;
+
+  @IsOptional()
+  @IsString()
+  birthday?: string | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  age?: number | null
+  age?: number | null;
 }

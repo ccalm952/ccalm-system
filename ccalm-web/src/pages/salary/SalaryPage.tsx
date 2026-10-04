@@ -1,8 +1,8 @@
-import * as React from "react"
-import { Navigate } from "react-router-dom"
-import dayjs from "dayjs"
-import { Plus, RotateCcw, Save, Settings, X } from "lucide-react"
-import { toast } from "sonner"
+import * as React from "react";
+import { Navigate } from "react-router-dom";
+import dayjs from "dayjs";
+import { Plus, RotateCcw, Save, Settings, X } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -13,20 +13,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -34,10 +34,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ROUTES } from "@/config/routes"
-import { computeSalarySheet, buildPriorBonusMap } from "@/lib/salary/calc"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ROUTES } from "@/config/routes";
+import { computeSalarySheet, buildPriorBonusMap } from "@/lib/salary/calc";
 import {
   applyMonthCalendar,
   createEmptyEmployee,
@@ -49,8 +49,8 @@ import {
   ensureEmployeeDeductionRates,
   previousSalaryMonth,
   resolveDefaultSalarySheet,
-} from "@/lib/salary/defaults"
-import { fetchLeaveQuotasFromSchedule } from "@/lib/salary/schedule-leave"
+} from "@/lib/salary/defaults";
+import { fetchLeaveQuotasFromSchedule } from "@/lib/salary/schedule-leave";
 import type {
   SalaryEmployeeInput,
   SalaryEquipmentInstallment,
@@ -58,69 +58,72 @@ import type {
   SalaryLeaveQuotas,
   SalaryOtherCostItem,
   SalarySheetData,
-} from "@/lib/salary/types"
+} from "@/lib/salary/types";
 import {
   createDefaultSalaryGlobalSettings,
   normalizeSalaryGlobalSettings,
   receiptTierLabels,
-} from "@/lib/salary/settings"
-import { api } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { hasSalaryUnlockToken, setSalaryUnlockToken } from "@/lib/salary-unlock"
-import { useAuth } from "@/lib/use-auth"
-import { DatePickerField } from "@/components/date-picker-field"
-import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog"
-import { InsuranceFundTable } from "./InsuranceFundTable"
-import { SalaryEmployeeTable } from "./SalaryEmployeeTable"
-import { SalarySummaryTable } from "./SalarySummaryTable"
-import { NumInput, RatePercentInput } from "./salary-table-inputs"
-import { SalaryTierRatesRow } from "./SalaryTierRatesRow"
+} from "@/lib/salary/settings";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import {
+  hasSalaryUnlockToken,
+  setSalaryUnlockToken,
+} from "@/lib/salary-unlock";
+import { useAuth } from "@/lib/use-auth";
+import { DatePickerField } from "@/components/date-picker-field";
+import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog";
+import { InsuranceFundTable } from "./InsuranceFundTable";
+import { SalaryEmployeeTable } from "./SalaryEmployeeTable";
+import { SalarySummaryTable } from "./SalarySummaryTable";
+import { NumInput, RatePercentInput } from "./salary-table-inputs";
+import { SalaryTierRatesRow } from "./SalaryTierRatesRow";
 
-const SALARY_LAST_MONTH_KEY = "salary_last_month"
+const SALARY_LAST_MONTH_KEY = "salary_last_month";
 
 function readLastSalaryMonth(): string {
   try {
-    return localStorage.getItem(SALARY_LAST_MONTH_KEY) ?? ""
+    return localStorage.getItem(SALARY_LAST_MONTH_KEY) ?? "";
   } catch {
-    return ""
+    return "";
   }
 }
 
 function writeLastSalaryMonth(month: string) {
   try {
-    if (!month) localStorage.removeItem(SALARY_LAST_MONTH_KEY)
-    else localStorage.setItem(SALARY_LAST_MONTH_KEY, month)
+    if (!month) localStorage.removeItem(SALARY_LAST_MONTH_KEY);
+    else localStorage.setItem(SALARY_LAST_MONTH_KEY, month);
   } catch {
     // ignore quota / private mode
   }
 }
 
 function sameLeaveQuotas(a: SalaryLeaveQuotas, b: SalaryLeaveQuotas): boolean {
-  return a.chen === b.chen && a.lu === b.lu && a.xu === b.xu
+  return a.chen === b.chen && a.lu === b.lu && a.xu === b.xu;
 }
 
 function listMissingPriorMonths(
   month: string,
   monthList: string[],
-  loaded: Record<string, SalarySheetData>
+  loaded: Record<string, SalarySheetData>,
 ): string[] {
-  const monthSet = new Set(monthList)
-  const missing: string[] = []
-  let prev = previousSalaryMonth(month, monthSet)
+  const monthSet = new Set(monthList);
+  const missing: string[] = [];
+  let prev = previousSalaryMonth(month, monthSet);
   while (prev) {
-    if (!loaded[prev]) missing.push(prev)
-    prev = previousSalaryMonth(prev, monthSet)
+    if (!loaded[prev]) missing.push(prev);
+    prev = previousSalaryMonth(prev, monthSet);
   }
-  return missing
+  return missing;
 }
 
 async function applyScheduleLeaveQuotas(
   month: string,
-  sheet: SalarySheetData
+  sheet: SalarySheetData,
 ): Promise<SalarySheetData> {
-  const quotas = await fetchLeaveQuotasFromSchedule(month)
-  if (sameLeaveQuotas(sheet.leaveQuotas, quotas)) return sheet
-  return applyMonthCalendar({ ...sheet, leaveQuotas: quotas }, month)
+  const quotas = await fetchLeaveQuotasFromSchedule(month);
+  if (sameLeaveQuotas(sheet.leaveQuotas, quotas)) return sheet;
+  return applyMonthCalendar({ ...sheet, leaveQuotas: quotas }, month);
 }
 
 function computeWithCarryover(
@@ -128,7 +131,7 @@ function computeWithCarryover(
   sheet: SalarySheetData,
   sheets: Record<string, SalarySheetData>,
   monthList: string[],
-  globalSettings: SalaryGlobalSettings
+  globalSettings: SalaryGlobalSettings,
 ): ReturnType<typeof computeSalarySheet> {
   return computeSalarySheet(sheet, {
     month,
@@ -137,158 +140,158 @@ function computeWithCarryover(
       month,
       sheets,
       (m) => previousSalaryMonth(m, monthList),
-      globalSettings
+      globalSettings,
     ),
-  })
+  });
 }
 
-const salaryApi = { salary: true as const }
+const salaryApi = { salary: true as const };
 
 function handleSalaryAccessError(e: unknown, onLocked: () => void): boolean {
-  const err = e as { status?: number }
+  const err = e as { status?: number };
   if (err.status === 403) {
-    setSalaryUnlockToken(null)
-    onLocked()
-    return true
+    setSalaryUnlockToken(null);
+    onLocked();
+    return true;
   }
-  return false
+  return false;
 }
 
 export function SalaryPage() {
-  const { me } = useAuth()
+  const { me } = useAuth();
   const [salaryUnlocked, setSalaryUnlocked] =
-    React.useState(hasSalaryUnlockToken)
+    React.useState(hasSalaryUnlockToken);
 
   if (me?.role !== "admin") {
-    return <Navigate to={ROUTES.home} replace />
+    return <Navigate to={ROUTES.home} replace />;
   }
 
   if (!salaryUnlocked) {
     return (
       <SalaryUnlockDialog open onUnlocked={() => setSalaryUnlocked(true)} />
-    )
+    );
   }
 
   return (
     <SalaryPageContent
       onLock={() => {
-        setSalaryUnlockToken(null)
-        setSalaryUnlocked(false)
+        setSalaryUnlockToken(null);
+        setSalaryUnlocked(false);
       }}
     />
-  )
+  );
 }
 
 function SalaryPageContent({ onLock }: { onLock: () => void }) {
-  const [months, setMonths] = React.useState<string[]>([])
-  const [activeMonth, setActiveMonth] = React.useState("")
-  const [addMonthOpen, setAddMonthOpen] = React.useState(false)
-  const [addMonthValue, setAddMonthValue] = React.useState("")
-  const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false)
-  const [tierRateSettingsOpen, setTierRateSettingsOpen] = React.useState(false)
+  const [months, setMonths] = React.useState<string[]>([]);
+  const [activeMonth, setActiveMonth] = React.useState("");
+  const [addMonthOpen, setAddMonthOpen] = React.useState(false);
+  const [addMonthValue, setAddMonthValue] = React.useState("");
+  const [deleteMonthOpen, setDeleteMonthOpen] = React.useState(false);
+  const [tierRateSettingsOpen, setTierRateSettingsOpen] = React.useState(false);
   const [globalSettings, setGlobalSettings] =
-    React.useState<SalaryGlobalSettings>(createDefaultSalaryGlobalSettings)
+    React.useState<SalaryGlobalSettings>(createDefaultSalaryGlobalSettings);
   const [settingsDraft, setSettingsDraft] =
-    React.useState<SalaryGlobalSettings | null>(null)
+    React.useState<SalaryGlobalSettings | null>(null);
   const [sheets, setSheets] = React.useState<Record<string, SalarySheetData>>(
-    {}
-  )
-  const sheetsRef = React.useRef(sheets)
-  sheetsRef.current = sheets
+    {},
+  );
+  const sheetsRef = React.useRef(sheets);
+  sheetsRef.current = sheets;
   const [defaultTemplate, setDefaultTemplate] =
-    React.useState<SalarySheetData | null>(null)
-  const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null)
-  const [saving, setSaving] = React.useState(false)
-  const saveTimerRef = React.useRef<number | null>(null)
+    React.useState<SalarySheetData | null>(null);
+  const [loadingMonth, setLoadingMonth] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const saveTimerRef = React.useRef<number | null>(null);
 
   const fetchMonth = React.useCallback(
     async (month: string, opts?: { persist?: boolean }) => {
-      const persist = opts?.persist !== false
+      const persist = opts?.persist !== false;
       const res = await api<{ month: string; data: SalarySheetData }>(
         "GET",
         `/salary/${month}`,
         undefined,
-        salaryApi
-      )
+        salaryApi,
+      );
       const data = ensureEmployeeDeductionRates(
         normalizeSalarySheet(res.data, month),
-        globalSettings
-      )
+        globalSettings,
+      );
       const rawDays = isSalarySheetData(res.data)
         ? res.data.summary.daysInMonth
-        : undefined
+        : undefined;
       const missingDeduction = (res.data?.employees ?? []).some(
         (row) =>
           !(
             typeof row.deductionRate === "number" &&
             Number.isFinite(row.deductionRate)
-          )
-      )
+          ),
+      );
       if (
         persist &&
         (!isSalarySheetData(res.data) ||
           rawDays !== calendarDaysForMonth(month) ||
           missingDeduction)
       ) {
-        await api("PUT", `/salary/${month}`, { data }, salaryApi)
+        await api("PUT", `/salary/${month}`, { data }, salaryApi);
       }
-      return data
+      return data;
     },
-    [globalSettings]
-  )
+    [globalSettings],
+  );
 
   const lockSalary = React.useCallback(() => {
-    setSheets({})
-    setDefaultTemplate(null)
-    setMonths([])
-    setActiveMonth("")
-    onLock()
-  }, [onLock])
+    setSheets({});
+    setDefaultTemplate(null);
+    setMonths([]);
+    setActiveMonth("");
+    onLock();
+  }, [onLock]);
 
   const reloadMonths = React.useCallback(async () => {
     const list = await api<string[]>(
       "GET",
       "/salary/months",
       undefined,
-      salaryApi
-    )
-    setMonths(list)
+      salaryApi,
+    );
+    setMonths(list);
     setActiveMonth((prev) => {
-      if (prev && list.includes(prev)) return prev
-      const remembered = readLastSalaryMonth()
-      if (remembered && list.includes(remembered)) return remembered
-      return list[list.length - 1] ?? ""
-    })
-    return list
-  }, [])
+      if (prev && list.includes(prev)) return prev;
+      const remembered = readLastSalaryMonth();
+      if (remembered && list.includes(remembered)) return remembered;
+      return list[list.length - 1] ?? "";
+    });
+    return list;
+  }, []);
 
   const reloadGlobalSettings = React.useCallback(async () => {
     const res = await api<{ data: unknown | null }>(
       "GET",
       "/salary/settings",
       undefined,
-      salaryApi
-    )
-    const normalized = normalizeSalaryGlobalSettings(res.data)
-    setGlobalSettings(normalized)
-    return normalized
-  }, [])
+      salaryApi,
+    );
+    const normalized = normalizeSalaryGlobalSettings(res.data);
+    setGlobalSettings(normalized);
+    return normalized;
+  }, []);
 
   const reloadDefaultTemplate = React.useCallback(async () => {
     const res = await api<{ data: unknown | null }>(
       "GET",
       "/salary/default",
       undefined,
-      salaryApi
-    )
+      salaryApi,
+    );
     if (res.data == null) {
-      setDefaultTemplate(null)
-      return null
+      setDefaultTemplate(null);
+      return null;
     }
-    const template = normalizeSalarySheet(res.data, dayjs().format("YYYY-MM"))
-    setDefaultTemplate(template)
-    return template
-  }, [])
+    const template = normalizeSalarySheet(res.data, dayjs().format("YYYY-MM"));
+    setDefaultTemplate(template);
+    return template;
+  }, []);
 
   React.useEffect(() => {
     void (async () => {
@@ -297,171 +300,171 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
           reloadMonths(),
           reloadDefaultTemplate(),
           reloadGlobalSettings(),
-        ])
+        ]);
       } catch (e) {
-        if (handleSalaryAccessError(e, lockSalary)) return
-        toast.error(errorMessage(e))
+        if (handleSalaryAccessError(e, lockSalary)) return;
+        toast.error(errorMessage(e));
       }
-    })()
-  }, [reloadMonths, reloadDefaultTemplate, reloadGlobalSettings, lockSalary])
+    })();
+  }, [reloadMonths, reloadDefaultTemplate, reloadGlobalSettings, lockSalary]);
 
   const refreshScheduleLeaveQuotas = React.useCallback(
     async (month: string) => {
-      const quotas = await fetchLeaveQuotasFromSchedule(month)
+      const quotas = await fetchLeaveQuotasFromSchedule(month);
       setSheets((prev) => {
-        const sheet = prev[month]
-        if (!sheet || sameLeaveQuotas(sheet.leaveQuotas, quotas)) return prev
+        const sheet = prev[month];
+        if (!sheet || sameLeaveQuotas(sheet.leaveQuotas, quotas)) return prev;
         const data = applyMonthCalendar(
           { ...sheet, leaveQuotas: quotas },
-          month
-        )
+          month,
+        );
         void api("PUT", `/salary/${month}`, { data }, salaryApi).catch((e) => {
-          if (handleSalaryAccessError(e, lockSalary)) return
-          toast.error(errorMessage(e))
-        })
-        return { ...prev, [month]: data }
-      })
+          if (handleSalaryAccessError(e, lockSalary)) return;
+          toast.error(errorMessage(e));
+        });
+        return { ...prev, [month]: data };
+      });
     },
-    [lockSalary]
-  )
+    [lockSalary],
+  );
 
   const loadMissingPriorSheets = React.useCallback(
     async (month: string, baseSheets: Record<string, SalarySheetData>) => {
-      if (!month || months.length === 0) return baseSheets
+      if (!month || months.length === 0) return baseSheets;
 
-      const monthSet = new Set(months)
-      let merged = { ...baseSheets }
-      let prev = previousSalaryMonth(month, monthSet)
+      const monthSet = new Set(months);
+      let merged = { ...baseSheets };
+      let prev = previousSalaryMonth(month, monthSet);
       while (prev && !merged[prev]) {
         try {
           // 历史月只读缓存，配额变化不回写，避免打开当前月时链式写库
-          const data = await fetchMonth(prev, { persist: false })
-          const withQuotas = await applyScheduleLeaveQuotas(prev, data)
-          merged = { ...merged, [prev]: withQuotas }
+          const data = await fetchMonth(prev, { persist: false });
+          const withQuotas = await applyScheduleLeaveQuotas(prev, data);
+          merged = { ...merged, [prev]: withQuotas };
         } catch {
-          break
+          break;
         }
-        prev = previousSalaryMonth(prev, monthSet)
+        prev = previousSalaryMonth(prev, monthSet);
       }
-      return merged
+      return merged;
     },
-    [fetchMonth, months]
-  )
+    [fetchMonth, months],
+  );
 
   const loadMonth = React.useCallback(
     async (month: string) => {
-      if (!month) return
-      const sheetsNow = sheetsRef.current
+      if (!month) return;
+      const sheetsNow = sheetsRef.current;
       if (
         sheetsNow[month] &&
         listMissingPriorMonths(month, months, sheetsNow).length === 0
       ) {
-        return
+        return;
       }
-      setLoadingMonth(month)
+      setLoadingMonth(month);
       try {
-        let merged = { ...sheetsNow }
+        let merged = { ...sheetsNow };
         if (!merged[month]) {
-          const data = await fetchMonth(month)
-          const withQuotas = await applyScheduleLeaveQuotas(month, data)
-          merged = { ...merged, [month]: withQuotas }
+          const data = await fetchMonth(month);
+          const withQuotas = await applyScheduleLeaveQuotas(month, data);
+          merged = { ...merged, [month]: withQuotas };
           if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
             await api(
               "PUT",
               `/salary/${month}`,
               { data: withQuotas },
-              salaryApi
-            )
+              salaryApi,
+            );
           }
         }
-        merged = await loadMissingPriorSheets(month, merged)
-        sheetsRef.current = merged
-        setSheets(merged)
+        merged = await loadMissingPriorSheets(month, merged);
+        sheetsRef.current = merged;
+        setSheets(merged);
       } catch (e) {
-        if (handleSalaryAccessError(e, lockSalary)) return
-        const err = e as { status?: number }
+        if (handleSalaryAccessError(e, lockSalary)) return;
+        const err = e as { status?: number };
         if (err.status === 404) {
-          let data = resolveDefaultSalarySheet(month, defaultTemplate)
-          data = await applyScheduleLeaveQuotas(month, data)
+          let data = resolveDefaultSalarySheet(month, defaultTemplate);
+          data = await applyScheduleLeaveQuotas(month, data);
           const merged = await loadMissingPriorSheets(month, {
             ...sheetsRef.current,
             [month]: data,
-          })
-          sheetsRef.current = merged
-          setSheets(merged)
-          await api("PUT", `/salary/${month}`, { data }, salaryApi)
+          });
+          sheetsRef.current = merged;
+          setSheets(merged);
+          await api("PUT", `/salary/${month}`, { data }, salaryApi);
         } else {
-          toast.error(errorMessage(e))
+          toast.error(errorMessage(e));
         }
       } finally {
-        setLoadingMonth((m) => (m === month ? null : m))
+        setLoadingMonth((m) => (m === month ? null : m));
       }
     },
-    [defaultTemplate, fetchMonth, loadMissingPriorSheets, lockSalary, months]
-  )
+    [defaultTemplate, fetchMonth, loadMissingPriorSheets, lockSalary, months],
+  );
 
   React.useEffect(() => {
-    if (activeMonth) void refreshScheduleLeaveQuotas(activeMonth)
-  }, [activeMonth, refreshScheduleLeaveQuotas])
+    if (activeMonth) void refreshScheduleLeaveQuotas(activeMonth);
+  }, [activeMonth, refreshScheduleLeaveQuotas]);
 
   React.useEffect(() => {
-    if (activeMonth) writeLastSalaryMonth(activeMonth)
-  }, [activeMonth])
+    if (activeMonth) writeLastSalaryMonth(activeMonth);
+  }, [activeMonth]);
 
   React.useEffect(() => {
-    if (activeMonth) void loadMonth(activeMonth)
-  }, [activeMonth, loadMonth])
+    if (activeMonth) void loadMonth(activeMonth);
+  }, [activeMonth, loadMonth]);
 
   const patchSheet = React.useCallback(
     (month: string, patch: SalarySheetData) => {
-      const data = applyMonthCalendar(patch, month)
-      setSheets((prev) => ({ ...prev, [month]: data }))
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
+      const data = applyMonthCalendar(patch, month);
+      setSheets((prev) => ({ ...prev, [month]: data }));
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = window.setTimeout(() => {
-        setSaving(true)
+        setSaving(true);
         void api("PUT", `/salary/${month}`, { data }, salaryApi)
           .catch((e) => {
-            if (handleSalaryAccessError(e, lockSalary)) return
-            toast.error(errorMessage(e))
+            if (handleSalaryAccessError(e, lockSalary)) return;
+            toast.error(errorMessage(e));
           })
-          .finally(() => setSaving(false))
-      }, 600)
+          .finally(() => setSaving(false));
+      }, 600);
     },
-    [lockSalary]
-  )
+    [lockSalary],
+  );
 
-  const sheet = activeMonth ? sheets[activeMonth] : undefined
+  const sheet = activeMonth ? sheets[activeMonth] : undefined;
   const computed =
     sheet && activeMonth
       ? computeWithCarryover(activeMonth, sheet, sheets, months, globalSettings)
-      : null
+      : null;
 
   function updateEmployee(index: number, patch: Partial<SalaryEmployeeInput>) {
-    if (!sheet || !activeMonth) return
+    if (!sheet || !activeMonth) return;
     const employees = sheet.employees.map((row, i) =>
-      i === index ? { ...row, ...patch } : row
-    )
-    patchSheet(activeMonth, { ...sheet, employees })
+      i === index ? { ...row, ...patch } : row,
+    );
+    patchSheet(activeMonth, { ...sheet, employees });
   }
 
   function addEmployee() {
-    if (!sheet || !activeMonth) return
+    if (!sheet || !activeMonth) return;
     patchSheet(activeMonth, {
       ...sheet,
       employees: [...sheet.employees, createEmptyEmployee()],
-    })
+    });
   }
 
   function removeEmployee(index: number) {
-    if (!sheet || !activeMonth) return
+    if (!sheet || !activeMonth) return;
     if (sheet.employees.length <= 1) {
-      toast.error("至少保留一名员工")
-      return
+      toast.error("至少保留一名员工");
+      return;
     }
     patchSheet(activeMonth, {
       ...sheet,
       employees: sheet.employees.filter((_, i) => i !== index),
-    })
+    });
   }
 
   function openTierRateSettings() {
@@ -470,73 +473,73 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       equipmentInstallments: globalSettings.equipmentInstallments.map(
         (plan) => ({
           ...plan,
-        })
+        }),
       ),
       otherCostItems: globalSettings.otherCostItems.map((item) => ({
         ...item,
       })),
-    })
-    setTierRateSettingsOpen(true)
+    });
+    setTierRateSettingsOpen(true);
   }
 
   async function confirmTierRateSettings() {
-    if (!settingsDraft) return
-    const next = normalizeSalaryGlobalSettings(settingsDraft)
+    if (!settingsDraft) return;
+    const next = normalizeSalaryGlobalSettings(settingsDraft);
     try {
-      await api("PUT", "/salary/settings", { data: next }, salaryApi)
-      setGlobalSettings(next)
-      setTierRateSettingsOpen(false)
-      toast.success("已保存")
+      await api("PUT", "/salary/settings", { data: next }, salaryApi);
+      setGlobalSettings(next);
+      setTierRateSettingsOpen(false);
+      toast.success("已保存");
     } catch (e) {
-      if (handleSalaryAccessError(e, lockSalary)) return
-      toast.error(errorMessage(e))
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
     }
   }
 
   async function addMonth() {
-    const month = addMonthValue.trim()
+    const month = addMonthValue.trim();
     if (!month) {
-      toast.error("请选择月份")
-      return
+      toast.error("请选择月份");
+      return;
     }
     if (months.includes(month)) {
-      toast.error("该月份已存在")
-      return
+      toast.error("该月份已存在");
+      return;
     }
     try {
-      let data = resolveDefaultSalarySheet(month, defaultTemplate)
-      data = await applyScheduleLeaveQuotas(month, data)
-      await api("PUT", `/salary/${month}`, { data }, salaryApi)
-      setSheets((prev) => ({ ...prev, [month]: data }))
-      setMonths((prev) => [...prev, month].sort())
-      setActiveMonth(month)
-      setAddMonthOpen(false)
-      setAddMonthValue("")
-      toast.success("已添加")
+      let data = resolveDefaultSalarySheet(month, defaultTemplate);
+      data = await applyScheduleLeaveQuotas(month, data);
+      await api("PUT", `/salary/${month}`, { data }, salaryApi);
+      setSheets((prev) => ({ ...prev, [month]: data }));
+      setMonths((prev) => [...prev, month].sort());
+      setActiveMonth(month);
+      setAddMonthOpen(false);
+      setAddMonthValue("");
+      toast.success("已添加");
     } catch (e) {
-      if (handleSalaryAccessError(e, lockSalary)) return
-      toast.error(errorMessage(e))
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
     }
   }
 
   async function deleteMonth() {
-    if (!activeMonth) return
-    const month = activeMonth
+    if (!activeMonth) return;
+    const month = activeMonth;
     try {
-      await api("DELETE", `/salary/${month}`, undefined, salaryApi)
+      await api("DELETE", `/salary/${month}`, undefined, salaryApi);
       setSheets((prev) => {
-        const next = { ...prev }
-        delete next[month]
-        return next
-      })
-      const nextMonths = months.filter((m) => m !== month)
-      setMonths(nextMonths)
-      setActiveMonth(nextMonths[nextMonths.length - 1] ?? "")
-      setDeleteMonthOpen(false)
-      toast.success("已删除")
+        const next = { ...prev };
+        delete next[month];
+        return next;
+      });
+      const nextMonths = months.filter((m) => m !== month);
+      setMonths(nextMonths);
+      setActiveMonth(nextMonths[nextMonths.length - 1] ?? "");
+      setDeleteMonthOpen(false);
+      toast.success("已删除");
     } catch (e) {
-      if (handleSalaryAccessError(e, lockSalary)) return
-      toast.error(errorMessage(e))
+      if (handleSalaryAccessError(e, lockSalary)) return;
+      toast.error(errorMessage(e));
     }
   }
 
@@ -577,8 +580,8 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
               type="button"
               variant="outline"
               onClick={() => {
-                setAddMonthValue(dayjs().format("YYYY-MM"))
-                setAddMonthOpen(true)
+                setAddMonthValue(dayjs().format("YYYY-MM"));
+                setAddMonthOpen(true);
               }}
             >
               <Plus className="size-3.5" />
@@ -603,16 +606,21 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                     void (async () => {
                       try {
                         const data = clearMaterialLines(
-                          normalizeSalarySheet(sheet, activeMonth)
-                        )
-                        await api("PUT", "/salary/default", { data }, salaryApi)
-                        setDefaultTemplate(data)
-                        toast.success("已设为默认")
+                          normalizeSalarySheet(sheet, activeMonth),
+                        );
+                        await api(
+                          "PUT",
+                          "/salary/default",
+                          { data },
+                          salaryApi,
+                        );
+                        setDefaultTemplate(data);
+                        toast.success("已设为默认");
                       } catch (e) {
-                        if (handleSalaryAccessError(e, lockSalary)) return
-                        toast.error(errorMessage(e))
+                        if (handleSalaryAccessError(e, lockSalary)) return;
+                        toast.error(errorMessage(e));
                       }
-                    })()
+                    })();
                   }}
                 >
                   <Save className="size-3.5" />
@@ -625,12 +633,12 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                     void (async () => {
                       let data = resolveDefaultSalarySheet(
                         activeMonth,
-                        defaultTemplate
-                      )
-                      data = await applyScheduleLeaveQuotas(activeMonth, data)
-                      patchSheet(activeMonth, data)
-                      toast.success("已恢复为默认")
-                    })()
+                        defaultTemplate,
+                      );
+                      data = await applyScheduleLeaveQuotas(activeMonth, data);
+                      patchSheet(activeMonth, data);
+                      toast.success("已恢复为默认");
+                    })();
                   }}
                 >
                   <RotateCcw className="size-3.5" />
@@ -644,9 +652,9 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         <Dialog open={addMonthOpen} onOpenChange={setAddMonthOpen}>
           <DialogContent
             onKeyDown={(e) => {
-              if (e.key !== "Enter") return
-              e.preventDefault()
-              void addMonth()
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              void addMonth();
             }}
           >
             <DialogHeader>
@@ -698,7 +706,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           value={settingsDraft.chenPoolBonusRate}
                           onChange={(chenPoolBonusRate) =>
                             setSettingsDraft((prev) =>
-                              prev ? { ...prev, chenPoolBonusRate } : prev
+                              prev ? { ...prev, chenPoolBonusRate } : prev,
                             )
                           }
                         />
@@ -711,7 +719,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           value={settingsDraft.luPoolBonusRate}
                           onChange={(luPoolBonusRate) =>
                             setSettingsDraft((prev) =>
-                              prev ? { ...prev, luPoolBonusRate } : prev
+                              prev ? { ...prev, luPoolBonusRate } : prev,
                             )
                           }
                         />
@@ -724,7 +732,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           value={settingsDraft.xuPoolBonusRate}
                           onChange={(xuPoolBonusRate) =>
                             setSettingsDraft((prev) =>
-                              prev ? { ...prev, xuPoolBonusRate } : prev
+                              prev ? { ...prev, xuPoolBonusRate } : prev,
                             )
                           }
                         />
@@ -739,7 +747,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                       {receiptTierLabels(settingsDraft.tierThresholds).map(
                         (label) => (
                           <TableHead key={label}>{label}</TableHead>
-                        )
+                        ),
                       )}
                     </TableRow>
                   </TableHeader>
@@ -749,7 +757,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                       rates={settingsDraft.docTierRates}
                       onChange={(docTierRates) =>
                         setSettingsDraft((prev) =>
-                          prev ? { ...prev, docTierRates } : prev
+                          prev ? { ...prev, docTierRates } : prev,
                         )
                       }
                     />
@@ -758,7 +766,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                       rates={settingsDraft.asstTierRates}
                       onChange={(asstTierRates) =>
                         setSettingsDraft((prev) =>
-                          prev ? { ...prev, asstTierRates } : prev
+                          prev ? { ...prev, asstTierRates } : prev,
                         )
                       }
                     />
@@ -781,7 +789,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                             setSettingsDraft((prev) =>
                               prev
                                 ? { ...prev, wuJiechenPlantingBonusPerUnit }
-                                : prev
+                                : prev,
                             )
                           }
                         />
@@ -794,7 +802,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           value={settingsDraft.plantingBonusPerUnit}
                           onChange={(plantingBonusPerUnit) =>
                             setSettingsDraft((prev) =>
-                              prev ? { ...prev, plantingBonusPerUnit } : prev
+                              prev ? { ...prev, plantingBonusPerUnit } : prev,
                             )
                           }
                         />
@@ -819,7 +827,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           <Input
                             value={plan.name}
                             onChange={(e) => {
-                              const name = e.target.value
+                              const name = e.target.value;
                               setSettingsDraft((prev) =>
                                 prev
                                   ? {
@@ -828,11 +836,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                         prev.equipmentInstallments.map((row) =>
                                           row.id === plan.id
                                             ? { ...row, name }
-                                            : row
+                                            : row,
                                         ),
                                     }
-                                  : prev
-                              )
+                                  : prev,
+                              );
                             }}
                           />
                         </TableCell>
@@ -851,13 +859,13 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                                 ...row,
                                                 totalAmount: Math.max(
                                                   0,
-                                                  totalAmount
+                                                  totalAmount,
                                                 ),
                                               }
-                                            : row
+                                            : row,
                                         ),
                                     }
-                                  : prev
+                                  : prev,
                               )
                             }
                           />
@@ -877,13 +885,13 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                                 ...row,
                                                 months: Math.max(
                                                   1,
-                                                  Math.round(months) || 1
+                                                  Math.round(months) || 1,
                                                 ),
                                               }
-                                            : row
+                                            : row,
                                         ),
                                     }
-                                  : prev
+                                  : prev,
                               )
                             }
                           />
@@ -893,7 +901,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                             placeholder="YYYY-MM"
                             value={plan.startMonth}
                             onChange={(e) => {
-                              const startMonth = e.target.value
+                              const startMonth = e.target.value;
                               setSettingsDraft((prev) =>
                                 prev
                                   ? {
@@ -902,11 +910,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                         prev.equipmentInstallments.map((row) =>
                                           row.id === plan.id
                                             ? { ...row, startMonth }
-                                            : row
+                                            : row,
                                         ),
                                     }
-                                  : prev
-                              )
+                                  : prev,
+                              );
                             }}
                           />
                         </TableCell>
@@ -922,10 +930,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                       ...prev,
                                       equipmentInstallments:
                                         prev.equipmentInstallments.filter(
-                                          (row) => row.id !== plan.id
+                                          (row) => row.id !== plan.id,
                                         ),
                                     }
-                                  : prev
+                                  : prev,
                               )
                             }
                           >
@@ -950,7 +958,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                               totalAmount: 0,
                               months: 12,
                               startMonth: dayjs().format("YYYY-MM"),
-                            }
+                            };
                             setSettingsDraft((prev) =>
                               prev
                                 ? {
@@ -960,8 +968,8 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                       next,
                                     ],
                                   }
-                                : prev
-                            )
+                                : prev,
+                            );
                           }}
                         >
                           <Plus data-icon="inline-start" />
@@ -986,7 +994,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           <Input
                             value={item.name}
                             onChange={(e) => {
-                              const name = e.target.value
+                              const name = e.target.value;
                               setSettingsDraft((prev) =>
                                 prev
                                   ? {
@@ -995,11 +1003,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                         (row) =>
                                           row.id === item.id
                                             ? { ...row, name }
-                                            : row
+                                            : row,
                                       ),
                                     }
-                                  : prev
-                              )
+                                  : prev,
+                              );
                             }}
                           />
                         </TableCell>
@@ -1018,10 +1026,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                                 ...row,
                                                 amount: Math.max(0, amount),
                                               }
-                                            : row
+                                            : row,
                                       ),
                                     }
-                                  : prev
+                                  : prev,
                               )
                             }
                           />
@@ -1038,10 +1046,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                       ...prev,
                                       otherCostItems:
                                         prev.otherCostItems.filter(
-                                          (row) => row.id !== item.id
+                                          (row) => row.id !== item.id,
                                         ),
                                     }
-                                  : prev
+                                  : prev,
                               )
                             }
                           >
@@ -1064,7 +1072,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                   : `oc-${Date.now()}`,
                               name: "",
                               amount: 0,
-                            }
+                            };
                             setSettingsDraft((prev) =>
                               prev
                                 ? {
@@ -1074,8 +1082,8 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                                       next,
                                     ],
                                   }
-                                : prev
-                            )
+                                : prev,
+                            );
                           }}
                         >
                           <Plus data-icon="inline-start" />
@@ -1108,9 +1116,9 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         <AlertDialog open={deleteMonthOpen} onOpenChange={setDeleteMonthOpen}>
           <AlertDialogContent
             onKeyDown={(e) => {
-              if (e.key !== "Enter") return
-              e.preventDefault()
-              void deleteMonth()
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              void deleteMonth();
             }}
           >
             <AlertDialogHeader>
@@ -1215,5 +1223,5 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         ))}
       </Tabs>
     </div>
-  )
+  );
 }

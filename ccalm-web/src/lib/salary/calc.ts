@@ -12,13 +12,13 @@ import type {
   SalarySheetData,
   SalaryTierRates,
   SalaryTierThresholds,
-} from "./types"
+} from "./types";
 import {
   defaultDeductionRateForMode,
   plantingBonusPerUnitForEmployee,
   poolBonusRateForMode,
   tierRatesForTitle,
-} from "./settings"
+} from "./settings";
 
 /**
  * 保留两位小数。
@@ -39,38 +39,38 @@ import {
  *   在舍入前吸附才是通用解法（且不影响下方已有的舍入语义）。
  */
 export function round2(n: number): number {
-  if (!Number.isFinite(n)) return n
+  if (!Number.isFinite(n)) return n;
   // 超过 double 能表示「分」的范围时，两位小数已无意义
-  if (Math.abs(n) >= Number.MAX_SAFE_INTEGER / 100) return n
-  const snapped = Number(n.toFixed(10))
-  const sign = snapped < 0 ? -1 : 1
-  const abs = Math.abs(snapped)
-  const shifted = Number(`${abs}e2`)
+  if (Math.abs(n) >= Number.MAX_SAFE_INTEGER / 100) return n;
+  const snapped = Number(n.toFixed(10));
+  const sign = snapped < 0 ? -1 : 1;
+  const abs = Math.abs(snapped);
+  const shifted = Number(`${abs}e2`);
   // 走到这里只剩 |n| < 1e-6 的情况（String() 会转科学计数法），必然舍入为 0
-  if (!Number.isFinite(shifted)) return 0
-  const magnitude = Number(`${Math.round(shifted)}e-2`)
-  const result = sign * magnitude
-  return result === 0 ? 0 : result
+  if (!Number.isFinite(shifted)) return 0;
+  const magnitude = Number(`${Math.round(shifted)}e-2`);
+  const result = sign * magnitude;
+  return result === 0 ? 0 : result;
 }
 
 function round0(n: number): number {
-  return Math.round(n)
+  return Math.round(n);
 }
 
 function personalSocial(insurance: SalaryInsuranceInput): number {
-  const pension = round2(insurance.pensionBase * insurance.pensionPersonalRate)
+  const pension = round2(insurance.pensionBase * insurance.pensionPersonalRate);
   const unemployment = round2(
-    insurance.unemploymentBase * insurance.unemploymentPersonalRate
-  )
-  return round2(pension + unemployment)
+    insurance.unemploymentBase * insurance.unemploymentPersonalRate,
+  );
+  return round2(pension + unemployment);
 }
 
 function personalMedical(insurance: SalaryInsuranceInput): number {
-  return round2(insurance.medicalBase * insurance.medicalPersonalRate)
+  return round2(insurance.medicalBase * insurance.medicalPersonalRate);
 }
 
 function insurancePayment(base: number, rate: number): number {
-  return round2(base * rate)
+  return round2(base * rate);
 }
 
 function insuranceRowTotal(
@@ -78,84 +78,84 @@ function insuranceRowTotal(
   employerRate: number,
   employerCount: number,
   personalRate: number | null,
-  personalCount: number | null
+  personalCount: number | null,
 ): number {
-  const employer = round2(base * employerRate * employerCount)
-  if (personalRate == null || personalCount == null) return employer
-  return round2(employer + round2(base * personalRate * personalCount))
+  const employer = round2(base * employerRate * employerCount);
+  if (personalRate == null || personalCount == null) return employer;
+  return round2(employer + round2(base * personalRate * personalCount));
 }
 
 type InsuranceTableLine = {
-  key: string
-  group: "social" | "medical" | "housing"
-  groupLabel: string
-  label: string
-  base: number
-  employerRate: number
-  employerPayment: number
-  employerCount: number
-  personalRate: number | null
-  personalPayment: number | null
-  personalCount: number | null
-  rowTotal: number
-}
+  key: string;
+  group: "social" | "medical" | "housing";
+  groupLabel: string;
+  label: string;
+  base: number;
+  employerRate: number;
+  employerPayment: number;
+  employerCount: number;
+  personalRate: number | null;
+  personalPayment: number | null;
+  personalCount: number | null;
+  rowTotal: number;
+};
 
 type InsuranceGroupSubtotals = {
-  employer: number
-  personal: number | null
-}
+  employer: number;
+  personal: number | null;
+};
 
 export function computeInsuranceTable(
   insurance: SalaryInsuranceInput,
-  housing: SalaryHousingFundInput
+  housing: SalaryHousingFundInput,
 ): {
-  lines: InsuranceTableLine[]
-  groupTotals: Record<"social" | "medical" | "housing", number>
+  lines: InsuranceTableLine[];
+  groupTotals: Record<"social" | "medical" | "housing", number>;
   groupSubtotals: Record<
     "social" | "medical" | "housing",
     InsuranceGroupSubtotals
-  >
+  >;
 } {
   const pensionEmployerPayment = insurancePayment(
     insurance.pensionBase,
-    insurance.pensionEmployerRate
-  )
+    insurance.pensionEmployerRate,
+  );
   const pensionPersonalPayment = insurancePayment(
     insurance.pensionBase,
-    insurance.pensionPersonalRate
-  )
+    insurance.pensionPersonalRate,
+  );
   const unemploymentEmployerPayment = insurancePayment(
     insurance.unemploymentBase,
-    insurance.unemploymentEmployerRate
-  )
+    insurance.unemploymentEmployerRate,
+  );
   const unemploymentPersonalPayment = insurancePayment(
     insurance.unemploymentBase,
-    insurance.unemploymentPersonalRate
-  )
+    insurance.unemploymentPersonalRate,
+  );
   const injuryEmployerPayment = insurancePayment(
     insurance.injuryBase,
-    insurance.injuryEmployerRate
-  )
+    insurance.injuryEmployerRate,
+  );
   const medicalEmployerPayment = insurancePayment(
     insurance.medicalBase,
-    insurance.medicalEmployerRate
-  )
+    insurance.medicalEmployerRate,
+  );
   const medicalPersonalPayment = insurancePayment(
     insurance.medicalBase,
-    insurance.medicalPersonalRate
-  )
+    insurance.medicalPersonalRate,
+  );
   const maternityEmployerPayment = insurancePayment(
     insurance.maternityBase,
-    insurance.maternityEmployerRate
-  )
+    insurance.maternityEmployerRate,
+  );
   const housingEmployerPayment = insurancePayment(
     housing.base,
-    housing.employerRate
-  )
+    housing.employerRate,
+  );
   const housingPersonalPayment = insurancePayment(
     housing.base,
-    housing.personalRate
-  )
+    housing.personalRate,
+  );
 
   const lines: InsuranceTableLine[] = [
     {
@@ -175,7 +175,7 @@ export function computeInsuranceTable(
         insurance.pensionEmployerRate,
         insurance.pensionEmployerCount,
         insurance.pensionPersonalRate,
-        insurance.pensionPersonalCount
+        insurance.pensionPersonalCount,
       ),
     },
     {
@@ -195,7 +195,7 @@ export function computeInsuranceTable(
         insurance.unemploymentEmployerRate,
         insurance.unemploymentEmployerCount,
         insurance.unemploymentPersonalRate,
-        insurance.unemploymentPersonalCount
+        insurance.unemploymentPersonalCount,
       ),
     },
     {
@@ -215,7 +215,7 @@ export function computeInsuranceTable(
         insurance.injuryEmployerRate,
         insurance.injuryEmployerCount,
         null,
-        null
+        null,
       ),
     },
     {
@@ -235,7 +235,7 @@ export function computeInsuranceTable(
         insurance.medicalEmployerRate,
         insurance.medicalEmployerCount,
         insurance.medicalPersonalRate,
-        insurance.medicalPersonalCount
+        insurance.medicalPersonalCount,
       ),
     },
     {
@@ -255,7 +255,7 @@ export function computeInsuranceTable(
         insurance.maternityEmployerRate,
         insurance.maternityEmployerCount,
         null,
-        null
+        null,
       ),
     },
     {
@@ -275,35 +275,35 @@ export function computeInsuranceTable(
         housing.employerRate,
         housing.employerCount,
         housing.personalRate,
-        housing.personalCount
+        housing.personalCount,
       ),
     },
-  ]
+  ];
 
   const groupTotals = {
     social: round2(
       lines
         .filter((line) => line.group === "social")
-        .reduce((sum, line) => sum + line.rowTotal, 0)
+        .reduce((sum, line) => sum + line.rowTotal, 0),
     ),
     medical: round2(
       lines
         .filter((line) => line.group === "medical")
-        .reduce((sum, line) => sum + line.rowTotal, 0)
+        .reduce((sum, line) => sum + line.rowTotal, 0),
     ),
     housing: round2(
       lines
         .filter((line) => line.group === "housing")
-        .reduce((sum, line) => sum + line.rowTotal, 0)
+        .reduce((sum, line) => sum + line.rowTotal, 0),
     ),
-  }
+  };
 
   const groupSubtotals = {
     social: {
       employer: round2(
         pensionEmployerPayment +
           unemploymentEmployerPayment +
-          injuryEmployerPayment
+          injuryEmployerPayment,
       ),
       personal: round2(pensionPersonalPayment + unemploymentPersonalPayment),
     },
@@ -315,53 +315,53 @@ export function computeInsuranceTable(
       employer: housingEmployerPayment,
       personal: housingPersonalPayment,
     },
-  }
+  };
 
-  return { lines, groupTotals, groupSubtotals }
+  return { lines, groupTotals, groupSubtotals };
 }
 
 function employerInsuranceTotal(insurance: SalaryInsuranceInput): number {
   const pension = round2(
     insurance.pensionBase *
       insurance.pensionEmployerRate *
-      insurance.pensionEmployerCount
-  )
+      insurance.pensionEmployerCount,
+  );
   const unemployment = round2(
     insurance.unemploymentBase *
       insurance.unemploymentEmployerRate *
-      insurance.unemploymentEmployerCount
-  )
+      insurance.unemploymentEmployerCount,
+  );
   const injury = round2(
     insurance.injuryBase *
       insurance.injuryEmployerRate *
-      insurance.injuryEmployerCount
-  )
+      insurance.injuryEmployerCount,
+  );
   const medical = round2(
     insurance.medicalBase *
       insurance.medicalEmployerRate *
-      insurance.medicalEmployerCount
-  )
+      insurance.medicalEmployerCount,
+  );
   const maternity = round2(
     insurance.maternityBase *
       insurance.maternityEmployerRate *
-      insurance.maternityEmployerCount
-  )
+      insurance.maternityEmployerCount,
+  );
 
-  return round2(pension + unemployment + injury + medical + maternity)
+  return round2(pension + unemployment + injury + medical + maternity);
 }
 
 function employerHousingTotal(housing: SalaryHousingFundInput): number {
-  return round2(housing.base * housing.employerRate * housing.employerCount)
+  return round2(housing.base * housing.employerRate * housing.employerCount);
 }
 
 function poolLeaveDays(
   mode: SalaryEmployeeInput["bonusMode"],
-  quotas: SalaryLeaveQuotas
+  quotas: SalaryLeaveQuotas,
 ): number {
-  if (mode === "chen_pool") return quotas.chen
-  if (mode === "lu_pool") return quotas.lu
-  if (mode === "xu_pool") return quotas.xu
-  return 0
+  if (mode === "chen_pool") return quotas.chen;
+  if (mode === "lu_pool") return quotas.lu;
+  if (mode === "xu_pool") return quotas.xu;
+  return 0;
 }
 
 /** 个人池 = 总收入×(1−个人扣减%) 按日出勤折算 */
@@ -369,80 +369,80 @@ function calcPersonalLeavePool(
   totalIncome: number,
   deductionRate: number,
   daysInMonth: number,
-  leaveDays: number
+  leaveDays: number,
 ): number {
-  if (daysInMonth <= 0) return 0
-  const poolIncome = totalIncome * (1 - deductionRate)
-  const daily = poolIncome / daysInMonth
-  return round2(daily * (daysInMonth - leaveDays))
+  if (daysInMonth <= 0) return 0;
+  const poolIncome = totalIncome * (1 - deductionRate);
+  const daily = poolIncome / daysInMonth;
+  return round2(daily * (daysInMonth - leaveDays));
 }
 
 function resolveDeductionRate(
   emp: SalaryEmployeeInput,
-  settings: SalaryGlobalSettings
+  settings: SalaryGlobalSettings,
 ): number {
   if (
     typeof emp.deductionRate === "number" &&
     Number.isFinite(emp.deductionRate)
   ) {
-    return emp.deductionRate
+    return emp.deductionRate;
   }
-  return defaultDeductionRateForMode(emp.bonusMode, settings)
+  return defaultDeductionRateForMode(emp.bonusMode, settings);
 }
 
-const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
+const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function monthOffset(startMonth: string, month: string): number {
   if (!monthPattern.test(startMonth) || !monthPattern.test(month)) {
-    return Number.NaN
+    return Number.NaN;
   }
-  const [sy, sm] = startMonth.split("-").map(Number)
-  const [my, mm] = month.split("-").map(Number)
-  return (my - sy) * 12 + (mm - sm)
+  const [sy, sm] = startMonth.split("-").map(Number);
+  const [my, mm] = month.split("-").map(Number);
+  return (my - sy) * 12 + (mm - sm);
 }
 
 /** 单笔分期在指定月份的应摊金额；不在期内返回 0 */
 export function installmentAmountForMonth(
   plan: SalaryEquipmentInstallment,
-  month: string
+  month: string,
 ): number {
-  const offset = monthOffset(plan.startMonth, month)
-  if (!Number.isFinite(offset) || offset < 0 || offset >= plan.months) return 0
-  if (plan.months <= 0 || plan.totalAmount <= 0) return 0
-  const monthly = round2(plan.totalAmount / plan.months)
+  const offset = monthOffset(plan.startMonth, month);
+  if (!Number.isFinite(offset) || offset < 0 || offset >= plan.months) return 0;
+  if (plan.months <= 0 || plan.totalAmount <= 0) return 0;
+  const monthly = round2(plan.totalAmount / plan.months);
   if (offset === plan.months - 1) {
-    return round2(plan.totalAmount - monthly * (plan.months - 1))
+    return round2(plan.totalAmount - monthly * (plan.months - 1));
   }
-  return monthly
+  return monthly;
 }
 
 /** 多笔设备分期在指定月份的应摊合计 */
 export function calcEquipmentCostForMonth(
   plans: SalaryEquipmentInstallment[],
-  month: string
+  month: string,
 ): number {
-  let sum = 0
+  let sum = 0;
   for (const plan of plans) {
-    sum += installmentAmountForMonth(plan, month)
+    sum += installmentAmountForMonth(plan, month);
   }
-  return round2(sum)
+  return round2(sum);
 }
 
 /** 其他成本项目费用加总 */
 export function calcOtherCostFromItems(items: SalaryOtherCostItem[]): number {
-  let sum = 0
+  let sum = 0;
   for (const item of items) {
-    sum += item.amount
+    sum += item.amount;
   }
-  return round2(sum)
+  return round2(sum);
 }
 
 function calcActualReceipt(
   totalIncome: number,
   shareRatio: number,
-  deductionRate: number
+  deductionRate: number,
 ): number {
-  return round0(totalIncome * shareRatio * (1 - deductionRate))
+  return round0(totalIncome * shareRatio * (1 - deductionRate));
 }
 
 function calcTieredBonus(
@@ -450,7 +450,7 @@ function calcTieredBonus(
   thresholds: SalaryTierThresholds,
   rates: SalaryTierRates,
   plantingBonus: number,
-  deductions: number
+  deductions: number,
 ): number {
   const caps = [
     thresholds.tier1,
@@ -458,7 +458,7 @@ function calcTieredBonus(
     thresholds.tier3,
     thresholds.tier4,
     thresholds.tier5,
-  ]
+  ];
   const tierRates = [
     rates.tier1Rate,
     rates.tier2Rate,
@@ -466,59 +466,59 @@ function calcTieredBonus(
     rates.tier4Rate,
     rates.tier5Rate,
     rates.tier6Rate,
-  ]
+  ];
 
-  let commission = 0
-  let prev = 0
+  let commission = 0;
+  let prev = 0;
 
   for (let i = 0; i < caps.length; i++) {
-    if (actualReceipt <= prev) break
-    commission += (Math.min(actualReceipt, caps[i]) - prev) * tierRates[i]
-    prev = caps[i]
+    if (actualReceipt <= prev) break;
+    commission += (Math.min(actualReceipt, caps[i]) - prev) * tierRates[i];
+    prev = caps[i];
     if (actualReceipt <= caps[i]) {
-      return round2(commission + plantingBonus - deductions)
+      return round2(commission + plantingBonus - deductions);
     }
   }
-  const lastCap = caps[caps.length - 1]
+  const lastCap = caps[caps.length - 1];
   if (actualReceipt > lastCap) {
-    commission += (actualReceipt - lastCap) * tierRates[tierRates.length - 1]
+    commission += (actualReceipt - lastCap) * tierRates[tierRates.length - 1];
   }
-  return round2(commission + plantingBonus - deductions)
+  return round2(commission + plantingBonus - deductions);
 }
 
 function computeEmployee(
   emp: SalaryEmployeeInput,
   ctx: {
-    totalIncome: number
-    globalSettings: SalaryGlobalSettings
-    daysInMonth: number
-    workingDays: number
-    leaveQuotas: SalaryLeaveQuotas
-    social: number
-    medical: number
-    priorBonusByName: Record<string, number>
-  }
+    totalIncome: number;
+    globalSettings: SalaryGlobalSettings;
+    daysInMonth: number;
+    workingDays: number;
+    leaveQuotas: SalaryLeaveQuotas;
+    social: number;
+    medical: number;
+    priorBonusByName: Record<string, number>;
+  },
 ): SalaryEmployeeComputed {
   const leaveOffset =
     ctx.workingDays > 0
       ? round2((emp.baseSalary * emp.leaveDays) / ctx.workingDays)
-      : 0
-  const priorBonus = ctx.priorBonusByName[emp.name] ?? 0
-  const priorBonusCarryover = Math.min(0, priorBonus)
+      : 0;
+  const priorBonus = ctx.priorBonusByName[emp.name] ?? 0;
+  const priorBonusCarryover = Math.min(0, priorBonus);
   const deductedBase = round2(
-    emp.baseSalary - leaveOffset + priorBonusCarryover
-  )
-  const deductionRate = resolveDeductionRate(emp, ctx.globalSettings)
+    emp.baseSalary - leaveOffset + priorBonusCarryover,
+  );
+  const deductionRate = resolveDeductionRate(emp, ctx.globalSettings);
   const actualReceipt =
     emp.bonusMode === "tiered"
       ? calcActualReceipt(ctx.totalIncome, emp.shareRatio, deductionRate)
-      : 0
+      : 0;
   const plantingBonus = round2(
     emp.plantingCount *
-      plantingBonusPerUnitForEmployee(emp.name, ctx.globalSettings)
-  )
-  const deductions = round2(emp.housingFund + ctx.social + ctx.medical)
-  const tierRates = tierRatesForTitle(emp.title, ctx.globalSettings)
+      plantingBonusPerUnitForEmployee(emp.name, ctx.globalSettings),
+  );
+  const deductions = round2(emp.housingFund + ctx.social + ctx.medical);
+  const tierRates = tierRatesForTitle(emp.title, ctx.globalSettings);
 
   const bonus =
     emp.bonusMode === "tiered"
@@ -527,17 +527,17 @@ function computeEmployee(
           ctx.globalSettings.tierThresholds,
           tierRates,
           plantingBonus,
-          deductions
+          deductions,
         )
       : calcPersonalLeavePool(
           ctx.totalIncome,
           deductionRate,
           ctx.daysInMonth,
-          poolLeaveDays(emp.bonusMode, ctx.leaveQuotas)
+          poolLeaveDays(emp.bonusMode, ctx.leaveQuotas),
         ) *
           poolBonusRateForMode(emp.bonusMode, ctx.globalSettings) +
         plantingBonus -
-        deductions
+        deductions;
 
   return {
     ...emp,
@@ -549,24 +549,24 @@ function computeEmployee(
     medicalInsurance: ctx.medical,
     bonus: round2(bonus),
     monthlySalary: round2(deductedBase + bonus),
-  }
+  };
 }
 
 export function computeSalarySheet(
   data: SalarySheetData,
-  context: SalaryComputeContext
+  context: SalaryComputeContext,
 ): SalarySheetComputed {
-  const { utilities, rent, materials, planting, processing } = data.costItems
+  const { utilities, rent, materials, planting, processing } = data.costItems;
   const otherCost = calcOtherCostFromItems(
-    context.globalSettings.otherCostItems
-  )
-  const costTotal = round2(materials + planting + otherCost + processing)
+    context.globalSettings.otherCostItems,
+  );
+  const costTotal = round2(materials + planting + otherCost + processing);
 
-  const netIncome = round2(data.summary.totalIncome - costTotal)
+  const netIncome = round2(data.summary.totalIncome - costTotal);
 
-  const social = personalSocial(data.insurance)
-  const medical = personalMedical(data.insurance)
-  const priorBonusByName = context.priorBonusByName ?? {}
+  const social = personalSocial(data.insurance);
+  const medical = personalMedical(data.insurance);
+  const priorBonusByName = context.priorBonusByName ?? {};
 
   const employees = data.employees.map((emp) =>
     computeEmployee(emp, {
@@ -578,8 +578,8 @@ export function computeSalarySheet(
       social,
       medical,
       priorBonusByName,
-    })
-  )
+    }),
+  );
 
   const totals = employees.reduce(
     (acc, row) => ({
@@ -588,19 +588,19 @@ export function computeSalarySheet(
       bonus: acc.bonus + (row.bonus > 0 ? row.bonus : 0),
       monthlySalary: acc.monthlySalary + row.monthlySalary,
     }),
-    { deductedBase: 0, shareRatio: 0, bonus: 0, monthlySalary: 0 }
-  )
+    { deductedBase: 0, shareRatio: 0, bonus: 0, monthlySalary: 0 },
+  );
 
   const insuranceEmployerTotal = round2(
     employerInsuranceTotal(data.insurance) +
-      employerHousingTotal(data.housingFund)
-  )
+      employerHousingTotal(data.housingFund),
+  );
 
-  const employeePayrollTotal = round2(totals.monthlySalary)
+  const employeePayrollTotal = round2(totals.monthlySalary);
   const equipmentCost = calcEquipmentCostForMonth(
     context.globalSettings.equipmentInstallments,
-    context.month
-  )
+    context.month,
+  );
 
   const costGrandTotal = round2(
     utilities +
@@ -611,10 +611,10 @@ export function computeSalarySheet(
       otherCost +
       equipmentCost +
       insuranceEmployerTotal +
-      employeePayrollTotal
-  )
+      employeePayrollTotal,
+  );
 
-  const remaining = round2(data.summary.totalIncome - costGrandTotal)
+  const remaining = round2(data.summary.totalIncome - costGrandTotal);
 
   return {
     netIncome,
@@ -633,22 +633,22 @@ export function computeSalarySheet(
     costGrandTotal,
     remaining,
     employeePayrollTotal,
-  }
+  };
 }
 
 export function buildPriorBonusMap(
   month: string,
   sheets: Record<string, SalarySheetData>,
   getPrevious: (month: string) => string | null,
-  globalSettings: SalaryGlobalSettings
+  globalSettings: SalaryGlobalSettings,
 ): Record<string, number> {
   return collectPriorBonus(
     month,
     sheets,
     getPrevious,
     globalSettings,
-    new Set([month])
-  )
+    new Set([month]),
+  );
 }
 
 /**
@@ -660,11 +660,11 @@ function collectPriorBonus(
   sheets: Record<string, SalarySheetData>,
   getPrevious: (month: string) => string | null,
   globalSettings: SalaryGlobalSettings,
-  visited: Set<string>
+  visited: Set<string>,
 ): Record<string, number> {
-  const prev = getPrevious(month)
-  if (!prev || !sheets[prev] || visited.has(prev)) return {}
-  visited.add(prev)
+  const prev = getPrevious(month);
+  if (!prev || !sheets[prev] || visited.has(prev)) return {};
+  visited.add(prev);
   return priorBonusMapFromSheet(sheets[prev], {
     month: prev,
     globalSettings,
@@ -673,17 +673,17 @@ function collectPriorBonus(
       sheets,
       getPrevious,
       globalSettings,
-      visited
+      visited,
     ),
-  })
+  });
 }
 
 function priorBonusMapFromSheet(
   sheet: SalarySheetData,
-  context: SalaryComputeContext
+  context: SalaryComputeContext,
 ): Record<string, number> {
-  const computed = computeSalarySheet(sheet, context)
+  const computed = computeSalarySheet(sheet, context);
   return Object.fromEntries(
-    computed.employees.map((row) => [row.name, row.bonus])
-  )
+    computed.employees.map((row) => [row.name, row.bonus]),
+  );
 }

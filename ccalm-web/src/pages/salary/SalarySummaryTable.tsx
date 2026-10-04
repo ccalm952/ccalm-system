@@ -1,20 +1,20 @@
-import * as React from "react"
-import { Plus, X } from "lucide-react"
+import * as React from "react";
+import { Plus, X } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -22,35 +22,35 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import type { computeSalarySheet } from "@/lib/salary/calc"
-import { sumMaterialLines } from "@/lib/salary/defaults"
+} from "@/components/ui/tooltip";
+import type { computeSalarySheet } from "@/lib/salary/calc";
+import { sumMaterialLines } from "@/lib/salary/defaults";
 import {
   formatScheduleLeaveDays,
   scheduleLeaveSourceMonthLabel,
-} from "@/lib/salary/schedule-leave"
+} from "@/lib/salary/schedule-leave";
 import type {
   SalaryMaterialLine,
   SalaryOtherCostItem,
   SalarySheetData,
-} from "@/lib/salary/types"
+} from "@/lib/salary/types";
 
-import { NumInput, SummaryDecimalInput } from "./salary-table-inputs"
+import { NumInput, SummaryDecimalInput } from "./salary-table-inputs";
 
-type SalarySheetComputed = ReturnType<typeof computeSalarySheet>
+type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
 type CostLinePreview = {
-  id: string
-  name: string
-  amount: number
-}
+  id: string;
+  name: string;
+  amount: number;
+};
 
-type CostPreviewKey = "materials" | "other" | "grandTotal"
+type CostPreviewKey = "materials" | "other" | "grandTotal";
 
 function newMaterialLine(): SalaryMaterialLine {
   return {
@@ -60,7 +60,7 @@ function newMaterialLine(): SalaryMaterialLine {
         : `mat-${Date.now()}`,
     name: "",
     amount: 0,
-  }
+  };
 }
 
 function CostAmountPopover({
@@ -70,11 +70,11 @@ function CostAmountPopover({
   total,
   lines,
 }: {
-  previewKey: CostPreviewKey
-  openKey: CostPreviewKey | null
-  onOpenKeyChange: (key: CostPreviewKey | null) => void
-  total: number
-  lines: CostLinePreview[]
+  previewKey: CostPreviewKey;
+  openKey: CostPreviewKey | null;
+  onOpenKeyChange: (key: CostPreviewKey | null) => void;
+  total: number;
+  lines: CostLinePreview[];
 }) {
   return (
     <Popover
@@ -99,7 +99,7 @@ function CostAmountPopover({
         )}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 export function SalarySummaryTable({
@@ -109,21 +109,21 @@ export function SalarySummaryTable({
   patchSheet,
   otherCostItems,
 }: {
-  sheet: SalarySheetData
-  computed: SalarySheetComputed
-  month: string
-  patchSheet: (month: string, patch: SalarySheetData) => void
-  otherCostItems: SalaryOtherCostItem[]
+  sheet: SalarySheetData;
+  computed: SalarySheetComputed;
+  month: string;
+  patchSheet: (month: string, patch: SalarySheetData) => void;
+  otherCostItems: SalaryOtherCostItem[];
 }) {
-  const [materialsOpen, setMaterialsOpen] = React.useState(false)
-  const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([])
+  const [materialsOpen, setMaterialsOpen] = React.useState(false);
+  const [draftLines, setDraftLines] = React.useState<SalaryMaterialLine[]>([]);
   const [openPreview, setOpenPreview] = React.useState<CostPreviewKey | null>(
-    null
-  )
+    null,
+  );
 
   function openMaterials() {
-    setDraftLines(sheet.materialLines.map((line) => ({ ...line })))
-    setMaterialsOpen(true)
+    setDraftLines(sheet.materialLines.map((line) => ({ ...line })));
+    setMaterialsOpen(true);
   }
 
   function commitMaterials() {
@@ -133,14 +133,14 @@ export function SalarySummaryTable({
         name: line.name.trim(),
         amount: Math.max(0, line.amount),
       }))
-      .filter((line) => line.name.length > 0)
-    const materials = sumMaterialLines(materialLines)
+      .filter((line) => line.name.length > 0);
+    const materials = sumMaterialLines(materialLines);
     patchSheet(month, {
       ...sheet,
       materialLines,
       costItems: { ...sheet.costItems, materials },
-    })
-    setMaterialsOpen(false)
+    });
+    setMaterialsOpen(false);
   }
 
   const costGrandTotalLines: CostLinePreview[] = [
@@ -157,7 +157,7 @@ export function SalarySummaryTable({
       amount: computed.insuranceEmployerTotal,
     },
     { id: "employee", name: "员工", amount: computed.employeePayrollTotal },
-  ]
+  ];
 
   return (
     <>
@@ -355,12 +355,12 @@ export function SalarySummaryTable({
                     <Input
                       value={line.name}
                       onChange={(e) => {
-                        const name = e.target.value
+                        const name = e.target.value;
                         setDraftLines((prev) =>
                           prev.map((row) =>
-                            row.id === line.id ? { ...row, name } : row
-                          )
-                        )
+                            row.id === line.id ? { ...row, name } : row,
+                          ),
+                        );
                       }}
                     />
                   </TableCell>
@@ -372,8 +372,8 @@ export function SalarySummaryTable({
                           prev.map((row) =>
                             row.id === line.id
                               ? { ...row, amount: Math.max(0, amount) }
-                              : row
-                          )
+                              : row,
+                          ),
                         )
                       }
                     />
@@ -385,7 +385,7 @@ export function SalarySummaryTable({
                       size="icon"
                       onClick={() =>
                         setDraftLines((prev) =>
-                          prev.filter((row) => row.id !== line.id)
+                          prev.filter((row) => row.id !== line.id),
                         )
                       }
                     >
@@ -425,5 +425,5 @@ export function SalarySummaryTable({
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

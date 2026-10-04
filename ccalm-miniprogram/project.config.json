@@ -8,6 +8,18 @@
       },
       {
         "type": "file",
+        "value": "utils/config.local.js"
+      },
+      {
+        "type": "file",
+        "value": "eslint.config.mjs"
+      },
+      {
+        "type": "file",
+        "value": ".prettierignore"
+      },
+      {
+        "type": "file",
         "value": "README.md"
       },
       {
@@ -284,7 +296,7 @@
     "autoAudits": false,
     "newFeature": false,
     "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "useIsolateContext": true,
     "nodeModules": true,
     "enhance": true,

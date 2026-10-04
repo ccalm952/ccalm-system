@@ -1,7 +1,7 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -9,18 +9,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { buildPageList, PAGE_SIZE_OPTIONS } from "@/lib/pagination"
+} from "@/components/ui/select";
+import { buildPageList, PAGE_SIZE_OPTIONS } from "@/lib/pagination";
 
 type TablePaginationProps = {
-  selectedCount: number
-  total: number
-  currentPage: number
-  totalPages: number
-  pageSize: number
-  onPageChange: React.Dispatch<React.SetStateAction<number>>
-  onPageSizeChange: (pageSize: number) => void
-}
+  selectedCount: number;
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  onPageChange: React.Dispatch<React.SetStateAction<number>>;
+  onPageSizeChange: (pageSize: number) => void;
+};
 
 export function TablePagination({
   selectedCount,
@@ -31,7 +31,7 @@ export function TablePagination({
   onPageChange,
   onPageSizeChange,
 }: TablePaginationProps) {
-  const pageList = buildPageList(currentPage, totalPages)
+  const pageList = buildPageList(currentPage, totalPages);
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -48,8 +48,8 @@ export function TablePagination({
           <ChevronLeft />
         </Button>
         {pageList.map((pageNo, index) => {
-          const prev = pageList[index - 1]
-          const showEllipsis = prev != null && pageNo - prev > 1
+          const prev = pageList[index - 1];
+          const showEllipsis = prev != null && pageNo - prev > 1;
           return (
             <React.Fragment key={pageNo}>
               {showEllipsis ? <span>…</span> : null}
@@ -61,7 +61,7 @@ export function TablePagination({
                 {pageNo}
               </Button>
             </React.Fragment>
-          )
+          );
         })}
         <Button
           type="button"
@@ -75,7 +75,7 @@ export function TablePagination({
         <Select
           value={String(pageSize)}
           onValueChange={(value) => {
-            if (value) onPageSizeChange(Number(value))
+            if (value) onPageSizeChange(Number(value));
           }}
         >
           <SelectTrigger>
@@ -93,5 +93,5 @@ export function TablePagination({
         </Select>
       </div>
     </div>
-  )
+  );
 }

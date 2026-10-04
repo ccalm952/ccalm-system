@@ -1,7 +1,7 @@
-import * as React from "react"
+import * as React from "react";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -9,7 +9,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -17,66 +17,66 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { api } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { toast } from "sonner"
+} from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { toast } from "sonner";
 
-type StaffRow = { name: string; count: number }
+type StaffRow = { name: string; count: number };
 
 export function ImplantStatsPage() {
-  const [staffRows, setStaffRows] = React.useState<StaffRow[]>([])
+  const [staffRows, setStaffRows] = React.useState<StaffRow[]>([]);
   const [monthItems, setMonthItems] = React.useState<
     { label: string; value: string }[]
-  >([])
-  const [month, setMonth] = React.useState("")
-  const [monthTotal, setMonthTotal] = React.useState(0)
+  >([]);
+  const [month, setMonth] = React.useState("");
+  const [monthTotal, setMonthTotal] = React.useState(0);
 
   /** 与所选月份一致：人员次数、植体数量均按该月统计 */
   async function loadMonthStats(m: string) {
     if (!m) {
-      setStaffRows([])
-      setMonthTotal(0)
-      return
+      setStaffRows([]);
+      setMonthTotal(0);
+      return;
     }
     try {
       const [staffRes, n] = await Promise.all([
         api<StaffRow[]>(
           "GET",
-          `/implant/stats/staff?month=${encodeURIComponent(m)}`
+          `/implant/stats/staff?month=${encodeURIComponent(m)}`,
         ),
         api<number>(
           "GET",
-          `/implant/stats/month-total?month=${encodeURIComponent(m)}`
+          `/implant/stats/month-total?month=${encodeURIComponent(m)}`,
         ),
-      ])
-      setStaffRows(Array.isArray(staffRes) ? staffRes : [])
-      setMonthTotal(typeof n === "number" ? n : 0)
+      ]);
+      setStaffRows(Array.isArray(staffRes) ? staffRes : []);
+      setMonthTotal(typeof n === "number" ? n : 0);
     } catch {
-      setStaffRows([])
-      setMonthTotal(0)
+      setStaffRows([]);
+      setMonthTotal(0);
     }
   }
 
   async function loadAll() {
     try {
-      const monthsRes = await api<string[]>("GET", "/implant/stats/months")
-      const mlist = Array.isArray(monthsRes) ? monthsRes : []
-      setMonthItems(mlist.map((x) => ({ label: x, value: x })))
-      const first = mlist[0] ?? ""
-      setMonth(first)
-      await loadMonthStats(first)
+      const monthsRes = await api<string[]>("GET", "/implant/stats/months");
+      const mlist = Array.isArray(monthsRes) ? monthsRes : [];
+      setMonthItems(mlist.map((x) => ({ label: x, value: x })));
+      const first = mlist[0] ?? "";
+      setMonth(first);
+      await loadMonthStats(first);
     } catch (e) {
-      toast.error(errorMessage(e))
-      setStaffRows([])
-      setMonthItems([])
+      toast.error(errorMessage(e));
+      setStaffRows([]);
+      setMonthItems([]);
     }
   }
 
   React.useEffect(() => {
-    void loadAll()
+    void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅进入页面拉一次全量月份
-  }, [])
+  }, []);
 
   return (
     <div className="bg-background p-4">
@@ -88,9 +88,9 @@ export function ImplantStatsPage() {
               <Select
                 value={month}
                 onValueChange={(v: string | null) => {
-                  if (!v) return
-                  setMonth(v)
-                  void loadMonthStats(v)
+                  if (!v) return;
+                  setMonth(v);
+                  void loadMonthStats(v);
                 }}
                 items={monthItems}
               >
@@ -142,5 +142,5 @@ export function ImplantStatsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

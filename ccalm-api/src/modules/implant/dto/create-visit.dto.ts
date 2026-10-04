@@ -1,4 +1,4 @@
-import { Transform, Type } from "class-transformer"
+import { Transform, Type } from "class-transformer";
 import {
   IsArray,
   IsInt,
@@ -6,66 +6,66 @@ import {
   IsString,
   MinLength,
   ValidateNested,
-} from "class-validator"
+} from "class-validator";
 
 export class ImplantToothInputDto {
   @IsOptional()
   @IsString()
-  toothNo?: string
+  toothNo?: string;
 
   @IsOptional()
   @IsString()
-  implantBrand?: string
+  implantBrand?: string;
 
   @IsOptional()
   @IsString()
-  implantModel?: string
+  implantModel?: string;
 
   @IsOptional()
   @IsString()
-  toothRemark?: string
+  toothRemark?: string;
 }
 
 export class CreateImplantVisitDto {
   @IsString()
-  phone!: string
+  phone!: string;
 
   @IsString()
-  patientName!: string
+  patientName!: string;
 
   @Transform(({ value }) =>
-    value == null || value === "" ? "" : String(value).trim()
+    value == null || value === "" ? "" : String(value).trim(),
   )
   @IsString()
   @MinLength(1, { message: "请填写病历号" })
-  chartNo!: string
+  chartNo!: string;
 
   @IsOptional()
   @IsString()
-  birthday?: string | null
+  birthday?: string | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  age?: number | null
+  age?: number | null;
 
   @IsString()
-  visitDate!: string
-
-  @IsOptional()
-  @IsString()
-  remark?: string | null
+  visitDate!: string;
 
   @IsOptional()
   @IsString()
-  staff?: string | null
+  remark?: string | null;
 
   @IsOptional()
   @IsString()
-  followUp?: string | null
+  staff?: string | null;
+
+  @IsOptional()
+  @IsString()
+  followUp?: string | null;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ImplantToothInputDto)
-  teeth!: ImplantToothInputDto[]
+  teeth!: ImplantToothInputDto[];
 }

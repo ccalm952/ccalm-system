@@ -5,16 +5,16 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-} from "@/components/ui/combobox"
+} from "@/components/ui/combobox";
 
 export function ToothBrandCombobox({
   brands,
   value,
   onValueChange,
 }: {
-  brands: string[]
-  value: string
-  onValueChange: (v: string) => void
+  brands: string[];
+  value: string;
+  onValueChange: (v: string) => void;
 }) {
   return (
     <Combobox
@@ -34,7 +34,7 @@ export function ToothBrandCombobox({
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
-  )
+  );
 }
 
 export function ToothModelCombobox({
@@ -43,12 +43,12 @@ export function ToothModelCombobox({
   value,
   onValueChange,
 }: {
-  models: string[]
-  brand: string
-  value: string
-  onValueChange: (v: string) => void
+  models: string[];
+  brand: string;
+  value: string;
+  onValueChange: (v: string) => void;
 }) {
-  const disabled = !brand.trim()
+  const disabled = !brand.trim();
   return (
     <Combobox
       items={models}
@@ -70,5 +70,5 @@ export function ToothModelCombobox({
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
-  )
+  );
 }

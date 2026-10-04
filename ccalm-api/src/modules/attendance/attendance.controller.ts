@@ -10,33 +10,33 @@ import {
   Query,
   Req,
   Sse,
-} from "@nestjs/common"
-import type { Request } from "express"
-import type { Observable } from "rxjs"
+} from "@nestjs/common";
+import type { Request } from "express";
+import type { Observable } from "rxjs";
 
 import {
   actor,
   isAdmin,
   requireAdmin,
   userId as authUserId,
-} from "../../common/request-auth"
+} from "../../common/request-auth";
 
-import { UpsertGeofenceDto } from "./dto/geofence.dto"
+import { UpsertGeofenceDto } from "./dto/geofence.dto";
 import {
   CreateMakeupRequestDto,
   AdminMakeupDto,
-} from "./dto/makeup-request.dto"
-import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto"
-import { PunchDto } from "./dto/punch.dto"
-import { UnbindPunchDeviceDto } from "./dto/punch-device.dto"
-import { UpsertShiftDto } from "./dto/shift.dto"
-import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto"
-import { AttendanceMakeupService } from "./services/attendance-makeup.service"
-import { AttendancePunchDeviceUnbindService } from "./services/attendance-punch-device-unbind.service"
-import { AttendanceScheduleService } from "./services/attendance-schedule.service"
-import { AttendanceService } from "./attendance.service"
-import { ChinaHolidaysService } from "./services/china-holidays.service"
-import { MakeupEventsService } from "./services/makeup-events.service"
+} from "./dto/makeup-request.dto";
+import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto";
+import { PunchDto } from "./dto/punch.dto";
+import { UnbindPunchDeviceDto } from "./dto/punch-device.dto";
+import { UpsertShiftDto } from "./dto/shift.dto";
+import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto";
+import { AttendanceMakeupService } from "./services/attendance-makeup.service";
+import { AttendancePunchDeviceUnbindService } from "./services/attendance-punch-device-unbind.service";
+import { AttendanceScheduleService } from "./services/attendance-schedule.service";
+import { AttendanceService } from "./attendance.service";
+import { ChinaHolidaysService } from "./services/china-holidays.service";
+import { MakeupEventsService } from "./services/makeup-events.service";
 
 @Controller("attendance")
 export class AttendanceController {
@@ -46,231 +46,231 @@ export class AttendanceController {
     private readonly punchDeviceUnbind: AttendancePunchDeviceUnbindService,
     private readonly schedule: AttendanceScheduleService,
     private readonly holidays: ChinaHolidaysService,
-    private readonly makeupEvents: MakeupEventsService
+    private readonly makeupEvents: MakeupEventsService,
   ) {}
 
   @Sse("makeup-events")
   makeupEventsStream(@Req() req: Request): Observable<MessageEvent> {
-    const a = actor(req)
-    return this.makeupEvents.stream(a.userId, a.role)
+    const a = actor(req);
+    return this.makeupEvents.stream(a.userId, a.role);
   }
 
   @Get("geofence")
   async getGeofence() {
-    return await this.attendance.getGeofence()
+    return await this.attendance.getGeofence();
   }
 
   @Put("geofence")
   async putGeofence(@Req() req: Request, @Body() dto: UpsertGeofenceDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.attendance.upsertGeofence(dto)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.attendance.upsertGeofence(dto);
   }
 
   @Get("shift")
   async getShift() {
-    return await this.attendance.getShift()
+    return await this.attendance.getShift();
   }
 
   @Put("shift")
   async putShift(@Req() req: Request, @Body() dto: UpsertShiftDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.attendance.upsertShift(dto)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.attendance.upsertShift(dto);
   }
 
   @Post("punch")
   async punch(@Req() req: Request, @Body() dto: PunchDto) {
-    return await this.attendance.punch(authUserId(req), dto)
+    return await this.attendance.punch(authUserId(req), dto);
   }
 
   @Get("punch-device")
   async getPunchDevice(
     @Req() req: Request,
-    @Query("deviceToken") deviceToken?: string
+    @Query("deviceToken") deviceToken?: string,
   ) {
     return await this.attendance.getPunchDevice(
       authUserId(req),
-      deviceToken ?? ""
-    )
+      deviceToken ?? "",
+    );
   }
 
   @Get("punch-devices")
   async listPunchDevices(@Req() req: Request) {
-    requireAdmin(req, "仅管理员可查看打卡设备")
-    return await this.attendance.listPunchDevices()
+    requireAdmin(req, "仅管理员可查看打卡设备");
+    return await this.attendance.listPunchDevices();
   }
 
   @Post("punch-device/unbind")
   async unbindPunchDevice(
     @Req() req: Request,
-    @Body() dto: UnbindPunchDeviceDto
+    @Body() dto: UnbindPunchDeviceDto,
   ) {
-    requireAdmin(req, "仅管理员可解绑打卡设备")
-    return await this.attendance.unbindPunchDevice(dto.userId)
+    requireAdmin(req, "仅管理员可解绑打卡设备");
+    return await this.attendance.unbindPunchDevice(dto.userId);
   }
 
   @Post("punch-device/unbind-requests")
   async createPunchDeviceUnbindRequest(@Req() req: Request) {
-    return await this.punchDeviceUnbind.createRequest(authUserId(req))
+    return await this.punchDeviceUnbind.createRequest(authUserId(req));
   }
 
   @Get("punch-device/unbind-requests/mine")
   async listMyPunchDeviceUnbindRequests(
     @Req() req: Request,
-    @Query("status") status?: string
+    @Query("status") status?: string,
   ) {
-    return await this.punchDeviceUnbind.listMine(authUserId(req), status)
+    return await this.punchDeviceUnbind.listMine(authUserId(req), status);
   }
 
   @Get("punch-device/unbind-requests")
   async listPunchDeviceUnbindRequests(
     @Req() req: Request,
-    @Query("status") status?: string
+    @Query("status") status?: string,
   ) {
-    requireAdmin(req, "仅管理员可查看解绑申请")
-    return await this.punchDeviceUnbind.listForAdmin(status)
+    requireAdmin(req, "仅管理员可查看解绑申请");
+    return await this.punchDeviceUnbind.listForAdmin(status);
   }
 
   @Post("punch-device/unbind-requests/:id/approve")
   async approvePunchDeviceUnbindRequest(
     @Req() req: Request,
-    @Param("id") id: string
+    @Param("id") id: string,
   ) {
-    requireAdmin(req, "仅管理员可处理解绑申请")
-    return await this.punchDeviceUnbind.approve(id, authUserId(req))
+    requireAdmin(req, "仅管理员可处理解绑申请");
+    return await this.punchDeviceUnbind.approve(id, authUserId(req));
   }
 
   @Post("punch-device/unbind-requests/:id/reject")
   async rejectPunchDeviceUnbindRequest(
     @Req() req: Request,
-    @Param("id") id: string
+    @Param("id") id: string,
   ) {
-    requireAdmin(req, "仅管理员可处理解绑申请")
-    return await this.punchDeviceUnbind.reject(id, authUserId(req))
+    requireAdmin(req, "仅管理员可处理解绑申请");
+    return await this.punchDeviceUnbind.reject(id, authUserId(req));
   }
 
   @Get("bundle")
   async bundle(@Req() req: Request, @Query("month") month: string) {
-    return await this.attendance.attendanceBundle(authUserId(req), month)
+    return await this.attendance.attendanceBundle(authUserId(req), month);
   }
 
   @Get("summary/monthly-all")
   async monthlyAll(
     @Req() req: Request,
     @Query("month") month: string,
-    @Query("detail") detail?: string
+    @Query("detail") detail?: string,
   ) {
-    requireAdmin(req, "仅管理员可查看全员考勤统计")
-    return await this.attendance.monthlySummariesForAll(month, detail !== "0")
+    requireAdmin(req, "仅管理员可查看全员考勤统计");
+    return await this.attendance.monthlySummariesForAll(month, detail !== "0");
   }
 
   @Get("summary/monthly")
   async monthly(
     @Req() req: Request,
     @Query("month") month: string,
-    @Query("userId") userId?: string
+    @Query("userId") userId?: string,
   ) {
-    const targetUserId = userId ? String(userId) : authUserId(req)
+    const targetUserId = userId ? String(userId) : authUserId(req);
     if (userId && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可查看他人考勤统计")
+      throw new ForbiddenException("仅管理员可查看他人考勤统计");
     }
-    return await this.attendance.monthlySummary(targetUserId, month)
+    return await this.attendance.monthlySummary(targetUserId, month);
   }
 
   @Post("makeup-requests")
   async createMakeupRequest(
     @Req() req: Request,
-    @Body() dto: CreateMakeupRequestDto
+    @Body() dto: CreateMakeupRequestDto,
   ) {
-    return await this.makeup.createRequest(authUserId(req), dto)
+    return await this.makeup.createRequest(authUserId(req), dto);
   }
 
   @Post("makeup")
   async directMakeup(@Req() req: Request, @Body() dto: AdminMakeupDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.makeup.directMakeup(dto)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.makeup.directMakeup(dto);
   }
 
   @Post("rest")
   async declareRest(@Req() req: Request, @Body() dto: DeclareRestDto) {
-    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req)
+    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req);
     if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可为他人登记休息")
+      throw new ForbiddenException("仅管理员可为他人登记休息");
     }
-    return await this.schedule.declareRest(targetUserId, dto.date, dto.half)
+    return await this.schedule.declareRest(targetUserId, dto.date, dto.half);
   }
 
   @Post("rest/clear")
   async clearRest(@Req() req: Request, @Body() dto: ClearRestDto) {
-    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req)
+    const targetUserId = dto.userId ? String(dto.userId) : authUserId(req);
     if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可为他人取消休息")
+      throw new ForbiddenException("仅管理员可为他人取消休息");
     }
-    return await this.schedule.clearRestHalf(targetUserId, dto.date, dto.half)
+    return await this.schedule.clearRestHalf(targetUserId, dto.date, dto.half);
   }
 
   @Get("makeup-requests/mine")
   async listMyMakeupRequests(
     @Req() req: Request,
-    @Query("status") status?: string
+    @Query("status") status?: string,
   ) {
-    return await this.makeup.listMine(authUserId(req), status)
+    return await this.makeup.listMine(authUserId(req), status);
   }
 
   @Get("makeup-requests")
   async listMakeupRequests(
     @Req() req: Request,
-    @Query("status") status?: string
+    @Query("status") status?: string,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.makeup.listForAdmin(status)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.makeup.listForAdmin(status);
   }
 
   @Post("makeup-requests/:id/approve")
   async approveMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.makeup.approve(id, authUserId(req))
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.makeup.approve(id, authUserId(req));
   }
 
   @Post("makeup-requests/:id/reject")
   async rejectMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.makeup.reject(id, authUserId(req))
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.makeup.reject(id, authUserId(req));
   }
 
   @Get("schedule")
   async getSchedule(
     @Query("month") month: string,
-    @Query("includeOvertime") includeOvertime?: string
+    @Query("includeOvertime") includeOvertime?: string,
   ) {
-    const data = await this.schedule.getMonth(month)
+    const data = await this.schedule.getMonth(month);
     const overtimeByUser =
       includeOvertime === "0"
         ? new Map<string, string>()
         : await this.attendance.monthlyOvertimeForUsers(
             month,
-            data.users.map((u) => u.userId)
-          )
+            data.users.map((u) => u.userId),
+          );
     return {
       ...data,
       users: data.users.map((u) => ({
         ...u,
         overtimeStr: overtimeByUser.get(u.userId) ?? "-",
       })),
-    }
+    };
   }
 
   @Get("holidays")
   async getHolidays(@Query("year") year?: string) {
-    const y = year ? Number(year) : new Date().getFullYear()
-    return await this.holidays.getYear(y)
+    const y = year ? Number(year) : new Date().getFullYear();
+    return await this.holidays.getYear(y);
   }
 
   @Put("schedule/month-config")
   async putScheduleMonthConfig(
     @Req() req: Request,
-    @Body() dto: UpsertScheduleMonthConfigDto
+    @Body() dto: UpsertScheduleMonthConfigDto,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次")
-    return await this.schedule.upsertMonthConfig(dto)
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.schedule.upsertMonthConfig(dto);
   }
 }

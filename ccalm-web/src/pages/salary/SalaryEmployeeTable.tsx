@@ -1,7 +1,7 @@
-import * as React from "react"
-import { Plus, X } from "lucide-react"
+import * as React from "react";
+import { Plus, X } from "lucide-react";
 
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -9,27 +9,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { round2, type computeSalarySheet } from "@/lib/salary/calc"
-import type { SalaryEmployeeInput } from "@/lib/salary/types"
+} from "@/components/ui/tooltip";
+import { round2, type computeSalarySheet } from "@/lib/salary/calc";
+import type { SalaryEmployeeInput } from "@/lib/salary/types";
 
 import {
   RatePercentInput,
   SalaryOutlineIconButton,
   SummaryDecimalInput,
-} from "./salary-table-inputs"
+} from "./salary-table-inputs";
 
-type SalarySheetComputed = ReturnType<typeof computeSalarySheet>
+type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
 function sumActualReceiptTotal(computed: SalarySheetComputed): number {
   return round2(
-    computed.employees.reduce((sum, row) => sum + row.actualReceipt, 0)
-  )
+    computed.employees.reduce((sum, row) => sum + row.actualReceipt, 0),
+  );
 }
 
 function deductionTooltip(bonusMode: SalaryEmployeeInput["bonusMode"]): string {
@@ -38,9 +38,9 @@ function deductionTooltip(bonusMode: SalaryEmployeeInput["bonusMode"]): string {
     bonusMode === "lu_pool" ||
     bonusMode === "xu_pool"
   ) {
-    return "护士扣减"
+    return "护士扣减";
   }
-  return "医生扣减"
+  return "医生扣减";
 }
 
 export function SalaryEmployeeTable({
@@ -49,15 +49,15 @@ export function SalaryEmployeeTable({
   removeEmployee,
   onAddEmployee,
 }: {
-  computed: SalarySheetComputed
-  updateEmployee: (index: number, patch: Partial<SalaryEmployeeInput>) => void
-  removeEmployee: (index: number) => void
-  onAddEmployee: () => void
+  computed: SalarySheetComputed;
+  updateEmployee: (index: number, patch: Partial<SalaryEmployeeInput>) => void;
+  removeEmployee: (index: number) => void;
+  onAddEmployee: () => void;
 }) {
   const actualReceiptTotal = React.useMemo(
     () => sumActualReceiptTotal(computed),
-    [computed]
-  )
+    [computed],
+  );
 
   return (
     <Table className="table-fixed">
@@ -205,5 +205,5 @@ export function SalaryEmployeeTable({
         </TableRow>
       </TableBody>
     </Table>
-  )
+  );
 }

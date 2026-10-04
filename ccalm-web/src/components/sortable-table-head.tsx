@@ -1,7 +1,7 @@
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 
-import { TableHead } from "@/components/ui/table"
-import { cn } from "@/lib/utils"
+import { TableHead } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export function SortableTableHead<T extends string>({
   label,
@@ -11,15 +11,15 @@ export function SortableTableHead<T extends string>({
   className,
   align = "center",
 }: {
-  label: string
-  sortKey: T
-  activeSort: { key: T; dir: "asc" | "desc" } | null
-  onSort: (key: T) => void
-  className?: string
-  align?: "left" | "center"
+  label: string;
+  sortKey: T;
+  activeSort: { key: T; dir: "asc" | "desc" } | null;
+  onSort: (key: T) => void;
+  className?: string;
+  align?: "left" | "center";
 }) {
-  const active = activeSort?.key === sortKey
-  const dir = active ? activeSort.dir : null
+  const active = activeSort?.key === sortKey;
+  const dir = active ? activeSort.dir : null;
 
   return (
     <TableHead className={cn(align === "center" && "text-center", className)}>
@@ -27,7 +27,7 @@ export function SortableTableHead<T extends string>({
         type="button"
         className={cn(
           "inline-flex w-full items-center gap-1 font-medium hover:text-foreground",
-          align === "center" ? "justify-center" : "justify-start"
+          align === "center" ? "justify-center" : "justify-start",
         )}
         onClick={() => onSort(sortKey)}
       >
@@ -41,5 +41,5 @@ export function SortableTableHead<T extends string>({
         )}
       </button>
     </TableHead>
-  )
+  );
 }

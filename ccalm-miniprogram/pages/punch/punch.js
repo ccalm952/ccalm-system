@@ -1,7 +1,7 @@
-const { toast, success, fail } = require("../../utils/toast")
-const { request, getLocation } = require("../../utils/api")
-const { getStoredAuth } = require("../../utils/auth")
-const { reverseGeocode } = require("../../utils/amap")
+const { toast, success, fail } = require("../../utils/toast");
+const { request, getLocation } = require("../../utils/api");
+const { getStoredAuth } = require("../../utils/auth");
+const { reverseGeocode } = require("../../utils/amap");
 const {
   monthKey,
   todayYmd,
@@ -12,8 +12,9 @@ const {
   formatDayCount,
   isWithinEditWindow,
   buildEditWindowContext,
-} = require("../../utils/time")
+} = require("../../utils/time");
 const {
+  PUNCH_TYPES,
   PUNCH_LABEL,
   DEFAULT_MAKEUP_TIME,
   insideFence,
@@ -24,22 +25,22 @@ const {
   canEmployeeMakeup,
   halfHasPunch,
   slotTime,
-} = require("../../utils/punch-logic")
-const { wallpaperSrc, bindWallpaper } = require("../../utils/theme")
+} = require("../../utils/punch-logic");
+const { wallpaperSrc, bindWallpaper } = require("../../utils/theme");
 
 const SLOT_META = {
   morningIn: { type: "morning_in", half: "morning", kind: "in" },
   morningOut: { type: "morning_out", half: "morning", kind: "out" },
   afternoonIn: { type: "afternoon_in", half: "afternoon", kind: "in" },
   afternoonOut: { type: "afternoon_out", half: "afternoon", kind: "out" },
-}
+};
 
 function hasOvertime(str) {
-  return !!(str && str !== "0" && str !== "0分钟" && str !== "0小时")
+  return !!(str && str !== "0" && str !== "0分钟" && str !== "0小时");
 }
 
 /** 对齐网页：同一次小程序会话只自动定位一次 */
-let didSessionAutoLocate = false
+let didSessionAutoLocate = false;
 
 Page({
   data: {
@@ -76,113 +77,102 @@ Page({
   todayRecords: [],
   monthSummary: null,
   makeupRequests: [],
-  pendingAction: null,
   restPending: null,
   rowMap: {},
 
   onLoad() {
-    this.unbindTheme = bindWallpaper(this)
+    this.unbindTheme = bindWallpaper(this);
   },
 
   onShow() {
-    const auth = getStoredAuth()
+    const auth = getStoredAuth();
     if (!auth || !auth.accessToken || !auth.deviceToken) {
-      wx.reLaunch({ url: "/pages/login/login" })
-      return
+      wx.reLaunch({ url: "/pages/login/login" });
+      return;
     }
-    this.setData({ todayLabel: formatDateLabel() })
-    this.tick()
-    if (this.timer) clearInterval(this.timer)
-    this.timer = setInterval(() => this.tick(), 1000)
-    this.bootstrap().catch(() => {})
+    this.setData({ todayLabel: formatDateLabel() });
+    this.tick();
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => this.tick(), 1000);
+    this.bootstrap().catch(() => {});
   },
 
   async bootstrap() {
-    await this.reloadAll()
-    if (didSessionAutoLocate) return
-    didSessionAutoLocate = true
-    await this.onRefreshLocate()
+    await this.reloadAll();
+    if (didSessionAutoLocate) return;
+    didSessionAutoLocate = true;
+    await this.onRefreshLocate();
   },
 
   onHide() {
     if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
+      clearInterval(this.timer);
+      this.timer = null;
     }
   },
 
   onUnload() {
     if (this.timer) {
-      clearInterval(this.timer)
-      this.timer = null
+      clearInterval(this.timer);
+      this.timer = null;
     }
     if (this.unbindTheme) {
-      this.unbindTheme()
-      this.unbindTheme = null
+      this.unbindTheme();
+      this.unbindTheme = null;
     }
   },
 
   tick() {
-    this.setData({ nowText: formatClock() })
+    this.setData({ nowText: formatClock() });
   },
 
   async reloadAll() {
     try {
-      const month = monthKey()
+      const month = monthKey();
       const [bundle, geofence, makeups] = await Promise.all([
         request("GET", `/attendance/bundle?month=${month}`),
         request("GET", "/attendance/geofence"),
         request("GET", "/attendance/makeup-requests/mine?status=pending").catch(
-          () => []
+          () => [],
         ),
-      ])
-      this.shift = bundle.shift || null
-      this.fence = geofence || null
-      this.todayRecords = Array.isArray(bundle.today) ? bundle.today : []
-      this.monthSummary = bundle.monthly || null
-      this.makeupRequests = Array.isArray(makeups) ? makeups : []
+      ]);
+      this.shift = bundle.shift || null;
+      this.fence = geofence || null;
+      this.todayRecords = Array.isArray(bundle.today) ? bundle.today : [];
+      this.monthSummary = bundle.monthly || null;
+      this.makeupRequests = Array.isArray(makeups) ? makeups : [];
       try {
-        this.applyView()
+        this.applyView();
       } catch (viewErr) {
-        console.error("applyView failed", viewErr)
-        fail("页面渲染失败")
+        console.error("applyView failed", viewErr);
+        fail("页面渲染失败");
       }
     } catch (err) {
-      if (err.status === 401) {
-        wx.reLaunch({ url: "/pages/login/login" })
-        return
-      }
-      fail(err.message || "加载失败")
+      if (err.status === 401) return;
+      fail(err.message || "加载失败");
     }
   },
 
   applyView() {
-    const map = todayTypeMap(this.todayRecords)
-    const todaySteps = [
-      "morning_in",
-      "morning_out",
-      "afternoon_in",
-      "afternoon_out",
-    ]
-      .filter((t) => map[t])
-      .map((t) => {
-        const r = map[t]
-        const lat = Number(r.latitude)
-        const lng = Number(r.longitude)
-        const desc = r.address
-          ? r.address
-          : Number.isFinite(lat) && Number.isFinite(lng)
-            ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-            : ""
-        return {
-          type: t,
-          time: formatHm(r.punchTime),
-          text: PUNCH_LABEL[t],
-          desc,
-        }
-      })
+    const map = todayTypeMap(this.todayRecords);
+    const todaySteps = PUNCH_TYPES.filter((t) => map[t]).map((t) => {
+      const r = map[t];
+      const lat = Number(r.latitude);
+      const lng = Number(r.longitude);
+      const desc = r.address
+        ? r.address
+        : Number.isFinite(lat) && Number.isFinite(lng)
+          ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          : "";
+      return {
+        type: t,
+        time: formatHm(r.punchTime),
+        text: PUNCH_LABEL[t],
+        desc,
+      };
+    });
 
-    const monthly = this.monthSummary || {}
+    const monthly = this.monthSummary || {};
     const stats = [
       {
         label: "出勤天数",
@@ -201,9 +191,7 @@ Page({
       },
       {
         label: "加班",
-        value: hasOvertime(monthly.overtimeStr)
-          ? monthly.overtimeStr
-          : "0",
+        value: hasOvertime(monthly.overtimeStr) ? monthly.overtimeStr : "0",
         tone: hasOvertime(monthly.overtimeStr) ? "" : "muted",
       },
       {
@@ -211,18 +199,18 @@ Page({
         value: formatDayCount(monthly.remainingLeave ?? 0),
         tone: "",
       },
-    ]
+    ];
 
     const gate = this.shift
       ? {
           morningInWindowEnd: this.shift.morningInWindowEnd,
           afternoonInWindowEnd: this.shift.afternoonInWindowEnd,
         }
-      : null
-    const editCtx = buildEditWindowContext()
-    const rowMap = {}
+      : null;
+    const editCtx = buildEditWindowContext();
+    const rowMap = {};
     const monthRows = (monthly.rows || []).map((row) => {
-      rowMap[row.date] = row
+      rowMap[row.date] = row;
       return {
         date: row.date,
         day: dayOfMonth(row.date),
@@ -230,27 +218,27 @@ Page({
         morningOut: this.buildCell(row, "morningOut", gate, editCtx),
         afternoonIn: this.buildCell(row, "afternoonIn", gate, editCtx),
         afternoonOut: this.buildCell(row, "afternoonOut", gate, editCtx),
-      }
-    })
-    this.rowMap = rowMap
+      };
+    });
+    this.rowMap = rowMap;
 
     this.setData({
       todaySteps,
       stats,
       monthRows,
-    })
+    });
   },
 
   buildCell(row, slotKey, gate, editCtx) {
-    const meta = SLOT_META[slotKey]
-    const time = slotTime(row, meta.type)
+    const meta = SLOT_META[slotKey];
+    const time = slotTime(row, meta.type);
 
     if (time) {
-      return { text: time, tone: "plain", action: null }
+      return { text: time, tone: "plain", action: null };
     }
 
     if (meta.kind === "out" && isHalfRest(row.declaredRest, meta.half)) {
-      return { text: "—", tone: "muted", action: null }
+      return { text: "—", tone: "muted", action: null };
     }
 
     if (meta.kind === "in" && isHalfRest(row.declaredRest, meta.half)) {
@@ -258,105 +246,104 @@ Page({
         text: "休息",
         tone: "muted",
         action: { kind: "clearRest", half: meta.half },
-      }
+      };
     }
 
     const pending = this.makeupRequests.some(
-      (r) => r.date === row.date && r.type === meta.type && r.status === "pending"
-    )
-    const inWindow = isWithinEditWindow(row.date, editCtx)
-    const gateOk = passesMakeupTodayGate(row.date, meta.type, gate)
+      (r) =>
+        r.date === row.date && r.type === meta.type && r.status === "pending",
+    );
+    const inWindow = isWithinEditWindow(row.date, editCtx);
+    const gateOk = passesMakeupTodayGate(row.date, meta.type, gate);
     const canMakeup =
-      inWindow &&
-      gateOk &&
-      canEmployeeMakeup(row, meta.type, gate) &&
-      !pending
+      inWindow && gateOk && canEmployeeMakeup(row, meta.type) && !pending;
 
     const canRest =
       meta.kind === "in" &&
       inWindow &&
       !halfHasPunch(row, meta.half) &&
-      !isHalfRest(row.declaredRest, meta.half)
+      !isHalfRest(row.declaredRest, meta.half);
 
     if (pending && !canRest) {
-      return { text: "审批中", tone: "pending", action: null }
+      return { text: "审批中", tone: "pending", action: null };
     }
 
     if (!canRest && !canMakeup && !pending) {
-      return { text: "", tone: "muted", action: null }
+      return { text: "", tone: "muted", action: null };
     }
 
-    const actions = []
-    if (canRest) actions.push({ name: "登记休息", kind: "declareRest", half: meta.half })
-    if (pending) actions.push({ name: "审批中", kind: "noop", disabled: true })
+    const actions = [];
+    if (canRest)
+      actions.push({ name: "登记休息", kind: "declareRest", half: meta.half });
     if (canMakeup)
-      actions.push({ name: "申请补卡", kind: "makeup", type: meta.type })
+      actions.push({ name: "申请补卡", kind: "makeup", type: meta.type });
 
-    let text = ""
-    let tone = "cell"
-    if (canRest && canMakeup) text = "休息/补卡"
-    else if (canRest) text = "休息"
-    else if (pending) {
-      text = "审批中"
-      tone = "pending"
-    } else if (canMakeup) text = "补卡"
+    let text = "";
+    let tone = "cell";
+    if (canRest && canMakeup) text = "休息/补卡";
+    else if (canRest) text = "休息";
+    else if (canMakeup) text = "补卡";
 
     return {
       text,
       tone,
       action: { kind: "sheet", actions },
-    }
+    };
   },
 
   async onRefreshLocate() {
-    if (this.data.locating || this.data.punching) return
-    this.setData({ locating: true, locError: "", punching: false })
+    if (this.data.locating || this.data.punching) return;
+    this.setData({ locating: true, locError: "", punching: false });
     try {
-      const loc = await getLocation()
-      let address = ""
-      let geoError = ""
+      const loc = await getLocation();
+      let address = "";
+      let geoError = "";
       try {
-        const geo = await reverseGeocode(loc.latitude, loc.longitude)
-        address = (geo && geo.address) || ""
-        geoError = (geo && geo.error) || ""
+        const geo = await reverseGeocode(loc.latitude, loc.longitude);
+        address = (geo && geo.address) || "";
+        geoError = (geo && geo.error) || "";
       } catch (_) {
-        geoError = "地址解析失败"
+        geoError = "地址解析失败";
       }
       this.setData({
         lat: loc.latitude,
         lng: loc.longitude,
         address:
-          address ||
-          `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`,
+          address || `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`,
         locating: false,
-      })
+      });
       if (geoError) {
-        toast(geoError)
+        toast(geoError);
       }
-      await this.autoPunch(loc.latitude, loc.longitude, address)
+      await this.autoPunch(loc.latitude, loc.longitude, address);
     } catch (err) {
+      if (err.status === 401) return;
       this.setData({
         locating: false,
         locError: err.message || "定位失败",
-      })
-      fail(err.message || "定位失败")
+      });
+      fail(err.message || "定位失败");
     }
   },
 
   async autoPunch(lat, lng, address) {
     if (!this.shift) {
-      toast("班次未加载")
-      return
+      toast("班次未加载");
+      return;
     }
-    if (this.fence && this.fence.enabled && !insideFence(lat, lng, this.fence)) {
-      toast("不在打卡范围内")
-      return
+    if (
+      this.fence &&
+      this.fence.enabled &&
+      !insideFence(lat, lng, this.fence)
+    ) {
+      toast("不在打卡范围内");
+      return;
     }
     const todayRow =
       (this.monthSummary &&
         (this.monthSummary.rows || []).find((r) => r.date === todayYmd())) ||
-      null
-    const declaredRest = todayRow ? todayRow.declaredRest || null : null
+      null;
+    const declaredRest = todayRow ? todayRow.declaredRest || null : null;
     const type = pickQuickPunchType({
       lat,
       lng,
@@ -365,14 +352,14 @@ Page({
       map: todayTypeMap(this.todayRecords),
       declaredRest,
       at: new Date(),
-    })
+    });
     if (!type) {
-      toast("不在打卡时间内")
-      return
+      toast("不在打卡时间内");
+      return;
     }
 
-    const auth = getStoredAuth()
-    this.setData({ punching: true })
+    const auth = getStoredAuth();
+    this.setData({ punching: true });
     try {
       await request("POST", "/attendance/punch", {
         type,
@@ -380,121 +367,116 @@ Page({
         longitude: lng,
         address: address || "",
         deviceToken: auth.deviceToken,
-      })
-      success("打卡成功")
-      await this.reloadAll()
+      });
+      success("打卡成功");
+      await this.reloadAll();
     } catch (err) {
-      fail(err.message || "打卡失败")
+      if (err.status !== 401) fail(err.message || "打卡失败");
     } finally {
-      this.setData({ punching: false })
+      this.setData({ punching: false });
     }
   },
 
   onCellTap(e) {
-    const { date, slot } = e.currentTarget.dataset
-    const viewRow = (this.data.monthRows || []).find((r) => r.date === date)
-    if (!viewRow) return
-    const cell = viewRow[slot]
-    if (!cell || !cell.action) return
+    const { date, slot } = e.currentTarget.dataset;
+    const viewRow = (this.data.monthRows || []).find((r) => r.date === date);
+    if (!viewRow) return;
+    const cell = viewRow[slot];
+    if (!cell || !cell.action) return;
 
     if (cell.action.kind === "clearRest") {
-      this.openRestDialog(date, cell.action.half, "clear")
-      return
+      this.openRestDialog(date, cell.action.half, "clear");
+      return;
     }
     if (cell.action.kind === "sheet") {
-      const actions = (cell.action.actions || [])
-        .filter((a) => a.kind !== "noop")
-        .map((a) => ({
-          name: a.name,
-          kind: a.kind,
-          half: a.half,
-          type: a.type,
-          date,
-        }))
-      if (!actions.length) return
+      const actions = (cell.action.actions || []).map((a) => ({
+        name: a.name,
+        kind: a.kind,
+        half: a.half,
+        type: a.type,
+        date,
+      }));
+      if (!actions.length) return;
       if (actions.length === 1) {
-        this.handleAction(actions[0])
-        return
+        this.handleAction(actions[0]);
+        return;
       }
-      this.pendingAction = { date }
       this.setData({
         actionSheetShow: true,
         actionSheetActions: actions,
-      })
+      });
     }
   },
 
   onActionClose() {
-    this.setData({ actionSheetShow: false })
+    this.setData({ actionSheetShow: false });
   },
 
   onActionSelect(e) {
-    const action = e.detail
-    this.setData({ actionSheetShow: false })
-    this.handleAction(action)
+    const action = e.detail;
+    this.setData({ actionSheetShow: false });
+    this.handleAction(action);
   },
 
   handleAction(action) {
-    if (!action) return
+    if (!action) return;
     if (action.kind === "declareRest") {
-      this.openRestDialog(action.date, action.half, "declare")
-      return
+      this.openRestDialog(action.date, action.half, "declare");
+      return;
     }
     if (action.kind === "makeup") {
-      this.openMakeup(action.date, action.type)
+      this.openMakeup(action.date, action.type);
     }
   },
 
   openRestDialog(date, half, mode) {
-    const row = this.rowMap[date]
-    const halfLabel = half === "morning" ? "上午" : "下午"
-    const dayLabel = `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`
-    let message = ""
-    if (mode === "clear") {
-      message = `确认取消 ${dayLabel} ${halfLabel}休息登记？`
-    } else if (
-      (half === "morning" && row && row.declaredRest === "afternoon_rest") ||
-      (half === "afternoon" && row && row.declaredRest === "morning_rest")
-    ) {
-      message = `确认将 ${dayLabel} 登记为全天休息？`
-    } else {
-      message = `确认将 ${dayLabel} ${halfLabel}登记为休息？`
-    }
-    this.restPending = { date, half, mode }
+    const row = this.rowMap[date];
+    const halfLabel = half === "morning" ? "上午" : "下午";
+    const dayLabel = `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`;
+    const message =
+      mode === "clear"
+        ? `确认取消 ${dayLabel} ${halfLabel}休息登记？`
+        : (half === "morning" &&
+              row &&
+              row.declaredRest === "afternoon_rest") ||
+            (half === "afternoon" && row && row.declaredRest === "morning_rest")
+          ? `确认将 ${dayLabel} 登记为全天休息？`
+          : `确认将 ${dayLabel} ${halfLabel}登记为休息？`;
+    this.restPending = { date, half, mode };
     this.setData({
       restDialogShow: true,
       restDialogTitle: mode === "clear" ? "取消休息" : "登记休息",
       restDialogMessage: message,
-    })
+    });
   },
 
   onRestClose() {
-    this.setData({ restDialogShow: false })
-    this.restPending = null
+    this.setData({ restDialogShow: false });
+    this.restPending = null;
   },
 
   async onRestConfirm() {
-    const pending = this.restPending
-    if (!pending) return
+    const pending = this.restPending;
+    if (!pending) return;
     try {
       if (pending.mode === "declare") {
         await request("POST", "/attendance/rest", {
           date: pending.date,
           half: pending.half,
-        })
-        success("休息登记成功")
+        });
+        success("休息登记成功");
       } else {
         await request("POST", "/attendance/rest/clear", {
           date: pending.date,
           half: pending.half,
-        })
-        success("已取消休息登记")
+        });
+        success("已取消休息登记");
       }
-      this.setData({ restDialogShow: false })
-      this.restPending = null
-      await this.reloadAll()
+      this.setData({ restDialogShow: false });
+      this.restPending = null;
+      await this.reloadAll();
     } catch (err) {
-      fail(err.message || "操作失败")
+      if (err.status !== 401) fail(err.message || "操作失败");
     }
   },
 
@@ -506,33 +488,32 @@ Page({
       makeupType: type,
       makeupTypeLabel: PUNCH_LABEL[type] || type,
       makeupTime: DEFAULT_MAKEUP_TIME[type] || "08:30",
-    })
+    });
   },
 
   onMakeupClose() {
-    this.setData({ makeupShow: false })
+    this.setData({ makeupShow: false });
   },
 
   onMakeupTimeChange(e) {
-    this.setData({ makeupTime: e.detail.value })
+    this.setData({ makeupTime: e.detail.value });
   },
 
   async onMakeupSubmit() {
-    if (this.data.makeupSubmitting) return
-    this.setData({ makeupSubmitting: true })
+    if (this.data.makeupSubmitting) return;
+    this.setData({ makeupSubmitting: true });
     try {
       await request("POST", "/attendance/makeup-requests", {
         date: this.data.makeupDate,
         type: this.data.makeupType,
         time: this.data.makeupTime,
-      })
-      success("补卡申请已提交")
-      this.setData({ makeupShow: false, makeupSubmitting: false })
-      await this.reloadAll()
+      });
+      success("补卡申请已提交");
+      this.setData({ makeupShow: false, makeupSubmitting: false });
+      await this.reloadAll();
     } catch (err) {
-      fail(err.message || "提交失败")
-      this.setData({ makeupSubmitting: false })
+      if (err.status !== 401) fail(err.message || "提交失败");
+      this.setData({ makeupSubmitting: false });
     }
   },
-
-})
+});
