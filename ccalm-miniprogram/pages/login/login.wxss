@@ -3,12 +3,6 @@
 page {
   height: 100%;
   background: #0a0a0a;
-  --cell-background-color: transparent;
-  --cell-border-color: transparent;
-  --cell-vertical-padding: 0;
-  --cell-line-height: 32px;
-  --field-input-text-color: var(--punch-text);
-  --field-placeholder-text-color: var(--punch-text-3);
 }
 
 .page {
@@ -27,8 +21,8 @@ page {
   width: 100%;
   max-width: 280px;
   align-self: center;
-  background: rgba(255, 255, 255, 0.48);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: var(--punch-card-bg);
+  border: 1px solid var(--punch-card-border);
   border-radius: 24px;
   box-sizing: border-box;
   display: flex;
@@ -52,28 +46,21 @@ page {
 }
 
 .login-field {
-  width: 100% !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  padding: 0 12px !important;
-  background: #fff !important;
-  border-radius: 999px !important;
-  box-sizing: border-box !important;
-  align-items: center !important;
-  overflow: hidden !important;
-}
-
-.login-field:after {
-  display: none !important;
+  --cell-background-color: #fff;
+  --cell-vertical-padding: 0;
+  --cell-horizontal-padding: 12px;
+  --cell-line-height: 32px;
+  --cell-border-color: transparent;
+  --field-input-text-color: #171717;
+  --field-placeholder-text-color: #737373;
 }
 
 .bind-btn {
-  font-weight: 500 !important;
-  font-size: 14px !important;
-  height: 32px !important;
-  line-height: 32px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  --button-small-height: 32px;
+  --button-small-font-size: 14px;
+  --button-primary-background-color: var(--punch-accent);
+  --button-primary-border-color: var(--punch-accent);
+  --button-primary-color: #fff;
 }
 
 .error {

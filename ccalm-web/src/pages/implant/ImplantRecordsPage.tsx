@@ -35,7 +35,7 @@ import {
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 import {
   createImplantRecordsColumns,

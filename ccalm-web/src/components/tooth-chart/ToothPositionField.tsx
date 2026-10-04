@@ -4,7 +4,7 @@ import { ToothChartDialog } from "@/components/tooth-chart/ToothChartDialog";
 import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
 import { Button } from "@/components/ui/button";
 import { formatTeeth, parseTeethStrict } from "@/lib/tooth-fdi";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 type ToothPositionFieldProps = {
   value: string;

@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/combobox";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 type WarehouseProduct = {
   id: number;

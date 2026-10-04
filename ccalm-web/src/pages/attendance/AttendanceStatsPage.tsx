@@ -62,7 +62,7 @@ import { api } from "@/lib/api";
 import type { AuthMe } from "@/lib/auth";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const attendanceStatsTableFeatures = tableFeatures({
   rowExpandingFeature,

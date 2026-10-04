@@ -13,7 +13,7 @@ import {
 import { PunchDeviceDialog } from "@/components/punch-device-dialog";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { api, setToken } from "@/lib/api";
 import { ROUTES } from "@/config/routes";
 import { errorMessage } from "@/lib/errorMessage";

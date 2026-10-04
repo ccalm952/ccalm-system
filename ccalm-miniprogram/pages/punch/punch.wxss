@@ -14,8 +14,8 @@ page {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.48);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: var(--punch-card-bg);
+  border-color: var(--punch-card-border);
   padding: 20px;
   border-radius: 24px;
 }
@@ -45,7 +45,7 @@ page {
 .date {
   font-size: 14px;
   line-height: 20px;
-  color: var(--punch-text-2);
+  color: var(--punch-text-3);
   text-shadow: var(--punch-text-glow);
 }
 
@@ -53,7 +53,7 @@ page {
   font-size: 14px;
   line-height: 20px;
   word-break: break-all;
-  color: var(--punch-text-2);
+  color: var(--punch-text-3);
   text-shadow: var(--punch-text-glow);
 }
 
@@ -64,21 +64,11 @@ page {
 }
 
 .locate-btn {
-  color: var(--punch-text) !important;
-  background: transparent !important;
-  border: none !important;
-  font-weight: 500 !important;
-  font-size: 14px !important;
-  height: 32px !important;
-  line-height: 32px !important;
-  padding: 0 12px !important;
-  width: auto !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-}
-
-.locate-btn.van-button--disabled {
-  opacity: 0.5 !important;
+  --button-small-height: 32px;
+  --button-small-font-size: 14px;
+  --button-small-min-width: 0;
+  --button-plain-background-color: transparent;
+  --padding-xs: 12px;
 }
 
 .timeline-wrap {
@@ -178,7 +168,7 @@ page {
   font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.025em;
-  color: var(--punch-text-2);
+  color: var(--punch-text);
   text-shadow: var(--punch-text-glow);
 }
 
@@ -214,7 +204,7 @@ page {
 }
 
 .stat-label {
-  color: var(--punch-text-2);
+  color: var(--punch-text-3);
 }
 
 .stat-value.warn {
@@ -231,12 +221,12 @@ page {
 
 .table {
   min-width: 660px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--punch-line);
 }
 
 .tr {
   display: flex;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--punch-line);
 }
 
 .th {
@@ -261,7 +251,7 @@ page {
 }
 
 .th .td {
-  color: var(--punch-text-2);
+  color: var(--punch-text-3);
   font-weight: 500;
 }
 
@@ -284,10 +274,26 @@ page {
   color: var(--van-warning-color);
 }
 
-.dialog-body {
-  padding: 12px 16px 4px;
-  font-size: 14px;
-  color: var(--van-text-color);
+.punch-dialog {
+  --dialog-background-color: var(--punch-dialog-bg);
+  --dialog-border-radius: 24px;
+  --dialog-has-title-message-text-color: var(--punch-text-3);
+  --dialog-header-font-weight: 600;
+}
+
+.punch-action-sheet {
+  --action-sheet-item-text-color: var(--punch-text);
+  --action-sheet-cancel-text-color: var(--punch-text-2);
+  --action-sheet-item-background: var(--punch-dialog-bg);
+}
+
+.punch-popup {
+  --popup-background-color: var(--punch-dialog-bg);
+  --popup-round-border-radius: 24px;
+}
+
+.makeup-submit-btn {
+  --button-round-border-radius: 999px;
 }
 
 .makeup-panel {
@@ -298,22 +304,22 @@ page {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: var(--van-text-color);
+  color: var(--punch-text);
 }
 
 .makeup-time-label {
   margin-top: 12px;
   margin-bottom: 4px;
-  color: var(--van-text-color-2);
+  color: var(--punch-text-3);
 }
 
 .makeup-time {
   padding: 10px;
-  border: 1px solid var(--van-border-color);
+  border: 1px solid var(--punch-card-border);
   border-radius: 12px;
   margin-bottom: 16px;
   text-align: center;
   font-size: 16px;
-  color: var(--van-text-color);
-  background: var(--van-background-color-light);
+  color: var(--punch-text);
+  background: var(--punch-card-bg);
 }

@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { api, setToken } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 /** 对齐 shadcn login-05 布局；业务为账号密码 + Sonner 提示 */
 export function LoginForm({

@@ -1,6 +1,6 @@
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export function TimePicker(props: {
   id?: string;

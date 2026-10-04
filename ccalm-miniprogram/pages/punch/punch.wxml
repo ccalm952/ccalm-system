@@ -13,10 +13,12 @@
     <view class="loc muted" wx:else>尚未获取定位</view>
     <view class="locate-btn-wrap">
       <van-button
+        plain
         round
         size="small"
-        type="default"
+        color="var(--punch-text)"
         custom-class="locate-btn"
+        custom-style="background: transparent; border-color: transparent;"
         loading="{{locating || punching}}"
         disabled="{{locating || punching}}"
         bind:click="onRefreshLocate"
@@ -103,23 +105,33 @@
   show="{{actionSheetShow}}"
   actions="{{actionSheetActions}}"
   cancel-text="取消"
+  custom-class="punch-action-sheet"
   bind:close="onActionClose"
   bind:select="onActionSelect"
 />
 
 <van-dialog
-  use-slot
   title="{{restDialogTitle}}"
+  message="{{restDialogMessage}}"
   show="{{restDialogShow}}"
   show-cancel-button
   confirm-button-text="确认"
+  confirm-button-color="var(--punch-accent)"
+  cancel-button-color="var(--punch-text-2)"
+  custom-class="punch-dialog"
+  custom-style="border: 1px solid var(--punch-card-border);"
+  overlay-style="background: rgba(0, 0, 0, 0.4);"
   bind:close="onRestClose"
   bind:confirm="onRestConfirm"
->
-  <view class="dialog-body">{{restDialogMessage}}</view>
-</van-dialog>
+/>
 
-<van-popup show="{{makeupShow}}" position="bottom" round bind:close="onMakeupClose">
+<van-popup
+  show="{{makeupShow}}"
+  position="bottom"
+  round
+  custom-class="punch-popup"
+  bind:close="onMakeupClose"
+>
   <view class="makeup-panel">
     <view class="makeup-title">申请补卡</view>
     <view class="muted">日期：{{makeupDateLabel}}</view>
@@ -129,8 +141,11 @@
       <view class="makeup-time">{{makeupTime}}</view>
     </picker>
     <van-button
-      type="primary"
+      round
       block
+      type="primary"
+      color="var(--punch-accent)"
+      custom-class="makeup-submit-btn"
       loading="{{makeupSubmitting}}"
       disabled="{{makeupSubmitting}}"
       bind:click="onMakeupSubmit"

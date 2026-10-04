@@ -39,7 +39,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { toast } from "sonner";
 
 export function SchedulePage() {

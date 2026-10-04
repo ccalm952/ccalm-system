@@ -15,7 +15,7 @@ import type {
   AttendanceMakeupRequest,
   AttendancePunchDayRow,
 } from "@/lib/attendance/types";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export function AttendanceInCell(props: {
   row: AttendancePunchDayRow;

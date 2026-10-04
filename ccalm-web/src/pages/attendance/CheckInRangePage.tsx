@@ -18,7 +18,7 @@ import { ROUTES } from "@/config/routes";
 import { api, type ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { toast } from "sonner";
 
 const DEFAULT_CENTER = { lat: 39.9042, lng: 116.4074 };
