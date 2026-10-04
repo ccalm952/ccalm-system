@@ -118,9 +118,7 @@ function SortableEmployeeRow({
               }
             />
           </TooltipTrigger>
-          <TooltipContent>
-            {deductionTooltip(row.bonusMode)}
-          </TooltipContent>
+          <TooltipContent>{deductionTooltip(row.bonusMode)}</TooltipContent>
         </Tooltip>
       </TableCell>
       <TableCell>
