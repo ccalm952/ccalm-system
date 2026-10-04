@@ -56,8 +56,6 @@ Page({
     todaySteps: [],
     stats: [],
     monthRows: [],
-    actionSheetShow: false,
-    actionSheetActions: [],
     restDialogShow: false,
     restDialogTitle: "",
     restDialogMessage: "",
@@ -234,18 +232,19 @@ Page({
     const time = slotTime(row, meta.type);
 
     if (time) {
-      return { text: time, tone: "plain", action: null };
+      return { text: time, tone: "plain", actions: [], pending: false };
     }
 
     if (meta.kind === "out" && isHalfRest(row.declaredRest, meta.half)) {
-      return { text: "—", tone: "muted", action: null };
+      return { text: "—", tone: "muted", actions: [], pending: false };
     }
 
     if (meta.kind === "in" && isHalfRest(row.declaredRest, meta.half)) {
       return {
-        text: "休息",
+        text: "",
         tone: "muted",
-        action: { kind: "clearRest", half: meta.half },
+        actions: [{ text: "休息", kind: "clearRest", half: meta.half }],
+        pending: false,
       };
     }
 
@@ -264,30 +263,21 @@ Page({
       !halfHasPunch(row, meta.half) &&
       !isHalfRest(row.declaredRest, meta.half);
 
-    if (pending && !canRest) {
-      return { text: "审批中", tone: "pending", action: null };
-    }
-
     if (!canRest && !canMakeup && !pending) {
-      return { text: "", tone: "muted", action: null };
+      return { text: "", tone: "muted", actions: [], pending: false };
     }
 
     const actions = [];
     if (canRest)
-      actions.push({ name: "登记休息", kind: "declareRest", half: meta.half });
+      actions.push({ text: "休息", kind: "declareRest", half: meta.half });
     if (canMakeup)
-      actions.push({ name: "申请补卡", kind: "makeup", type: meta.type });
-
-    let text = "";
-    let tone = "cell";
-    if (canRest && canMakeup) text = "休息/补卡";
-    else if (canRest) text = "休息";
-    else if (canMakeup) text = "补卡";
+      actions.push({ text: "补卡", kind: "makeup", type: meta.type });
 
     return {
-      text,
-      tone,
-      action: { kind: "sheet", actions },
+      text: "",
+      tone: pending ? "pending" : "cell",
+      actions,
+      pending,
     };
   },
 
@@ -377,49 +367,17 @@ Page({
     }
   },
 
-  onCellTap(e) {
-    const { date, slot } = e.currentTarget.dataset;
-    const viewRow = (this.data.monthRows || []).find((r) => r.date === date);
-    if (!viewRow) return;
-    const cell = viewRow[slot];
-    if (!cell || !cell.action) return;
-
-    if (cell.action.kind === "clearRest") {
-      this.openRestDialog(date, cell.action.half, "clear");
-      return;
-    }
-    if (cell.action.kind === "sheet") {
-      const actions = (cell.action.actions || []).map((a) => ({
-        name: a.name,
-        kind: a.kind,
-        half: a.half,
-        type: a.type,
-        date,
-      }));
-      if (!actions.length) return;
-      if (actions.length === 1) {
-        this.handleAction(actions[0]);
-        return;
-      }
-      this.setData({
-        actionSheetShow: true,
-        actionSheetActions: actions,
-      });
-    }
-  },
-
-  onActionClose() {
-    this.setData({ actionSheetShow: false });
-  },
-
-  onActionSelect(e) {
-    const action = e.detail;
-    this.setData({ actionSheetShow: false });
-    this.handleAction(action);
+  onCellActionTap(e) {
+    const { date, kind, half, type } = e.currentTarget.dataset;
+    this.handleAction({ date, kind, half, type });
   },
 
   handleAction(action) {
     if (!action) return;
+    if (action.kind === "clearRest") {
+      this.openRestDialog(action.date, action.half, "clear");
+      return;
+    }
     if (action.kind === "declareRest") {
       this.openRestDialog(action.date, action.half, "declare");
       return;
@@ -495,18 +453,16 @@ Page({
     this.setData({ makeupShow: false });
   },
 
-  onMakeupTimeChange(e) {
-    this.setData({ makeupTime: e.detail.value });
-  },
-
   async onMakeupSubmit() {
     if (this.data.makeupSubmitting) return;
+    const time =
+      DEFAULT_MAKEUP_TIME[this.data.makeupType] || this.data.makeupTime;
     this.setData({ makeupSubmitting: true });
     try {
       await request("POST", "/attendance/makeup-requests", {
         date: this.data.makeupDate,
         type: this.data.makeupType,
-        time: this.data.makeupTime,
+        time,
       });
       success("补卡申请已提交");
       this.setData({ makeupShow: false, makeupSubmitting: false });

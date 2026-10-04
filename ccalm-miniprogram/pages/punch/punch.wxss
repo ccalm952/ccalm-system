@@ -274,52 +274,91 @@ page {
   color: var(--van-warning-color);
 }
 
+.cell-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cell-pending {
+  color: var(--van-warning-color);
+}
+
 .punch-dialog {
   --dialog-background-color: var(--punch-dialog-bg);
   --dialog-border-radius: 24px;
-  --dialog-has-title-message-text-color: var(--punch-text-3);
-  --dialog-header-font-weight: 600;
+  color: var(--punch-text);
 }
 
-.punch-action-sheet {
-  --action-sheet-item-text-color: var(--punch-text);
-  --action-sheet-cancel-text-color: var(--punch-text-2);
-  --action-sheet-item-background: var(--punch-dialog-bg);
+.rest-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
 }
 
-.punch-popup {
-  --popup-background-color: var(--punch-dialog-bg);
-  --popup-round-border-radius: 24px;
+.rest-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.makeup-submit-btn {
-  --button-round-border-radius: 999px;
-}
-
-.makeup-panel {
-  padding: 20px;
-}
-
-.makeup-title {
-  font-size: 16px;
+.rest-dialog-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 32px;
   font-weight: 600;
-  margin-bottom: 8px;
   color: var(--punch-text);
 }
 
-.makeup-time-label {
-  margin-top: 12px;
-  margin-bottom: 4px;
-  color: var(--punch-text-3);
+.rest-dialog-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--punch-line);
 }
 
-.makeup-time {
-  padding: 10px;
-  border: 1px solid var(--punch-card-border);
-  border-radius: 12px;
-  margin-bottom: 16px;
-  text-align: center;
-  font-size: 16px;
+.rest-dialog-message {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--punch-text-2);
+}
+
+.rest-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rest-dialog-btn {
+  --button-small-height: 32px;
+  --button-small-font-size: 14px;
+  --button-border-radius: 16px;
+  --button-small-min-width: 54px;
+  width: 54px;
+}
+
+.makeup-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.makeup-dialog-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.makeup-dialog-meta-line {
+  font-size: 14px;
+  line-height: 20px;
   color: var(--punch-text);
-  background: var(--punch-card-bg);
 }

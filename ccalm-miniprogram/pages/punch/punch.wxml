@@ -71,88 +71,203 @@
         </view>
         <view class="tr" wx:for="{{monthRows}}" wx:key="date">
           <view class="td">{{item.day}}</view>
-          <view
-            class="td cell {{item.morningIn.tone}}"
-            data-date="{{item.date}}"
-            data-slot="morningIn"
-            bindtap="onCellTap"
-          >{{item.morningIn.text}}</view>
-          <view
-            class="td cell {{item.morningOut.tone}}"
-            data-date="{{item.date}}"
-            data-slot="morningOut"
-            bindtap="onCellTap"
-          >{{item.morningOut.text}}</view>
-          <view
-            class="td cell {{item.afternoonIn.tone}}"
-            data-date="{{item.date}}"
-            data-slot="afternoonIn"
-            bindtap="onCellTap"
-          >{{item.afternoonIn.text}}</view>
-          <view
-            class="td cell {{item.afternoonOut.tone}}"
-            data-date="{{item.date}}"
-            data-slot="afternoonOut"
-            bindtap="onCellTap"
-          >{{item.afternoonOut.text}}</view>
+          <view class="td cell {{item.morningIn.tone}}">
+            <view
+              class="cell-actions"
+              wx:if="{{item.morningIn.actions.length || item.morningIn.pending}}"
+            >
+              <van-button
+                wx:for="{{item.morningIn.actions}}"
+                wx:for-item="action"
+                wx:key="kind"
+                plain
+                round
+                size="small"
+                color="var(--punch-text)"
+                custom-class="locate-btn"
+                custom-style="background: transparent; border-color: transparent;"
+                data-date="{{item.date}}"
+                data-kind="{{action.kind}}"
+                data-half="{{action.half}}"
+                data-type="{{action.type}}"
+                bind:click="onCellActionTap"
+              >{{action.text}}</van-button>
+              <text class="cell-pending" wx:if="{{item.morningIn.pending}}">审批中</text>
+            </view>
+            <block wx:else>{{item.morningIn.text}}</block>
+          </view>
+          <view class="td cell {{item.morningOut.tone}}">
+            <view
+              class="cell-actions"
+              wx:if="{{item.morningOut.actions.length || item.morningOut.pending}}"
+            >
+              <van-button
+                wx:for="{{item.morningOut.actions}}"
+                wx:for-item="action"
+                wx:key="kind"
+                plain
+                round
+                size="small"
+                color="var(--punch-text)"
+                custom-class="locate-btn"
+                custom-style="background: transparent; border-color: transparent;"
+                data-date="{{item.date}}"
+                data-kind="{{action.kind}}"
+                data-half="{{action.half}}"
+                data-type="{{action.type}}"
+                bind:click="onCellActionTap"
+              >{{action.text}}</van-button>
+              <text class="cell-pending" wx:if="{{item.morningOut.pending}}">审批中</text>
+            </view>
+            <block wx:else>{{item.morningOut.text}}</block>
+          </view>
+          <view class="td cell {{item.afternoonIn.tone}}">
+            <view
+              class="cell-actions"
+              wx:if="{{item.afternoonIn.actions.length || item.afternoonIn.pending}}"
+            >
+              <van-button
+                wx:for="{{item.afternoonIn.actions}}"
+                wx:for-item="action"
+                wx:key="kind"
+                plain
+                round
+                size="small"
+                color="var(--punch-text)"
+                custom-class="locate-btn"
+                custom-style="background: transparent; border-color: transparent;"
+                data-date="{{item.date}}"
+                data-kind="{{action.kind}}"
+                data-half="{{action.half}}"
+                data-type="{{action.type}}"
+                bind:click="onCellActionTap"
+              >{{action.text}}</van-button>
+              <text class="cell-pending" wx:if="{{item.afternoonIn.pending}}">审批中</text>
+            </view>
+            <block wx:else>{{item.afternoonIn.text}}</block>
+          </view>
+          <view class="td cell {{item.afternoonOut.tone}}">
+            <view
+              class="cell-actions"
+              wx:if="{{item.afternoonOut.actions.length || item.afternoonOut.pending}}"
+            >
+              <van-button
+                wx:for="{{item.afternoonOut.actions}}"
+                wx:for-item="action"
+                wx:key="kind"
+                plain
+                round
+                size="small"
+                color="var(--punch-text)"
+                custom-class="locate-btn"
+                custom-style="background: transparent; border-color: transparent;"
+                data-date="{{item.date}}"
+                data-kind="{{action.kind}}"
+                data-half="{{action.half}}"
+                data-type="{{action.type}}"
+                bind:click="onCellActionTap"
+              >{{action.text}}</van-button>
+              <text class="cell-pending" wx:if="{{item.afternoonOut.pending}}">审批中</text>
+            </view>
+            <block wx:else>{{item.afternoonOut.text}}</block>
+          </view>
         </view>
       </view>
     </scroll-view>
   </view>
 </view>
 
-<van-action-sheet
-  show="{{actionSheetShow}}"
-  actions="{{actionSheetActions}}"
-  cancel-text="取消"
-  custom-class="punch-action-sheet"
-  bind:close="onActionClose"
-  bind:select="onActionSelect"
-/>
-
 <van-dialog
-  title="{{restDialogTitle}}"
-  message="{{restDialogMessage}}"
+  use-slot
   show="{{restDialogShow}}"
-  show-cancel-button
-  confirm-button-text="确认"
-  confirm-button-color="var(--punch-accent)"
-  cancel-button-color="var(--punch-text-2)"
+  show-cancel-button="{{false}}"
+  show-confirm-button="{{false}}"
   custom-class="punch-dialog"
   custom-style="border: 1px solid var(--punch-card-border);"
-  overlay-style="background: rgba(0, 0, 0, 0.4);"
+  overlay-style="background: rgba(0, 0, 0, 0.55);"
   bind:close="onRestClose"
-  bind:confirm="onRestConfirm"
-/>
+>
+  <view class="rest-dialog">
+    <view class="rest-dialog-header">
+      <view class="rest-dialog-title">{{restDialogTitle}}</view>
+      <view class="rest-dialog-close" bindtap="onRestClose">
+        <van-icon name="cross" size="16px" color="var(--punch-text)" />
+      </view>
+    </view>
+    <view class="rest-dialog-message">{{restDialogMessage}}</view>
+    <view class="rest-dialog-footer">
+      <van-button
+        plain
+        size="small"
+        color="var(--punch-text)"
+        custom-class="rest-dialog-btn"
+        custom-style="border-color: var(--punch-card-border); background: transparent;"
+        bind:click="onRestClose"
+      >
+        取消
+      </van-button>
+      <van-button
+        size="small"
+        type="primary"
+        color="var(--punch-accent)"
+        custom-class="rest-dialog-btn"
+        bind:click="onRestConfirm"
+      >
+        确认
+      </van-button>
+    </view>
+  </view>
+</van-dialog>
 
-<van-popup
+<van-dialog
+  use-slot
   show="{{makeupShow}}"
-  position="bottom"
-  round
-  custom-class="punch-popup"
+  show-cancel-button="{{false}}"
+  show-confirm-button="{{false}}"
+  custom-class="punch-dialog"
+  custom-style="border: 1px solid var(--punch-card-border);"
+  overlay-style="background: rgba(0, 0, 0, 0.55);"
   bind:close="onMakeupClose"
 >
-  <view class="makeup-panel">
-    <view class="makeup-title">申请补卡</view>
-    <view class="muted">日期：{{makeupDateLabel}}</view>
-    <view class="muted">类型：{{makeupTypeLabel}}</view>
-    <view class="makeup-time-label">补卡时间</view>
-    <picker mode="time" value="{{makeupTime}}" bindchange="onMakeupTimeChange">
-      <view class="makeup-time">{{makeupTime}}</view>
-    </picker>
-    <van-button
-      round
-      block
-      type="primary"
-      color="var(--punch-accent)"
-      custom-class="makeup-submit-btn"
-      loading="{{makeupSubmitting}}"
-      disabled="{{makeupSubmitting}}"
-      bind:click="onMakeupSubmit"
-    >
-      提交申请
-    </van-button>
+  <view class="rest-dialog">
+    <view class="rest-dialog-header">
+      <view class="rest-dialog-title">申请补卡</view>
+      <view class="rest-dialog-close" bindtap="onMakeupClose">
+        <van-icon name="cross" size="16px" color="var(--punch-text)" />
+      </view>
+    </view>
+    <view class="makeup-dialog-body">
+      <view class="makeup-dialog-meta">
+        <view class="makeup-dialog-meta-line">日期：{{makeupDateLabel}}</view>
+        <view class="makeup-dialog-meta-line">类型：{{makeupTypeLabel}}</view>
+        <view class="makeup-dialog-meta-line">补卡时间：{{makeupTime}}</view>
+      </view>
+    </view>
+    <view class="rest-dialog-footer">
+      <van-button
+        plain
+        size="small"
+        color="var(--punch-text)"
+        custom-class="rest-dialog-btn"
+        custom-style="border-color: var(--punch-card-border); background: transparent;"
+        disabled="{{makeupSubmitting}}"
+        bind:click="onMakeupClose"
+      >
+        取消
+      </van-button>
+      <van-button
+        size="small"
+        type="primary"
+        color="var(--punch-accent)"
+        custom-class="rest-dialog-btn"
+        loading="{{makeupSubmitting}}"
+        disabled="{{makeupSubmitting}}"
+        bind:click="onMakeupSubmit"
+      >
+        确认
+      </van-button>
+    </view>
   </view>
-</van-popup>
+</van-dialog>
 
 <van-toast id="van-toast" />

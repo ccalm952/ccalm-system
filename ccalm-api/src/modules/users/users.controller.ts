@@ -19,20 +19,14 @@ import path from "node:path";
 import { diskStorage } from "multer";
 import type { Request } from "express";
 
+import { API_ROOT } from "../../common/api-root";
 import { actor } from "../../common/request-auth";
 
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UsersService } from "./users.service";
 
-const avatarUploadDir = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "uploads",
-  "avatars",
-);
+const avatarUploadDir = path.join(API_ROOT, "uploads", "avatars");
 const avatarMimeExtensions = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],

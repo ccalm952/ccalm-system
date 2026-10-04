@@ -3,7 +3,6 @@ import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { TimePicker } from "@/components/time-picker";
 import {
   Dialog,
   DialogContent,
@@ -54,19 +53,13 @@ export function MakeupRequestDialog(props: {
     userName,
     onSuccess,
   } = props;
-  const [time, setTime] = React.useState("12:00");
   const [submitting, setSubmitting] = React.useState(false);
   const isDirect = mode === "direct";
-
-  React.useEffect(() => {
-    if (!open) return;
-    setTime(DEFAULT_MAKEUP_TIME[type]);
-  }, [open, type, date]);
+  const time = DEFAULT_MAKEUP_TIME[type];
 
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      const timeValue = time.slice(0, 5);
       if (isDirect) {
         if (!userId) {
           toast.error("缺少员工信息");
@@ -76,7 +69,7 @@ export function MakeupRequestDialog(props: {
           userId,
           date,
           type,
-          time: timeValue,
+          time,
         });
         toast.success("补卡成功");
       } else {
@@ -86,7 +79,7 @@ export function MakeupRequestDialog(props: {
           {
             date,
             type,
-            time: timeValue,
+            time,
           },
         );
         toast.success("补卡申请已提交");
@@ -108,19 +101,11 @@ export function MakeupRequestDialog(props: {
         <DialogHeader>
           <DialogTitle>{isDirect ? "补卡" : "申请补卡"}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-1 text-sm">
-            {isDirect && userName ? <div>员工：{userName}</div> : null}
-            <div>日期：{dayjs(date).format("YYYY年M月D日")}</div>
-            <div>类型：{ATTENDANCE_PUNCH_TYPE_LABEL[type]}</div>
-          </div>
-          <TimePicker
-            id="makeup-time"
-            label="补卡时间"
-            value={time}
-            onChange={setTime}
-            disabled={submitting}
-          />
+        <div className="grid gap-1 text-sm">
+          {isDirect && userName ? <div>员工：{userName}</div> : null}
+          <div>日期：{dayjs(date).format("YYYY年M月D日")}</div>
+          <div>类型：{ATTENDANCE_PUNCH_TYPE_LABEL[type]}</div>
+          <div>补卡时间：{time}</div>
         </div>
         <DialogFooter>
           <Button
