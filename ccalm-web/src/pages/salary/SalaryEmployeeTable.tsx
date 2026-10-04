@@ -9,6 +9,10 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from "@dnd-kit/modifiers";
+import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -81,13 +85,18 @@ function SortableEmployeeRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: row.id });
+  } = useSortable({
+    id: row.id,
+    animateLayoutChanges: () => false,
+  });
 
   return (
     <TableRow
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(
+          transform ? { ...transform, x: 0 } : null,
+        ),
         transition,
         opacity: isDragging ? 0.5 : undefined,
         position: "relative",
@@ -231,6 +240,7 @@ export function SalaryEmployeeTable({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragEnd={handleDragEnd}
     >
       <Table className="table-fixed">
