@@ -1,7 +1,7 @@
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 
 import { TableHead } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export function SortableTableHead<T extends string>({
   label,

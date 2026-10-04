@@ -8,10 +8,6 @@
       },
       {
         "type": "file",
-        "value": "utils/config.local.js"
-      },
-      {
-        "type": "file",
         "value": "eslint.config.mjs"
       },
       {

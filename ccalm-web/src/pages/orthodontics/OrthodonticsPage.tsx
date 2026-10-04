@@ -58,7 +58,7 @@ import {
   orthodonticsCategoryLabel,
   type OrthodonticsCategory,
 } from "@/lib/orthodontics/categories";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 type OrthodonticsRow = {
   id: number;

@@ -45,7 +45,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { paginateRows } from "@/lib/pagination";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */

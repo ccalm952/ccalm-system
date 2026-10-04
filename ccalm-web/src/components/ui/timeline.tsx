@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 /**
  * 纵向时间轴（可组合子组件）。

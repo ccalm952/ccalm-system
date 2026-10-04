@@ -8,14 +8,18 @@
     <view class="muted">首次使用请用现有账号绑定微信</view>
 
     <view wx:if="{{step === 'loading'}}" class="loading-wrap">
-      <van-loading size="24px" color="#3a6f9c">正在微信登录…</van-loading>
+      <van-loading size="24px" color="var(--punch-accent)">
+        正在微信登录…
+      </van-loading>
     </view>
 
     <block wx:elif="{{step === 'bind'}}">
       <van-field
         border="{{ false }}"
+        center
         input-align="left"
         custom-class="login-field"
+        custom-style="border-radius: 999px; overflow: hidden;"
         value="{{username}}"
         placeholder="请输入账号"
         clearable
@@ -23,8 +27,10 @@
       />
       <van-field
         border="{{ false }}"
+        center
         input-align="left"
         custom-class="login-field"
+        custom-style="border-radius: 999px; overflow: hidden;"
         value="{{password}}"
         password
         placeholder="请输入密码"
@@ -36,7 +42,7 @@
         block
         size="small"
         type="primary"
-        color="#3a6f9c"
+        color="var(--punch-accent)"
         loading="{{submitting}}"
         disabled="{{submitting}}"
         custom-class="bind-btn"

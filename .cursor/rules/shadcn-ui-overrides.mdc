@@ -8,6 +8,8 @@ alwaysApply: false
 
 `components.json` 使用 `style: "base-rhea"`。主题变量（`--radius: 0`、Slate 配色等）在 `ccalm-web/src/index.css`，**不受** `npx shadcn add --overwrite` 影响。
 
+`cn` 已迁到 npm 包 `cn`：统一 `import { cn } from "cn"`。`components.json` 的 `aliases.utils` 为 `cn`，不再使用 `src/lib/utils.ts`。
+
 ## 同步前
 
 ```bash
@@ -23,7 +25,7 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 | 文件 | 定制项 | 恢复为 |
 |------|--------|--------|
 | `table.tsx` | 容器 | `relative w-full`（无 `overflow-x-auto`） |
-| `table.tsx` | `TableBody` | `className={cn(className)}`（无 `[&_tr:last-child]:border-0`） |
+| `table.tsx` | `TableBody` | `[&_tr:last-child]:border-b-0`（与底部分页区衔接，去掉最后一行底部分割线） |
 | `table.tsx` | `TableHead` | `text-center`（非 `text-left`） |
 | `table.tsx` | `TableCell` | `h-10 px-2 text-center`（非 `p-2` 左对齐） |
 | `navigation-menu.tsx` | trigger / link | `focus-visible:bg-muted`（非 `focus:bg-muted`）；去掉 `data-open:focus:bg-muted`、`data-[active=true]:focus:bg-muted` |
@@ -36,6 +38,7 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 | `dialog.tsx` | `DialogContent` | `gap-x-4 gap-y-4`（非 `gap-6`）；支持 `overlayClassName` |
 | `dialog.tsx` | `DialogFooter` | `flex flex-row justify-end gap-4`（非窄屏 `flex-col-reverse`） |
 | `sonner.tsx` | `useTheme` | 从 `@/components/theme-provider` 导入（非 `next-themes`） |
+| `command.tsx` | `CommandInput` | `text-base md:text-sm`（与 Input 一致，避免 iOS 聚焦放大） |
 
 ## 已删除的 registry 组件
 

@@ -62,7 +62,7 @@ import {
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
 

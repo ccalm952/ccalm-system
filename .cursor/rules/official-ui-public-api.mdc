@@ -1,0 +1,43 @@
+---
+description: 使用官方 UI 组件时只走公开扩展口，禁止 !important 覆盖
+alwaysApply: true
+---
+
+# 官方 UI 组件：只用公开扩展口
+
+使用第三方/官方 UI 组件（如 Vant Weapp、shadcn/ui）时，**先查该组件官方文档**，只通过文档列出的公开能力定制；不要用 `!important` 或改 `node_modules` / `miniprogram_npm` 源码硬盖内部样式。
+
+## 允许（按优先级）
+
+1. 查官方文档（Props、Events、Slots、外部样式类、CSS 变量 / 主题）
+2. Props、`custom-style` / `style`、Slots
+3. 外部样式类（如 Vant `custom-class`）里只设**文档列出的 CSS 变量**
+4. 页面/全局主题变量（如 Vant [定制主题](https://vant-ui.github.io/vant-weapp/#/theme)、shadcn CSS tokens）
+5. 文档做不到的效果：放弃，或自建业务封装组件；不要硬盖
+
+## 禁止
+
+```wxss
+/* ❌ 禁止：用 !important 压组件内部 class */
+.locate-btn {
+  height: 32px !important;
+  background: transparent !important;
+}
+```
+
+```wxss
+/* ✅ 用公开 CSS 变量 / props */
+.locate-btn {
+  --button-small-height: 32px;
+  --button-plain-background-color: transparent;
+}
+```
+
+- 禁止直接改 `miniprogram_npm/@vant/**`、`node_modules` 里的组件源码（除非用户明确要求并用 patch 流程）
+- 禁止依赖未文档化的内部 class 选择器做样式覆盖
+
+## Vant Weapp 示例
+
+- Dialog：`custom-class` + `--dialog-*`、`confirm-button-color`、`overlay-style` 等，见 [Dialog](https://vant-ui.github.io/vant-weapp/#/dialog)
+- Button / Field：`--button-*`、`--cell-*`、`--field-*`，以及 `color`、`plain`、`custom-style`
+- 无变量的能力（如按钮 `text-shadow`、Dialog 标题色、确认钮实心底）→ 不做或自建封装

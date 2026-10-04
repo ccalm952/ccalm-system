@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 function formatCnDate(d: Date) {
   return format(d, "yyyy年M月d日");

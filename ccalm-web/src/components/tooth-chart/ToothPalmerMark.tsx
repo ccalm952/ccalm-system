@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { groupPalmerLabels } from "@/lib/tooth-fdi";
 
 type ToothPalmerMarkProps = {

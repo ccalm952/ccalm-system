@@ -35,7 +35,7 @@ import { formatMakeupTime } from "@/lib/attendance/makeup";
 import { api, subscribeMakeupEvents } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { useAuth } from "@/lib/use-auth";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { toast } from "sonner";
 
 type TodoTab = "mine" | "pending";
