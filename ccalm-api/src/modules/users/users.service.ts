@@ -17,7 +17,12 @@ const avatarUploadDir = path.join(API_ROOT, "uploads", "avatars");
 async function removeLocalAvatarFile(avatarUrl: string | null | undefined) {
   if (!avatarUrl?.startsWith(avatarUrlPrefix)) return;
   const filename = avatarUrl.slice(avatarUrlPrefix.length);
-  if (!filename || filename.includes("/") || filename.includes("\\") || filename.includes("..")) {
+  if (
+    !filename ||
+    filename.includes("/") ||
+    filename.includes("\\") ||
+    filename.includes("..")
+  ) {
     return;
   }
   try {
