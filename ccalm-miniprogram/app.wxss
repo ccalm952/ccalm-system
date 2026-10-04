@@ -38,7 +38,7 @@ page {
   page {
     --punch-card-bg: rgba(33, 33, 33, 0.3);
     --punch-card-border: rgba(255, 255, 255, 0.1);
-    --punch-dialog-bg: rgba(28, 28, 28, 0.9);
+    --punch-dialog-bg: rgba(28, 28, 28, 0.98);
     --punch-line: rgba(255, 255, 255, 0.12);
     --punch-accent: #9ec9ea;
     --punch-text: #fafafa;

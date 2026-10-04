@@ -1,5 +1,4 @@
 import * as React from "react";
-import dayjs from "dayjs";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -81,11 +80,8 @@ export function RestActionDialog(props: {
                 : "取消休息"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3 text-sm">
+        <div className="text-sm">
           <p>{message}</p>
-          <p className="text-muted-foreground">
-            日期：{dayjs(date).format("YYYY年M月D日")}
-          </p>
         </div>
         <DialogFooter>
           <Button

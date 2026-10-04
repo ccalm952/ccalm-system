@@ -122,8 +122,8 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        // CCALM: 窄屏也横排，底部按钮间距统一 gap-4
-        "flex flex-row justify-end gap-4",
+        // CCALM: 窄屏也横排，底部按钮间距统一 gap-2
+        "flex flex-row justify-end gap-2",
         className,
       )}
       {...props}

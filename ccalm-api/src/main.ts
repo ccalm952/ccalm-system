@@ -6,10 +6,8 @@ import dotenv from "dotenv";
 import { ValidationPipe } from "@nestjs/common";
 import path from "node:path";
 
+import { API_ROOT } from "./common/api-root";
 import { AppModule } from "./app.module";
-
-/** 编译产物在 dist/src，项目根目录为上两级 */
-const API_ROOT = path.resolve(__dirname, "..", "..");
 
 async function bootstrap() {
   process.env.TZ = "Asia/Shanghai";
