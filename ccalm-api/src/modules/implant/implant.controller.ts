@@ -8,20 +8,20 @@ import {
   Post,
   Put,
   Query,
-} from "@nestjs/common"
+} from "@nestjs/common";
 
-import { AddInventoryDto, UpdateInventoryDto } from "./dto/inventory.dto"
+import { AddInventoryDto, UpdateInventoryDto } from "./dto/inventory.dto";
 import {
   CreateImplantVisitDto,
   ImplantToothInputDto,
-} from "./dto/create-visit.dto"
+} from "./dto/create-visit.dto";
 import {
   CreateImplantPendingDto,
   UpdateImplantPendingDto,
-} from "./dto/implant-pending.dto"
-import { UpdateImplantPatientDto } from "./dto/update-patient.dto"
-import { UpdateImplantVisitDto } from "./dto/update-visit.dto"
-import { ImplantService } from "./implant.service"
+} from "./dto/implant-pending.dto";
+import { UpdateImplantPatientDto } from "./dto/update-patient.dto";
+import { UpdateImplantVisitDto } from "./dto/update-visit.dto";
+import { ImplantService } from "./implant.service";
 
 @Controller("implant")
 export class ImplantController {
@@ -32,145 +32,145 @@ export class ImplantController {
     @Query("q") q?: string,
     @Query("dateFrom") dateFrom?: string,
     @Query("dateTo") dateTo?: string,
-    @Query("limit") limit?: string
+    @Query("limit") limit?: string,
   ) {
-    const lim = limit != null && limit !== "" ? Number(limit) : undefined
+    const lim = limit != null && limit !== "" ? Number(limit) : undefined;
     return this.implant.listRecords({
       q,
       dateFrom,
       dateTo,
       limit: Number.isFinite(lim) ? lim : undefined,
-    })
+    });
   }
 
   @Post("visits")
   createVisit(@Body() dto: CreateImplantVisitDto) {
-    return this.implant.createVisit(dto)
+    return this.implant.createVisit(dto);
   }
 
   @Put("visits/:visitId")
   updateVisit(
     @Param("visitId", ParseIntPipe) visitId: number,
-    @Body() dto: UpdateImplantVisitDto
+    @Body() dto: UpdateImplantVisitDto,
   ) {
-    return this.implant.updateVisit(visitId, dto)
+    return this.implant.updateVisit(visitId, dto);
   }
 
   @Post("visits/:visitId/teeth")
   appendTooth(
     @Param("visitId", ParseIntPipe) visitId: number,
-    @Body() dto: ImplantToothInputDto
+    @Body() dto: ImplantToothInputDto,
   ) {
-    return this.implant.appendToothToVisit(visitId, dto)
+    return this.implant.appendToothToVisit(visitId, dto);
   }
 
   @Delete("visits/:visitId")
   deleteVisit(
     @Param("visitId", ParseIntPipe) visitId: number,
-    @Query("toothId") toothId?: string
+    @Query("toothId") toothId?: string,
   ) {
     const tid =
       toothId != null && toothId !== ""
         ? Number.parseInt(toothId, 10)
-        : undefined
+        : undefined;
     return this.implant.deleteVisitRow(
       visitId,
-      tid != null && !Number.isNaN(tid) ? tid : undefined
-    )
+      tid != null && !Number.isNaN(tid) ? tid : undefined,
+    );
   }
 
   @Get("inventory")
   inventory() {
-    return this.implant.listInventory()
+    return this.implant.listInventory();
   }
 
   @Post("inventory")
   addInventory(@Body() dto: AddInventoryDto) {
-    return this.implant.addInventory(dto)
+    return this.implant.addInventory(dto);
   }
 
   @Put("inventory/:id")
   updateInventory(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: UpdateInventoryDto
+    @Body() dto: UpdateInventoryDto,
   ) {
-    return this.implant.updateInventory(id, dto)
+    return this.implant.updateInventory(id, dto);
   }
 
   /** 删除单条须写在「清空全部」之前，避免误匹配 */
   @Delete("inventory/:id")
   removeInventory(@Param("id", ParseIntPipe) id: number) {
-    return this.implant.deleteInventory(id)
+    return this.implant.deleteInventory(id);
   }
 
   @Delete("inventory")
   removeAllInventory() {
-    return this.implant.deleteAllInventory()
+    return this.implant.deleteAllInventory();
   }
 
   @Get("stats/staff")
   statsStaff(@Query("month") month?: string) {
-    return this.implant.statsStaff(month)
+    return this.implant.statsStaff(month);
   }
 
   @Get("stats/months")
   statsMonths() {
-    return this.implant.statsMonths()
+    return this.implant.statsMonths();
   }
 
   @Get("stats/month-total")
   statsMonthTotal(@Query("month") month: string) {
-    return this.implant.statsMonthTotal(month ?? "")
+    return this.implant.statsMonthTotal(month ?? "");
   }
 
   @Get("patient")
   listPatients(@Query("q") q?: string) {
-    return this.implant.listImplantPatients(q)
+    return this.implant.listImplantPatients(q);
   }
 
   @Put("patient/:id")
   updatePatient(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: UpdateImplantPatientDto
+    @Body() dto: UpdateImplantPatientDto,
   ) {
-    return this.implant.updateImplantPatient(id, dto)
+    return this.implant.updateImplantPatient(id, dto);
   }
 
   @Delete("patient/:id")
   deletePatient(@Param("id", ParseIntPipe) id: number) {
-    return this.implant.deleteImplantPatient(id)
+    return this.implant.deleteImplantPatient(id);
   }
 
   /** 新增种植：姓名自动完成（患者库 + 待种植） */
   @Get("patient-list")
   patientSuggest(
     @Query("keyword") keyword?: string,
-    @Query("pageSize") pageSize?: string
+    @Query("pageSize") pageSize?: string,
   ) {
-    const ps = pageSize != null && pageSize !== "" ? Number(pageSize) : 20
-    return this.implant.suggestPatients(keyword, Number.isFinite(ps) ? ps : 20)
+    const ps = pageSize != null && pageSize !== "" ? Number(pageSize) : 20;
+    return this.implant.suggestPatients(keyword, Number.isFinite(ps) ? ps : 20);
   }
 
   @Get("pending")
   listPending(@Query("q") q?: string) {
-    return this.implant.listPending(q)
+    return this.implant.listPending(q);
   }
 
   @Post("pending")
   createPending(@Body() dto: CreateImplantPendingDto) {
-    return this.implant.createPending(dto)
+    return this.implant.createPending(dto);
   }
 
   @Put("pending/:id")
   updatePending(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: UpdateImplantPendingDto
+    @Body() dto: UpdateImplantPendingDto,
   ) {
-    return this.implant.updatePending(id, dto)
+    return this.implant.updatePending(id, dto);
   }
 
   @Delete("pending/:id")
   deletePending(@Param("id", ParseIntPipe) id: number) {
-    return this.implant.deletePending(id)
+    return this.implant.deletePending(id);
   }
 }

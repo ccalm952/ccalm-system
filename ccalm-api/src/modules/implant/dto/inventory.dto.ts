@@ -1,33 +1,33 @@
-import { Type } from "class-transformer"
-import { IsInt, IsOptional, IsString, Min } from "class-validator"
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, IsString, Min } from "class-validator";
 
 export class AddInventoryDto {
   @IsString()
-  brand!: string
+  brand!: string;
 
   @IsString()
-  modelCode!: string
+  modelCode!: string;
 
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  supplement!: number
+  supplement!: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  sortOrder?: number
+  sortOrder?: number;
 }
 
 export class UpdateInventoryDto {
   @IsString()
-  brand!: string
+  brand!: string;
 
   @IsString()
-  modelCode!: string
+  modelCode!: string;
 
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  supplement!: number
+  supplement!: number;
 }

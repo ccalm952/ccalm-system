@@ -1,8 +1,8 @@
-import { Suspense } from "react"
-import { Link, Outlet } from "react-router-dom"
+import { Suspense } from "react";
+import { Link, Outlet } from "react-router-dom";
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { MakeupTodoButton } from "@/components/makeup-todo-button"
+import { AppSidebar } from "@/components/app-sidebar";
+import { MakeupTodoButton } from "@/components/makeup-todo-button";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -10,24 +10,24 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
+} from "@/components/ui/navigation-menu";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Spinner } from "@/components/ui/spinner"
-import { attendanceNavItemsForRole } from "@/config/attendance-nav"
-import { implantSubNavItems } from "@/config/implant-nav"
-import { orthodonticsNavItem } from "@/config/orthodontics-nav"
-import { salaryNavItem } from "@/config/salary-nav"
-import { warehouseNavItem } from "@/config/warehouse-nav"
-import { ROUTES } from "@/config/routes"
-import { useAuth } from "@/lib/use-auth"
+} from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
+import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { implantSubNavItems } from "@/config/implant-nav";
+import { orthodonticsNavItem } from "@/config/orthodontics-nav";
+import { salaryNavItem } from "@/config/salary-nav";
+import { warehouseNavItem } from "@/config/warehouse-nav";
+import { ROUTES } from "@/config/routes";
+import { useAuth } from "@/lib/use-auth";
 
 export function MainLayout() {
-  const { me } = useAuth()
-  const attendanceItems = attendanceNavItemsForRole(me?.role)
+  const { me } = useAuth();
+  const attendanceItems = attendanceNavItemsForRole(me?.role);
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -109,5 +109,5 @@ export function MainLayout() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 /**
  * 纵向时间轴（可组合子组件）。
@@ -23,7 +23,7 @@ function Timeline({
     >
       {children}
     </div>
-  )
+  );
 }
 
 function TimelineItem({ className, ...props }: React.ComponentProps<"div">) {
@@ -33,7 +33,7 @@ function TimelineItem({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex gap-4", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TimelineTime({ className, ...props }: React.ComponentProps<"div">) {
@@ -43,7 +43,7 @@ function TimelineTime({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex shrink-0 items-center tabular-nums", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TimelineIndicator({
@@ -74,7 +74,7 @@ function TimelineIndicator({
         aria-hidden
       />
     </div>
-  )
+  );
 }
 
 function TimelineContent({ className, ...props }: React.ComponentProps<"div">) {
@@ -84,7 +84,7 @@ function TimelineContent({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex min-w-0 flex-col gap-2", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TimelineTitle({ className, ...props }: React.ComponentProps<"div">) {
@@ -94,7 +94,7 @@ function TimelineTitle({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("text-sm font-medium", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TimelineDescription({
@@ -107,7 +107,7 @@ function TimelineDescription({
       className={cn("text-muted-foreground", className)}
       {...props}
     />
-  )
+  );
 }
 
 /**
@@ -128,4 +128,4 @@ export {
   TimelineContent,
   TimelineTitle,
   TimelineDescription,
-}
+};

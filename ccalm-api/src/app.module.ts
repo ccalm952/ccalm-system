@@ -1,15 +1,15 @@
-import { Module } from "@nestjs/common"
+import { Module } from "@nestjs/common";
 
-import { PrismaModule } from "./prisma/prisma.module"
-import { AuthModule } from "./modules/auth/auth.module"
-import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard"
-import { APP_GUARD } from "@nestjs/core"
-import { UsersModule } from "./modules/users/users.module"
-import { AttendanceModule } from "./modules/attendance/attendance.module"
-import { ImplantModule } from "./modules/implant/implant.module"
-import { OrthodonticsModule } from "./modules/orthodontics/orthodontics.module"
-import { SalaryModule } from "./modules/salary/salary.module"
-import { WarehouseModule } from "./modules/warehouse/warehouse.module"
+import { PrismaModule } from "./prisma/prisma.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard";
+import { APP_GUARD } from "@nestjs/core";
+import { UsersModule } from "./modules/users/users.module";
+import { AttendanceModule } from "./modules/attendance/attendance.module";
+import { ImplantModule } from "./modules/implant/implant.module";
+import { OrthodonticsModule } from "./modules/orthodontics/orthodontics.module";
+import { SalaryModule } from "./modules/salary/salary.module";
+import { WarehouseModule } from "./modules/warehouse/warehouse.module";
 
 @Module({
   imports: [

@@ -1,12 +1,12 @@
-﻿import * as React from "react"
-import dayjs from "dayjs"
+﻿import * as React from "react";
+import dayjs from "dayjs";
 import {
   type ColumnDef,
   flexRender,
   metaHelper,
   tableFeatures,
   useTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 
 import {
   AlertDialog,
@@ -18,19 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@/components/ui/input-group"
-import { Input } from "@/components/ui/input"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Spinner } from "@/components/ui/spinner"
+} from "@/components/ui/input-group";
+import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -38,86 +38,86 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { SearchIcon } from "lucide-react"
-import { TablePagination } from "@/components/table-pagination"
-import { api } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete"
-import { paginateRows } from "@/lib/pagination"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+} from "@/components/ui/table";
+import { SearchIcon } from "lucide-react";
+import { TablePagination } from "@/components/table-pagination";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
+import { paginateRows } from "@/lib/pagination";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 /** 勾选列固定宽度 40px（与种植库存一致） */
-const IMPLANT_TABLE_SELECT_COL_W = "40px"
-const TABLE_ROW_HEIGHT_PX = 40
+const IMPLANT_TABLE_SELECT_COL_W = "40px";
+const TABLE_ROW_HEIGHT_PX = 40;
 
 type PatientRow = {
-  id: number
-  name: string
-  phone: string
-  gender: string
-  source: string
-  birthday: string
-  age: number
-  createdAt: string
-}
+  id: number;
+  name: string;
+  phone: string;
+  gender: string;
+  source: string;
+  birthday: string;
+  age: number;
+  createdAt: string;
+};
 
 function formatDate(iso: string) {
   try {
-    return dayjs(iso).format("YYYY-MM-DD")
+    return dayjs(iso).format("YYYY-MM-DD");
   } catch {
-    return iso
+    return iso;
   }
 }
 
 type PatientTableMeta = {
-  selection: Set<number>
-  toggleSel: (id: number) => void
-  selectAllRows: (rowsOnPage: PatientRow[]) => void
-  clearPageSelection: (rowsOnPage: PatientRow[]) => void
-}
+  selection: Set<number>;
+  toggleSel: (id: number) => void;
+  selectAllRows: (rowsOnPage: PatientRow[]) => void;
+  clearPageSelection: (rowsOnPage: PatientRow[]) => void;
+};
 
 const patientTableFeatures = tableFeatures({
   tableMeta: metaHelper<PatientTableMeta>(),
-})
+});
 
 export function ImplantPatientPage() {
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [patients, setPatients] = React.useState<PatientRow[]>([])
-  const [selection, setSelection] = React.useState<Set<number>>(new Set())
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
-  const [page, setPage] = React.useState(1)
-  const [pageSize, setPageSize] = React.useState(20)
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [patients, setPatients] = React.useState<PatientRow[]>([]);
+  const [selection, setSelection] = React.useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
 
   const toggleSel = React.useCallback((id: number) => {
     setSelection((prev) => {
-      const n = new Set(prev)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-  }, [])
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }, []);
 
   const selectAllRows = React.useCallback((rowsOnPage: PatientRow[]) => {
     setSelection((prev) => {
-      const next = new Set(prev)
-      for (const row of rowsOnPage) next.add(row.id)
-      return next
-    })
-  }, [])
+      const next = new Set(prev);
+      for (const row of rowsOnPage) next.add(row.id);
+      return next;
+    });
+  }, []);
 
   const clearPageSelection = React.useCallback((rowsOnPage: PatientRow[]) => {
     setSelection((prev) => {
-      const next = new Set(prev)
-      for (const row of rowsOnPage) next.delete(row.id)
-      return next
-    })
-  }, [])
+      const next = new Set(prev);
+      for (const row of rowsOnPage) next.delete(row.id);
+      return next;
+    });
+  }, []);
 
-  const editRowRef = React.useRef<PatientRow | null>(null)
-  const [editOpen, setEditOpen] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
+  const editRowRef = React.useRef<PatientRow | null>(null);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const [editForm, setEditForm] = React.useState({
     name: "",
     phone: "",
@@ -125,56 +125,56 @@ export function ImplantPatientPage() {
     chartNo: "",
     birthday: "",
     age: "",
-  })
+  });
 
   const load = React.useCallback(async () => {
     try {
-      const params = new URLSearchParams()
-      const q = searchQuery.trim()
-      if (q) params.set("q", q)
-      const qs = params.toString()
+      const params = new URLSearchParams();
+      const q = searchQuery.trim();
+      if (q) params.set("q", q);
+      const qs = params.toString();
       const data = await api<PatientRow[]>(
         "GET",
-        `/implant/patient${qs ? `?${qs}` : ""}`
-      )
-      setPatients(Array.isArray(data) ? data : [])
-      setSelection(new Set())
+        `/implant/patient${qs ? `?${qs}` : ""}`,
+      );
+      setPatients(Array.isArray(data) ? data : []);
+      setSelection(new Set());
     } catch (e) {
-      toast.error(errorMessage(e))
-      setPatients([])
+      toast.error(errorMessage(e));
+      setPatients([]);
     }
-  }, [searchQuery])
+  }, [searchQuery]);
 
   React.useEffect(() => {
-    setPage(1)
-  }, [searchQuery, pageSize])
+    setPage(1);
+  }, [searchQuery, pageSize]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
-      void load()
-    }, 300)
-    return () => window.clearTimeout(id)
-  }, [load])
+      void load();
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [load]);
 
   async function confirmDeleteSelected() {
-    const sel = patients.filter((row) => selection.has(row.id))
+    const sel = patients.filter((row) => selection.has(row.id));
     if (!sel.length) {
-      setDeleteDialogOpen(false)
-      return
+      setDeleteDialogOpen(false);
+      return;
     }
     try {
       const { ok, fail } = await batchDelete(sel, (row) =>
-        api("DELETE", `/implant/patient/${row.id}`)
-      )
-      toastBatchDeleteResult(ok, fail)
-      await load()
+        api("DELETE", `/implant/patient/${row.id}`),
+      );
+      toastBatchDeleteResult(ok, fail);
+      await load();
     } finally {
-      setDeleteDialogOpen(false)
+      setDeleteDialogOpen(false);
     }
   }
 
   const openEdit = React.useCallback((row: PatientRow) => {
-    editRowRef.current = row
+    editRowRef.current = row;
     setEditForm({
       name: row.name,
       phone: row.phone,
@@ -182,26 +182,26 @@ export function ImplantPatientPage() {
       chartNo: row.source === "-" ? "" : row.source,
       birthday: row.birthday === "-" ? "" : row.birthday,
       age: row.age ? String(row.age) : "",
-    })
-    setEditOpen(true)
-  }, [])
+    });
+    setEditOpen(true);
+  }, []);
 
   async function saveEdit() {
-    const row = editRowRef.current
-    if (!row) return
-    const name = editForm.name.trim()
-    const phone = editForm.phone.trim()
+    const row = editRowRef.current;
+    if (!row) return;
+    const name = editForm.name.trim();
+    const phone = editForm.phone.trim();
     if (!name || !phone) {
-      toast.error("请填写姓名与手机")
-      return
+      toast.error("请填写姓名与手机");
+      return;
     }
-    const ageStr = editForm.age.trim()
-    const ageVal = ageStr === "" ? null : Number.parseInt(ageStr, 10)
+    const ageStr = editForm.age.trim();
+    const ageVal = ageStr === "" ? null : Number.parseInt(ageStr, 10);
     if (ageStr !== "" && !Number.isFinite(ageVal)) {
-      toast.error("年龄需为数字")
-      return
+      toast.error("年龄需为数字");
+      return;
     }
-    setSaving(true)
+    setSaving(true);
     try {
       await api("PUT", `/implant/patient/${row.id}`, {
         name,
@@ -210,14 +210,14 @@ export function ImplantPatientPage() {
         chartNo: editForm.chartNo.trim() || undefined,
         birthday: editForm.birthday.trim() || null,
         age: ageVal,
-      })
-      toast.success("已保存")
-      setEditOpen(false)
-      await load()
+      });
+      toast.success("已保存");
+      setEditOpen(false);
+      await load();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -227,7 +227,7 @@ export function ImplantPatientPage() {
     currentPage,
     pageRows: pagePatients,
     emptyRowCount,
-  } = paginateRows(patients, page, pageSize)
+  } = paginateRows(patients, page, pageSize);
 
   const columns = React.useMemo<
     Array<ColumnDef<typeof patientTableFeatures, PatientRow>>
@@ -236,37 +236,37 @@ export function ImplantPatientPage() {
       {
         id: "select",
         header: ({ table }) => {
-          const meta = table.options.meta
-          const modelRows = table.getRowModel().rows
-          const sel = meta?.selection
+          const meta = table.options.meta;
+          const modelRows = table.getRowModel().rows;
+          const sel = meta?.selection;
           const allSelected =
             modelRows.length > 0 &&
-            modelRows.every((r) => sel?.has(r.original.id))
-          const someSelected = modelRows.some((r) => sel?.has(r.original.id))
+            modelRows.every((r) => sel?.has(r.original.id));
+          const someSelected = modelRows.some((r) => sel?.has(r.original.id));
           return (
             <Checkbox
               checked={allSelected}
               indeterminate={!allSelected && someSelected}
               onCheckedChange={(value) => {
-                const rowsOnPage = modelRows.map((r) => r.original)
-                if (value) meta?.selectAllRows?.(rowsOnPage)
-                else meta?.clearPageSelection?.(rowsOnPage)
+                const rowsOnPage = modelRows.map((r) => r.original);
+                if (value) meta?.selectAllRows?.(rowsOnPage);
+                else meta?.clearPageSelection?.(rowsOnPage);
               }}
             />
-          )
+          );
         },
         cell: ({ row, table }) => {
-          const id = row.original.id
-          const meta = table.options.meta
-          const sel = meta?.selection
-          const toggle = meta?.toggleSel
+          const id = row.original.id;
+          const meta = table.options.meta;
+          const sel = meta?.selection;
+          const toggle = meta?.toggleSel;
           return (
             <Checkbox
               checked={sel?.has(id) ?? false}
               onCheckedChange={() => toggle?.(id)}
               onClick={(e) => e.stopPropagation()}
             />
-          )
+          );
         },
       },
       {
@@ -290,16 +290,16 @@ export function ImplantPatientPage() {
         accessorKey: "birthday",
         header: "出生日期",
         cell: ({ getValue }) => {
-          const v = String(getValue() ?? "")
-          return v === "-" ? "-" : v
+          const v = String(getValue() ?? "");
+          return v === "-" ? "-" : v;
         },
       },
       {
         accessorKey: "age",
         header: "年龄",
         cell: ({ row }) => {
-          const a = row.original.age
-          return a ? `${a} 岁` : "-"
+          const a = row.original.age;
+          return a ? `${a} 岁` : "-";
         },
       },
       {
@@ -315,8 +315,8 @@ export function ImplantPatientPage() {
             type="button"
             variant="secondary"
             onClick={(e) => {
-              e.stopPropagation()
-              openEdit(row.original)
+              e.stopPropagation();
+              openEdit(row.original);
             }}
           >
             编辑
@@ -324,8 +324,8 @@ export function ImplantPatientPage() {
         ),
       },
     ],
-    [openEdit]
-  )
+    [openEdit],
+  );
 
   const table = useTable({
     features: patientTableFeatures,
@@ -338,10 +338,10 @@ export function ImplantPatientPage() {
       selectAllRows,
       clearPageSelection,
     },
-  })
+  });
 
-  const leafCols = table.getAllLeafColumns()
-  const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length
+  const leafCols = table.getAllLeafColumns();
+  const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
 
   return (
     <div className="bg-background p-4">
@@ -409,7 +409,7 @@ export function ImplantPatientPage() {
                           key={col.id}
                           style={{ width: IMPLANT_TABLE_SELECT_COL_W }}
                         />
-                      )
+                      );
                     }
                     return (
                       <col
@@ -418,7 +418,7 @@ export function ImplantPatientPage() {
                           width: `calc((100% - ${IMPLANT_TABLE_SELECT_COL_W}) / ${Math.max(1, visibleShareColCount)})`,
                         }}
                       />
-                    )
+                    );
                   })}
                 </colgroup>
                 <TableHeader>
@@ -429,14 +429,14 @@ export function ImplantPatientPage() {
                           key={h.id}
                           className={cn(
                             "text-center",
-                            h.column.id !== "select" && "max-w-0 min-w-0"
+                            h.column.id !== "select" && "max-w-0 min-w-0",
                           )}
                         >
                           {h.isPlaceholder
                             ? null
                             : flexRender(
                                 h.column.columnDef.header,
-                                h.getContext()
+                                h.getContext(),
                               )}
                         </TableHead>
                       ))}
@@ -458,13 +458,13 @@ export function ImplantPatientPage() {
                                 "max-w-0 min-w-0",
                                 cell.column.id === "edit"
                                   ? "whitespace-nowrap"
-                                  : "truncate"
-                              )
+                                  : "truncate",
+                              ),
                           )}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext()
+                            cell.getContext(),
                           )}
                         </TableCell>
                       ))}
@@ -572,5 +572,5 @@ export function ImplantPatientPage() {
         </Dialog>
       </div>
     </div>
-  )
+  );
 }

@@ -1,17 +1,20 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@prisma/client";
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from "@nestjs/common"
-import dayjs from "dayjs"
-import customParseFormat from "dayjs/plugin/customParseFormat"
+} from "@nestjs/common";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
-import { isPrismaUniqueViolation } from "../../../common/prisma-errors"
-import { PrismaService } from "../../../prisma/prisma.service"
-import { AttendanceScheduleService } from "./attendance-schedule.service"
-import { MakeupEventsService } from "./makeup-events.service"
-import { attendanceDayjs, formatAttendanceDate } from "../core/attendance-dayjs"
+import { isPrismaUniqueViolation } from "../../../common/prisma-errors";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { AttendanceScheduleService } from "./attendance-schedule.service";
+import { MakeupEventsService } from "./makeup-events.service";
+import {
+  attendanceDayjs,
+  formatAttendanceDate,
+} from "../core/attendance-dayjs";
 import {
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
@@ -20,48 +23,48 @@ import {
   makeupSlotsEnv,
   type MakeupSlotDenyReason,
   type PendingMakeup,
-} from "../core/makeup-slots"
-import { type MakeupTodayGate } from "../core/attendance-makeup-today-gate"
-import type { MakeupSlotType } from "../core/makeup-today-gate"
-import { DEFAULT_SHIFT_ROW } from "../core/defaults"
-import type { CreateMakeupRequestDto } from "../dto/makeup-request.dto"
-import { shouldAutoMakeupOut } from "../core/auto-makeup-out"
+} from "../core/makeup-slots";
+import { type MakeupTodayGate } from "../core/attendance-makeup-today-gate";
+import type { MakeupSlotType } from "../core/makeup-today-gate";
+import { DEFAULT_SHIFT_ROW } from "../core/defaults";
+import type { CreateMakeupRequestDto } from "../dto/makeup-request.dto";
+import { shouldAutoMakeupOut } from "../core/auto-makeup-out";
 
-dayjs.extend(customParseFormat)
+dayjs.extend(customParseFormat);
 
-const MAKEUP_IN_TYPES = ["morning_in", "afternoon_in"] as const
-type MakeupInType = (typeof MAKEUP_IN_TYPES)[number]
+const MAKEUP_IN_TYPES = ["morning_in", "afternoon_in"] as const;
+type MakeupInType = (typeof MAKEUP_IN_TYPES)[number];
 
-const MAKEUP_OUT_TYPES = ["morning_out", "afternoon_out"] as const
-type MakeupOutType = (typeof MAKEUP_OUT_TYPES)[number]
+const MAKEUP_OUT_TYPES = ["morning_out", "afternoon_out"] as const;
+type MakeupOutType = (typeof MAKEUP_OUT_TYPES)[number];
 
-const MAKEUP_REQUEST_TYPES = [...MAKEUP_IN_TYPES, ...MAKEUP_OUT_TYPES] as const
+const MAKEUP_REQUEST_TYPES = [...MAKEUP_IN_TYPES, ...MAKEUP_OUT_TYPES] as const;
 
 const ADMIN_MAKEUP_TYPES = [
   "morning_in",
   "morning_out",
   "afternoon_in",
   "afternoon_out",
-] as const
-type AdminMakeupType = (typeof ADMIN_MAKEUP_TYPES)[number]
+] as const;
+type AdminMakeupType = (typeof ADMIN_MAKEUP_TYPES)[number];
 
 const OUT_TYPE_BY_IN: Record<MakeupInType, MakeupOutType> = {
   morning_in: "morning_out",
   afternoon_in: "afternoon_out",
-}
+};
 
 @Injectable()
 export class AttendanceMakeupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedule: AttendanceScheduleService,
-    private readonly makeupEvents: MakeupEventsService
+    private readonly makeupEvents: MakeupEventsService,
   ) {}
 
   private createMakeupRecordData(
     userId: string,
     type: AdminMakeupType,
-    punchTime: Date
+    punchTime: Date,
   ) {
     return {
       userId,
@@ -72,24 +75,24 @@ export class AttendanceMakeupService {
       longitude: 0,
       address: "补卡",
       source: "makeup" as const,
-    }
+    };
   }
 
   private async createMakeupRecord(
     tx: Prisma.TransactionClient,
     userId: string,
     type: AdminMakeupType,
-    punchTime: Date
+    punchTime: Date,
   ) {
     try {
       return await tx.attendanceRecord.create({
         data: this.createMakeupRecordData(userId, type, punchTime),
-      })
+      });
     } catch (error) {
       if (isPrismaUniqueViolation(error)) {
-        throw new BadRequestException("该打卡记录已存在")
+        throw new BadRequestException("该打卡记录已存在");
       }
-      throw error
+      throw error;
     }
   }
 
@@ -97,10 +100,10 @@ export class AttendanceMakeupService {
     tx: Prisma.TransactionClient,
     userId: string,
     dateStr: string,
-    type: MakeupInType
+    type: MakeupInType,
   ) {
-    const autoOut = await this.buildAutoOutRecord(userId, dateStr, type)
-    if (!autoOut) return
+    const autoOut = await this.buildAutoOutRecord(userId, dateStr, type);
+    if (!autoOut) return;
 
     const existing = await tx.attendanceRecord.findUnique({
       where: {
@@ -110,10 +113,10 @@ export class AttendanceMakeupService {
           punchDate: dateStr,
         },
       },
-    })
-    if (existing) return
+    });
+    if (existing) return;
 
-    await this.createMakeupRecord(tx, userId, autoOut.type, autoOut.punchTime)
+    await this.createMakeupRecord(tx, userId, autoOut.type, autoOut.punchTime);
   }
 
   /**
@@ -121,70 +124,70 @@ export class AttendanceMakeupService {
    * 例如上午：过 morningOutWindowEnd；下午：过 afternoonOutWindowEnd。
    */
   private shouldAutoMakeupOut(dateStr: string, outWindowEndHhmm: string) {
-    return shouldAutoMakeupOut(attendanceDayjs(), dateStr, outWindowEndHhmm)
+    return shouldAutoMakeupOut(attendanceDayjs(), dateStr, outWindowEndHhmm);
   }
 
   private async buildAutoOutRecord(
     _userId: string,
     dateStr: string,
-    type: MakeupInType
+    type: MakeupInType,
   ) {
     const shift = await this.prisma.shiftConfig.findUnique({
       where: { id: "global" },
-    })
+    });
     const outWindowEnd =
       type === "morning_in"
         ? (shift?.morningOutWindowEnd ?? DEFAULT_SHIFT_ROW.morningOutWindowEnd)
         : (shift?.afternoonOutWindowEnd ??
-          DEFAULT_SHIFT_ROW.afternoonOutWindowEnd)
-    if (!this.shouldAutoMakeupOut(dateStr, outWindowEnd)) return null
+          DEFAULT_SHIFT_ROW.afternoonOutWindowEnd);
+    if (!this.shouldAutoMakeupOut(dateStr, outWindowEnd)) return null;
 
-    const outType = OUT_TYPE_BY_IN[type]
+    const outType = OUT_TYPE_BY_IN[type];
     const time =
       type === "morning_in"
         ? (shift?.overtimeMorningNormalEnd ??
           DEFAULT_SHIFT_ROW.overtimeMorningNormalEnd)
         : (shift?.overtimeAfternoonNormalEnd ??
-          DEFAULT_SHIFT_ROW.overtimeAfternoonNormalEnd)
-    const punchTime = attendanceDayjs(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm")
-    if (!punchTime.isValid()) return null
+          DEFAULT_SHIFT_ROW.overtimeAfternoonNormalEnd);
+    const punchTime = attendanceDayjs(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm");
+    if (!punchTime.isValid()) return null;
 
     return {
       type: outType,
       punchTime: punchTime.toDate(),
-    }
+    };
   }
 
   private async getMakeupTodayGate(): Promise<MakeupTodayGate> {
     const row = await this.prisma.shiftConfig.findUnique({
       where: { id: "global" },
-    })
+    });
     return {
       morningInWindowEnd:
         row?.morningInWindowEnd ?? DEFAULT_SHIFT_ROW.morningInWindowEnd,
       afternoonInWindowEnd:
         row?.afternoonInWindowEnd ?? DEFAULT_SHIFT_ROW.afternoonInWindowEnd,
-    }
+    };
   }
 
   private async dayRecords(userId: string, dateStr: string) {
     return await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate: dateStr },
-    })
+    });
   }
 
   private async buildMakeupRow(userId: string, dateStr: string) {
     const [records, declaredRest] = await Promise.all([
       this.dayRecords(userId, dateStr),
       this.schedule.resolveShiftForUserDay(userId, dateStr),
-    ])
-    return buildDayPunchRow(dateStr, declaredRest, records)
+    ]);
+    return buildDayPunchRow(dateStr, declaredRest, records);
   }
 
   private async pendingForUserDate(
     userId: string,
     dateStr: string,
-    excludeRequestId?: string
+    excludeRequestId?: string,
   ): Promise<PendingMakeup[]> {
     const rows = await this.prisma.attendanceMakeupRequest.findMany({
       where: {
@@ -194,67 +197,67 @@ export class AttendanceMakeupService {
         ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
       },
       select: { date: true, type: true, status: true },
-    })
-    return rows
+    });
+    return rows;
   }
 
   private throwIfMakeupDenied(
     reason: MakeupSlotDenyReason | null,
-    type: MakeupSlotType
+    type: MakeupSlotType,
   ) {
-    if (!reason) return
-    throw new BadRequestException(makeupSlotDenyMessage(reason, type))
+    if (!reason) return;
+    throw new BadRequestException(makeupSlotDenyMessage(reason, type));
   }
 
   private async assertEmployeeMakeupSlot(
     userId: string,
     dateStr: string,
     type: MakeupSlotType,
-    excludeRequestId?: string
+    excludeRequestId?: string,
   ) {
     const [row, gate, pending] = await Promise.all([
       this.buildMakeupRow(userId, dateStr),
       this.getMakeupTodayGate(),
       this.pendingForUserDate(userId, dateStr, excludeRequestId),
-    ])
-    const env = makeupSlotsEnv()
+    ]);
+    const env = makeupSlotsEnv();
     const reason = employeeMakeupSlotDenyReason(
       row,
       type,
       pending,
       env,
       gate,
-      new Date()
-    )
-    this.throwIfMakeupDenied(reason, type)
+      new Date(),
+    );
+    this.throwIfMakeupDenied(reason, type);
   }
 
   private async assertAdminMakeupSlot(
     userId: string,
     dateStr: string,
-    type: AdminMakeupType
+    type: AdminMakeupType,
   ) {
     const [row, gate] = await Promise.all([
       this.buildMakeupRow(userId, dateStr),
       this.getMakeupTodayGate(),
-    ])
-    const env = makeupSlotsEnv()
-    const reason = adminMakeupSlotDenyReason(row, type, env, gate, new Date())
-    this.throwIfMakeupDenied(reason, type)
+    ]);
+    const env = makeupSlotsEnv();
+    const reason = adminMakeupSlotDenyReason(row, type, env, gate, new Date());
+    this.throwIfMakeupDenied(reason, type);
   }
 
   private serializeRequest(row: {
-    id: string
-    userId: string
-    date: string
-    type: string
-    punchTime: Date
-    reason: string
-    status: string
-    reviewedAt: Date | null
-    createdAt: Date
-    user: { displayName: string; username: string }
-    reviewer: { displayName: string; username: string } | null
+    id: string;
+    userId: string;
+    date: string;
+    type: string;
+    punchTime: Date;
+    reason: string;
+    status: string;
+    reviewedAt: Date | null;
+    createdAt: Date;
+    user: { displayName: string; username: string };
+    reviewer: { displayName: string; username: string } | null;
   }) {
     return {
       id: row.id,
@@ -270,27 +273,31 @@ export class AttendanceMakeupService {
       reviewerName: row.reviewer
         ? row.reviewer.displayName || row.reviewer.username
         : null,
-    }
+    };
   }
 
   private includeUser() {
     return {
       user: { select: { displayName: true, username: true } },
       reviewer: { select: { displayName: true, username: true } },
-    } as const
+    } as const;
   }
 
   async createRequest(userId: string, dto: CreateMakeupRequestDto) {
-    const type = dto.type
+    const type = dto.type;
     if (!MAKEUP_REQUEST_TYPES.includes(type)) {
-      throw new BadRequestException("补卡类型不合法")
+      throw new BadRequestException("补卡类型不合法");
     }
 
-    await this.assertEmployeeMakeupSlot(userId, dto.date, type)
+    await this.assertEmployeeMakeupSlot(userId, dto.date, type);
 
-    const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
+    const punchTime = dayjs(
+      `${dto.date} ${dto.time}`,
+      "YYYY-MM-DD HH:mm",
+      true,
+    );
     if (!punchTime.isValid()) {
-      throw new BadRequestException("补卡时间不合法")
+      throw new BadRequestException("补卡时间不合法");
     }
 
     const row = await this.prisma.attendanceMakeupRequest.create({
@@ -302,14 +309,14 @@ export class AttendanceMakeupService {
         reason: "",
       },
       include: this.includeUser(),
-    })
+    });
     this.makeupEvents.publish({
       type: "makeup-changed",
       action: "created",
       userId,
       requestId: row.id,
-    })
-    return this.serializeRequest(row)
+    });
+    return this.serializeRequest(row);
   }
 
   async listMine(userId: string, status?: string) {
@@ -327,8 +334,8 @@ export class AttendanceMakeupService {
       },
       orderBy: [{ createdAt: "desc" }],
       include: this.includeUser(),
-    })
-    return rows.map((r) => this.serializeRequest(r))
+    });
+    return rows.map((r) => this.serializeRequest(r));
   }
 
   async listForAdmin(status?: string) {
@@ -339,44 +346,44 @@ export class AttendanceMakeupService {
           ? { status: "approved" as const }
           : status === "rejected"
             ? { status: "rejected" as const }
-            : undefined
+            : undefined;
 
     const rows = await this.prisma.attendanceMakeupRequest.findMany({
       where,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       include: this.includeUser(),
-    })
-    return rows.map((r) => this.serializeRequest(r))
+    });
+    return rows.map((r) => this.serializeRequest(r));
   }
 
   async approve(requestId: string, adminId: string) {
     const req = await this.prisma.attendanceMakeupRequest.findUnique({
       where: { id: requestId },
       include: { user: true },
-    })
-    if (!req) throw new NotFoundException("补卡申请不存在")
+    });
+    if (!req) throw new NotFoundException("补卡申请不存在");
     if (req.status !== "pending") {
-      throw new BadRequestException("该申请已处理")
+      throw new BadRequestException("该申请已处理");
     }
 
-    const type = req.type
+    const type = req.type;
     if (!MAKEUP_REQUEST_TYPES.includes(type)) {
-      throw new BadRequestException("申请类型不合法")
+      throw new BadRequestException("申请类型不合法");
     }
 
-    await this.assertEmployeeMakeupSlot(req.userId, req.date, type, requestId)
+    await this.assertEmployeeMakeupSlot(req.userId, req.date, type, requestId);
 
     const autoOut = MAKEUP_IN_TYPES.includes(type as MakeupInType)
       ? await this.buildAutoOutRecord(
           req.userId,
           req.date,
-          type as MakeupInType
+          type as MakeupInType,
         )
-      : null
+      : null;
     if (autoOut) {
-      const records = await this.dayRecords(req.userId, req.date)
+      const records = await this.dayRecords(req.userId, req.date);
       if (records.some((r) => r.type === autoOut.type)) {
-        throw new BadRequestException("该下班卡已存在，无需补卡")
+        throw new BadRequestException("该下班卡已存在，无需补卡");
       }
     }
 
@@ -388,44 +395,44 @@ export class AttendanceMakeupService {
           reviewedBy: adminId,
           reviewedAt: new Date(),
         },
-      })
+      });
       if (claimed.count === 0) {
-        throw new BadRequestException("该申请已处理")
+        throw new BadRequestException("该申请已处理");
       }
 
-      await this.createMakeupRecord(tx, req.userId, req.type, req.punchTime)
+      await this.createMakeupRecord(tx, req.userId, req.type, req.punchTime);
 
       if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
         await this.createAutoOutIfNeeded(
           tx,
           req.userId,
           req.date,
-          type as MakeupInType
-        )
+          type as MakeupInType,
+        );
       }
 
       const row = await tx.attendanceMakeupRequest.findUnique({
         where: { id: requestId },
         include: this.includeUser(),
-      })
-      if (!row) throw new NotFoundException("补卡申请不存在")
-      return row
-    })
+      });
+      if (!row) throw new NotFoundException("补卡申请不存在");
+      return row;
+    });
 
     this.makeupEvents.publish({
       type: "makeup-changed",
       action: "approved",
       userId: req.userId,
       requestId,
-    })
-    return this.serializeRequest(updated)
+    });
+    return this.serializeRequest(updated);
   }
 
   async reject(requestId: string, adminId: string) {
     const req = await this.prisma.attendanceMakeupRequest.findUnique({
       where: { id: requestId },
-    })
-    if (!req) throw new NotFoundException("补卡申请不存在")
+    });
+    if (!req) throw new NotFoundException("补卡申请不存在");
 
     const { count } = await this.prisma.attendanceMakeupRequest.updateMany({
       where: { id: requestId, status: "pending" },
@@ -434,41 +441,45 @@ export class AttendanceMakeupService {
         reviewedBy: adminId,
         reviewedAt: new Date(),
       },
-    })
+    });
     if (count === 0) {
-      throw new BadRequestException("该申请已处理")
+      throw new BadRequestException("该申请已处理");
     }
 
     const updated = await this.prisma.attendanceMakeupRequest.findUnique({
       where: { id: requestId },
       include: this.includeUser(),
-    })
-    if (!updated) throw new NotFoundException("补卡申请不存在")
+    });
+    if (!updated) throw new NotFoundException("补卡申请不存在");
     this.makeupEvents.publish({
       type: "makeup-changed",
       action: "rejected",
       userId: req.userId,
       requestId,
-    })
-    return this.serializeRequest(updated)
+    });
+    return this.serializeRequest(updated);
   }
 
   async directMakeup(dto: {
-    userId: string
-    date: string
-    type: AdminMakeupType
-    time: string
+    userId: string;
+    date: string;
+    type: AdminMakeupType;
+    time: string;
   }) {
-    const type = dto.type
+    const type = dto.type;
     if (!ADMIN_MAKEUP_TYPES.includes(type)) {
-      throw new BadRequestException("补卡类型不合法")
+      throw new BadRequestException("补卡类型不合法");
     }
 
-    await this.assertAdminMakeupSlot(dto.userId, dto.date, type)
+    await this.assertAdminMakeupSlot(dto.userId, dto.date, type);
 
-    const punchTime = dayjs(`${dto.date} ${dto.time}`, "YYYY-MM-DD HH:mm", true)
+    const punchTime = dayjs(
+      `${dto.date} ${dto.time}`,
+      "YYYY-MM-DD HH:mm",
+      true,
+    );
     if (!punchTime.isValid()) {
-      throw new BadRequestException("补卡时间不合法")
+      throw new BadRequestException("补卡时间不合法");
     }
 
     const record = await this.prisma.$transaction(async (tx) => {
@@ -479,32 +490,32 @@ export class AttendanceMakeupService {
           type,
           status: "pending",
         },
-      })
+      });
 
       const created = await this.createMakeupRecord(
         tx,
         dto.userId,
         type,
-        punchTime.toDate()
-      )
+        punchTime.toDate(),
+      );
 
       if (MAKEUP_IN_TYPES.includes(type as MakeupInType)) {
         await this.createAutoOutIfNeeded(
           tx,
           dto.userId,
           dto.date,
-          type as MakeupInType
-        )
+          type as MakeupInType,
+        );
       }
 
-      return created
-    })
+      return created;
+    });
 
     this.makeupEvents.publish({
       type: "makeup-changed",
       action: "cleared",
       userId: dto.userId,
-    })
+    });
 
     return {
       id: record.id,
@@ -512,6 +523,6 @@ export class AttendanceMakeupService {
       type: record.type,
       punchTime: record.punchTime.toISOString(),
       source: record.source,
-    }
+    };
   }
 }

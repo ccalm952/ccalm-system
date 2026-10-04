@@ -1,5 +1,5 @@
-import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
+import * as React from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   CalendarCheck2,
   ChevronRightIcon,
@@ -7,14 +7,14 @@ import {
   Smile,
   Sprout,
   Wallet,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavUser } from "@/components/nav-user"
+import { NavUser } from "@/components/nav-user";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -28,19 +28,19 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { attendanceNavItemsForRole } from "@/config/attendance-nav"
-import { implantSubNavItems } from "@/config/implant-nav"
-import { orthodonticsNavItem } from "@/config/orthodontics-nav"
-import { salaryNavItem } from "@/config/salary-nav"
-import { warehouseNavItem } from "@/config/warehouse-nav"
-import { ROUTES } from "@/config/routes"
-import { useAuth } from "@/lib/use-auth"
+} from "@/components/ui/sidebar";
+import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { implantSubNavItems } from "@/config/implant-nav";
+import { orthodonticsNavItem } from "@/config/orthodontics-nav";
+import { salaryNavItem } from "@/config/salary-nav";
+import { warehouseNavItem } from "@/config/warehouse-nav";
+import { ROUTES } from "@/config/routes";
+import { useAuth } from "@/lib/use-auth";
 
 function subPathActive(pathname: string, url: string) {
   return url === "/"
     ? pathname === "/"
-    : pathname === url || pathname.startsWith(`${url}/`)
+    : pathname === url || pathname.startsWith(`${url}/`);
 }
 
 function SidebarNavCollapsible({
@@ -50,20 +50,20 @@ function SidebarNavCollapsible({
   activePath,
   onNavClick,
 }: {
-  title: string
-  icon: typeof CalendarCheck2
-  items: { title: string; url: string }[]
-  activePath: string
-  onNavClick: (url: string) => void
+  title: string;
+  icon: typeof CalendarCheck2;
+  items: { title: string; url: string }[];
+  activePath: string;
+  onNavClick: (url: string) => void;
 }) {
   const active = React.useMemo(
     () => items.some((sub) => subPathActive(activePath, sub.url)),
-    [activePath, items]
-  )
-  const [open, setOpen] = React.useState(true)
+    [activePath, items],
+  );
+  const [open, setOpen] = React.useState(true);
   React.useEffect(() => {
-    if (active) setOpen(true)
-  }, [active])
+    if (active) setOpen(true);
+  }, [active]);
   return (
     <Collapsible
       open={open}
@@ -100,30 +100,30 @@ function SidebarNavCollapsible({
         </CollapsibleContent>
       ) : null}
     </Collapsible>
-  )
+  );
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { pathname } = useLocation()
-  const { setOpenMobile } = useSidebar()
-  const { me, setMe } = useAuth()
-  const [pendingPath, setPendingPath] = React.useState<string | null>(null)
+  const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
+  const { me, setMe } = useAuth();
+  const [pendingPath, setPendingPath] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    setPendingPath(null)
-  }, [pathname])
+    setPendingPath(null);
+  }, [pathname]);
 
-  const activePath = pendingPath ?? pathname
+  const activePath = pendingPath ?? pathname;
 
   function onNavClick(url: string) {
-    setPendingPath(url)
-    setOpenMobile(false)
+    setPendingPath(url);
+    setOpenMobile(false);
   }
 
   const navMain: {
-    title: string
-    icon: typeof CalendarCheck2
-    items: { title: string; url: string }[]
+    title: string;
+    icon: typeof CalendarCheck2;
+    items: { title: string; url: string }[];
   }[] = [
     {
       title: "考勤",
@@ -131,10 +131,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       items: attendanceNavItemsForRole(me?.role),
     },
     { title: "种植", icon: Sprout, items: implantSubNavItems },
-  ]
+  ];
 
-  const orthodonticsLink = orthodonticsNavItem
-  const warehouseLink = warehouseNavItem
+  const orthodonticsLink = orthodonticsNavItem;
+  const warehouseLink = warehouseNavItem;
 
   return (
     <Sidebar {...props}>
@@ -243,13 +243,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               }}
               onAvatarUpdated={(avatarUrl) => {
                 setMe((current) =>
-                  current ? { ...current, avatarUrl } : current
-                )
+                  current ? { ...current, avatarUrl } : current,
+                );
               }}
             />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

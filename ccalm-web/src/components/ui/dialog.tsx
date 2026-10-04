@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import * as React from "react";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 
-const DialogCloseContext = React.createContext(false)
+const DialogCloseContext = React.createContext(false);
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
 function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
 function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
 function DialogOverlay({
@@ -34,17 +34,17 @@ function DialogOverlay({
       data-slot="dialog-overlay"
       className={cn(
         "fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 // CCALM: 关闭按钮放在 DialogHeader 标题行内（官方为 DialogContent 内 absolute）
 function DialogCloseButton() {
-  const showCloseButton = React.useContext(DialogCloseContext)
-  if (!showCloseButton) return null
+  const showCloseButton = React.useContext(DialogCloseContext);
+  if (!showCloseButton) return null;
   return (
     <DialogPrimitive.Close
       data-slot="dialog-close"
@@ -55,7 +55,7 @@ function DialogCloseButton() {
       <XIcon />
       <span className="sr-only">Close</span>
     </DialogPrimitive.Close>
-  )
+  );
 }
 
 function DialogContent({
@@ -65,9 +65,9 @@ function DialogContent({
   overlayClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
   // CCALM: 允许业务侧覆盖遮罩（如去掉 blur 减轻卡顿）
-  overlayClassName?: string
+  overlayClassName?: string;
 }) {
   return (
     <DialogPortal>
@@ -78,7 +78,7 @@ function DialogContent({
           className={cn(
             // CCALM: 横向 gap-4、纵向 gap-4（官方默认 gap-6）
             "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-x-4 gap-y-4 rounded-[min(var(--radius-4xl),24px)] bg-popover p-6 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md dark:ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-            className
+            className,
           )}
           {...props}
         >
@@ -86,7 +86,7 @@ function DialogContent({
         </DialogPrimitive.Popup>
       </DialogCloseContext.Provider>
     </DialogPortal>
-  )
+  );
 }
 
 function DialogHeader({
@@ -100,14 +100,14 @@ function DialogHeader({
       // CCALM: 标题与关闭按钮同一行，横向 gap-2（官方仅为 flex-col）
       className={cn(
         "flex flex-row items-start justify-between gap-2",
-        className
+        className,
       )}
       {...props}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">{children}</div>
       <DialogCloseButton />
     </div>
-  )
+  );
 }
 
 function DialogFooter({
@@ -116,7 +116,7 @@ function DialogFooter({
   children,
   ...props
 }: React.ComponentProps<"div"> & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
 }) {
   return (
     <div
@@ -124,7 +124,7 @@ function DialogFooter({
       className={cn(
         // CCALM: 窄屏也横排，底部按钮间距统一 gap-4
         "flex flex-row justify-end gap-4",
-        className
+        className,
       )}
       {...props}
     >
@@ -135,7 +135,7 @@ function DialogFooter({
         </DialogPrimitive.Close>
       )}
     </div>
-  )
+  );
 }
 
 function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
@@ -145,11 +145,11 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
       className={cn(
         // CCALM: 标题行高 32px（官方默认 leading-none）
         "font-heading text-base leading-8 font-medium",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function DialogDescription({
@@ -161,11 +161,11 @@ function DialogDescription({
       data-slot="dialog-description"
       className={cn(
         "text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -179,4 +179,4 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
-}
+};

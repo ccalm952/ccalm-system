@@ -1,19 +1,19 @@
-import * as React from "react"
+import * as React from "react";
 
-import { ToothChartDialog } from "@/components/tooth-chart/ToothChartDialog"
-import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark"
-import { Button } from "@/components/ui/button"
-import { formatTeeth, parseTeethStrict } from "@/lib/tooth-fdi"
-import { cn } from "@/lib/utils"
+import { ToothChartDialog } from "@/components/tooth-chart/ToothChartDialog";
+import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
+import { Button } from "@/components/ui/button";
+import { formatTeeth, parseTeethStrict } from "@/lib/tooth-fdi";
+import { cn } from "@/lib/utils";
 
 type ToothPositionFieldProps = {
-  value: string
-  onValueChange: (v: string) => void
-  className?: string
+  value: string;
+  onValueChange: (v: string) => void;
+  className?: string;
   /** 表格内更紧凑，不可点时可只展示 */
-  compact?: boolean
-  readOnly?: boolean
-}
+  compact?: boolean;
+  readOnly?: boolean;
+};
 
 /**
  * 图1 触发器：可解析 FDI 时显示十字象限；否则显示原文。
@@ -26,12 +26,12 @@ export function ToothPositionField({
   compact,
   readOnly,
 }: ToothPositionFieldProps) {
-  const [open, setOpen] = React.useState(false)
-  const parsed = React.useMemo(() => parseTeethStrict(value), [value])
-  const fdis = parsed ?? []
-  const freeText = parsed == null && value.trim() !== ""
+  const [open, setOpen] = React.useState(false);
+  const parsed = React.useMemo(() => parseTeethStrict(value), [value]);
+  const fdis = parsed ?? [];
+  const freeText = parsed == null && value.trim() !== "";
 
-  const textClass = compact ? "text-xs" : "text-base md:text-sm"
+  const textClass = compact ? "text-xs" : "text-base md:text-sm";
 
   const body = freeText ? (
     <span className={cn("truncate", textClass)}>{value}</span>
@@ -41,14 +41,14 @@ export function ToothPositionField({
     <span className={cn("text-muted-foreground", textClass)}>
       {compact ? "—" : "选择牙位"}
     </span>
-  )
+  );
 
   if (readOnly) {
     return (
       <span className={cn("inline-flex min-w-0 items-center", className)}>
         {body}
       </span>
-    )
+    );
   }
 
   return (
@@ -61,7 +61,7 @@ export function ToothPositionField({
             ? "h-auto min-h-8 border-0 bg-transparent px-0 py-1.5 shadow-none hover:bg-transparent"
             : "h-10 items-center border-transparent bg-input/50 px-2.5 py-0 text-base leading-none font-normal hover:bg-input/50 md:text-sm dark:bg-input/50 dark:hover:bg-input/50",
           "w-full justify-start overflow-hidden",
-          className
+          className,
         )}
         onClick={() => setOpen(true)}
       >
@@ -74,5 +74,5 @@ export function ToothPositionField({
         onConfirm={(next) => onValueChange(formatTeeth(next))}
       />
     </>
-  )
+  );
 }

@@ -1,76 +1,76 @@
-import { IsIn, IsOptional, IsString } from "class-validator"
+import { IsIn, IsOptional, IsString } from "class-validator";
 
-const CATEGORIES = ["treating", "invisible", "appliance", "completed"] as const
+const CATEGORIES = ["treating", "invisible", "appliance", "completed"] as const;
 
 export class CreateOrthodonticsPatientDto {
   @IsIn(CATEGORIES)
-  category!: (typeof CATEGORIES)[number]
+  category!: (typeof CATEGORIES)[number];
 
   @IsString()
-  name!: string
-
-  @IsOptional()
-  @IsString()
-  chartNo?: string
+  name!: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  chartNo?: string;
 
   @IsOptional()
   @IsString()
-  applianceModel?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  lastVisitDate?: string | null
+  applianceModel?: string;
 
   @IsOptional()
   @IsString()
-  followUp?: string
+  lastVisitDate?: string | null;
 
   @IsOptional()
   @IsString()
-  remark?: string
+  followUp?: string;
 
   @IsOptional()
   @IsString()
-  doctor?: string
+  remark?: string;
+
+  @IsOptional()
+  @IsString()
+  doctor?: string;
 }
 
 export class UpdateOrthodonticsPatientDto {
   @IsString()
-  name!: string
+  name!: string;
 
   @IsOptional()
   @IsString()
-  chartNo?: string
+  chartNo?: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  applianceModel?: string
+  applianceModel?: string;
 
   @IsOptional()
   @IsString()
-  lastVisitDate?: string | null
+  lastVisitDate?: string | null;
 
   @IsOptional()
   @IsString()
-  followUp?: string
+  followUp?: string;
 
   @IsOptional()
   @IsString()
-  remark?: string
+  remark?: string;
 
   @IsOptional()
   @IsString()
-  doctor?: string
+  doctor?: string;
 
   @IsOptional()
   @IsIn(CATEGORIES)
-  category?: (typeof CATEGORIES)[number]
+  category?: (typeof CATEGORIES)[number];
 }

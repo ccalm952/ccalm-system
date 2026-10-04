@@ -1,14 +1,14 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { computeInsuranceTable, computeSalarySheet, round2 } from "./calc"
-import { createDefaultSalaryGlobalSettings } from "./settings"
+import { computeInsuranceTable, computeSalarySheet, round2 } from "./calc";
+import { createDefaultSalaryGlobalSettings } from "./settings";
 import type {
   SalaryHousingFundInput,
   SalaryInsuranceInput,
   SalarySheetData,
-} from "./types"
+} from "./types";
 
-const settings = createDefaultSalaryGlobalSettings()
+const settings = createDefaultSalaryGlobalSettings();
 
 function emptyInsurance(): SalaryInsuranceInput {
   return {
@@ -33,7 +33,7 @@ function emptyInsurance(): SalaryInsuranceInput {
     maternityBase: 0,
     maternityEmployerRate: 0,
     maternityEmployerCount: 0,
-  }
+  };
 }
 
 function emptyHousing(): SalaryHousingFundInput {
@@ -43,12 +43,12 @@ function emptyHousing(): SalaryHousingFundInput {
     employerCount: 0,
     personalRate: 0,
     personalCount: 0,
-  }
+  };
 }
 
 function makeSheet(
   insurance: SalaryInsuranceInput,
-  housingFund: SalaryHousingFundInput
+  housingFund: SalaryHousingFundInput,
 ): SalarySheetData {
   return {
     summary: { totalIncome: 0, daysInMonth: 30, workingDays: 25 },
@@ -64,17 +64,17 @@ function makeSheet(
       processing: 0,
     },
     materialLines: [],
-  }
+  };
 }
 
 function sheetEmployerTotal(
   insurance: SalaryInsuranceInput,
-  housingFund: SalaryHousingFundInput
+  housingFund: SalaryHousingFundInput,
 ): number {
   return computeSalarySheet(makeSheet(insurance, housingFund), {
     month: "2026-08",
     globalSettings: settings,
-  }).insuranceEmployerTotal
+  }).insuranceEmployerTotal;
 }
 
 describe("五险一金取整口径统一", () => {
@@ -87,14 +87,14 @@ describe("五险一金取整口径统一", () => {
       pensionBase: 3333,
       pensionEmployerRate: 0.005,
       pensionEmployerCount: 5,
-    }
+    };
 
-    const table = computeInsuranceTable(insurance, emptyHousing())
-    const pension = table.lines.find((line) => line.key === "pension")
+    const table = computeInsuranceTable(insurance, emptyHousing());
+    const pension = table.lines.find((line) => line.key === "pension");
 
-    expect(pension?.rowTotal).toBe(83.33)
-    expect(table.groupTotals.social).toBe(83.33)
-  })
+    expect(pension?.rowTotal).toBe(83.33);
+    expect(table.groupTotals.social).toBe(83.33);
+  });
 
   it("公积金行与汇总口径一致（此前会差 0.03）", () => {
     const housing = {
@@ -102,26 +102,26 @@ describe("五险一金取整口径统一", () => {
       base: 3333,
       employerRate: 0.005,
       employerCount: 5,
-    }
+    };
 
-    const table = computeInsuranceTable(emptyInsurance(), housing)
+    const table = computeInsuranceTable(emptyInsurance(), housing);
 
-    expect(table.groupTotals.housing).toBe(83.33)
-    expect(sheetEmployerTotal(emptyInsurance(), housing)).toBe(83.33)
-  })
+    expect(table.groupTotals.housing).toBe(83.33);
+    expect(sheetEmployerTotal(emptyInsurance(), housing)).toBe(83.33);
+  });
 
   it("表格合计与薪资表汇总在多种数值下都相等", () => {
     const cases: {
-      base: number
-      rate: number
-      count: number
+      base: number;
+      rate: number;
+      count: number;
     }[] = [
       { base: 3333, rate: 0.005, count: 5 },
       { base: 7337, rate: 0.005, count: 3 },
       { base: 8000, rate: 0.08, count: 12 },
       { base: 10000, rate: 0.16, count: 3 },
       { base: 1200, rate: 5 / 12, count: 5 },
-    ]
+    ];
 
     for (const { base, rate, count } of cases) {
       const housing = {
@@ -129,15 +129,15 @@ describe("五险一金取整口径统一", () => {
         base,
         employerRate: rate,
         employerCount: count,
-      }
+      };
 
-      const table = computeInsuranceTable(emptyInsurance(), housing)
+      const table = computeInsuranceTable(emptyInsurance(), housing);
 
       expect(table.groupTotals.housing).toBe(
-        sheetEmployerTotal(emptyInsurance(), housing)
-      )
+        sheetEmployerTotal(emptyInsurance(), housing),
+      );
     }
-  })
+  });
 
   it("精确可表示的值不受影响", () => {
     const housing = {
@@ -145,22 +145,22 @@ describe("五险一金取整口径统一", () => {
       base: 7337,
       employerRate: 0.005,
       employerCount: 3,
-    }
+    };
 
     expect(
-      computeInsuranceTable(emptyInsurance(), housing).groupTotals.housing
-    ).toBe(110.06)
-  })
+      computeInsuranceTable(emptyInsurance(), housing).groupTotals.housing,
+    ).toBe(110.06);
+  });
 
   it("上游连乘的浮点噪声会被 round2 吸附", () => {
     // 连乘自身就会丢精度（精确值是 83.325，改变结合顺序只能把误差挪到别处）
-    expect(3333 * 0.005 * 5).not.toBe(83.325)
-    expect(7337 * 0.005 * 3).toBe(110.055)
+    expect(3333 * 0.005 * 5).not.toBe(83.325);
+    expect(7337 * 0.005 * 3).toBe(110.055);
 
     // 吸附后仍能得到精确结果
-    expect(round2(3333 * 0.005 * 5)).toBe(83.33)
-    expect(round2(7337 * 0.005 * 3)).toBe(110.06)
+    expect(round2(3333 * 0.005 * 5)).toBe(83.33);
+    expect(round2(7337 * 0.005 * 3)).toBe(110.06);
     // 右结合会算错的那个组合，吸附后同样正确
-    expect(round2(7337 * (0.005 * 3))).toBe(110.06)
-  })
-})
+    expect(round2(7337 * (0.005 * 3))).toBe(110.06);
+  });
+});

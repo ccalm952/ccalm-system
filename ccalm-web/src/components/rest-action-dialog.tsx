@@ -1,32 +1,32 @@
-import * as React from "react"
-import dayjs from "dayjs"
+import * as React from "react";
+import dayjs from "dayjs";
 
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { restConfirmMessage, type RestHalf } from "@/lib/attendance/rest"
-import type { ScheduleRestType } from "@/lib/attendance/types"
-import { api } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { useEnterToConfirm } from "@/lib/use-enter-to-confirm"
-import { toast } from "sonner"
+} from "@/components/ui/dialog";
+import { restConfirmMessage, type RestHalf } from "@/lib/attendance/rest";
+import type { ScheduleRestType } from "@/lib/attendance/types";
+import { api } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { useEnterToConfirm } from "@/lib/use-enter-to-confirm";
+import { toast } from "sonner";
 
 export function RestActionDialog(props: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  date: string
-  half: RestHalf
-  mode: "declare" | "clear"
-  declaredRest?: ScheduleRestType | null
-  userId?: string
-  userName?: string
-  onSuccess: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  date: string;
+  half: RestHalf;
+  mode: "declare" | "clear";
+  declaredRest?: ScheduleRestType | null;
+  userId?: string;
+  userName?: string;
+  onSuccess: () => void;
 }) {
   const {
     open,
@@ -38,34 +38,34 @@ export function RestActionDialog(props: {
     userId,
     userName,
     onSuccess,
-  } = props
-  const [submitting, setSubmitting] = React.useState(false)
+  } = props;
+  const [submitting, setSubmitting] = React.useState(false);
 
-  const message = restConfirmMessage(date, half, declaredRest, mode)
+  const message = restConfirmMessage(date, half, declaredRest, mode);
 
   async function handleSubmit() {
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      const body = { date, half, ...(userId ? { userId } : {}) }
+      const body = { date, half, ...(userId ? { userId } : {}) };
       if (mode === "declare") {
-        await api("POST", "/attendance/rest", body)
-        toast.success(userName ? `已为 ${userName} 登记休息` : "休息登记成功")
+        await api("POST", "/attendance/rest", body);
+        toast.success(userName ? `已为 ${userName} 登记休息` : "休息登记成功");
       } else {
-        await api("POST", "/attendance/rest/clear", body)
+        await api("POST", "/attendance/rest/clear", body);
         toast.success(
-          userName ? `已取消 ${userName} 的休息登记` : "已取消休息登记"
-        )
+          userName ? `已取消 ${userName} 的休息登记` : "已取消休息登记",
+        );
       }
-      onSuccess()
-      onOpenChange(false)
+      onSuccess();
+      onOpenChange(false);
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
-  useEnterToConfirm(open, handleSubmit, submitting)
+  useEnterToConfirm(open, handleSubmit, submitting);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,5 +112,5 @@ export function RestActionDialog(props: {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

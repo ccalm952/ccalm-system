@@ -1,11 +1,11 @@
-import * as React from "react"
+import * as React from "react";
 
 export function TruncateCell({
   children,
   title,
 }: {
-  children: React.ReactNode
-  title?: string
+  children: React.ReactNode;
+  title?: string;
 }) {
   return (
     <div
@@ -14,5 +14,5 @@ export function TruncateCell({
     >
       {children}
     </div>
-  )
+  );
 }

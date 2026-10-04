@@ -6,24 +6,24 @@ import {
   IsString,
   Max,
   Min,
-} from "class-validator"
+} from "class-validator";
 
 export class UpsertGeofenceDto {
   @IsBoolean()
-  enabled!: boolean
+  enabled!: boolean;
 
   @IsNumber()
-  centerLat!: number
+  centerLat!: number;
 
   @IsNumber()
-  centerLng!: number
+  centerLng!: number;
 
   @IsInt()
   @Min(1)
   @Max(50000)
-  radiusM!: number
+  radiusM!: number;
 
   @IsOptional()
   @IsString()
-  label?: string
+  label?: string;
 }

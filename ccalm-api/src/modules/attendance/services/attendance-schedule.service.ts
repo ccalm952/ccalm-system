@@ -1,32 +1,32 @@
-import { isPunchBlockedByScheduleRest } from "../core/schedule-rest"
-import { BadRequestException, Injectable } from "@nestjs/common"
-import { Prisma, type AttendancePunchType } from "@prisma/client"
-import dayjs from "dayjs"
+import { isPunchBlockedByScheduleRest } from "../core/schedule-rest";
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { Prisma, type AttendancePunchType } from "@prisma/client";
+import dayjs from "dayjs";
 
-import { isWithinAttendanceEditWindow } from "../core/attendance-edit-window"
-import { attendanceDayjs } from "../core/attendance-dayjs"
-import type { ScheduleShiftType } from "../core/schedule-inference"
+import { isWithinAttendanceEditWindow } from "../core/attendance-edit-window";
+import { attendanceDayjs } from "../core/attendance-dayjs";
+import type { ScheduleShiftType } from "../core/schedule-inference";
 
-import { PrismaService } from "../../../prisma/prisma.service"
-import type { UpsertScheduleMonthConfigDto } from "../dto/schedule.dto"
+import { PrismaService } from "../../../prisma/prisma.service";
+import type { UpsertScheduleMonthConfigDto } from "../dto/schedule.dto";
 
-const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"] as const
+const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"] as const;
 
 function monthBounds(month: string) {
-  const base = attendanceDayjs(`${month}-01`, "YYYY-MM-DD")
-  if (!base.isValid()) throw new BadRequestException("月份格式不合法")
-  assertScheduleMonthAllowed(month)
-  const start = base.startOf("month")
-  const end = base.endOf("month")
-  return { start, end, daysInMonth: end.date() }
+  const base = attendanceDayjs(`${month}-01`, "YYYY-MM-DD");
+  if (!base.isValid()) throw new BadRequestException("月份格式不合法");
+  assertScheduleMonthAllowed(month);
+  const start = base.startOf("month");
+  const end = base.endOf("month");
+  return { start, end, daysInMonth: end.date() };
 }
 
 function assertScheduleMonthAllowed(month: string) {
-  const now = attendanceDayjs()
-  const minMonth = now.subtract(1, "year").startOf("year").format("YYYY-MM")
-  const maxMonth = now.endOf("year").format("YYYY-MM")
+  const now = attendanceDayjs();
+  const minMonth = now.subtract(1, "year").startOf("year").format("YYYY-MM");
+  const maxMonth = now.endOf("year").format("YYYY-MM");
   if (month < minMonth || month > maxMonth) {
-    throw new BadRequestException("仅支持查看去年与今年的排班")
+    throw new BadRequestException("仅支持查看去年与今年的排班");
   }
 }
 
@@ -37,14 +37,14 @@ export class AttendanceScheduleService {
   private async getMonthAllowance(month: string): Promise<number> {
     const row = await this.prisma.scheduleMonthConfig.findUnique({
       where: { month },
-    })
-    return row?.monthAllowance ?? 0
+    });
+    return row?.monthAllowance ?? 0;
   }
 
   private async fetchDeclaredMap(
     userIds: string[],
     rangeStart: dayjs.Dayjs,
-    rangeEnd: dayjs.Dayjs
+    rangeEnd: dayjs.Dayjs,
   ): Promise<Map<string, ScheduleShiftType>> {
     const entries = await this.prisma.scheduleEntry.findMany({
       where: {
@@ -55,18 +55,18 @@ export class AttendanceScheduleService {
         },
       },
       select: { userId: true, date: true, shiftType: true },
-    })
+    });
     return new Map(
-      entries.map((e) => [`${e.userId}:${e.date}`, e.shiftType] as const)
-    )
+      entries.map((e) => [`${e.userId}:${e.date}`, e.shiftType] as const),
+    );
   }
 
   private async fetchLeaveByUserMonth(
     userIds: string[],
     rangeStart: dayjs.Dayjs,
-    rangeEnd: dayjs.Dayjs
+    rangeEnd: dayjs.Dayjs,
   ): Promise<Map<string, number>> {
-    if (!userIds.length) return new Map()
+    if (!userIds.length) return new Map();
     const rows = await this.prisma.$queryRaw<
       Array<{ userId: string; month: string; leaveDays: number }>
     >(Prisma.sql`
@@ -85,64 +85,64 @@ export class AttendanceScheduleService {
         AND "date" >= ${rangeStart.format("YYYY-MM-DD")}
         AND "date" <= ${rangeEnd.format("YYYY-MM-DD")}
       GROUP BY "userId", SUBSTRING("date", 1, 7)
-    `)
+    `);
     return new Map(
-      rows.map((row) => [`${row.userId}:${row.month}`, row.leaveDays])
-    )
+      rows.map((row) => [`${row.userId}:${row.month}`, row.leaveDays]),
+    );
   }
 
   private declaredScheduleMapFromPrefetch(
     declaredMap: Map<string, ScheduleShiftType>,
     userId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Map<string, ScheduleShiftType> {
-    const prefix = `${userId}:`
-    const result = new Map<string, ScheduleShiftType>()
+    const prefix = `${userId}:`;
+    const result = new Map<string, ScheduleShiftType>();
     for (const [key, shift] of declaredMap) {
-      if (!key.startsWith(prefix)) continue
-      const date = key.slice(prefix.length)
-      if (date < startDate || date > endDate) continue
-      result.set(date, shift)
+      if (!key.startsWith(prefix)) continue;
+      const date = key.slice(prefix.length);
+      if (date < startDate || date > endDate) continue;
+      result.set(date, shift);
     }
-    return result
+    return result;
   }
 
   private async loadLeavePrefetch(
     userIds: string[],
     targetMonth: string,
-    usersMeta: Array<{ id: string; createdAt: Date }>
+    usersMeta: Array<{ id: string; createdAt: Date }>,
   ) {
-    const { end } = monthBounds(targetMonth)
+    const { end } = monthBounds(targetMonth);
 
     const earliestMonth = usersMeta.reduce((min, u) => {
-      const m = attendanceDayjs(u.createdAt).startOf("month").format("YYYY-MM")
-      return m < min ? m : min
-    }, targetMonth)
+      const m = attendanceDayjs(u.createdAt).startOf("month").format("YYYY-MM");
+      return m < min ? m : min;
+    }, targetMonth);
 
-    const historyStart = attendanceDayjs(`${earliestMonth}-01`, "YYYY-MM-DD")
-    const targetStart = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD")
+    const historyStart = attendanceDayjs(`${earliestMonth}-01`, "YYYY-MM-DD");
+    const targetStart = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD");
     const [declaredMap, leaveByUserMonth] = await Promise.all([
       this.fetchDeclaredMap(userIds, targetStart, end),
       this.fetchLeaveByUserMonth(userIds, historyStart, end),
-    ])
+    ]);
 
-    const monthKeys: string[] = []
-    let monthCursor = historyStart
-    const target = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD")
+    const monthKeys: string[] = [];
+    let monthCursor = historyStart;
+    const target = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD");
     while (!monthCursor.isAfter(target, "month")) {
-      monthKeys.push(monthCursor.format("YYYY-MM"))
-      monthCursor = monthCursor.add(1, "month")
+      monthKeys.push(monthCursor.format("YYYY-MM"));
+      monthCursor = monthCursor.add(1, "month");
     }
 
     const configs = await this.prisma.scheduleMonthConfig.findMany({
       where: { month: { in: monthKeys } },
-    })
+    });
     const configMap = new Map(
-      configs.map((c) => [c.month, c.monthAllowance] as const)
-    )
+      configs.map((c) => [c.month, c.monthAllowance] as const),
+    );
 
-    return { configMap, leaveByUserMonth, declaredMap }
+    return { configMap, leaveByUserMonth, declaredMap };
   }
 
   private remainingLeaveFromPrefetch(
@@ -151,32 +151,32 @@ export class AttendanceScheduleService {
     initialBalance: number,
     createdAt: Date,
     configMap: Map<string, number>,
-    leaveByUserMonth: Map<string, number>
+    leaveByUserMonth: Map<string, number>,
   ): number {
-    let balance = initialBalance
-    let cursor = attendanceDayjs(createdAt).startOf("month")
-    const target = attendanceDayjs(`${month}-01`, "YYYY-MM-DD")
+    let balance = initialBalance;
+    let cursor = attendanceDayjs(createdAt).startOf("month");
+    const target = attendanceDayjs(`${month}-01`, "YYYY-MM-DD");
 
     while (cursor.isBefore(target, "month")) {
-      const m = cursor.format("YYYY-MM")
-      balance += configMap.get(m) ?? 0
-      balance -= leaveByUserMonth.get(`${userId}:${m}`) ?? 0
-      cursor = cursor.add(1, "month")
+      const m = cursor.format("YYYY-MM");
+      balance += configMap.get(m) ?? 0;
+      balance -= leaveByUserMonth.get(`${userId}:${m}`) ?? 0;
+      cursor = cursor.add(1, "month");
     }
 
-    const allowance = configMap.get(month) ?? 0
-    const leave = leaveByUserMonth.get(`${userId}:${month}`) ?? 0
-    return balance + allowance - leave
+    const allowance = configMap.get(month) ?? 0;
+    const leave = leaveByUserMonth.get(`${userId}:${month}`) ?? 0;
+    return balance + allowance - leave;
   }
 
   private async buildLeaveContext(
     userIds: string[],
     targetMonth: string,
-    usersMeta: Array<{ id: string; createdAt: Date }>
+    usersMeta: Array<{ id: string; createdAt: Date }>,
   ) {
     const { configMap, leaveByUserMonth, declaredMap } =
-      await this.loadLeavePrefetch(userIds, targetMonth, usersMeta)
-    return { configMap, leaveByUserMonth, declaredMap }
+      await this.loadLeavePrefetch(userIds, targetMonth, usersMeta);
+    return { configMap, leaveByUserMonth, declaredMap };
   }
 
   /** 月汇总：一次拉取休息历史，同时得到区间内排班与剩余假期。 */
@@ -184,29 +184,29 @@ export class AttendanceScheduleService {
     userId: string,
     month: string,
     rangeStartDate: string,
-    rangeEndDate: string
+    rangeEndDate: string,
   ): Promise<{
-    declaredScheduleMap: Map<string, ScheduleShiftType>
-    remainingLeave: number
+    declaredScheduleMap: Map<string, ScheduleShiftType>;
+    remainingLeave: number;
   }> {
-    monthBounds(month)
+    monthBounds(month);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { leaveInitialBalance: true, createdAt: true },
-    })
-    if (!user) throw new BadRequestException("用户不存在")
+    });
+    if (!user) throw new BadRequestException("用户不存在");
 
     const { configMap, leaveByUserMonth, declaredMap } =
       await this.loadLeavePrefetch([userId], month, [
         { id: userId, createdAt: user.createdAt },
-      ])
+      ]);
 
     return {
       declaredScheduleMap: this.declaredScheduleMapFromPrefetch(
         declaredMap,
         userId,
         rangeStartDate,
-        rangeEndDate
+        rangeEndDate,
       ),
       remainingLeave: this.remainingLeaveFromPrefetch(
         userId,
@@ -214,13 +214,13 @@ export class AttendanceScheduleService {
         user.leaveInitialBalance,
         user.createdAt,
         configMap,
-        leaveByUserMonth
+        leaveByUserMonth,
       ),
-    }
+    };
   }
 
   async getMonth(month: string) {
-    const { start, daysInMonth } = monthBounds(month)
+    const { start, daysInMonth } = monthBounds(month);
     const [monthAllowance, users] = await Promise.all([
       this.getMonthAllowance(month),
       this.prisma.user.findMany({
@@ -233,37 +233,37 @@ export class AttendanceScheduleService {
           createdAt: true,
         },
       }),
-    ])
+    ]);
 
-    const userIds = users.map((u) => u.id)
+    const userIds = users.map((u) => u.id);
     const { configMap, leaveByUserMonth, declaredMap } =
-      await this.buildLeaveContext(userIds, month, users)
+      await this.buildLeaveContext(userIds, month, users);
 
     const userRows = users.map((u) => {
-      const days: Record<string, ScheduleShiftType | null> = {}
-      let fullCount = 0
-      let morningCount = 0
-      let afternoonCount = 0
+      const days: Record<string, ScheduleShiftType | null> = {};
+      let fullCount = 0;
+      let morningCount = 0;
+      let afternoonCount = 0;
 
       for (let d = 1; d <= daysInMonth; d += 1) {
-        const date = start.date(d).format("YYYY-MM-DD")
-        const key = `${u.id}:${date}`
-        const shift = declaredMap.get(key) ?? null
-        days[String(d)] = shift
-        if (shift === "full_rest") fullCount += 1
-        if (shift === "morning_rest") morningCount += 1
-        if (shift === "afternoon_rest") afternoonCount += 1
+        const date = start.date(d).format("YYYY-MM-DD");
+        const key = `${u.id}:${date}`;
+        const shift = declaredMap.get(key) ?? null;
+        days[String(d)] = shift;
+        if (shift === "full_rest") fullCount += 1;
+        if (shift === "morning_rest") morningCount += 1;
+        if (shift === "afternoon_rest") afternoonCount += 1;
       }
 
-      const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5
+      const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5;
       const remainingLeave = this.remainingLeaveFromPrefetch(
         u.id,
         month,
         u.leaveInitialBalance,
         u.createdAt,
         configMap,
-        leaveByUserMonth
-      )
+        leaveByUserMonth,
+      );
 
       return {
         userId: u.id,
@@ -274,16 +274,16 @@ export class AttendanceScheduleService {
         afternoonCount,
         monthLeave,
         remainingLeave,
-      }
-    })
+      };
+    });
 
     const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => {
-      const d = start.date(i + 1)
+      const d = start.date(i + 1);
       return {
         day: i + 1,
         weekday: WEEKDAY_ZH[d.day()],
-      }
-    })
+      };
+    });
 
     return {
       month,
@@ -291,11 +291,11 @@ export class AttendanceScheduleService {
       daysInMonth,
       dayHeaders,
       users: userRows,
-    }
+    };
   }
 
   async upsertMonthConfig(dto: UpsertScheduleMonthConfigDto) {
-    monthBounds(dto.month)
+    monthBounds(dto.month);
     const row = await this.prisma.scheduleMonthConfig.upsert({
       where: { month: dto.month },
       create: {
@@ -305,43 +305,43 @@ export class AttendanceScheduleService {
       update: {
         monthAllowance: dto.monthAllowance,
       },
-    })
+    });
     return {
       month: row.month,
       monthAllowance: row.monthAllowance,
-    }
+    };
   }
 
   async resolveShiftForUserDay(
     userId: string,
-    dateStr: string
+    dateStr: string,
   ): Promise<ScheduleShiftType | null> {
     const entry = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date: dateStr } },
       select: { shiftType: true },
-    })
-    return entry?.shiftType ?? null
+    });
+    return entry?.shiftType ?? null;
   }
 
   async assertHalfOpenForPunch(
     userId: string,
     punchDate: string,
-    type: AttendancePunchType
+    type: AttendancePunchType,
   ) {
-    const declaredRest = await this.resolveShiftForUserDay(userId, punchDate)
-    if (!isPunchBlockedByScheduleRest(type, declaredRest)) return
+    const declaredRest = await this.resolveShiftForUserDay(userId, punchDate);
+    if (!isPunchBlockedByScheduleRest(type, declaredRest)) return;
 
     if (type === "morning_in" || type === "morning_out") {
-      throw new BadRequestException("上午已登记休息，请先取消休息登记后再打卡")
+      throw new BadRequestException("上午已登记休息，请先取消休息登记后再打卡");
     }
-    throw new BadRequestException("下午已登记休息，请先取消休息登记后再打卡")
+    throw new BadRequestException("下午已登记休息，请先取消休息登记后再打卡");
   }
 
   private assertRestDateAllowed(dateStr: string) {
-    const d = attendanceDayjs(dateStr, "YYYY-MM-DD")
-    if (!d.isValid()) throw new BadRequestException("日期不合法")
+    const d = attendanceDayjs(dateStr, "YYYY-MM-DD");
+    if (!d.isValid()) throw new BadRequestException("日期不合法");
     if (!isWithinAttendanceEditWindow(dateStr)) {
-      throw new BadRequestException("仅支持登记本月或上月的休息")
+      throw new BadRequestException("仅支持登记本月或上月的休息");
     }
   }
 
@@ -349,62 +349,62 @@ export class AttendanceScheduleService {
     const records = await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate: dateStr },
       select: { type: true },
-    })
-    return new Set(records.map((r) => r.type))
+    });
+    return new Set(records.map((r) => r.type));
   }
 
   private nextRestType(
     current: ScheduleShiftType | null,
-    half: "morning" | "afternoon"
+    half: "morning" | "afternoon",
   ): ScheduleShiftType {
     if (half === "morning") {
-      if (current === "afternoon_rest") return "full_rest"
-      return "morning_rest"
+      if (current === "afternoon_rest") return "full_rest";
+      return "morning_rest";
     }
-    if (current === "morning_rest") return "full_rest"
-    return "afternoon_rest"
+    if (current === "morning_rest") return "full_rest";
+    return "afternoon_rest";
   }
 
   async declareRest(
     userId: string,
     date: string,
-    half: "morning" | "afternoon"
+    half: "morning" | "afternoon",
   ) {
-    this.assertRestDateAllowed(date)
+    this.assertRestDateAllowed(date);
 
-    const punched = await this.dayPunchTypes(userId, date)
+    const punched = await this.dayPunchTypes(userId, date);
     if (
       half === "morning" &&
       (punched.has("morning_in") || punched.has("morning_out"))
     ) {
-      throw new BadRequestException("上午已有打卡记录，无法登记休息")
+      throw new BadRequestException("上午已有打卡记录，无法登记休息");
     }
     if (
       half === "afternoon" &&
       (punched.has("afternoon_in") || punched.has("afternoon_out"))
     ) {
-      throw new BadRequestException("下午已有打卡记录，无法登记休息")
+      throw new BadRequestException("下午已有打卡记录，无法登记休息");
     }
 
     const existing = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date } },
-    })
-    const current = existing?.shiftType ?? null
+    });
+    const current = existing?.shiftType ?? null;
 
     if (
       half === "morning" &&
       (current === "morning_rest" || current === "full_rest")
     ) {
-      throw new BadRequestException("上午已登记休息")
+      throw new BadRequestException("上午已登记休息");
     }
     if (
       half === "afternoon" &&
       (current === "afternoon_rest" || current === "full_rest")
     ) {
-      throw new BadRequestException("下午已登记休息")
+      throw new BadRequestException("下午已登记休息");
     }
 
-    const next = this.nextRestType(current, half)
+    const next = this.nextRestType(current, half);
 
     await this.prisma.scheduleEntry.upsert({
       where: { userId_date: { userId, date } },
@@ -416,78 +416,78 @@ export class AttendanceScheduleService {
       update: {
         shiftType: next,
       },
-    })
+    });
 
-    return { date, shiftType: next }
+    return { date, shiftType: next };
   }
 
   async clearRestHalf(
     userId: string,
     date: string,
-    half: "morning" | "afternoon"
+    half: "morning" | "afternoon",
   ) {
-    this.assertRestDateAllowed(date)
+    this.assertRestDateAllowed(date);
 
     const existing = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date } },
-    })
-    const current = existing?.shiftType ?? null
+    });
+    const current = existing?.shiftType ?? null;
     if (!current) {
-      throw new BadRequestException("该日未登记休息")
+      throw new BadRequestException("该日未登记休息");
     }
 
-    let next: ScheduleShiftType | null
+    let next: ScheduleShiftType | null;
 
     if (half === "morning") {
-      if (current === "morning_rest") next = null
-      else if (current === "full_rest") next = "afternoon_rest"
-      else throw new BadRequestException("上午未登记休息")
+      if (current === "morning_rest") next = null;
+      else if (current === "full_rest") next = "afternoon_rest";
+      else throw new BadRequestException("上午未登记休息");
     } else if (current === "afternoon_rest") {
-      next = null
+      next = null;
     } else if (current === "full_rest") {
-      next = "morning_rest"
+      next = "morning_rest";
     } else {
-      throw new BadRequestException("下午未登记休息")
+      throw new BadRequestException("下午未登记休息");
     }
 
     if (!next) {
       await this.prisma.scheduleEntry.delete({
         where: { userId_date: { userId, date } },
-      })
-      return { date, shiftType: null }
+      });
+      return { date, shiftType: null };
     }
 
     await this.prisma.scheduleEntry.update({
       where: { userId_date: { userId, date } },
       data: { shiftType: next },
-    })
-    return { date, shiftType: next }
+    });
+    return { date, shiftType: next };
   }
 
   async declaredScheduleMapsForUsers(
     userIds: string[],
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<Map<string, Map<string, ScheduleShiftType>>> {
-    const result = new Map<string, Map<string, ScheduleShiftType>>()
-    for (const userId of userIds) result.set(userId, new Map())
-    if (!userIds.length) return result
+    const result = new Map<string, Map<string, ScheduleShiftType>>();
+    for (const userId of userIds) result.set(userId, new Map());
+    if (!userIds.length) return result;
 
-    const start = attendanceDayjs(startDate, "YYYY-MM-DD")
-    const end = attendanceDayjs(endDate, "YYYY-MM-DD")
+    const start = attendanceDayjs(startDate, "YYYY-MM-DD");
+    const end = attendanceDayjs(endDate, "YYYY-MM-DD");
     if (!start.isValid() || !end.isValid() || end.isBefore(start, "day")) {
-      throw new BadRequestException("日期范围不合法")
+      throw new BadRequestException("日期范围不合法");
     }
 
-    const declaredMap = await this.fetchDeclaredMap(userIds, start, end)
+    const declaredMap = await this.fetchDeclaredMap(userIds, start, end);
     for (const [key, shift] of declaredMap) {
-      const sep = key.indexOf(":")
-      if (sep < 0) continue
-      const userId = key.slice(0, sep)
-      const date = key.slice(sep + 1)
-      const userMap = result.get(userId)
-      if (userMap) userMap.set(date, shift)
+      const sep = key.indexOf(":");
+      if (sep < 0) continue;
+      const userId = key.slice(0, sep);
+      const date = key.slice(sep + 1);
+      const userMap = result.get(userId);
+      if (userMap) userMap.set(date, shift);
     }
-    return result
+    return result;
   }
 }

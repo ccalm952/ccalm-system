@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common"
+import { Module } from "@nestjs/common";
 
-import { OrthodonticsController } from "./orthodontics.controller"
-import { OrthodonticsService } from "./orthodontics.service"
+import { OrthodonticsController } from "./orthodontics.controller";
+import { OrthodonticsService } from "./orthodontics.service";
 
 @Module({
   controllers: [OrthodonticsController],

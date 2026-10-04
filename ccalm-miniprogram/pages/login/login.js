@@ -1,7 +1,7 @@
-const { success } = require("../../utils/toast")
-const { request, wxLoginCode } = require("../../utils/api")
-const { setStoredAuth } = require("../../utils/auth")
-const { wallpaperSrc, bindWallpaper } = require("../../utils/theme")
+const { success } = require("../../utils/toast");
+const { request, wxLoginCode } = require("../../utils/api");
+const { setStoredAuth } = require("../../utils/auth");
+const { wallpaperSrc, bindWallpaper } = require("../../utils/theme");
 
 Page({
   data: {
@@ -17,80 +17,80 @@ Page({
   unbindTheme: null,
 
   onLoad(query) {
-    this.unbindTheme = bindWallpaper(this)
+    this.unbindTheme = bindWallpaper(this);
     // 预览绑定页：wx.reLaunch({ url: "/pages/login/login?preview=1" })
     if (query && query.preview === "1") {
-      this.setData({ step: "bind", bindTicket: "" })
-      return
+      this.setData({ step: "bind", bindTicket: "" });
+      return;
     }
-    this.startWechatLogin()
+    this.startWechatLogin();
   },
 
   onUnload() {
     if (this.unbindTheme) {
-      this.unbindTheme()
-      this.unbindTheme = null
+      this.unbindTheme();
+      this.unbindTheme = null;
     }
   },
 
   onUsername(e) {
-    const v = e.detail
+    const v = e.detail;
     this.setData({
       username: typeof v === "string" ? v : (v && v.value) || "",
-    })
+    });
   },
 
   onPassword(e) {
-    const v = e.detail
+    const v = e.detail;
     this.setData({
       password: typeof v === "string" ? v : (v && v.value) || "",
-    })
+    });
   },
 
   async startWechatLogin() {
-    this.setData({ step: "loading", error: "", bindTicket: "" })
+    this.setData({ step: "loading", error: "", bindTicket: "" });
     try {
-      const code = await wxLoginCode()
+      const code = await wxLoginCode();
       const res = await request(
         "POST",
         "/auth/wechat/login",
         { code },
-        { skipAuth: true }
-      )
+        { skipAuth: true },
+      );
       if (res.status === "bound") {
         setStoredAuth({
           accessToken: res.accessToken,
           deviceToken: res.deviceToken,
           user: res.user,
-        })
-        wx.reLaunch({ url: "/pages/punch/punch" })
-        return
+        });
+        wx.reLaunch({ url: "/pages/punch/punch" });
+        return;
       }
       if (res.status === "need_bind") {
-        this.setData({ step: "bind", bindTicket: res.bindTicket })
-        return
+        this.setData({ step: "bind", bindTicket: res.bindTicket });
+        return;
       }
-      this.setData({ step: "bind", error: "未知的登录状态" })
+      this.setData({ step: "bind", error: "未知的登录状态" });
     } catch (err) {
       this.setData({
         step: "bind",
         error: err.message || "微信登录失败",
-      })
+      });
     }
   },
 
   async onBind() {
-    const { bindTicket, username, password, submitting } = this.data
-    if (submitting) return
+    const { bindTicket, username, password, submitting } = this.data;
+    if (submitting) return;
     if (!bindTicket) {
-      this.setData({ error: "请先完成微信登录" })
-      return
+      this.setData({ error: "请先完成微信登录" });
+      return;
     }
     if (!String(username || "").trim() || !password) {
-      this.setData({ error: "请填写账号和密码" })
-      return
+      this.setData({ error: "请填写账号和密码" });
+      return;
     }
-    this.setData({ submitting: true, error: "" })
+    this.setData({ submitting: true, error: "" });
     try {
       const res = await request(
         "POST",
@@ -100,19 +100,19 @@ Page({
           username: String(username).trim(),
           password,
         },
-        { skipAuth: true }
-      )
+        { skipAuth: true },
+      );
       setStoredAuth({
         accessToken: res.accessToken,
         deviceToken: res.deviceToken,
         user: res.user,
-      })
-      success("绑定成功")
-      wx.reLaunch({ url: "/pages/punch/punch" })
+      });
+      success("绑定成功");
+      wx.reLaunch({ url: "/pages/punch/punch" });
     } catch (err) {
-      this.setData({ error: err.message || "绑定失败" })
+      this.setData({ error: err.message || "绑定失败" });
     } finally {
-      this.setData({ submitting: false })
+      this.setData({ submitting: false });
     }
   },
-})
+});

@@ -1,29 +1,29 @@
-import { Type } from "class-transformer"
+import { Type } from "class-transformer";
 import {
   IsIn,
   IsNumber,
   IsOptional,
   IsString,
   MinLength,
-} from "class-validator"
+} from "class-validator";
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  displayName?: string
+  displayName?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(6)
-  password?: string
+  password?: string;
 
   @IsOptional()
   @IsString()
   @IsIn(["user", "admin"])
-  role?: "user" | "admin"
+  role?: "user" | "admin";
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  leaveInitialBalance?: number
+  leaveInitialBalance?: number;
 }

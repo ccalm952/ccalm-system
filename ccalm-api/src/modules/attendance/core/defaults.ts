@@ -4,7 +4,7 @@ export const DEFAULT_GEOFENCE_ROW = {
   centerLng: 116.4074,
   radiusM: 200,
   label: "门诊大楼",
-}
+};
 
 export const DEFAULT_SHIFT_ROW = {
   morningLabel: "上午",
@@ -23,4 +23,4 @@ export const DEFAULT_SHIFT_ROW = {
   afternoonOutWindowEnd: "20:20",
   overtimeMorningNormalEnd: "12:00",
   overtimeAfternoonNormalEnd: "18:00",
-}
+};

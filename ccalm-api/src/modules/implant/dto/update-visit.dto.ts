@@ -1,50 +1,50 @@
-import { Type } from "class-transformer"
-import { IsInt, IsOptional, IsString } from "class-validator"
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, IsString } from "class-validator";
 
 export class UpdateImplantVisitDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  toothId?: number | null
+  toothId?: number | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  patientId?: number
+  patientId?: number;
 
   @IsOptional()
   @IsString()
-  patientName?: string
+  patientName?: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  visitDate?: string
+  visitDate?: string;
 
   @IsOptional()
   @IsString()
-  remark?: string | null
+  remark?: string | null;
 
   @IsOptional()
   @IsString()
-  staff?: string | null
+  staff?: string | null;
 
   @IsOptional()
   @IsString()
-  toothNo?: string | null
+  toothNo?: string | null;
 
   @IsOptional()
   @IsString()
-  implantBrand?: string | null
+  implantBrand?: string | null;
 
   @IsOptional()
   @IsString()
-  implantModel?: string | null
+  implantModel?: string | null;
 
   @IsOptional()
   @IsString()
-  toothRemark?: string | null
+  toothRemark?: string | null;
 }

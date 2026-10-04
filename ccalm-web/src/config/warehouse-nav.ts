@@ -1,6 +1,6 @@
-import { ROUTES } from "@/config/routes"
+import { ROUTES } from "@/config/routes";
 
 export const warehouseNavItem = {
   title: "库存",
   url: ROUTES.warehouse.root,
-} as const
+} as const;

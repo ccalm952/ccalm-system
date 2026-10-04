@@ -1,53 +1,53 @@
-import { IsOptional, IsString, MinLength } from "class-validator"
+import { IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreateImplantPendingDto {
   @IsString()
   @MinLength(1)
-  name!: string
+  name!: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  chartNo?: string
+  chartNo?: string;
 
   @IsOptional()
   @IsString()
-  teeth?: string
+  teeth?: string;
 
   @IsOptional()
   @IsString()
-  extractionDate?: string | null
+  extractionDate?: string | null;
 
   @IsOptional()
   @IsString()
-  remark?: string
+  remark?: string;
 }
 
 export class UpdateImplantPendingDto {
   @IsString()
   @MinLength(1)
-  name!: string
+  name!: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  chartNo?: string
+  chartNo?: string;
 
   @IsOptional()
   @IsString()
-  teeth?: string
+  teeth?: string;
 
   @IsOptional()
   @IsString()
-  extractionDate?: string | null
+  extractionDate?: string | null;
 
   @IsOptional()
   @IsString()
-  remark?: string
+  remark?: string;
 }

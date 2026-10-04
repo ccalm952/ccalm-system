@@ -1,67 +1,67 @@
-import { IsString, Matches } from "class-validator"
+import { IsString, Matches } from "class-validator";
 
-const HHMM = /^\d{1,2}:\d{2}$/
+const HHMM = /^\d{1,2}:\d{2}$/;
 
 export class UpsertShiftDto {
   @IsString()
-  morningLabel!: string
+  morningLabel!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningRangeStart!: string
+  morningRangeStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningRangeEnd!: string
+  morningRangeEnd!: string;
 
   @IsString()
-  afternoonLabel!: string
-
-  @IsString()
-  @Matches(HHMM)
-  afternoonRangeStart!: string
+  afternoonLabel!: string;
 
   @IsString()
   @Matches(HHMM)
-  afternoonRangeEnd!: string
+  afternoonRangeStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningInWindowStart!: string
+  afternoonRangeEnd!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningInWindowEnd!: string
+  morningInWindowStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningOutWindowStart!: string
+  morningInWindowEnd!: string;
 
   @IsString()
   @Matches(HHMM)
-  morningOutWindowEnd!: string
+  morningOutWindowStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  afternoonInWindowStart!: string
+  morningOutWindowEnd!: string;
 
   @IsString()
   @Matches(HHMM)
-  afternoonInWindowEnd!: string
+  afternoonInWindowStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  afternoonOutWindowStart!: string
+  afternoonInWindowEnd!: string;
 
   @IsString()
   @Matches(HHMM)
-  afternoonOutWindowEnd!: string
+  afternoonOutWindowStart!: string;
 
   @IsString()
   @Matches(HHMM)
-  overtimeMorningNormalEnd!: string
+  afternoonOutWindowEnd!: string;
 
   @IsString()
   @Matches(HHMM)
-  overtimeAfternoonNormalEnd!: string
+  overtimeMorningNormalEnd!: string;
+
+  @IsString()
+  @Matches(HHMM)
+  overtimeAfternoonNormalEnd!: string;
 }

@@ -1,12 +1,12 @@
-import * as React from "react"
-import dayjs from "dayjs"
-import { Plus, SearchIcon, X } from "lucide-react"
-import { toast } from "sonner"
+import * as React from "react";
+import dayjs from "dayjs";
+import { Plus, SearchIcon, X } from "lucide-react";
+import { toast } from "sonner";
 
-import { DatePickerField } from "@/components/date-picker-field"
-import { TablePagination } from "@/components/table-pagination"
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField"
-import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark"
+import { DatePickerField } from "@/components/date-picker-field";
+import { TablePagination } from "@/components/table-pagination";
+import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,18 +16,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@/components/ui/input-group"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+} from "@/components/ui/input-group";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -35,15 +35,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { api } from "@/lib/api"
-import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete"
-import { errorMessage } from "@/lib/errorMessage"
-import { paginateRows } from "@/lib/pagination"
-import { parseTeethStrict } from "@/lib/tooth-fdi"
+} from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
+import { errorMessage } from "@/lib/errorMessage";
+import { paginateRows } from "@/lib/pagination";
+import { parseTeethStrict } from "@/lib/tooth-fdi";
 
-const IMPLANT_TABLE_SELECT_COL_W = "40px"
-const TABLE_ROW_HEIGHT_PX = 40
+const IMPLANT_TABLE_SELECT_COL_W = "40px";
+const TABLE_ROW_HEIGHT_PX = 40;
 
 const PENDING_SHARE_COLS = [
   "name",
@@ -54,28 +54,28 @@ const PENDING_SHARE_COLS = [
   "monthsAfter",
   "remark",
   "actions",
-] as const
-const PENDING_TABLE_COL_COUNT = 1 + PENDING_SHARE_COLS.length
+] as const;
+const PENDING_TABLE_COL_COUNT = 1 + PENDING_SHARE_COLS.length;
 
 type PendingRow = {
-  id: number
-  name: string
-  phone: string
-  chartNo: string
-  teeth: string
-  extractionDate: string | null
-  monthsAfter: number | null
-  remark: string
-}
+  id: number;
+  name: string;
+  phone: string;
+  chartNo: string;
+  teeth: string;
+  extractionDate: string | null;
+  monthsAfter: number | null;
+  remark: string;
+};
 
 type FormState = {
-  name: string
-  phone: string
-  chartNo: string
-  teeth: string
-  extractionDate: string
-  remark: string
-}
+  name: string;
+  phone: string;
+  chartNo: string;
+  teeth: string;
+  extractionDate: string;
+  remark: string;
+};
 
 function emptyForm(): FormState {
   return {
@@ -85,16 +85,16 @@ function emptyForm(): FormState {
     teeth: "",
     extractionDate: "",
     remark: "",
-  }
+  };
 }
 
 function TeethCell({ teeth }: { teeth: string }) {
-  const parsed = parseTeethStrict(teeth)
+  const parsed = parseTeethStrict(teeth);
   if (parsed == null) {
-    return <span className="truncate">{teeth}</span>
+    return <span className="truncate">{teeth}</span>;
   }
-  if (!parsed.length) return null
-  return <ToothPalmerMark fdis={parsed} compact />
+  if (!parsed.length) return null;
+  return <ToothPalmerMark fdis={parsed} compact />;
 }
 
 function formFromRow(row: PendingRow): FormState {
@@ -105,69 +105,69 @@ function formFromRow(row: PendingRow): FormState {
     teeth: row.teeth,
     extractionDate: row.extractionDate ?? "",
     remark: row.remark,
-  }
+  };
 }
 
 export function ImplantPendingPage() {
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [rows, setRows] = React.useState<PendingRow[]>([])
-  const [selection, setSelection] = React.useState<Set<number>>(new Set())
-  const [deleteOpen, setDeleteOpen] = React.useState(false)
-  const [dialogOpen, setDialogOpen] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
-  const [form, setForm] = React.useState<FormState>(emptyForm)
-  const [page, setPage] = React.useState(1)
-  const [pageSize, setPageSize] = React.useState(20)
-  const editIdRef = React.useRef<number | null>(null)
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [rows, setRows] = React.useState<PendingRow[]>([]);
+  const [selection, setSelection] = React.useState<Set<number>>(new Set());
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [form, setForm] = React.useState<FormState>(emptyForm);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
+  const editIdRef = React.useRef<number | null>(null);
 
   const load = React.useCallback(async () => {
     try {
-      const params = new URLSearchParams()
-      const q = searchQuery.trim()
-      if (q) params.set("q", q)
-      const qs = params.toString()
+      const params = new URLSearchParams();
+      const q = searchQuery.trim();
+      if (q) params.set("q", q);
+      const qs = params.toString();
       const data = await api<PendingRow[]>(
         "GET",
-        `/implant/pending${qs ? `?${qs}` : ""}`
-      )
-      setRows(Array.isArray(data) ? data : [])
-      setSelection(new Set())
+        `/implant/pending${qs ? `?${qs}` : ""}`,
+      );
+      setRows(Array.isArray(data) ? data : []);
+      setSelection(new Set());
     } catch (e) {
-      toast.error(errorMessage(e))
-      setRows([])
+      toast.error(errorMessage(e));
+      setRows([]);
     }
-  }, [searchQuery])
+  }, [searchQuery]);
 
   React.useEffect(() => {
-    setPage(1)
-  }, [searchQuery, pageSize])
+    setPage(1);
+  }, [searchQuery, pageSize]);
 
   React.useEffect(() => {
     const id = window.setTimeout(() => {
-      void load()
-    }, 300)
-    return () => window.clearTimeout(id)
-  }, [load])
+      void load();
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [load]);
 
   function openCreate() {
-    editIdRef.current = null
-    setForm(emptyForm())
-    setDialogOpen(true)
+    editIdRef.current = null;
+    setForm(emptyForm());
+    setDialogOpen(true);
   }
 
   function openEdit(row: PendingRow) {
-    editIdRef.current = row.id
-    setForm(formFromRow(row))
-    setDialogOpen(true)
+    editIdRef.current = row.id;
+    setForm(formFromRow(row));
+    setDialogOpen(true);
   }
 
   async function save() {
-    const name = form.name.trim()
+    const name = form.name.trim();
     if (!name) {
-      toast.error("请填写姓名")
-      return
+      toast.error("请填写姓名");
+      return;
     }
-    setSaving(true)
+    setSaving(true);
     try {
       const body = {
         name,
@@ -176,63 +176,63 @@ export function ImplantPendingPage() {
         teeth: form.teeth.trim(),
         extractionDate: form.extractionDate.trim() || null,
         remark: form.remark.trim(),
-      }
+      };
       if (editIdRef.current == null) {
-        await api("POST", "/implant/pending", body)
-        toast.success("已添加")
+        await api("POST", "/implant/pending", body);
+        toast.success("已添加");
       } else {
-        await api("PUT", `/implant/pending/${editIdRef.current}`, body)
-        toast.success("已保存")
+        await api("PUT", `/implant/pending/${editIdRef.current}`, body);
+        toast.success("已保存");
       }
-      setDialogOpen(false)
-      await load()
+      setDialogOpen(false);
+      await load();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function confirmDeleteSelected() {
-    const selected = rows.filter((row) => selection.has(row.id))
+    const selected = rows.filter((row) => selection.has(row.id));
     if (!selected.length) {
-      setDeleteOpen(false)
-      return
+      setDeleteOpen(false);
+      return;
     }
     try {
       const { ok, fail } = await batchDelete(selected, (row) =>
-        api("DELETE", `/implant/pending/${row.id}`)
-      )
-      toastBatchDeleteResult(ok, fail)
-      await load()
+        api("DELETE", `/implant/pending/${row.id}`),
+      );
+      toastBatchDeleteResult(ok, fail);
+      await load();
     } finally {
-      setDeleteOpen(false)
+      setDeleteOpen(false);
     }
   }
 
   async function deleteOne(row: PendingRow) {
     try {
-      await api("DELETE", `/implant/pending/${row.id}`)
-      toast.success("已删除")
-      await load()
+      await api("DELETE", `/implant/pending/${row.id}`);
+      toast.success("已删除");
+      await load();
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     }
   }
 
   function toggleSel(id: number) {
     setSelection((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   const { total, totalPages, currentPage, pageRows, emptyRowCount } =
-    paginateRows(rows, page, pageSize)
+    paginateRows(rows, page, pageSize);
   const allSelected =
-    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id))
+    pageRows.length > 0 && pageRows.every((row) => selection.has(row.id));
 
   return (
     <div className="flex flex-col p-4 md:p-6">
@@ -300,16 +300,16 @@ export function ImplantPendingPage() {
                       onCheckedChange={(checked) => {
                         if (checked) {
                           setSelection((prev) => {
-                            const next = new Set(prev)
-                            for (const row of pageRows) next.add(row.id)
-                            return next
-                          })
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.add(row.id);
+                            return next;
+                          });
                         } else {
                           setSelection((prev) => {
-                            const next = new Set(prev)
-                            for (const row of pageRows) next.delete(row.id)
-                            return next
-                          })
+                            const next = new Set(prev);
+                            for (const row of pageRows) next.delete(row.id);
+                            return next;
+                          });
                         }
                       }}
                     />
@@ -494,5 +494,5 @@ export function ImplantPendingPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

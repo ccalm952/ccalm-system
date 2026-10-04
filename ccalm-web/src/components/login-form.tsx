@@ -1,42 +1,42 @@
-import * as React from "react"
-import { useNavigate } from "react-router-dom"
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button"
-import { Field, FieldGroup } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
-import { toast } from "sonner"
-import { api, setToken } from "@/lib/api"
-import { errorMessage } from "@/lib/errorMessage"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import { api, setToken } from "@/lib/api";
+import { errorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
 
 /** 对齐 shadcn login-05 布局；业务为账号密码 + Sonner 提示 */
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const nav = useNavigate()
-  const [username, setUsername] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [loading, setLoading] = React.useState(false)
+  const nav = useNavigate();
+  const [username, setUsername] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         noValidate
         onSubmit={async (e) => {
-          e.preventDefault()
+          e.preventDefault();
 
-          const u = username.trim()
-          const p = password.trim()
+          const u = username.trim();
+          const p = password.trim();
           if (!u || !p) {
-            if (!u && !p) toast.error("请填写账号和密码")
-            else if (!u) toast.error("请填写账号")
-            else toast.error("请填写密码")
-            return
+            if (!u && !p) toast.error("请填写账号和密码");
+            else if (!u) toast.error("请填写账号");
+            else toast.error("请填写密码");
+            return;
           }
 
-          setLoading(true)
+          setLoading(true);
           try {
             const res = await api<{ accessToken: string }>(
               "POST",
@@ -44,14 +44,14 @@ export function LoginForm({
               {
                 username: u,
                 password: p,
-              }
-            )
-            setToken(res.accessToken)
-            nav("/")
+              },
+            );
+            setToken(res.accessToken);
+            nav("/");
           } catch (err) {
-            toast.error(errorMessage(err))
+            toast.error(errorMessage(err));
           } finally {
-            setLoading(false)
+            setLoading(false);
           }
         }}
       >
@@ -105,5 +105,5 @@ export function LoginForm({
         </FieldGroup>
       </form>
     </div>
-  )
+  );
 }

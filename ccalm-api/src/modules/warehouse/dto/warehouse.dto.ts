@@ -1,4 +1,4 @@
-import { Type } from "class-transformer"
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsIn,
@@ -7,9 +7,9 @@ import {
   IsOptional,
   IsString,
   Min,
-} from "class-validator"
+} from "class-validator";
 
-const warehouseTxnTypes = ["in", "out", "adjust"] as const
+const warehouseTxnTypes = ["in", "out", "adjust"] as const;
 const warehouseTxnBizTypes = [
   "purchase",
   "use",
@@ -17,119 +17,119 @@ const warehouseTxnBizTypes = [
   "return_out",
   "adjust_in",
   "adjust_out",
-] as const
+] as const;
 
 export class CreateWarehouseItemDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  productId?: number
+  productId?: number;
 
   @IsOptional()
   @IsString()
-  name?: string
+  name?: string;
 
   @IsString()
-  code!: string
-
-  @IsOptional()
-  @IsString()
-  category?: string
+  code!: string;
 
   @IsOptional()
   @IsString()
-  spec?: string
+  category?: string;
 
   @IsOptional()
   @IsString()
-  unit?: string
+  spec?: string;
 
   @IsOptional()
   @IsString()
-  brand?: string
+  unit?: string;
 
   @IsOptional()
   @IsString()
-  manufacturer?: string
+  brand?: string;
 
   @IsOptional()
   @IsString()
-  supplierName?: string
+  manufacturer?: string;
+
+  @IsOptional()
+  @IsString()
+  supplierName?: string;
 
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
-  enabled?: boolean
+  enabled?: boolean;
 }
 
 export class UpdateWarehouseItemDto {
   @IsOptional()
   @IsString()
-  name?: string
+  name?: string;
 
   @IsOptional()
   @IsString()
-  code?: string
+  code?: string;
 
   @IsOptional()
   @IsString()
-  category?: string
+  category?: string;
 
   @IsOptional()
   @IsString()
-  spec?: string
+  spec?: string;
 
   @IsOptional()
   @IsString()
-  unit?: string
+  unit?: string;
 
   @IsOptional()
   @IsString()
-  brand?: string
+  brand?: string;
 
   @IsOptional()
   @IsString()
-  manufacturer?: string
+  manufacturer?: string;
 
   @IsOptional()
   @IsString()
-  supplierName?: string
+  supplierName?: string;
 
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
-  enabled?: boolean
+  enabled?: boolean;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  currentQty?: number
+  currentQty?: number;
 }
 
 export class CreateWarehouseTxnDto {
   @Type(() => Number)
   @IsInt()
-  itemId!: number
+  itemId!: number;
 
   @IsString()
   @IsIn(warehouseTxnTypes)
-  type!: (typeof warehouseTxnTypes)[number]
+  type!: (typeof warehouseTxnTypes)[number];
 
   @IsString()
   @IsIn(warehouseTxnBizTypes)
-  bizType!: (typeof warehouseTxnBizTypes)[number]
+  bizType!: (typeof warehouseTxnBizTypes)[number];
 
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  qty!: number
+  qty!: number;
 
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  unitPrice!: number
+  unitPrice!: number;
 
   @IsString()
-  occurDate!: string
+  occurDate!: string;
 }

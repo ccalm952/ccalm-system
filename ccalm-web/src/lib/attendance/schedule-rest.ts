@@ -1,58 +1,58 @@
-import type { MakeupSlotType } from "./makeup-today-gate-core"
-import type { ScheduleRestType } from "./types"
+import type { MakeupSlotType } from "./makeup-today-gate-core";
+import type { ScheduleRestType } from "./types";
 
-export type RestHalf = "morning" | "afternoon"
+export type RestHalf = "morning" | "afternoon";
 
 export type DayPunchRow = {
-  date: string
-  morningIn: string | null
-  morningOut: string | null
-  afternoonIn: string | null
-  afternoonOut: string | null
-  declaredRest?: ScheduleRestType | null
-}
+  date: string;
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+  declaredRest?: ScheduleRestType | null;
+};
 
 function isMorningScheduleRest(
-  declaredRest: ScheduleRestType | null | undefined
+  declaredRest: ScheduleRestType | null | undefined,
 ): boolean {
-  return declaredRest === "full_rest" || declaredRest === "morning_rest"
+  return declaredRest === "full_rest" || declaredRest === "morning_rest";
 }
 
 function isAfternoonScheduleRest(
-  declaredRest: ScheduleRestType | null | undefined
+  declaredRest: ScheduleRestType | null | undefined,
 ): boolean {
-  return declaredRest === "full_rest" || declaredRest === "afternoon_rest"
+  return declaredRest === "full_rest" || declaredRest === "afternoon_rest";
 }
 
 export function isHalfDeclaredRest(
   declaredRest: ScheduleRestType | null | undefined,
-  half: RestHalf
+  half: RestHalf,
 ): boolean {
   return half === "morning"
     ? isMorningScheduleRest(declaredRest)
-    : isAfternoonScheduleRest(declaredRest)
+    : isAfternoonScheduleRest(declaredRest);
 }
 
 export function halfHasPunch(row: DayPunchRow, half: RestHalf): boolean {
-  if (half === "morning") return !!(row.morningIn || row.morningOut)
-  return !!(row.afternoonIn || row.afternoonOut)
+  if (half === "morning") return !!(row.morningIn || row.morningOut);
+  return !!(row.afternoonIn || row.afternoonOut);
 }
 
 export function isPunchBlockedByScheduleRest(
   type: MakeupSlotType,
-  declaredRest: ScheduleRestType | null | undefined
+  declaredRest: ScheduleRestType | null | undefined,
 ): boolean {
   if (
     (type === "morning_in" || type === "morning_out") &&
     isMorningScheduleRest(declaredRest)
   ) {
-    return true
+    return true;
   }
   if (
     (type === "afternoon_in" || type === "afternoon_out") &&
     isAfternoonScheduleRest(declaredRest)
   ) {
-    return true
+    return true;
   }
-  return false
+  return false;
 }

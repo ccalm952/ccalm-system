@@ -29,7 +29,7 @@ export default defineConfig([
       "react-hooks/refs": "off",
       /** TanStack Table 等库 */
       "react-hooks/incompatible-library": "off",
-      "prettier/prettier": ["error", { endOfLine: "lf" }],
+      "prettier/prettier": "error",
     },
   },
   {

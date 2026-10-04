@@ -1,40 +1,40 @@
-import { BadRequestException, Injectable } from "@nestjs/common"
-import type { AttendancePunchType, Prisma } from "@prisma/client"
-import { createHash } from "node:crypto"
+import { BadRequestException, Injectable } from "@nestjs/common";
+import type { AttendancePunchType, Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
 
-import { isPrismaUniqueViolation } from "../../common/prisma-errors"
-import { PrismaService } from "../../prisma/prisma.service"
-import { AttendanceScheduleService } from "./services/attendance-schedule.service"
-import { attendanceDayjs, formatAttendanceDate } from "./core/attendance-dayjs"
-import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./core/defaults"
-import type { UpsertGeofenceDto } from "./dto/geofence.dto"
-import type { UpsertShiftDto } from "./dto/shift.dto"
-import type { PunchDto } from "./dto/punch.dto"
+import { isPrismaUniqueViolation } from "../../common/prisma-errors";
+import { PrismaService } from "../../prisma/prisma.service";
+import { AttendanceScheduleService } from "./services/attendance-schedule.service";
+import { attendanceDayjs, formatAttendanceDate } from "./core/attendance-dayjs";
+import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./core/defaults";
+import type { UpsertGeofenceDto } from "./dto/geofence.dto";
+import type { UpsertShiftDto } from "./dto/shift.dto";
+import type { PunchDto } from "./dto/punch.dto";
 import {
   computeMonthlySummaryAggregate,
   fmtOvertimeMinutes,
   monthSummaryBounds,
   overtimeMinutesForOutTimes,
-} from "./core/monthly-summary-compute"
-import { minutesFromMidnight } from "./core/time"
+} from "./core/monthly-summary-compute";
+import { minutesFromMidnight } from "./core/time";
 
-const GLOBAL_CONFIG_ID = "global" as const
+const GLOBAL_CONFIG_ID = "global" as const;
 
 function hashPunchDeviceToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex")
+  return createHash("sha256").update(token).digest("hex");
 }
 
 @Injectable()
 export class AttendanceService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly schedule: AttendanceScheduleService
+    private readonly schedule: AttendanceScheduleService,
   ) {}
 
   async getGeofence() {
     const row = await this.prisma.geofenceConfig.findUnique({
       where: { id: GLOBAL_CONFIG_ID },
-    })
+    });
     return (
       row ?? {
         id: GLOBAL_CONFIG_ID,
@@ -42,7 +42,7 @@ export class AttendanceService {
         createdAt: new Date(0),
         updatedAt: new Date(0),
       }
-    )
+    );
   }
 
   async upsertGeofence(dto: UpsertGeofenceDto) {
@@ -63,13 +63,13 @@ export class AttendanceService {
         radiusM: dto.radiusM,
         label: dto.label ?? "",
       },
-    })
+    });
   }
 
   async getShift() {
     const row = await this.prisma.shiftConfig.findUnique({
       where: { id: GLOBAL_CONFIG_ID },
-    })
+    });
     return (
       row ?? {
         id: GLOBAL_CONFIG_ID,
@@ -77,7 +77,7 @@ export class AttendanceService {
         createdAt: new Date(0),
         updatedAt: new Date(0),
       }
-    )
+    );
   }
 
   async upsertShift(dto: UpsertShiftDto) {
@@ -120,28 +120,28 @@ export class AttendanceService {
         overtimeMorningNormalEnd: dto.overtimeMorningNormalEnd,
         overtimeAfternoonNormalEnd: dto.overtimeAfternoonNormalEnd,
       },
-    })
+    });
   }
 
   async punch(userId: string, dto: PunchDto) {
-    const now = new Date()
-    const punchDate = formatAttendanceDate(now)
-    const type = dto.type
-    const deviceToken = dto.deviceToken.trim()
-    const tokenHash = hashPunchDeviceToken(deviceToken)
+    const now = new Date();
+    const punchDate = formatAttendanceDate(now);
+    const type = dto.type;
+    const deviceToken = dto.deviceToken.trim();
+    const tokenHash = hashPunchDeviceToken(deviceToken);
     const [shift, fence] = await Promise.all([
       this.getShift(),
       this.getGeofence(),
       this.schedule.assertHalfOpenForPunch(userId, punchDate, type),
-    ])
+    ]);
 
     const bound = await this.prisma.attendancePunchDevice.findUnique({
       where: { userId },
-    })
+    });
     if (bound && bound.tokenHash !== tokenHash) {
       throw new BadRequestException(
-        "该账号已绑定其他打卡设备，请联系管理员解绑"
-      )
+        "该账号已绑定其他打卡设备，请联系管理员解绑",
+      );
     }
 
     if (fence.enabled) {
@@ -149,10 +149,10 @@ export class AttendanceService {
         dto.latitude,
         dto.longitude,
         fence.centerLat,
-        fence.centerLng
-      )
+        fence.centerLng,
+      );
       if (d > fence.radiusM) {
-        throw new BadRequestException("当前位置不在允许打卡范围内")
+        throw new BadRequestException("当前位置不在允许打卡范围内");
       }
     }
 
@@ -160,27 +160,27 @@ export class AttendanceService {
       const todayRecords = await tx.attendanceRecord.findMany({
         where: { userId, punchDate },
         orderBy: { punchTime: "asc" },
-      })
-      const map = new Map(todayRecords.map((r) => [r.type, r]))
+      });
+      const map = new Map(todayRecords.map((r) => [r.type, r]));
 
       const wall =
-        attendanceDayjs(now).hour() * 60 + attendanceDayjs(now).minute()
+        attendanceDayjs(now).hour() * 60 + attendanceDayjs(now).minute();
       const inRange = (start: string, end: string) => {
-        const a = minutesFromMidnight(start)
-        const b = minutesFromMidnight(end)
-        return wall >= a && wall <= b
-      }
+        const a = minutesFromMidnight(start);
+        const b = minutesFromMidnight(end);
+        return wall >= a && wall <= b;
+      };
 
-      this.assertPunchWindow(type, map, shift, inRange)
+      this.assertPunchWindow(type, map, shift, inRange);
 
       if (!bound) {
-        await this.bindPunchDevice(tx, userId, tokenHash)
+        await this.bindPunchDevice(tx, userId, tokenHash);
       }
 
-      const existing = map.get(type)
-      let result
+      const existing = map.get(type);
+      let result;
       if (existing) {
-        result = await this.updateOutPunch(tx, existing.id, type, now, dto)
+        result = await this.updateOutPunch(tx, existing.id, type, now, dto);
       } else {
         try {
           result = await tx.attendanceRecord.create({
@@ -193,22 +193,22 @@ export class AttendanceService {
               longitude: dto.longitude,
               address: dto.address ?? "",
             },
-          })
+          });
         } catch (error) {
-          if (!isPrismaUniqueViolation(error)) throw error
+          if (!isPrismaUniqueViolation(error)) throw error;
           result = await this.resolveConcurrentPunch(
             tx,
             userId,
             type,
             punchDate,
             now,
-            dto
-          )
+            dto,
+          );
         }
       }
 
-      return result
-    })
+      return result;
+    });
   }
 
   async getPunchDevice(userId: string, deviceToken: string) {
@@ -220,22 +220,22 @@ export class AttendanceService {
         where: { userId, status: "pending" },
         select: { id: true },
       }),
-    ])
+    ]);
     if (!row) {
       return {
         bound: false,
         boundAt: null,
         current: false,
         unbindPending: false,
-      }
+      };
     }
-    const token = deviceToken.trim()
+    const token = deviceToken.trim();
     return {
       bound: true,
       boundAt: row.boundAt,
       current: token ? row.tokenHash === hashPunchDeviceToken(token) : false,
       unbindPending: !!unbindPending,
-    }
+    };
   }
 
   async listPunchDevices() {
@@ -246,44 +246,44 @@ export class AttendanceService {
         displayName: true,
         punchDevice: { select: { boundAt: true } },
       },
-    })
+    });
     return users.map((user) => ({
       userId: user.id,
       displayName: user.displayName,
       bound: !!user.punchDevice,
       boundAt: user.punchDevice?.boundAt ?? null,
-    }))
+    }));
   }
 
   async unbindPunchDevice(userId: string) {
     await this.prisma.$transaction(async (tx) => {
-      await tx.attendancePunchDevice.deleteMany({ where: { userId } })
+      await tx.attendancePunchDevice.deleteMany({ where: { userId } });
       await tx.user.updateMany({
         where: { id: userId },
         data: { wechatOpenId: null },
-      })
-    })
-    return { ok: true }
+      });
+    });
+    return { ok: true };
   }
 
   private async bindPunchDevice(
     tx: Prisma.TransactionClient,
     userId: string,
-    tokenHash: string
+    tokenHash: string,
   ) {
     try {
       await tx.attendancePunchDevice.create({
         data: { userId, tokenHash },
-      })
+      });
     } catch (error) {
-      if (!isPrismaUniqueViolation(error)) throw error
+      if (!isPrismaUniqueViolation(error)) throw error;
       const existing = await tx.attendancePunchDevice.findUnique({
         where: { userId },
-      })
+      });
       if (!existing || existing.tokenHash !== tokenHash) {
         throw new BadRequestException(
-          "该账号已绑定其他打卡设备，请联系管理员解绑"
-        )
+          "该账号已绑定其他打卡设备，请联系管理员解绑",
+        );
       }
     }
   }
@@ -292,40 +292,40 @@ export class AttendanceService {
     type: AttendancePunchType,
     map: Map<AttendancePunchType, { id: string }>,
     shift: Awaited<ReturnType<AttendanceService["getShift"]>>,
-    inRange: (start: string, end: string) => boolean
+    inRange: (start: string, end: string) => boolean,
   ) {
     if (type === "morning_in") {
       if (!inRange(shift.morningInWindowStart, shift.morningInWindowEnd)) {
         throw new BadRequestException(
-          `「上午上班」仅允许在 ${shift.morningInWindowStart} - ${shift.morningInWindowEnd} 内打卡`
-        )
+          `「上午上班」仅允许在 ${shift.morningInWindowStart} - ${shift.morningInWindowEnd} 内打卡`,
+        );
       }
     }
     if (type === "morning_out") {
       if (!map.get("morning_in"))
-        throw new BadRequestException("请先打上午上班，再打上午下班")
+        throw new BadRequestException("请先打上午上班，再打上午下班");
       if (!inRange(shift.morningOutWindowStart, shift.morningOutWindowEnd)) {
         throw new BadRequestException(
-          `「上午下班」仅允许在 ${shift.morningOutWindowStart} - ${shift.morningOutWindowEnd} 内打卡`
-        )
+          `「上午下班」仅允许在 ${shift.morningOutWindowStart} - ${shift.morningOutWindowEnd} 内打卡`,
+        );
       }
     }
     if (type === "afternoon_in") {
       if (!inRange(shift.afternoonInWindowStart, shift.afternoonInWindowEnd)) {
         throw new BadRequestException(
-          `「下午上班」仅允许在 ${shift.afternoonInWindowStart} - ${shift.afternoonInWindowEnd} 内打卡`
-        )
+          `「下午上班」仅允许在 ${shift.afternoonInWindowStart} - ${shift.afternoonInWindowEnd} 内打卡`,
+        );
       }
     }
     if (type === "afternoon_out") {
       if (!map.get("afternoon_in"))
-        throw new BadRequestException("请先打下午上班，再打下午下班")
+        throw new BadRequestException("请先打下午上班，再打下午下班");
       if (
         !inRange(shift.afternoonOutWindowStart, shift.afternoonOutWindowEnd)
       ) {
         throw new BadRequestException(
-          `「下午下班」仅允许在 ${shift.afternoonOutWindowStart} - ${shift.afternoonOutWindowEnd} 内打卡`
-        )
+          `「下午下班」仅允许在 ${shift.afternoonOutWindowStart} - ${shift.afternoonOutWindowEnd} 内打卡`,
+        );
       }
     }
   }
@@ -335,10 +335,10 @@ export class AttendanceService {
     recordId: string,
     type: AttendancePunchType,
     now: Date,
-    dto: PunchDto
+    dto: PunchDto,
   ) {
     if (type === "morning_in" || type === "afternoon_in") {
-      throw new BadRequestException("今日该上班卡已打过，不可重复打卡")
+      throw new BadRequestException("今日该上班卡已打过，不可重复打卡");
     }
     return await tx.attendanceRecord.update({
       where: { id: recordId },
@@ -348,7 +348,7 @@ export class AttendanceService {
         longitude: dto.longitude,
         address: dto.address ?? "",
       },
-    })
+    });
   }
 
   private async resolveConcurrentPunch(
@@ -357,34 +357,34 @@ export class AttendanceService {
     type: AttendancePunchType,
     punchDate: string,
     now: Date,
-    dto: PunchDto
+    dto: PunchDto,
   ) {
     const existing = await tx.attendanceRecord.findUnique({
       where: { userId_type_punchDate: { userId, type, punchDate } },
-    })
+    });
     if (!existing) {
-      throw new BadRequestException("打卡冲突，请重试")
+      throw new BadRequestException("打卡冲突，请重试");
     }
-    return await this.updateOutPunch(tx, existing.id, type, now, dto)
+    return await this.updateOutPunch(tx, existing.id, type, now, dto);
   }
 
   async today(userId: string) {
-    const punchDate = formatAttendanceDate(new Date())
+    const punchDate = formatAttendanceDate(new Date());
     return await this.prisma.attendanceRecord.findMany({
       where: { userId, punchDate },
       orderBy: { punchTime: "asc" },
-    })
+    });
   }
 
   async monthlySummary(
     userId: string,
     month: string,
-    shiftOverride?: Awaited<ReturnType<AttendanceService["getShift"]>>
+    shiftOverride?: Awaited<ReturnType<AttendanceService["getShift"]>>,
   ) {
-    const bounds = monthSummaryBounds(month)
-    if (!bounds) throw new BadRequestException("月份不合法")
+    const bounds = monthSummaryBounds(month);
+    if (!bounds) throw new BadRequestException("月份不合法");
 
-    const { start, end, todayYmd, startDate, rangeEnd } = bounds
+    const { start, end, todayYmd, startDate, rangeEnd } = bounds;
 
     const [leaveBundle, list, shift, pendingMakeups] = await Promise.all([
       this.schedule.getMonthlyLeaveBundle(userId, month, startDate, rangeEnd),
@@ -410,7 +410,7 @@ export class AttendanceService {
         },
         select: { date: true, type: true, status: true },
       }),
-    ])
+    ]);
 
     const aggregate = computeMonthlySummaryAggregate({
       start,
@@ -420,7 +420,7 @@ export class AttendanceService {
       records: list,
       shift,
       pendingMakeups,
-    })
+    });
 
     return {
       month,
@@ -428,37 +428,37 @@ export class AttendanceService {
       rangeEnd,
       ...aggregate,
       remainingLeave: leaveBundle.remainingLeave,
-    }
+    };
   }
 
   async attendanceBundle(userId: string, month: string) {
-    const shift = await this.getShift()
+    const shift = await this.getShift();
     const [today, monthly] = await Promise.all([
       this.today(userId),
       this.monthlySummary(userId, month, shift),
-    ])
-    return { today, monthly, shift }
+    ]);
+    return { today, monthly, shift };
   }
 
   async monthlySummariesForAll(month: string, includeRows = true) {
-    const bounds = monthSummaryBounds(month)
-    if (!bounds) throw new BadRequestException("月份不合法")
+    const bounds = monthSummaryBounds(month);
+    if (!bounds) throw new BadRequestException("月份不合法");
 
     const users = await this.prisma.user.findMany({
       orderBy: [{ displayName: "asc" }, { username: "asc" }],
       select: { id: true, displayName: true, username: true },
-    })
-    if (!users.length) return []
+    });
+    if (!users.length) return [];
 
-    const userIds = users.map((u) => u.id)
-    const { start, end, todayYmd, startDate, rangeEnd } = bounds
+    const userIds = users.map((u) => u.id);
+    const { start, end, todayYmd, startDate, rangeEnd } = bounds;
 
     const [declaredScheduleMaps, allRecords, shift, allPending] =
       await Promise.all([
         this.schedule.declaredScheduleMapsForUsers(
           userIds,
           startDate,
-          rangeEnd
+          rangeEnd,
         ),
         this.prisma.attendanceRecord.findMany({
           where: {
@@ -483,29 +483,29 @@ export class AttendanceService {
           },
           select: { userId: true, date: true, type: true, status: true },
         }),
-      ])
+      ]);
 
-    const recordsByUser = new Map<string, typeof allRecords>()
+    const recordsByUser = new Map<string, typeof allRecords>();
     for (const r of allRecords) {
-      const arr = recordsByUser.get(r.userId) ?? []
-      arr.push(r)
-      recordsByUser.set(r.userId, arr)
+      const arr = recordsByUser.get(r.userId) ?? [];
+      arr.push(r);
+      recordsByUser.set(r.userId, arr);
     }
 
     const pendingByUser = new Map<
       string,
       Array<{ date: string; type: string; status: string }>
-    >()
+    >();
     for (const p of allPending) {
-      const arr = pendingByUser.get(p.userId) ?? []
-      arr.push({ date: p.date, type: p.type, status: p.status })
-      pendingByUser.set(p.userId, arr)
+      const arr = pendingByUser.get(p.userId) ?? [];
+      arr.push({ date: p.date, type: p.type, status: p.status });
+      pendingByUser.set(p.userId, arr);
     }
 
     return users.map((u) => {
       const userDeclaredScheduleMap =
         declaredScheduleMaps.get(u.id) ??
-        new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">()
+        new Map<string, "full_rest" | "morning_rest" | "afternoon_rest">();
       const aggregate = computeMonthlySummaryAggregate({
         start,
         end,
@@ -514,7 +514,7 @@ export class AttendanceService {
         records: recordsByUser.get(u.id) ?? [],
         shift,
         pendingMakeups: pendingByUser.get(u.id) ?? [],
-      })
+      });
       return {
         userId: u.id,
         userName: u.displayName || u.username,
@@ -523,14 +523,14 @@ export class AttendanceService {
         missingSlots: aggregate.missingSlots,
         overtimeStr: aggregate.overtimeStr,
         rows: includeRows ? aggregate.rows : [],
-      }
-    })
+      };
+    });
   }
 
   async monthlyOvertimeForUsers(month: string, userIds: string[]) {
-    const bounds = monthSummaryBounds(month)
-    if (!bounds) throw new BadRequestException("月份不合法")
-    if (!userIds.length) return new Map<string, string>()
+    const bounds = monthSummaryBounds(month);
+    if (!bounds) throw new BadRequestException("月份不合法");
+    if (!userIds.length) return new Map<string, string>();
 
     const [records, shift] = await Promise.all([
       this.prisma.attendanceRecord.findMany({
@@ -547,41 +547,41 @@ export class AttendanceService {
         },
       }),
       this.getShift(),
-    ])
+    ]);
 
     const outTimesByDay = new Map<
       string,
       { morningOut: string | null; afternoonOut: string | null }
-    >()
+    >();
     for (const record of records) {
-      const key = `${record.userId}:${record.punchDate}`
+      const key = `${record.userId}:${record.punchDate}`;
       const row = outTimesByDay.get(key) ?? {
         morningOut: null,
         afternoonOut: null,
-      }
-      const time = attendanceDayjs(record.punchTime).format("HH:mm")
-      if (record.type === "morning_out") row.morningOut = time
-      if (record.type === "afternoon_out") row.afternoonOut = time
-      outTimesByDay.set(key, row)
+      };
+      const time = attendanceDayjs(record.punchTime).format("HH:mm");
+      if (record.type === "morning_out") row.morningOut = time;
+      if (record.type === "afternoon_out") row.afternoonOut = time;
+      outTimesByDay.set(key, row);
     }
 
-    const minutesByUser = new Map<string, number>()
+    const minutesByUser = new Map<string, number>();
     for (const [key, row] of outTimesByDay) {
-      const userId = key.slice(0, key.indexOf(":"))
+      const userId = key.slice(0, key.indexOf(":"));
       const minutes = overtimeMinutesForOutTimes(
         row.morningOut,
         row.afternoonOut,
-        shift
-      )
-      minutesByUser.set(userId, (minutesByUser.get(userId) ?? 0) + minutes)
+        shift,
+      );
+      minutesByUser.set(userId, (minutesByUser.get(userId) ?? 0) + minutes);
     }
 
     return new Map(
       userIds.map((userId) => [
         userId,
         fmtOvertimeMinutes(minutesByUser.get(userId) ?? 0),
-      ])
-    )
+      ]),
+    );
   }
 }
 
@@ -589,18 +589,18 @@ function haversineDistanceMeters(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
-  const R = 6371000
-  const toRad = (d: number) => (d * Math.PI) / 180
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
       Math.cos(toRad(lat2)) *
       Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }

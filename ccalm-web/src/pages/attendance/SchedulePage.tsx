@@ -1,14 +1,14 @@
-import * as React from "react"
-import dayjs from "dayjs"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import * as React from "react";
+import dayjs from "dayjs";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -16,18 +16,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { pad2 } from "@/lib/attendance/shift"
-import { formatDayCount } from "@/lib/attendance/summary"
-import type { ChinaHolidayYear } from "@/lib/attendance/holidays"
-import { formatHolidayRange } from "@/lib/attendance/holidays"
-import type { ScheduleMonthData } from "@/lib/attendance/schedule"
+} from "@/components/ui/table";
+import { pad2 } from "@/lib/attendance/shift";
+import { formatDayCount } from "@/lib/attendance/summary";
+import type { ChinaHolidayYear } from "@/lib/attendance/holidays";
+import { formatHolidayRange } from "@/lib/attendance/holidays";
+import type { ScheduleMonthData } from "@/lib/attendance/schedule";
 import {
   SCHEDULE_SHIFT_LABEL,
   clampScheduleMonth,
   scheduleCellClass,
   scheduleMonthRange,
-} from "@/lib/attendance/schedule"
+} from "@/lib/attendance/schedule";
 import {
   attendanceMutedTextClass,
   detailOvertimeClass,
@@ -35,70 +35,70 @@ import {
   scheduleHolidayHeaderClass,
   SCHEDULE_SHIFT_LEGEND,
   SCHEDULE_SHIFT_SWATCH_CLASS,
-} from "@/lib/attendance/attendance-theme"
-import { api } from "@/lib/api"
-import { useAuth } from "@/lib/use-auth"
-import { errorMessage } from "@/lib/errorMessage"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+} from "@/lib/attendance/attendance-theme";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
+import { errorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function SchedulePage() {
-  const { me } = useAuth()
-  const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), [])
+  const { me } = useAuth();
+  const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
   const [month, setMonth] = React.useState(() =>
-    clampScheduleMonth(dayjs().format("YYYY-MM"))
-  )
-  const [data, setData] = React.useState<ScheduleMonthData | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const loadSeqRef = React.useRef(0)
-  const hasDataRef = React.useRef(false)
-  const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0")
-  const [savingAllowance, setSavingAllowance] = React.useState(false)
+    clampScheduleMonth(dayjs().format("YYYY-MM")),
+  );
+  const [data, setData] = React.useState<ScheduleMonthData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const loadSeqRef = React.useRef(0);
+  const hasDataRef = React.useRef(false);
+  const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
+  const [savingAllowance, setSavingAllowance] = React.useState(false);
   const [holidaysByYear, setHolidaysByYear] = React.useState<
     Record<string, ChinaHolidayYear>
-  >({})
+  >({});
 
-  const isAdmin = me?.role === "admin"
-  const year = month.split("-")[0] ?? dayjs().format("YYYY")
-  const holidays = holidaysByYear[year] ?? null
+  const isAdmin = me?.role === "admin";
+  const year = month.split("-")[0] ?? dayjs().format("YYYY");
+  const holidays = holidaysByYear[year] ?? null;
 
   const load = React.useCallback(async (targetMonth: string) => {
-    const seq = ++loadSeqRef.current
+    const seq = ++loadSeqRef.current;
     if (!hasDataRef.current) {
-      setLoading(true)
+      setLoading(true);
     }
 
     try {
       const res = await api<ScheduleMonthData>(
         "GET",
-        `/attendance/schedule?month=${targetMonth}`
-      )
-      if (seq !== loadSeqRef.current) return
-      hasDataRef.current = true
-      setData(res)
-      setMonthAllowanceInput(String(res.monthAllowance))
+        `/attendance/schedule?month=${targetMonth}`,
+      );
+      if (seq !== loadSeqRef.current) return;
+      hasDataRef.current = true;
+      setData(res);
+      setMonthAllowanceInput(String(res.monthAllowance));
     } catch (e) {
-      if (seq !== loadSeqRef.current) return
-      toast.error(errorMessage(e))
-      if (!hasDataRef.current) setData(null)
+      if (seq !== loadSeqRef.current) return;
+      toast.error(errorMessage(e));
+      if (!hasDataRef.current) setData(null);
     } finally {
       if (seq === loadSeqRef.current) {
-        setLoading(false)
+        setLoading(false);
       }
     }
-  }, [])
+  }, []);
 
   React.useEffect(() => {
-    void load(month)
-  }, [load, month])
+    void load(month);
+  }, [load, month]);
 
   React.useEffect(() => {
-    if (holidaysByYear[year]) return
-    let cancelled = false
+    if (holidaysByYear[year]) return;
+    let cancelled = false;
     void api<ChinaHolidayYear>("GET", `/attendance/holidays?year=${year}`)
       .then((res) => {
         if (!cancelled) {
-          setHolidaysByYear((prev) => ({ ...prev, [year]: res }))
+          setHolidaysByYear((prev) => ({ ...prev, [year]: res }));
         }
       })
       .catch(() => {
@@ -111,42 +111,42 @@ export function SchedulePage() {
               makeupDays: [],
               offDayMap: {},
             },
-          }))
+          }));
         }
-      })
+      });
     return () => {
-      cancelled = true
-    }
-  }, [year, holidaysByYear])
+      cancelled = true;
+    };
+  }, [year, holidaysByYear]);
 
   function holidayDateKey(day: number): string {
-    return `${month}-${pad2(day)}`
+    return `${month}-${pad2(day)}`;
   }
 
   async function saveMonthAllowance() {
-    const value = Number(monthAllowanceInput)
+    const value = Number(monthAllowanceInput);
     if (!Number.isFinite(value) || value < 0) {
-      toast.error("本月假期须为非负数字")
-      return
+      toast.error("本月假期须为非负数字");
+      return;
     }
-    setSavingAllowance(true)
+    setSavingAllowance(true);
     try {
       await api("PUT", "/attendance/schedule/month-config", {
         month,
         monthAllowance: value,
-      })
-      toast.success("已保存本月假期")
-      await load(month)
+      });
+      toast.success("已保存本月假期");
+      await load(month);
     } catch (e) {
-      toast.error(errorMessage(e))
+      toast.error(errorMessage(e));
     } finally {
-      setSavingAllowance(false)
+      setSavingAllowance(false);
     }
   }
 
-  const [yearLabel, mon] = month.split("-")
-  const canGoPrev = month > minMonth
-  const canGoNext = month < maxMonth
+  const [yearLabel, mon] = month.split("-");
+  const canGoPrev = month > minMonth;
+  const canGoNext = month < maxMonth;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
@@ -161,8 +161,8 @@ export function SchedulePage() {
               onClick={() =>
                 setMonth(
                   clampScheduleMonth(
-                    dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM")
-                  )
+                    dayjs(`${month}-01`).subtract(1, "month").format("YYYY-MM"),
+                  ),
                 )
               }
             >
@@ -179,8 +179,8 @@ export function SchedulePage() {
               onClick={() =>
                 setMonth(
                   clampScheduleMonth(
-                    dayjs(`${month}-01`).add(1, "month").format("YYYY-MM")
-                  )
+                    dayjs(`${month}-01`).add(1, "month").format("YYYY-MM"),
+                  ),
                 )
               }
             >
@@ -243,22 +243,22 @@ export function SchedulePage() {
                       姓名
                     </TableHead>
                     {data.dayHeaders.map((h) => {
-                      const dateKey = holidayDateKey(h.day)
-                      const holidayName = holidays?.offDayMap[dateKey]
-                      const isHoliday = !!holidayName
+                      const dateKey = holidayDateKey(h.day);
+                      const holidayName = holidays?.offDayMap[dateKey];
+                      const isHoliday = !!holidayName;
                       return (
                         <TableHead
                           key={h.day}
                           title={holidayName}
                           className={cn(
                             "w-9 px-1 text-center",
-                            isHoliday && scheduleHolidayHeaderClass
+                            isHoliday && scheduleHolidayHeaderClass,
                           )}
                         >
                           <div>{h.weekday}</div>
                           <div>{h.day}</div>
                         </TableHead>
-                      )
+                      );
                     })}
                     <TableHead className="w-10 text-center">全</TableHead>
                     <TableHead className="w-10 text-center">上</TableHead>
@@ -276,7 +276,7 @@ export function SchedulePage() {
                         {user.userName}
                       </TableCell>
                       {data.dayHeaders.map((h) => {
-                        const shift = user.days[String(h.day)] ?? null
+                        const shift = user.days[String(h.day)] ?? null;
                         return (
                           <TableCell
                             key={h.day}
@@ -285,13 +285,13 @@ export function SchedulePage() {
                             <span
                               className={cn(
                                 "mx-auto flex h-8 w-8 items-center justify-center rounded text-sm",
-                                scheduleCellClass(shift)
+                                scheduleCellClass(shift),
                               )}
                             >
                               {shift ? SCHEDULE_SHIFT_LABEL[shift] : ""}
                             </span>
                           </TableCell>
-                        )
+                        );
                       })}
                       <TableCell className="w-10 text-center">
                         {user.fullCount}
@@ -314,7 +314,7 @@ export function SchedulePage() {
                       <TableCell
                         className={cn(
                           "w-20 text-center",
-                          detailOvertimeClass(user.overtimeStr)
+                          detailOvertimeClass(user.overtimeStr),
                         )}
                       >
                         {hasOvertime(user.overtimeStr) ? user.overtimeStr : ""}
@@ -357,7 +357,7 @@ export function SchedulePage() {
           <div
             className={cn(
               "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              attendanceMutedTextClass
+              attendanceMutedTextClass,
             )}
           >
             {SCHEDULE_SHIFT_LEGEND.map((item) => (
@@ -365,7 +365,7 @@ export function SchedulePage() {
                 <span
                   className={cn(
                     "size-3.5 shrink-0 rounded-sm",
-                    SCHEDULE_SHIFT_SWATCH_CLASS[item.key]
+                    SCHEDULE_SHIFT_SWATCH_CLASS[item.key],
                   )}
                   aria-hidden
                 />
@@ -382,5 +382,5 @@ export function SchedulePage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

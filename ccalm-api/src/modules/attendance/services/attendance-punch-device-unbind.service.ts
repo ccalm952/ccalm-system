@@ -2,33 +2,33 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from "@nestjs/common"
+} from "@nestjs/common";
 
-import { PrismaService } from "../../../prisma/prisma.service"
-import { MakeupEventsService } from "./makeup-events.service"
+import { PrismaService } from "../../../prisma/prisma.service";
+import { MakeupEventsService } from "./makeup-events.service";
 
 @Injectable()
 export class AttendancePunchDeviceUnbindService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly makeupEvents: MakeupEventsService
+    private readonly makeupEvents: MakeupEventsService,
   ) {}
 
   private includeUser() {
     return {
       user: { select: { displayName: true, username: true } },
       reviewer: { select: { displayName: true, username: true } },
-    } as const
+    } as const;
   }
 
   private serialize(row: {
-    id: string
-    userId: string
-    status: string
-    reviewedAt: Date | null
-    createdAt: Date
-    user: { displayName: string; username: string }
-    reviewer: { displayName: string; username: string } | null
+    id: string;
+    userId: string;
+    status: string;
+    reviewedAt: Date | null;
+    createdAt: Date;
+    user: { displayName: string; username: string };
+    reviewer: { displayName: string; username: string } | null;
   }) {
     return {
       id: row.id,
@@ -40,36 +40,36 @@ export class AttendancePunchDeviceUnbindService {
       reviewerName: row.reviewer
         ? row.reviewer.displayName || row.reviewer.username
         : null,
-    }
+    };
   }
 
   async createRequest(userId: string) {
     const bound = await this.prisma.attendancePunchDevice.findUnique({
       where: { userId },
-    })
+    });
     if (!bound) {
-      throw new BadRequestException("尚未绑定打卡设备，无需解绑")
+      throw new BadRequestException("尚未绑定打卡设备，无需解绑");
     }
 
     const pending =
       await this.prisma.attendancePunchDeviceUnbindRequest.findFirst({
         where: { userId, status: "pending" },
-      })
+      });
     if (pending) {
-      throw new BadRequestException("已有解绑申请审批中")
+      throw new BadRequestException("已有解绑申请审批中");
     }
 
     const row = await this.prisma.attendancePunchDeviceUnbindRequest.create({
       data: { userId },
       include: this.includeUser(),
-    })
+    });
     this.makeupEvents.publish({
       type: "device-unbind-changed",
       action: "created",
       userId,
       requestId: row.id,
-    })
-    return this.serialize(row)
+    });
+    return this.serialize(row);
   }
 
   async listMine(userId: string, status?: string) {
@@ -87,8 +87,8 @@ export class AttendancePunchDeviceUnbindService {
       },
       orderBy: [{ createdAt: "desc" }],
       include: this.includeUser(),
-    })
-    return rows.map((row) => this.serialize(row))
+    });
+    return rows.map((row) => this.serialize(row));
   }
 
   async listForAdmin(status?: string) {
@@ -99,25 +99,25 @@ export class AttendancePunchDeviceUnbindService {
           ? { status: "approved" as const }
           : status === "rejected"
             ? { status: "rejected" as const }
-            : undefined
+            : undefined;
 
     const rows = await this.prisma.attendancePunchDeviceUnbindRequest.findMany({
       where,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       include: this.includeUser(),
-    })
-    return rows.map((row) => this.serialize(row))
+    });
+    return rows.map((row) => this.serialize(row));
   }
 
   async approve(requestId: string, adminId: string) {
     const req = await this.prisma.attendancePunchDeviceUnbindRequest.findUnique(
       {
         where: { id: requestId },
-      }
-    )
-    if (!req) throw new NotFoundException("解绑申请不存在")
+      },
+    );
+    if (!req) throw new NotFoundException("解绑申请不存在");
     if (req.status !== "pending") {
-      throw new BadRequestException("该申请已处理")
+      throw new BadRequestException("该申请已处理");
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -128,43 +128,43 @@ export class AttendancePunchDeviceUnbindService {
           reviewedBy: adminId,
           reviewedAt: new Date(),
         },
-      })
+      });
       if (claimed.count === 0) {
-        throw new BadRequestException("该申请已处理")
+        throw new BadRequestException("该申请已处理");
       }
 
       await tx.attendancePunchDevice.deleteMany({
         where: { userId: req.userId },
-      })
+      });
       await tx.user.updateMany({
         where: { id: req.userId },
         data: { wechatOpenId: null },
-      })
+      });
 
       const row = await tx.attendancePunchDeviceUnbindRequest.findUnique({
         where: { id: requestId },
         include: this.includeUser(),
-      })
-      if (!row) throw new NotFoundException("解绑申请不存在")
-      return row
-    })
+      });
+      if (!row) throw new NotFoundException("解绑申请不存在");
+      return row;
+    });
 
     this.makeupEvents.publish({
       type: "device-unbind-changed",
       action: "approved",
       userId: req.userId,
       requestId,
-    })
-    return this.serialize(updated)
+    });
+    return this.serialize(updated);
   }
 
   async reject(requestId: string, adminId: string) {
     const req = await this.prisma.attendancePunchDeviceUnbindRequest.findUnique(
       {
         where: { id: requestId },
-      }
-    )
-    if (!req) throw new NotFoundException("解绑申请不存在")
+      },
+    );
+    if (!req) throw new NotFoundException("解绑申请不存在");
 
     const { count } =
       await this.prisma.attendancePunchDeviceUnbindRequest.updateMany({
@@ -174,25 +174,25 @@ export class AttendancePunchDeviceUnbindService {
           reviewedBy: adminId,
           reviewedAt: new Date(),
         },
-      })
+      });
     if (count === 0) {
-      throw new BadRequestException("该申请已处理")
+      throw new BadRequestException("该申请已处理");
     }
 
     const row = await this.prisma.attendancePunchDeviceUnbindRequest.findUnique(
       {
         where: { id: requestId },
         include: this.includeUser(),
-      }
-    )
-    if (!row) throw new NotFoundException("解绑申请不存在")
+      },
+    );
+    if (!row) throw new NotFoundException("解绑申请不存在");
 
     this.makeupEvents.publish({
       type: "device-unbind-changed",
       action: "rejected",
       userId: req.userId,
       requestId,
-    })
-    return this.serialize(row)
+    });
+    return this.serialize(row);
   }
 }

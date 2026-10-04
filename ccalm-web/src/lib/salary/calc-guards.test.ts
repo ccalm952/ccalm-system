@@ -1,14 +1,14 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { buildPriorBonusMap, installmentAmountForMonth } from "./calc"
-import { createDefaultSalaryGlobalSettings } from "./settings"
+import { buildPriorBonusMap, installmentAmountForMonth } from "./calc";
+import { createDefaultSalaryGlobalSettings } from "./settings";
 import type {
   SalaryEmployeeInput,
   SalaryEquipmentInstallment,
   SalarySheetData,
-} from "./types"
+} from "./types";
 
-const settings = createDefaultSalaryGlobalSettings()
+const settings = createDefaultSalaryGlobalSettings();
 
 function plan(startMonth: string): SalaryEquipmentInstallment {
   return {
@@ -17,7 +17,7 @@ function plan(startMonth: string): SalaryEquipmentInstallment {
     totalAmount: 1200,
     months: 3,
     startMonth,
-  }
+  };
 }
 
 function employee(name: string): SalaryEmployeeInput {
@@ -32,7 +32,7 @@ function employee(name: string): SalaryEmployeeInput {
     housingFund: 0,
     bonusMode: "tiered",
     deductionRate: 0,
-  }
+  };
 }
 
 function sheet(employees: SalaryEmployeeInput[]): SalarySheetData {
@@ -78,68 +78,68 @@ function sheet(employees: SalaryEmployeeInput[]): SalarySheetData {
       processing: 0,
     },
     materialLines: [],
-  }
+  };
 }
 
 describe("installmentAmountForMonth 月份格式校验", () => {
   it("拒绝未补零的月份串（此前会被数字解析出金额）", () => {
-    expect(installmentAmountForMonth(plan("2026-1"), "2026-02")).toBe(0)
-    expect(installmentAmountForMonth(plan("2026-01"), "2026-2")).toBe(0)
-  })
+    expect(installmentAmountForMonth(plan("2026-1"), "2026-02")).toBe(0);
+    expect(installmentAmountForMonth(plan("2026-01"), "2026-2")).toBe(0);
+  });
 
   it("拒绝越界月份", () => {
-    expect(installmentAmountForMonth(plan("2026-13"), "2026-14")).toBe(0)
-    expect(installmentAmountForMonth(plan("2026-00"), "2026-01")).toBe(0)
-  })
+    expect(installmentAmountForMonth(plan("2026-13"), "2026-14")).toBe(0);
+    expect(installmentAmountForMonth(plan("2026-00"), "2026-01")).toBe(0);
+  });
 
   it("拒绝无法解析的月份", () => {
-    expect(installmentAmountForMonth(plan("abc-de"), "2026-01")).toBe(0)
-    expect(installmentAmountForMonth(plan("2026-01"), "")).toBe(0)
-  })
+    expect(installmentAmountForMonth(plan("abc-de"), "2026-01")).toBe(0);
+    expect(installmentAmountForMonth(plan("2026-01"), "")).toBe(0);
+  });
 
   it("合法月份仍正常计算，末期补差", () => {
-    expect(installmentAmountForMonth(plan("2026-01"), "2026-01")).toBe(400)
-    expect(installmentAmountForMonth(plan("2026-01"), "2026-03")).toBe(400)
+    expect(installmentAmountForMonth(plan("2026-01"), "2026-01")).toBe(400);
+    expect(installmentAmountForMonth(plan("2026-01"), "2026-03")).toBe(400);
     // 期外
-    expect(installmentAmountForMonth(plan("2026-01"), "2026-04")).toBe(0)
-    expect(installmentAmountForMonth(plan("2026-01"), "2025-12")).toBe(0)
-  })
-})
+    expect(installmentAmountForMonth(plan("2026-01"), "2026-04")).toBe(0);
+    expect(installmentAmountForMonth(plan("2026-01"), "2025-12")).toBe(0);
+  });
+});
 
 describe("buildPriorBonusMap 依赖链防环", () => {
   const sheets: Record<string, SalarySheetData> = {
     "2026-07": sheet([employee("甲")]),
     "2026-08": sheet([employee("甲")]),
     "2026-09": sheet([employee("甲")]),
-  }
+  };
 
   it("自环不再无限递归", () => {
-    const selfLoop = () => "2026-09"
+    const selfLoop = () => "2026-09";
     expect(() =>
-      buildPriorBonusMap("2026-09", sheets, selfLoop, settings)
-    ).not.toThrow()
-  })
+      buildPriorBonusMap("2026-09", sheets, selfLoop, settings),
+    ).not.toThrow();
+  });
 
   it("A→B→A 环不再无限递归", () => {
     const twoCycle = (month: string) =>
-      month === "2026-09" ? "2026-08" : "2026-09"
+      month === "2026-09" ? "2026-08" : "2026-09";
     expect(() =>
-      buildPriorBonusMap("2026-09", sheets, twoCycle, settings)
-    ).not.toThrow()
-  })
+      buildPriorBonusMap("2026-09", sheets, twoCycle, settings),
+    ).not.toThrow();
+  });
 
   it("无环的逐月回溯仍正常返回", () => {
     const chain = (month: string) => {
-      if (month === "2026-09") return "2026-08"
-      if (month === "2026-08") return "2026-07"
-      return null
-    }
-    const result = buildPriorBonusMap("2026-09", sheets, chain, settings)
-    expect(Object.keys(result)).toEqual(["甲"])
-  })
+      if (month === "2026-09") return "2026-08";
+      if (month === "2026-08") return "2026-07";
+      return null;
+    };
+    const result = buildPriorBonusMap("2026-09", sheets, chain, settings);
+    expect(Object.keys(result)).toEqual(["甲"]);
+  });
 
   it("上个月无数据时返回空表", () => {
-    const none = () => null
-    expect(buildPriorBonusMap("2026-09", sheets, none, settings)).toEqual({})
-  })
-})
+    const none = () => null;
+    expect(buildPriorBonusMap("2026-09", sheets, none, settings)).toEqual({});
+  });
+});
