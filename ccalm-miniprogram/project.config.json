@@ -68,6 +68,10 @@
       },
       {
         "type": "folder",
+        "value": "miniprogram_npm/@vant/weapp/action-sheet"
+      },
+      {
+        "type": "folder",
         "value": "miniprogram_npm/@vant/weapp/area"
       },
       {
