@@ -467,6 +467,17 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     });
   }
 
+  function reorderEmployees(activeId: string, overId: string) {
+    if (!sheet || !activeMonth) return;
+    const oldIndex = sheet.employees.findIndex((row) => row.id === activeId);
+    const newIndex = sheet.employees.findIndex((row) => row.id === overId);
+    if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+    const employees = [...sheet.employees];
+    const [moved] = employees.splice(oldIndex, 1);
+    employees.splice(newIndex, 0, moved);
+    patchSheet(activeMonth, { ...sheet, employees });
+  }
+
   function openTierRateSettings() {
     setSettingsDraft({
       ...globalSettings,
@@ -1182,6 +1193,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                           updateEmployee={updateEmployee}
                           removeEmployee={removeEmployee}
                           onAddEmployee={addEmployee}
+                          onReorderEmployees={reorderEmployees}
                         />
                       </div>
                       <ScrollBar orientation="horizontal" />
