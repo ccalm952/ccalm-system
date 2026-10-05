@@ -51,6 +51,7 @@ model User {
   makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
   reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
   scheduleEntries      ScheduleEntry[]
+  scheduleLeaveOffsets ScheduleLeaveOffset[]
   punchDevice          AttendancePunchDevice?
   punchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
   reviewedPunchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindReviewer")
@@ -168,6 +169,18 @@ model ScheduleMonthConfig {
   month          String   @id
   monthAllowance Float    @default(0)
   updatedAt      DateTime @updatedAt
+}
+
+/// 排班表手填的假期抵消天数，对应薪资表员工假期
+model ScheduleLeaveOffset {
+  userId    String
+  month     String
+  days      Float
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, month])
+  @@index([month])
 }
 
 /// 种植模块：患者（与系统登录 User 无关）

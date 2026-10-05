@@ -1,6 +1,10 @@
 import { isPunchBlockedByScheduleRest } from "../core/schedule-rest";
-import { BadRequestException, Injectable } from "@nestjs/common";
-import type { AttendancePunchType } from "@prisma/client";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import type { AttendancePunchType, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
 import { isWithinAttendanceEditWindow } from "../core/attendance-edit-window";
@@ -9,10 +13,14 @@ import {
   formatAttendanceDate,
 } from "../core/attendance-dayjs";
 import { remainingLeaveSinceStart } from "../core/leave-balance";
+import { withEmployeeLeaveDays } from "../core/leave-offset";
 import type { ScheduleShiftType } from "../core/schedule-inference";
 
 import { PrismaService } from "../../../prisma/prisma.service";
-import type { UpsertScheduleMonthConfigDto } from "../dto/schedule.dto";
+import type {
+  UpsertScheduleLeaveOffsetDto,
+  UpsertScheduleMonthConfigDto,
+} from "../dto/schedule.dto";
 
 const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"] as const;
 
@@ -266,17 +274,25 @@ export class AttendanceScheduleService {
         effectiveLeaveStartDate(user.leaveStartDate, user.createdAt),
       ]),
     );
-    const { configMap, leaveByUserMonth, declaredMap } =
-      await this.buildLeaveContext(
-        userIds,
-        month,
-        users.map((user) => ({
-          id: user.id,
-          leaveStartDate: startDateByUser.get(user.id) ?? "",
-        })),
-      );
+    const [{ configMap, leaveByUserMonth, declaredMap }, offsets] =
+      await Promise.all([
+        this.buildLeaveContext(
+          userIds,
+          month,
+          users.map((user) => ({
+            id: user.id,
+            leaveStartDate: startDateByUser.get(user.id) ?? "",
+          })),
+        ),
+        this.prisma.scheduleLeaveOffset.findMany({
+          where: { month, userId: { in: userIds } },
+          select: { userId: true, days: true },
+        }),
+      ]);
+    const offsetByUser = new Map(offsets.map((row) => [row.userId, row.days]));
 
     const userRows = users.map((u) => {
+      const leaveStartDate = startDateByUser.get(u.id) ?? "";
       const days: Record<string, ScheduleShiftType | null> = {};
       let fullCount = 0;
       let morningCount = 0;
@@ -293,7 +309,6 @@ export class AttendanceScheduleService {
       }
 
       const monthLeave = fullCount + morningCount * 0.5 + afternoonCount * 0.5;
-      const leaveStartDate = startDateByUser.get(u.id) ?? "";
       const remainingLeave = this.remainingLeaveFromPrefetch(
         u.id,
         month,
@@ -310,6 +325,7 @@ export class AttendanceScheduleService {
         morningCount,
         afternoonCount,
         monthLeave,
+        leaveOffsetDays: offsetByUser.get(u.id) ?? null,
         remainingLeave,
         leaveStartDate,
       };
@@ -347,6 +363,55 @@ export class AttendanceScheduleService {
     return {
       month: row.month,
       monthAllowance: row.monthAllowance,
+    };
+  }
+
+  async setLeaveOffset(dto: UpsertScheduleLeaveOffsetDto) {
+    monthBounds(dto.month);
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+      select: { id: true, displayName: true, username: true },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+
+    await this.prisma.scheduleLeaveOffset.upsert({
+      where: { userId_month: { userId: dto.userId, month: dto.month } },
+      create: { userId: dto.userId, month: dto.month, days: dto.days },
+      update: { days: dto.days },
+    });
+
+    const userName = user.displayName || user.username;
+    const sheet = await this.prisma.salarySheet.findUnique({
+      where: { month: dto.month },
+    });
+    const raw = sheet?.data;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return {
+        userId: dto.userId,
+        days: dto.days,
+        salary: "missing_sheet" as const,
+      };
+    }
+
+    const current = raw as Record<string, unknown>;
+    const applied = withEmployeeLeaveDays(current, userName, dto.days);
+    if (!applied.applied) {
+      return {
+        userId: dto.userId,
+        days: dto.days,
+        salary: "missing_employee" as const,
+      };
+    }
+    if (applied.data !== current) {
+      await this.prisma.salarySheet.update({
+        where: { month: dto.month },
+        data: { data: applied.data as Prisma.InputJsonValue },
+      });
+    }
+    return {
+      userId: dto.userId,
+      days: dto.days,
+      salary: "applied" as const,
     };
   }
 

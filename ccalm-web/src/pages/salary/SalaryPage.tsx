@@ -121,9 +121,25 @@ async function applyScheduleLeaveQuotas(
   month: string,
   sheet: SalarySheetData,
 ): Promise<SalarySheetData> {
-  const quotas = await fetchLeaveQuotasFromSchedule(month);
-  if (sameLeaveQuotas(sheet.leaveQuotas, quotas)) return sheet;
-  return applyMonthCalendar({ ...sheet, leaveQuotas: quotas }, month);
+  const sync = await fetchLeaveQuotasFromSchedule(month);
+  let employeesChanged = false;
+  const employees = sheet.employees.map((emp) => {
+    const days = sync.leaveDaysByName[emp.name];
+    if (days == null || emp.leaveDays === days) return emp;
+    employeesChanged = true;
+    return { ...emp, leaveDays: days };
+  });
+  if (sameLeaveQuotas(sheet.leaveQuotas, sync.quotas) && !employeesChanged) {
+    return sheet;
+  }
+  return applyMonthCalendar(
+    {
+      ...sheet,
+      leaveQuotas: sync.quotas,
+      employees: employeesChanged ? employees : sheet.employees,
+    },
+    month,
+  );
 }
 
 function computeWithCarryover(
@@ -310,20 +326,17 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
 
   const refreshScheduleLeaveQuotas = React.useCallback(
     async (month: string) => {
-      const quotas = await fetchLeaveQuotasFromSchedule(month);
-      setSheets((prev) => {
-        const sheet = prev[month];
-        if (!sheet || sameLeaveQuotas(sheet.leaveQuotas, quotas)) return prev;
-        const data = applyMonthCalendar(
-          { ...sheet, leaveQuotas: quotas },
-          month,
-        );
-        void api("PUT", `/salary/${month}`, { data }, salaryApi).catch((e) => {
+      const sheet = sheetsRef.current[month];
+      if (!sheet) return;
+      const synced = await applyScheduleLeaveQuotas(month, sheet);
+      if (synced === sheet) return;
+      setSheets((prev) => ({ ...prev, [month]: synced }));
+      void api("PUT", `/salary/${month}`, { data: synced }, salaryApi).catch(
+        (e) => {
           if (handleSalaryAccessError(e, lockSalary)) return;
           toast.error(errorMessage(e));
-        });
-        return { ...prev, [month]: data };
-      });
+        },
+      );
     },
     [lockSalary],
   );
@@ -368,7 +381,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
           const data = await fetchMonth(month);
           const withQuotas = await applyScheduleLeaveQuotas(month, data);
           merged = { ...merged, [month]: withQuotas };
-          if (!sameLeaveQuotas(data.leaveQuotas, withQuotas.leaveQuotas)) {
+          if (withQuotas !== data) {
             await api(
               "PUT",
               `/salary/${month}`,
