@@ -38,6 +38,7 @@ export type ScheduleMonthData = {
     afternoonCount: number;
     monthLeave: number;
     remainingLeave: number;
+    leaveStartDate: string;
     overtimeStr: string;
   }>;
 };
