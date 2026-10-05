@@ -9,6 +9,19 @@ describe("remainingLeaveSinceStart", () => {
     ["2026-03", 4],
   ]);
 
+  it("创建月之前只返回初始额度", () => {
+    expect(
+      remainingLeaveSinceStart({
+        createdMonth: "2026-03",
+        month: "2026-01",
+        initialBalance: 5,
+        allowanceByMonth: allowance,
+        leaveDaysByMonth: new Map([["2026-01", 2]]),
+        offsetDaysByMonth: new Map([["2026-01", 4]]),
+      }),
+    ).toBe(5);
+  });
+
   it("从创建月累加每月假期并扣掉已休", () => {
     expect(
       remainingLeaveSinceStart({

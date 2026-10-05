@@ -435,7 +435,15 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = window.setTimeout(() => {
         setSaving(true);
-        void api("PUT", `/salary/${month}`, { data }, salaryApi)
+        void (async () => {
+          // 保存前再按排班假期抵消对齐，避免整表写回盖掉排班刚写入的假期
+          const latest = sheetsRef.current[month] ?? data;
+          const synced = await applyScheduleLeaveQuotas(month, latest);
+          if (synced !== latest) {
+            setSheets((prev) => ({ ...prev, [month]: synced }));
+          }
+          await api("PUT", `/salary/${month}`, { data: synced }, salaryApi);
+        })()
           .catch((e) => {
             if (handleSalaryAccessError(e, lockSalary)) return;
             toast.error(errorMessage(e));

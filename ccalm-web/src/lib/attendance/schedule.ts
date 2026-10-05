@@ -37,8 +37,8 @@ export type ScheduleMonthData = {
     morningCount: number;
     afternoonCount: number;
     monthLeave: number;
-    /** 手填天数，对应工资表假期；未填写时为 null */
-    leaveOffsetDays: number | null;
+    /** 手填天数，对应工资表假期；未填写时为 0 */
+    leaveOffsetDays: number;
     remainingLeave: number;
     leaveInitialBalance: number;
     overtimeStr: string;

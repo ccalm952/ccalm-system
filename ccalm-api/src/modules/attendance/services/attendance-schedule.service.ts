@@ -319,7 +319,7 @@ export class AttendanceScheduleService {
         morningCount,
         afternoonCount,
         monthLeave,
-        leaveOffsetDays: offsetByUserMonth.get(`${u.id}:${month}`) ?? null,
+        leaveOffsetDays: offsetByUserMonth.get(`${u.id}:${month}`) ?? 0,
         remainingLeave,
         leaveInitialBalance: u.leaveInitialBalance,
       };

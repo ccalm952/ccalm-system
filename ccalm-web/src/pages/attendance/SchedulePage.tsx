@@ -59,16 +59,15 @@ function LeaveOffsetInput({
   value,
   onCommit,
 }: {
-  value: number | null;
+  value: number;
   onCommit: (days: number) => void;
 }) {
-  const shown = value ?? 0;
-  const [draft, setDraft] = React.useState(String(shown));
+  const [draft, setDraft] = React.useState(String(value));
   const focusedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!focusedRef.current) {
-      setDraft(String(value ?? 0));
+      setDraft(String(value));
     }
   }, [value]);
 
@@ -76,7 +75,7 @@ function LeaveOffsetInput({
     <Input
       inputMode="decimal"
       value={draft}
-      className="h-8 px-1 text-center"
+      className="h-8 border-border/80 bg-muted/40 px-1 text-center tabular-nums dark:border-white/20 dark:bg-muted"
       onFocus={() => {
         focusedRef.current = true;
       }}
@@ -89,7 +88,7 @@ function LeaveOffsetInput({
         const days = Number(draft);
         const safe = Number.isFinite(days) && days >= 0 ? days : 0;
         setDraft(String(safe));
-        if (safe === (value ?? 0)) return;
+        if (safe === value) return;
         onCommit(safe);
       }}
       onKeyDown={(e) => {
@@ -243,7 +242,7 @@ export function SchedulePage() {
           ...prev,
           users: prev.users.map((user) => {
             if (user.userId !== userId) return user;
-            const previous = user.leaveOffsetDays ?? 0;
+            const previous = user.leaveOffsetDays;
             return {
               ...user,
               leaveOffsetDays: res.days,
@@ -421,7 +420,7 @@ export function SchedulePage() {
                       }
                     />
                   ) : (
-                    formatDayCount(user.leaveOffsetDays ?? 0)
+                    formatDayCount(user.leaveOffsetDays)
                   )
                 }
               />
@@ -429,58 +428,58 @@ export function SchedulePage() {
             </ScrollArea>
           )}
 
-          {holidays ? (
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="font-medium">{holidays.year}年法定节假日</div>
-              <ul className={cn("space-y-1", attendanceMutedTextClass)}>
-                {holidays.periods.map((p) => (
-                  <li key={`${p.name}-${p.start}`}>
-                    <span className="text-foreground">{p.name}</span>
-                    {"："}
-                    {formatHolidayRange(p.start, p.end)}
-                  </li>
-                ))}
-              </ul>
-              {holidays.makeupDays.length > 0 ? (
-                <div className="space-y-1">
-                  <div className="font-medium">调休上班</div>
-                  <ul className={cn("space-y-1", attendanceMutedTextClass)}>
-                    {holidays.makeupDays.map((d) => (
-                      <li key={d.date}>
-                        {d.date.slice(5).replace("-", "月")}日 {d.name}
-                      </li>
-                    ))}
-                  </ul>
+          <div className={cn("mt-4 space-y-2 text-sm", attendanceMutedTextClass)}>
+            {holidays ? (
+              <>
+                <div className="font-medium text-foreground">
+                  {holidays.year}年法定节假日
                 </div>
-              ) : null}
-            </div>
-          ) : null}
+                <ul className="space-y-2">
+                  {holidays.periods.map((p) => (
+                    <li key={`${p.name}-${p.start}`}>
+                      <span className="text-foreground">{p.name}</span>
+                      {"："}
+                      {formatHolidayRange(p.start, p.end)}
+                    </li>
+                  ))}
+                </ul>
+                {holidays.makeupDays.length > 0 ? (
+                  <>
+                    <div className="font-medium text-foreground">调休上班</div>
+                    <ul className="space-y-2">
+                      {holidays.makeupDays.map((d) => (
+                        <li key={d.date}>
+                          {d.date.slice(5).replace("-", "月")}日 {d.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </>
+            ) : null}
 
-          <div
-            className={cn(
-              "mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              attendanceMutedTextClass,
-            )}
-          >
-            {SCHEDULE_SHIFT_LEGEND.map((item) => (
-              <span key={item.key} className="inline-flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {SCHEDULE_SHIFT_LEGEND.map((item) => (
                 <span
-                  className={cn(
-                    "size-3.5 shrink-0 rounded-sm",
-                    SCHEDULE_SHIFT_SWATCH_CLASS[item.key],
-                  )}
-                  aria-hidden
-                />
-                <span>
-                  {item.label}={item.hint}
+                  key={item.key}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <span
+                    className={cn(
+                      "size-3.5 shrink-0 rounded-sm",
+                      SCHEDULE_SHIFT_SWATCH_CLASS[item.key],
+                    )}
+                    aria-hidden
+                  />
+                  <span>
+                    {item.label}={item.hint}
+                  </span>
                 </span>
-              </span>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <p className={cn("mt-2 text-xs", attendanceMutedTextClass)}>
-            休息须在考勤页手动登记；未登记的半天可自行选择休息或补卡。
-          </p>
+            <p>休息须在考勤页手动登记；未登记的半天可自行选择休息或补卡。</p>
+          </div>
         </CardContent>
       </Card>
 

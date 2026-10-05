@@ -5,7 +5,8 @@ import type { AttendanceMakeupRequest, ScheduleRestType } from "./types";
  * - 正文 foreground：打卡时间、有数据、时钟强调
  * - 次要 muted-foreground：说明、占位、进行中、无数据
  * - 强调 primary：可点击 link（与薪资表录入色一致）
- * - 警示 destructive：缺卡、错误、节假日、排班「上」
+ * - 警示 destructive：缺卡、错误、节假日
+ * 排班「全/上/下」色块单独用青绿 / 玫红 / 蓝紫，便于扫表区分
  */
 
 /** 次要文字 */
@@ -51,24 +52,51 @@ const makeupRequestStatusClass: Record<
 export const makeupTodoBadgeClass =
   "inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium leading-none text-primary-foreground";
 
-/** 排班表：法定节假日列头 */
-export const scheduleHolidayHeaderClass = attendanceMissingTextClass;
+/** 排班表：法定节假日列头文字 */
+export const scheduleHolidayHeaderClass =
+  "text-destructive dark:text-red-400";
 
-/** 排班格：全=前景淡底，上=destructive 淡底，下=muted 实底 */
-const SCHEDULE_SHIFT_CELL_CLASS: Record<ScheduleRestType, string> = {
-  full_rest: "bg-foreground/8 text-foreground",
-  morning_rest: "bg-destructive/12 text-foreground",
-  afternoon_rest: "bg-muted text-foreground",
+/** 排班表头次要文字（深色提高可见度） */
+export const scheduleHeaderMutedClass =
+  "text-muted-foreground dark:text-foreground/75";
+
+/** 排班行悬停灰底 */
+export const scheduleCellHoverClass =
+  "group-hover:bg-muted/60 dark:group-hover:bg-muted";
+
+/** 排班表：左侧姓名粘滞 */
+export const scheduleStickyNameClass = [
+  "sticky left-0 z-10 bg-card",
+  "shadow-[4px_0_8px_-6px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_12px_-4px_rgba(0,0,0,0.65)]",
+  scheduleCellHoverClass,
+].join(" ");
+
+/** 排班表：姓名表头粘滞 */
+export const scheduleStickyNameHeaderClass = [
+  "sticky left-0 z-20 bg-card",
+  "shadow-[4px_0_8px_-6px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_12px_-4px_rgba(0,0,0,0.65)]",
+].join(" ");
+
+/**
+ * 排班格色块：全=青绿、上=玫红、下=蓝紫，色相区分（非灰阶）
+ */
+export const SCHEDULE_SHIFT_CELL_CLASS: Record<ScheduleRestType, string> = {
+  full_rest:
+    "bg-teal-500/18 font-medium text-teal-800 dark:bg-teal-400/35 dark:text-teal-100",
+  morning_rest:
+    "bg-rose-500/18 font-medium text-rose-700 dark:bg-rose-400/35 dark:text-rose-100",
+  afternoon_rest:
+    "bg-violet-500/18 font-medium text-violet-800 dark:bg-violet-400/35 dark:text-violet-100",
 };
 
 export const SCHEDULE_SHIFT_SWATCH_CLASS: Record<
   ScheduleRestType | "empty",
   string
 > = {
-  empty: "bg-background ring-1 ring-inset ring-border",
-  full_rest: "bg-foreground/8",
-  morning_rest: "bg-destructive/12",
-  afternoon_rest: "bg-muted",
+  empty: "bg-transparent ring-1 ring-inset ring-border/70 dark:ring-white/25",
+  full_rest: "bg-teal-500/35 dark:bg-teal-400/50",
+  morning_rest: "bg-rose-500/35 dark:bg-rose-400/50",
+  afternoon_rest: "bg-violet-500/35 dark:bg-violet-400/50",
 };
 
 export const SCHEDULE_SHIFT_LEGEND: Array<{
@@ -83,7 +111,7 @@ export const SCHEDULE_SHIFT_LEGEND: Array<{
 ];
 
 export function scheduleShiftCellClass(shift: ScheduleRestType | null): string {
-  if (!shift) return `bg-background ${attendanceMutedTextClass}`;
+  if (!shift) return "";
   return SCHEDULE_SHIFT_CELL_CLASS[shift];
 }
 

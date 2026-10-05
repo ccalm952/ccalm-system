@@ -159,12 +159,7 @@ function SortableEmployeeRow({
           onChange={(housingFund) => updateEmployee(index, { housingFund })}
         />
       </TableCell>
-      <TableCell>
-        <NumInput
-          value={row.leaveDays}
-          onChange={(leaveDays) => updateEmployee(index, { leaveDays })}
-        />
-      </TableCell>
+      <TableCell>{row.leaveDays}</TableCell>
       <TableCell>{row.leaveOffset}</TableCell>
       <TableCell>
         <div className="flex items-center justify-center gap-2">
