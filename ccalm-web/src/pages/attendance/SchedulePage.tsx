@@ -240,11 +240,15 @@ export function SchedulePage() {
         if (!prev) return prev;
         return {
           ...prev,
-          users: prev.users.map((user) =>
-            user.userId === userId
-              ? { ...user, leaveOffsetDays: res.days }
-              : user,
-          ),
+          users: prev.users.map((user) => {
+            if (user.userId !== userId) return user;
+            const previous = user.leaveOffsetDays ?? 0;
+            return {
+              ...user,
+              leaveOffsetDays: res.days,
+              remainingLeave: user.remainingLeave + (res.days - previous),
+            };
+          }),
         };
       });
       if (res.salary === "applied") {

@@ -34,6 +34,18 @@ describe("remainingLeaveSinceStart", () => {
     ).toBe(4.5);
   });
 
+  it("假期抵消加进剩余假期", () => {
+    expect(
+      remainingLeaveSinceStart({
+        startDate: "2026-02-15",
+        month: "2026-03",
+        allowanceByMonth: allowance,
+        leaveDaysByMonth: new Map([["2026-03", 1]]),
+        offsetDaysByMonth: new Map([["2026-03", 4]]),
+      }),
+    ).toBe(9);
+  });
+
   it("拒绝不存在的日期", () => {
     expect(isLeaveStartDate("2026-02-31")).toBe(false);
   });
