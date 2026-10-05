@@ -331,7 +331,7 @@ export function ScheduleUsersTable({
                   : scheduleHeaderMutedClass,
               )}
             >
-              <div className="text-xs">{h.weekday}</div>
+              <div className="text-sm">{h.weekday}</div>
               <div
                 className={cn(
                   "text-sm font-medium",
