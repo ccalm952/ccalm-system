@@ -45,6 +45,7 @@ import type {
 } from "@/lib/salary/types";
 
 import {
+  NumInput,
   RatePercentInput,
   SalaryOutlineIconButton,
   SummaryDecimalInput,
@@ -128,12 +129,9 @@ function SortableEmployeeRow({
         </Tooltip>
       </TableCell>
       <TableCell>
-        <Input
-          placeholder="底薪"
+        <NumInput
           value={row.baseSalary}
-          onChange={(e) =>
-            updateEmployee(index, { baseSalary: Number(e.target.value) })
-          }
+          onChange={(baseSalary) => updateEmployee(index, { baseSalary })}
         />
       </TableCell>
       <TableCell>{row.deductedBase}</TableCell>
@@ -146,13 +144,9 @@ function SortableEmployeeRow({
       <TableCell>{row.actualReceipt}</TableCell>
       <TableCell>{row.bonus}</TableCell>
       <TableCell>
-        <Input
+        <NumInput
           value={row.plantingCount}
-          onChange={(e) =>
-            updateEmployee(index, {
-              plantingCount: Number(e.target.value),
-            })
-          }
+          onChange={(plantingCount) => updateEmployee(index, { plantingCount })}
         />
       </TableCell>
       <TableCell>{row.plantingBonus}</TableCell>
@@ -160,19 +154,15 @@ function SortableEmployeeRow({
       <TableCell>{row.socialInsurance}</TableCell>
       <TableCell>{row.medicalInsurance}</TableCell>
       <TableCell>
-        <Input
+        <NumInput
           value={row.housingFund}
-          onChange={(e) =>
-            updateEmployee(index, { housingFund: Number(e.target.value) })
-          }
+          onChange={(housingFund) => updateEmployee(index, { housingFund })}
         />
       </TableCell>
       <TableCell>
-        <Input
+        <NumInput
           value={row.leaveDays}
-          onChange={(e) =>
-            updateEmployee(index, { leaveDays: Number(e.target.value) })
-          }
+          onChange={(leaveDays) => updateEmployee(index, { leaveDays })}
         />
       </TableCell>
       <TableCell>{row.leaveOffset}</TableCell>

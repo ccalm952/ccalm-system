@@ -235,14 +235,14 @@ export function SalarySummaryTable({
               </Tooltip>
             </TableCell>
             <TableCell>
-              <Input
+              <NumInput
                 value={sheet.summary.workingDays}
-                onChange={(e) =>
+                onChange={(workingDays) =>
                   patchSheet(month, {
                     ...sheet,
                     summary: {
                       ...sheet.summary,
-                      workingDays: Number(e.target.value),
+                      workingDays,
                     },
                   })
                 }

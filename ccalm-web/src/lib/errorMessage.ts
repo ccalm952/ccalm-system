@@ -9,7 +9,7 @@ const FIELD_LABELS: Record<string, string> = {
   type: "类型",
   role: "角色",
   deviceToken: "打卡设备",
-  initialLeaveBalance: "初始假期额度",
+  leaveStartDate: "初始日期",
 };
 
 const NEST_DEFAULT_MESSAGES: Record<string, string> = {

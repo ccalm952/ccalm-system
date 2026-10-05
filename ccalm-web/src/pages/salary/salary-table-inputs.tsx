@@ -6,6 +6,7 @@ import { round2 } from "@/lib/salary/calc";
 
 const SUMMARY_DECIMAL_DRAFT = /^\d*(\.\d{0,2})?$/;
 const RATE_PERCENT_DRAFT = /^\d*(\.\d?)?$/;
+const NUM_DRAFT = /^-?\d*\.?\d*$/;
 
 function formatSummaryDecimalValue(n: number): string {
   if (!Number.isFinite(n)) return "0";
@@ -59,15 +60,46 @@ export function SummaryDecimalInput({
   );
 }
 
+function formatNum(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  return String(n);
+}
+
 export function NumInput(props: {
   value: number;
   onChange: (n: number) => void;
 }) {
   const { value, onChange } = props;
+  const [draft, setDraft] = React.useState(() => formatNum(value));
+  const focusedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(formatNum(value));
+    }
+  }, [value]);
+
   return (
     <Input
-      value={Number.isFinite(value) ? value : 0}
-      onChange={(e) => onChange(Number(e.target.value) || 0)}
+      inputMode="decimal"
+      value={draft}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (next !== "" && !NUM_DRAFT.test(next)) return;
+        setDraft(next);
+        const n = Number(next);
+        if (Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        const n = Number(draft);
+        const safe = Number.isFinite(n) ? n : 0;
+        onChange(safe);
+        setDraft(formatNum(safe));
+      }}
     />
   );
 }

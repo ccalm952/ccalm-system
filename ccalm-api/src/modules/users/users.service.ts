@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 
+import { isLeaveStartDate } from "../attendance/core/leave-balance";
 import { API_ROOT } from "../../common/api-root";
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -45,7 +46,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveInitialBalance: true,
+        leaveStartDate: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -57,7 +58,6 @@ export class UsersService {
     password: string;
     displayName: string;
     role: "user" | "admin";
-    leaveInitialBalance?: number;
   }) {
     const passwordHash = await bcrypt.hash(input.password, 10);
     return await this.prisma.user.create({
@@ -66,10 +66,6 @@ export class UsersService {
         passwordHash,
         displayName: input.displayName,
         role: input.role,
-        leaveInitialBalance:
-          typeof input.leaveInitialBalance === "number"
-            ? input.leaveInitialBalance
-            : 0,
       },
       select: {
         id: true,
@@ -77,7 +73,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveInitialBalance: true,
+        leaveStartDate: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -90,16 +86,10 @@ export class UsersService {
     displayName?: string;
     password?: string;
     role?: "user" | "admin";
-    leaveInitialBalance?: number;
+    leaveStartDate?: string;
   }) {
-    const {
-      actor,
-      targetUserId,
-      displayName,
-      password,
-      role,
-      leaveInitialBalance,
-    } = params;
+    const { actor, targetUserId, displayName, password, role, leaveStartDate } =
+      params;
     const isSelf = actor.userId === targetUserId;
     const isAdmin = actor.role === "admin";
 
@@ -126,8 +116,12 @@ export class UsersService {
     if (typeof password === "string" && password.length >= 6)
       data.passwordHash = await bcrypt.hash(password, 10);
     if (role && isAdmin) data.role = role;
-    if (typeof leaveInitialBalance === "number" && isAdmin)
-      data.leaveInitialBalance = leaveInitialBalance;
+    if (typeof leaveStartDate === "string" && isAdmin) {
+      if (!isLeaveStartDate(leaveStartDate)) {
+        throw new BadRequestException("初始日期不合法");
+      }
+      data.leaveStartDate = leaveStartDate;
+    }
 
     return await this.prisma.user.update({
       where: { id: targetUserId },
@@ -138,7 +132,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveInitialBalance: true,
+        leaveStartDate: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -161,7 +155,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveInitialBalance: true,
+        leaveStartDate: true,
         createdAt: true,
         updatedAt: true,
       },

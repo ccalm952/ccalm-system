@@ -42,7 +42,7 @@ model User {
   displayName  String
   avatarUrl    String             @default("")
   role         UserRole           @default(user)
-  leaveInitialBalance Float         @default(0)
+  leaveStartDate String             @default("")
   wechatOpenId String?            @unique
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt

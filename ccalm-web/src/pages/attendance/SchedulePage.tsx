@@ -1,9 +1,17 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Settings } from "lucide-react";
 
+import { DatePickerField } from "@/components/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -42,6 +50,12 @@ import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
 import { toast } from "sonner";
 
+type LeaveStartDraft = {
+  userId: string;
+  userName: string;
+  value: string;
+};
+
 export function SchedulePage() {
   const { me } = useAuth();
   const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
@@ -54,6 +68,9 @@ export function SchedulePage() {
   const hasDataRef = React.useRef(false);
   const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
   const [savingAllowance, setSavingAllowance] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [leaveDraft, setLeaveDraft] = React.useState<LeaveStartDraft[]>([]);
+  const [savingLeave, setSavingLeave] = React.useState(false);
   const [holidaysByYear, setHolidaysByYear] = React.useState<
     Record<string, ChinaHolidayYear>
   >({});
@@ -123,6 +140,46 @@ export function SchedulePage() {
     return `${month}-${pad2(day)}`;
   }
 
+  function openLeaveSettings() {
+    if (!data) return;
+    setLeaveDraft(
+      data.users.map((user) => ({
+        userId: user.userId,
+        userName: user.userName,
+        value: user.leaveStartDate,
+      })),
+    );
+    setSettingsOpen(true);
+  }
+
+  async function saveLeaveSettings() {
+    if (leaveDraft.some((row) => !/^\d{4}-\d{2}-\d{2}$/.test(row.value))) {
+      toast.error("请选择初始日期");
+      return;
+    }
+    setSavingLeave(true);
+    try {
+      await Promise.all(
+        leaveDraft.map((row) => {
+          const current = data?.users.find(
+            (user) => user.userId === row.userId,
+          )?.leaveStartDate;
+          if (row.value === current) return Promise.resolve();
+          return api("PATCH", `/users/${row.userId}`, {
+            leaveStartDate: row.value,
+          });
+        }),
+      );
+      toast.success("已保存初始日期");
+      setSettingsOpen(false);
+      await load(month);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSavingLeave(false);
+    }
+  }
+
   async function saveMonthAllowance() {
     const value = Number(monthAllowanceInput);
     if (!Number.isFinite(value) || value < 0) {
@@ -190,6 +247,15 @@ export function SchedulePage() {
 
           {isAdmin ? (
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!data}
+                onClick={openLeaveSettings}
+              >
+                <Settings className="size-3.5" />
+                设置
+              </Button>
               <div className="flex items-center gap-2">
                 <Label htmlFor="month-allowance" className="shrink-0 text-sm">
                   本月假期（全员）
@@ -381,6 +447,70 @@ export function SchedulePage() {
           </p>
         </CardContent>
       </Card>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>设置</DialogTitle>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>初始日期</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leaveDraft.map((row) => (
+                <TableRow key={row.userId}>
+                  <TableCell>{row.userName}</TableCell>
+                  <TableCell>
+                    <DatePickerField
+                      value={row.value}
+                      captionLayout="dropdown"
+                      startMonth={new Date(2020, 0)}
+                      endMonth={new Date(new Date().getFullYear() + 1, 11)}
+                      onValueChange={(value) => {
+                        setLeaveDraft((prev) =>
+                          prev.map((item) =>
+                            item.userId === row.userId
+                              ? { ...item, value }
+                              : item,
+                          ),
+                        );
+                      }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={savingLeave}
+              onClick={() => setSettingsOpen(false)}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={savingLeave}
+              onClick={() => void saveLeaveSettings()}
+            >
+              {savingLeave ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  保存中…
+                </>
+              ) : (
+                "确定"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
