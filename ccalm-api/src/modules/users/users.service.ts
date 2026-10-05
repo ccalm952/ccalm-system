@@ -59,12 +59,17 @@ export class UsersService {
     role: "user" | "admin";
   }) {
     const passwordHash = await bcrypt.hash(input.password, 10);
+    const last = await this.prisma.user.findFirst({
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
     return await this.prisma.user.create({
       data: {
         username: input.username,
         passwordHash,
         displayName: input.displayName,
         role: input.role,
+        sortOrder: (last?.sortOrder ?? -1) + 1,
       },
       select: {
         id: true,
