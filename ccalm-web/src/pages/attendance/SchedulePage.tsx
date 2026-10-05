@@ -30,16 +30,11 @@ import type { ChinaHolidayYear } from "@/lib/attendance/holidays";
 import { formatHolidayRange } from "@/lib/attendance/holidays";
 import type { ScheduleMonthData } from "@/lib/attendance/schedule";
 import {
-  SCHEDULE_SHIFT_LABEL,
   clampScheduleMonth,
-  scheduleCellClass,
   scheduleMonthRange,
 } from "@/lib/attendance/schedule";
 import {
   attendanceMutedTextClass,
-  detailOvertimeClass,
-  hasOvertime,
-  scheduleHolidayHeaderClass,
   SCHEDULE_SHIFT_LEGEND,
   SCHEDULE_SHIFT_SWATCH_CLASS,
 } from "@/lib/attendance/attendance-theme";
@@ -48,6 +43,8 @@ import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
 import { toast } from "sonner";
+
+import { ScheduleUsersTable } from "./ScheduleUsersTable";
 
 type LeaveBalanceDraft = {
   userId: string;
@@ -269,6 +266,24 @@ export function SchedulePage() {
     }
   }
 
+  function reorderUsers(userIds: string[]) {
+    setData((prev) => {
+      if (!prev) return prev;
+      const byId = new Map(prev.users.map((user) => [user.userId, user]));
+      const users = userIds
+        .map((id) => byId.get(id))
+        .filter((user): user is ScheduleMonthData["users"][number] => !!user);
+      if (users.length !== prev.users.length) return prev;
+      return { ...prev, users };
+    });
+    void api("PUT", "/attendance/schedule/user-order", { userIds }).catch(
+      (e) => {
+        toast.error(errorMessage(e));
+        void load(month);
+      },
+    );
+  }
+
   async function saveMonthAllowance() {
     const value = Number(monthAllowanceInput);
     if (!Number.isFinite(value) || value < 0) {
@@ -391,106 +406,25 @@ export function SchedulePage() {
             </div>
           ) : (
             <ScrollArea className="max-w-full whitespace-nowrap [&_[data-slot=table-container]]:w-max">
-              <Table className="w-max text-center text-sm">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky left-0 z-20 w-24 bg-background text-center">
-                      姓名
-                    </TableHead>
-                    {data.dayHeaders.map((h) => {
-                      const dateKey = holidayDateKey(h.day);
-                      const holidayName = holidays?.offDayMap[dateKey];
-                      const isHoliday = !!holidayName;
-                      return (
-                        <TableHead
-                          key={h.day}
-                          title={holidayName}
-                          className={cn(
-                            "w-9 px-1 text-center",
-                            isHoliday && scheduleHolidayHeaderClass,
-                          )}
-                        >
-                          <div>{h.weekday}</div>
-                          <div>{h.day}</div>
-                        </TableHead>
-                      );
-                    })}
-                    <TableHead className="w-10 text-center">全</TableHead>
-                    <TableHead className="w-10 text-center">上</TableHead>
-                    <TableHead className="w-10 text-center">下</TableHead>
-                    <TableHead className="w-16 text-center">本月请假</TableHead>
-                    <TableHead className="w-24 text-center">假期抵消</TableHead>
-                    <TableHead className="w-16 text-center">本月假期</TableHead>
-                    <TableHead className="w-16 text-center">剩余假期</TableHead>
-                    <TableHead className="w-20 text-center">加班时长</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.users.map((user) => (
-                    <TableRow key={user.userId}>
-                      <TableCell className="sticky left-0 z-10 w-24 bg-background text-center font-medium">
-                        {user.userName}
-                      </TableCell>
-                      {data.dayHeaders.map((h) => {
-                        const shift = user.days[String(h.day)] ?? null;
-                        return (
-                          <TableCell
-                            key={h.day}
-                            className="w-9 p-0.5 text-center"
-                          >
-                            <span
-                              className={cn(
-                                "mx-auto flex h-8 w-8 items-center justify-center rounded text-sm",
-                                scheduleCellClass(shift),
-                              )}
-                            >
-                              {shift ? SCHEDULE_SHIFT_LABEL[shift] : ""}
-                            </span>
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="w-10 text-center">
-                        {user.fullCount}
-                      </TableCell>
-                      <TableCell className="w-10 text-center">
-                        {user.morningCount}
-                      </TableCell>
-                      <TableCell className="w-10 text-center">
-                        {user.afternoonCount}
-                      </TableCell>
-                      <TableCell className="w-16 text-center">
-                        {formatDayCount(user.monthLeave)}
-                      </TableCell>
-                      <TableCell className="w-24 px-1 text-center">
-                        {isAdmin ? (
-                          <LeaveOffsetInput
-                            value={user.leaveOffsetDays}
-                            onCommit={(days) =>
-                              void saveLeaveOffset(user.userId, days)
-                            }
-                          />
-                        ) : (
-                          formatDayCount(user.leaveOffsetDays ?? 0)
-                        )}
-                      </TableCell>
-                      <TableCell className="w-16 text-center">
-                        {formatDayCount(data.monthAllowance)}
-                      </TableCell>
-                      <TableCell className="w-16 text-center">
-                        {formatDayCount(user.remainingLeave)}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "w-20 text-center",
-                          detailOvertimeClass(user.overtimeStr),
-                        )}
-                      >
-                        {hasOvertime(user.overtimeStr) ? user.overtimeStr : ""}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ScheduleUsersTable
+                data={data}
+                isAdmin={isAdmin}
+                holidayDateKey={holidayDateKey}
+                holidays={holidays}
+                onReorderUsers={reorderUsers}
+                renderLeaveOffset={(user) =>
+                  isAdmin ? (
+                    <LeaveOffsetInput
+                      value={user.leaveOffsetDays}
+                      onCommit={(days) =>
+                        void saveLeaveOffset(user.userId, days)
+                      }
+                    />
+                  ) : (
+                    formatDayCount(user.leaveOffsetDays ?? 0)
+                  )
+                }
+              />
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           )}

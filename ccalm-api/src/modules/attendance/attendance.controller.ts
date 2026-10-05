@@ -31,6 +31,7 @@ import { PunchDto } from "./dto/punch.dto";
 import { UnbindPunchDeviceDto } from "./dto/punch-device.dto";
 import { UpsertShiftDto } from "./dto/shift.dto";
 import {
+  ReorderScheduleUsersDto,
   UpsertScheduleLeaveOffsetDto,
   UpsertScheduleMonthConfigDto,
 } from "./dto/schedule.dto";
@@ -284,5 +285,14 @@ export class AttendanceController {
   ) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
     return await this.schedule.setLeaveOffset(dto);
+  }
+
+  @Put("schedule/user-order")
+  async putScheduleUserOrder(
+    @Req() req: Request,
+    @Body() dto: ReorderScheduleUsersDto,
+  ) {
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.schedule.reorderUsers(dto);
   }
 }

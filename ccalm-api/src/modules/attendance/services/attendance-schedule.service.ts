@@ -15,6 +15,7 @@ import type { ScheduleShiftType } from "../core/schedule-inference";
 
 import { PrismaService } from "../../../prisma/prisma.service";
 import type {
+  ReorderScheduleUsersDto,
   UpsertScheduleLeaveOffsetDto,
   UpsertScheduleMonthConfigDto,
 } from "../dto/schedule.dto";
@@ -257,7 +258,11 @@ export class AttendanceScheduleService {
     const [monthAllowance, users] = await Promise.all([
       this.getMonthAllowance(month),
       this.prisma.user.findMany({
-        orderBy: [{ displayName: "asc" }, { username: "asc" }],
+        orderBy: [
+          { sortOrder: "asc" },
+          { displayName: "asc" },
+          { username: "asc" },
+        ],
         select: {
           id: true,
           displayName: true,
@@ -353,6 +358,33 @@ export class AttendanceScheduleService {
       month: row.month,
       monthAllowance: row.monthAllowance,
     };
+  }
+
+  async reorderUsers(dto: ReorderScheduleUsersDto) {
+    const uniqueIds = [...new Set(dto.userIds)];
+    if (uniqueIds.length !== dto.userIds.length) {
+      throw new BadRequestException("用户列表不能重复");
+    }
+    const existing = await this.prisma.user.findMany({
+      select: { id: true },
+    });
+    if (existing.length !== uniqueIds.length) {
+      throw new BadRequestException("用户列表不完整");
+    }
+    const existingIds = new Set(existing.map((row) => row.id));
+    if (uniqueIds.some((id) => !existingIds.has(id))) {
+      throw new BadRequestException("用户不存在");
+    }
+
+    await this.prisma.$transaction(
+      uniqueIds.map((userId, index) =>
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+    return { userIds: uniqueIds };
   }
 
   async setLeaveOffset(dto: UpsertScheduleLeaveOffsetDto) {
