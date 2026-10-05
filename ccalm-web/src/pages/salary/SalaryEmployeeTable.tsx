@@ -146,9 +146,7 @@ function SortableEmployeeRow({
       <TableCell>
         <NumInput
           value={row.plantingCount}
-          onChange={(plantingCount) =>
-            updateEmployee(index, { plantingCount })
-          }
+          onChange={(plantingCount) => updateEmployee(index, { plantingCount })}
         />
       </TableCell>
       <TableCell>{row.plantingBonus}</TableCell>

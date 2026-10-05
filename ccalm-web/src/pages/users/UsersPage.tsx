@@ -332,7 +332,6 @@ export function UsersPage() {
                     </FieldContent>
                   </Field>
                 </FieldGroup>
-
               </div>
             </FieldSet>
 
@@ -481,7 +480,6 @@ export function UsersPage() {
                       </FieldContent>
                     </Field>
                   </FieldGroup>
-
                 </div>
               </FieldSet>
             ) : null}
