@@ -4,7 +4,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Min,
   MinLength,
 } from "class-validator";
 
@@ -26,6 +25,5 @@ export class UpdateUserDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
   leaveInitialBalance?: number;
 }
