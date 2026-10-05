@@ -141,7 +141,7 @@ function ScheduleUserCells({
       </TableCell>
       <TableCell
         className={cn(
-          "w-16 text-center tabular-nums text-foreground",
+          "w-16 text-center text-foreground tabular-nums",
           scheduleCellHoverClass,
         )}
       >

@@ -53,8 +53,7 @@ export const makeupTodoBadgeClass =
   "inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium leading-none text-primary-foreground";
 
 /** 排班表：法定节假日列头文字 */
-export const scheduleHolidayHeaderClass =
-  "text-destructive dark:text-red-400";
+export const scheduleHolidayHeaderClass = "text-destructive dark:text-red-400";
 
 /** 排班表头次要文字（深色提高可见度） */
 export const scheduleHeaderMutedClass =

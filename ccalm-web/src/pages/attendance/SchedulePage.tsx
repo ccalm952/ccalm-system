@@ -428,7 +428,9 @@ export function SchedulePage() {
             </ScrollArea>
           )}
 
-          <div className={cn("mt-4 space-y-2 text-sm", attendanceMutedTextClass)}>
+          <div
+            className={cn("mt-4 space-y-2 text-sm", attendanceMutedTextClass)}
+          >
             {holidays ? (
               <>
                 <div className="font-medium text-foreground">
