@@ -38,7 +38,6 @@ export async function fetchLeaveQuotasFromSchedule(
     );
     const leaveDaysByName: Record<string, number> = {};
     for (const user of data.users) {
-      if (user.leaveOffsetDays == null) continue;
       leaveDaysByName[user.userName] = user.leaveOffsetDays;
     }
     return {

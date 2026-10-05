@@ -36,7 +36,11 @@ import {
 import {
   detailOvertimeClass,
   hasOvertime,
+  scheduleCellHoverClass,
+  scheduleHeaderMutedClass,
   scheduleHolidayHeaderClass,
+  scheduleStickyNameClass,
+  scheduleStickyNameHeaderClass,
 } from "@/lib/attendance/attendance-theme";
 import type { ScheduleMonthData } from "@/lib/attendance/schedule";
 import {
@@ -48,6 +52,12 @@ import { cn } from "cn";
 
 type ScheduleUser = ScheduleMonthData["users"][number];
 type DayHeader = ScheduleMonthData["dayHeaders"][number];
+
+function summaryCountClass(count: number) {
+  return count === 0
+    ? "text-muted-foreground dark:text-foreground/55"
+    : "text-foreground";
+}
 
 function ScheduleUserCells({
   user,
@@ -62,16 +72,24 @@ function ScheduleUserCells({
 }) {
   return (
     <>
-      <TableCell className="sticky left-0 z-10 w-24 bg-background text-center font-medium">
+      <TableCell
+        className={cn(
+          "w-24 text-center font-medium text-foreground",
+          scheduleStickyNameClass,
+        )}
+      >
         {user.userName}
       </TableCell>
       {dayHeaders.map((h) => {
         const shift = user.days[String(h.day)] ?? null;
         return (
-          <TableCell key={h.day} className="w-9 p-0.5 text-center">
+          <TableCell
+            key={h.day}
+            className={cn("w-9 p-0.5 text-center", scheduleCellHoverClass)}
+          >
             <span
               className={cn(
-                "mx-auto flex h-8 w-8 items-center justify-center rounded text-sm",
+                "mx-auto flex h-8 w-8 items-center justify-center rounded-md text-sm",
                 scheduleCellClass(shift),
               )}
             >
@@ -80,22 +98,68 @@ function ScheduleUserCells({
           </TableCell>
         );
       })}
-      <TableCell className="w-10 text-center">{user.fullCount}</TableCell>
-      <TableCell className="w-10 text-center">{user.morningCount}</TableCell>
-      <TableCell className="w-10 text-center">{user.afternoonCount}</TableCell>
-      <TableCell className="w-16 text-center">
+      <TableCell
+        className={cn(
+          "w-10 text-center tabular-nums",
+          scheduleCellHoverClass,
+          summaryCountClass(user.fullCount),
+        )}
+      >
+        {user.fullCount}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "w-10 text-center tabular-nums",
+          scheduleCellHoverClass,
+          summaryCountClass(user.morningCount),
+        )}
+      >
+        {user.morningCount}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "w-10 text-center tabular-nums",
+          scheduleCellHoverClass,
+          summaryCountClass(user.afternoonCount),
+        )}
+      >
+        {user.afternoonCount}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "w-16 text-center tabular-nums",
+          scheduleCellHoverClass,
+          summaryCountClass(user.monthLeave),
+        )}
+      >
         {formatDayCount(user.monthLeave)}
       </TableCell>
-      <TableCell className="w-24 px-1 text-center">{leaveOffset}</TableCell>
-      <TableCell className="w-16 text-center">
+      <TableCell
+        className={cn("w-24 px-1 text-center", scheduleCellHoverClass)}
+      >
+        {leaveOffset}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "w-16 text-center tabular-nums text-foreground",
+          scheduleCellHoverClass,
+        )}
+      >
         {formatDayCount(monthAllowance)}
       </TableCell>
-      <TableCell className="w-16 text-center">
+      <TableCell
+        className={cn(
+          "w-16 text-center tabular-nums",
+          scheduleCellHoverClass,
+          summaryCountClass(user.remainingLeave),
+        )}
+      >
         {formatDayCount(user.remainingLeave)}
       </TableCell>
       <TableCell
         className={cn(
-          "w-20 text-center",
+          "w-20 text-center tabular-nums",
+          scheduleCellHoverClass,
           detailOvertimeClass(user.overtimeStr),
         )}
       >
@@ -128,6 +192,7 @@ function SortableScheduleRow({
   return (
     <TableRow
       ref={setNodeRef}
+      className="group hover:bg-transparent"
       style={{
         transform: CSS.Translate.toString(
           transform ? { ...transform, x: 0 } : null,
@@ -142,12 +207,14 @@ function SortableScheduleRow({
         monthAllowance={monthAllowance}
         leaveOffset={leaveOffset}
       />
-      <TableCell className="w-12 px-1 text-center">
+      <TableCell
+        className={cn("w-12 px-1 text-center", scheduleCellHoverClass)}
+      >
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="size-8"
+          className="size-8 border-border/80 bg-muted/30 hover:bg-muted dark:bg-muted/50"
           {...attributes}
           {...listeners}
         >
@@ -168,21 +235,21 @@ function ScheduleDragPreview({
   monthAllowance: number;
 }) {
   return (
-    <Table className="w-max bg-background text-center text-sm opacity-50 shadow-md">
+    <Table className="w-max bg-card text-center text-sm shadow-md">
       <TableBody>
-        <TableRow>
+        <TableRow className="group hover:bg-transparent">
           <ScheduleUserCells
             user={user}
             dayHeaders={dayHeaders}
             monthAllowance={monthAllowance}
-            leaveOffset={formatDayCount(user.leaveOffsetDays ?? 0)}
+            leaveOffset={formatDayCount(user.leaveOffsetDays)}
           />
           <TableCell className="w-12 px-1 text-center">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="size-8"
+              className="size-8 border-border/80 bg-muted/30 dark:bg-muted/50"
             >
               <GripVertical className="size-3.5" />
             </Button>
@@ -238,9 +305,15 @@ export function ScheduleUsersTable({
   }
 
   const header = (
-    <TableHeader>
-      <TableRow>
-        <TableHead className="sticky left-0 z-20 w-24 bg-background text-center">
+    <TableHeader className="[&_tr]:border-border">
+      <TableRow className="hover:bg-transparent">
+        <TableHead
+          className={cn(
+            "h-12 w-24 text-center",
+            scheduleHeaderMutedClass,
+            scheduleStickyNameHeaderClass,
+          )}
+        >
           姓名
         </TableHead>
         {data.dayHeaders.map((h) => {
@@ -252,35 +325,79 @@ export function ScheduleUsersTable({
               key={h.day}
               title={holidayName}
               className={cn(
-                "w-9 px-1 text-center",
-                isHoliday && scheduleHolidayHeaderClass,
+                "h-12 w-9 px-1 text-center leading-tight",
+                isHoliday
+                  ? scheduleHolidayHeaderClass
+                  : scheduleHeaderMutedClass,
               )}
             >
-              <div>{h.weekday}</div>
-              <div>{h.day}</div>
+              <div className="text-xs">{h.weekday}</div>
+              <div
+                className={cn(
+                  "text-sm font-medium",
+                  !isHoliday && "text-foreground",
+                )}
+              >
+                {h.day}
+              </div>
             </TableHead>
           );
         })}
-        <TableHead className="w-10 text-center">全</TableHead>
-        <TableHead className="w-10 text-center">上</TableHead>
-        <TableHead className="w-10 text-center">下</TableHead>
-        <TableHead className="w-16 text-center">本月请假</TableHead>
-        <TableHead className="w-24 text-center">假期抵消</TableHead>
-        <TableHead className="w-16 text-center">本月假期</TableHead>
-        <TableHead className="w-16 text-center">剩余假期</TableHead>
-        <TableHead className="w-20 text-center">加班时长</TableHead>
-        {isAdmin ? <TableHead className="w-12 text-center" /> : null}
+        <TableHead
+          className={cn("h-12 w-10 text-center", scheduleHeaderMutedClass)}
+        >
+          全
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-10 text-center", scheduleHeaderMutedClass)}
+        >
+          上
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-10 text-center", scheduleHeaderMutedClass)}
+        >
+          下
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-16 text-center", scheduleHeaderMutedClass)}
+        >
+          本月请假
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-24 text-center", scheduleHeaderMutedClass)}
+        >
+          假期抵消
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-16 text-center", scheduleHeaderMutedClass)}
+        >
+          本月假期
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-16 text-center", scheduleHeaderMutedClass)}
+        >
+          剩余假期
+        </TableHead>
+        <TableHead
+          className={cn("h-12 w-20 text-center", scheduleHeaderMutedClass)}
+        >
+          加班时长
+        </TableHead>
+        {isAdmin ? <TableHead className="h-12 w-12 text-center" /> : null}
       </TableRow>
     </TableHeader>
   );
 
+  const tableClass =
+    "w-max border-separate border-spacing-0 text-center text-sm [&_td]:border-b [&_td]:border-border/60 dark:[&_td]:border-white/12 [&_th]:border-b [&_th]:border-border/80 dark:[&_th]:border-white/18";
+
   if (!isAdmin) {
     return (
-      <Table className="w-max text-center text-sm">
+      <Table className={tableClass}>
         {header}
         <TableBody>
           {data.users.map((user) => (
-            <TableRow key={user.userId}>
+            <TableRow key={user.userId} className="group hover:bg-transparent">
               <ScheduleUserCells
                 user={user}
                 dayHeaders={data.dayHeaders}
@@ -303,7 +420,7 @@ export function ScheduleUsersTable({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <Table className="w-max text-center text-sm">
+      <Table className={tableClass}>
         {header}
         <TableBody>
           <SortableContext

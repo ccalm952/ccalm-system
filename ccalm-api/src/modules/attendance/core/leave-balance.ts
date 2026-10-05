@@ -22,6 +22,7 @@ export function remainingLeaveSinceStart(params: {
   ) {
     return balance;
   }
+  if (params.month < params.createdMonth) return balance;
 
   let cursor = params.createdMonth;
   while (cursor < params.month) {
