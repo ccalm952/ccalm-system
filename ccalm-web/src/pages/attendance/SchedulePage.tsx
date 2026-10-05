@@ -56,6 +56,7 @@ type LeaveBalanceDraft = {
 };
 
 const LEAVE_OFFSET_DRAFT = /^\d*\.?\d*$/;
+const LEAVE_BALANCE_DRAFT = /^-?\d*\.?\d*$/;
 
 function LeaveOffsetInput({
   value,
@@ -203,8 +204,8 @@ export function SchedulePage() {
       ...row,
       days: row.value === "" ? 0 : Number(row.value),
     }));
-    if (parsed.some((row) => !Number.isFinite(row.days) || row.days < 0)) {
-      toast.error("初始假期额度须为非负数字");
+    if (parsed.some((row) => !Number.isFinite(row.days))) {
+      toast.error("初始假期额度须为数字");
       return;
     }
     setSavingLeave(true);
@@ -572,7 +573,7 @@ export function SchedulePage() {
                       className="h-8 w-28"
                       onChange={(e) => {
                         const next = e.target.value;
-                        if (next !== "" && !LEAVE_OFFSET_DRAFT.test(next)) {
+                        if (next !== "" && !LEAVE_BALANCE_DRAFT.test(next)) {
                           return;
                         }
                         setLeaveDraft((prev) =>
