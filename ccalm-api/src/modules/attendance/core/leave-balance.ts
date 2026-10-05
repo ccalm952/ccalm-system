@@ -22,12 +22,13 @@ function nextMonth(month: string): string {
   return `${date.getUTCFullYear()}-${monthNumber}`;
 }
 
-/** 从起始日所在月起，累加每月假期，减去起始日及之后的已休。起始月按整月发放。 */
+/** 从起始日所在月起，累加每月假期和假期抵消，减去起始日及之后的已休。起始月按整月发放。 */
 export function remainingLeaveSinceStart(params: {
   startDate: string;
   month: string;
   allowanceByMonth: ReadonlyMap<string, number>;
   leaveDaysByMonth: ReadonlyMap<string, number>;
+  offsetDaysByMonth?: ReadonlyMap<string, number>;
 }): number {
   if (
     !isLeaveStartDate(params.startDate) ||
@@ -43,6 +44,7 @@ export function remainingLeaveSinceStart(params: {
   while (cursor <= params.month) {
     balance += params.allowanceByMonth.get(cursor) ?? 0;
     balance -= params.leaveDaysByMonth.get(cursor) ?? 0;
+    balance += params.offsetDaysByMonth?.get(cursor) ?? 0;
     cursor = nextMonth(cursor);
   }
   return balance;

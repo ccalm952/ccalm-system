@@ -167,14 +167,25 @@ export class AttendanceScheduleService {
       monthCursor = monthCursor.add(1, "month");
     }
 
-    const configs = await this.prisma.scheduleMonthConfig.findMany({
-      where: { month: { in: monthKeys } },
-    });
+    const [configs, offsets] = await Promise.all([
+      this.prisma.scheduleMonthConfig.findMany({
+        where: { month: { in: monthKeys } },
+      }),
+      userIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.scheduleLeaveOffset.findMany({
+            where: { userId: { in: userIds }, month: { in: monthKeys } },
+            select: { userId: true, month: true, days: true },
+          }),
+    ]);
     const configMap = new Map(
       configs.map((c) => [c.month, c.monthAllowance] as const),
     );
+    const offsetByUserMonth = new Map(
+      offsets.map((row) => [`${row.userId}:${row.month}`, row.days] as const),
+    );
 
-    return { configMap, leaveByUserMonth, declaredMap };
+    return { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth };
   }
 
   private remainingLeaveFromPrefetch(
@@ -183,18 +194,25 @@ export class AttendanceScheduleService {
     startDate: string,
     configMap: Map<string, number>,
     leaveByUserMonth: Map<string, number>,
+    offsetByUserMonth: Map<string, number>,
   ): number {
     const leaveDaysByMonth = new Map<string, number>();
+    const offsetDaysByMonth = new Map<string, number>();
     const prefix = `${userId}:`;
     for (const [key, days] of leaveByUserMonth) {
       if (!key.startsWith(prefix)) continue;
       leaveDaysByMonth.set(key.slice(prefix.length), days);
+    }
+    for (const [key, days] of offsetByUserMonth) {
+      if (!key.startsWith(prefix)) continue;
+      offsetDaysByMonth.set(key.slice(prefix.length), days);
     }
     return remainingLeaveSinceStart({
       startDate,
       month,
       allowanceByMonth: configMap,
       leaveDaysByMonth,
+      offsetDaysByMonth,
     });
   }
 
@@ -203,9 +221,9 @@ export class AttendanceScheduleService {
     targetMonth: string,
     usersMeta: Array<{ id: string; leaveStartDate: string }>,
   ) {
-    const { configMap, leaveByUserMonth, declaredMap } =
+    const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
       await this.loadLeavePrefetch(userIds, targetMonth, usersMeta);
-    return { configMap, leaveByUserMonth, declaredMap };
+    return { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth };
   }
 
   /** 月汇总：一次拉取休息历史，同时得到区间内排班与剩余假期。 */
@@ -229,7 +247,7 @@ export class AttendanceScheduleService {
       user.createdAt,
     );
 
-    const { configMap, leaveByUserMonth, declaredMap } =
+    const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
       await this.loadLeavePrefetch([userId], month, [
         { id: userId, leaveStartDate },
       ]);
@@ -247,6 +265,7 @@ export class AttendanceScheduleService {
         leaveStartDate,
         configMap,
         leaveByUserMonth,
+        offsetByUserMonth,
       ),
     };
   }
@@ -274,22 +293,15 @@ export class AttendanceScheduleService {
         effectiveLeaveStartDate(user.leaveStartDate, user.createdAt),
       ]),
     );
-    const [{ configMap, leaveByUserMonth, declaredMap }, offsets] =
-      await Promise.all([
-        this.buildLeaveContext(
-          userIds,
-          month,
-          users.map((user) => ({
-            id: user.id,
-            leaveStartDate: startDateByUser.get(user.id) ?? "",
-          })),
-        ),
-        this.prisma.scheduleLeaveOffset.findMany({
-          where: { month, userId: { in: userIds } },
-          select: { userId: true, days: true },
-        }),
-      ]);
-    const offsetByUser = new Map(offsets.map((row) => [row.userId, row.days]));
+    const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
+      await this.buildLeaveContext(
+        userIds,
+        month,
+        users.map((user) => ({
+          id: user.id,
+          leaveStartDate: startDateByUser.get(user.id) ?? "",
+        })),
+      );
 
     const userRows = users.map((u) => {
       const leaveStartDate = startDateByUser.get(u.id) ?? "";
@@ -315,6 +327,7 @@ export class AttendanceScheduleService {
         leaveStartDate,
         configMap,
         leaveByUserMonth,
+        offsetByUserMonth,
       );
 
       return {
@@ -325,7 +338,7 @@ export class AttendanceScheduleService {
         morningCount,
         afternoonCount,
         monthLeave,
-        leaveOffsetDays: offsetByUser.get(u.id) ?? null,
+        leaveOffsetDays: offsetByUserMonth.get(`${u.id}:${month}`) ?? null,
         remainingLeave,
         leaveStartDate,
       };
