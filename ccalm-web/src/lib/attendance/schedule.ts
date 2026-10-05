@@ -40,7 +40,7 @@ export type ScheduleMonthData = {
     /** 手填天数，对应工资表假期；未填写时为 null */
     leaveOffsetDays: number | null;
     remainingLeave: number;
-    leaveStartDate: string;
+    leaveInitialBalance: number;
     overtimeStr: string;
   }>;
 };

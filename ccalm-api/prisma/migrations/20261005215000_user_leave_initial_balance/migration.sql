@@ -1,0 +1,3 @@
+ALTER TABLE "User" ADD COLUMN "leaveInitialBalance" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+ALTER TABLE "User" DROP COLUMN "leaveStartDate";

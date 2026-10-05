@@ -99,7 +99,7 @@ export class UsersController {
       displayName: dto.displayName,
       password: dto.password,
       role: dto.role,
-      leaveStartDate: dto.leaveStartDate,
+      leaveInitialBalance: dto.leaveInitialBalance,
     });
   }
 
