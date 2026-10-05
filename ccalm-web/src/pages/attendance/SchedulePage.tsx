@@ -2,7 +2,6 @@ import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronLeftIcon, ChevronRightIcon, Settings } from "lucide-react";
 
-import { DatePickerField } from "@/components/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -50,7 +49,7 @@ import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
 import { toast } from "sonner";
 
-type LeaveStartDraft = {
+type LeaveBalanceDraft = {
   userId: string;
   userName: string;
   value: string;
@@ -115,7 +114,7 @@ export function SchedulePage() {
   const [monthAllowanceInput, setMonthAllowanceInput] = React.useState("0");
   const [savingAllowance, setSavingAllowance] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [leaveDraft, setLeaveDraft] = React.useState<LeaveStartDraft[]>([]);
+  const [leaveDraft, setLeaveDraft] = React.useState<LeaveBalanceDraft[]>([]);
   const [savingLeave, setSavingLeave] = React.useState(false);
   const leaveSaveSeq = React.useRef<Record<string, number>>({});
   const [holidaysByYear, setHolidaysByYear] = React.useState<
@@ -193,31 +192,35 @@ export function SchedulePage() {
       data.users.map((user) => ({
         userId: user.userId,
         userName: user.userName,
-        value: user.leaveStartDate,
+        value: String(user.leaveInitialBalance),
       })),
     );
     setSettingsOpen(true);
   }
 
   async function saveLeaveSettings() {
-    if (leaveDraft.some((row) => !/^\d{4}-\d{2}-\d{2}$/.test(row.value))) {
-      toast.error("请选择初始日期");
+    const parsed = leaveDraft.map((row) => ({
+      ...row,
+      days: row.value === "" ? 0 : Number(row.value),
+    }));
+    if (parsed.some((row) => !Number.isFinite(row.days) || row.days < 0)) {
+      toast.error("初始假期额度须为非负数字");
       return;
     }
     setSavingLeave(true);
     try {
       await Promise.all(
-        leaveDraft.map((row) => {
+        parsed.map((row) => {
           const current = data?.users.find(
             (user) => user.userId === row.userId,
-          )?.leaveStartDate;
-          if (row.value === current) return Promise.resolve();
+          )?.leaveInitialBalance;
+          if (row.days === current) return Promise.resolve();
           return api("PATCH", `/users/${row.userId}`, {
-            leaveStartDate: row.value,
+            leaveInitialBalance: row.days,
           });
         }),
       );
-      toast.success("已保存初始日期");
+      toast.success("已保存初始假期额度");
       setSettingsOpen(false);
       await load(month);
     } catch (e) {
@@ -555,7 +558,7 @@ export function SchedulePage() {
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
-                <TableHead>初始日期</TableHead>
+                <TableHead>初始假期额度</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -563,16 +566,19 @@ export function SchedulePage() {
                 <TableRow key={row.userId}>
                   <TableCell>{row.userName}</TableCell>
                   <TableCell>
-                    <DatePickerField
+                    <Input
+                      inputMode="decimal"
                       value={row.value}
-                      captionLayout="dropdown"
-                      startMonth={new Date(2020, 0)}
-                      endMonth={new Date(new Date().getFullYear() + 1, 11)}
-                      onValueChange={(value) => {
+                      className="h-8 w-28"
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        if (next !== "" && !LEAVE_OFFSET_DRAFT.test(next)) {
+                          return;
+                        }
                         setLeaveDraft((prev) =>
                           prev.map((item) =>
                             item.userId === row.userId
-                              ? { ...item, value }
+                              ? { ...item, value: next }
                               : item,
                           ),
                         );

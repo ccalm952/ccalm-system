@@ -8,10 +8,7 @@ import type { AttendancePunchType, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
 import { isWithinAttendanceEditWindow } from "../core/attendance-edit-window";
-import {
-  attendanceDayjs,
-  formatAttendanceDate,
-} from "../core/attendance-dayjs";
+import { attendanceDayjs } from "../core/attendance-dayjs";
 import { remainingLeaveSinceStart } from "../core/leave-balance";
 import { withEmployeeLeaveDays } from "../core/leave-offset";
 import type { ScheduleShiftType } from "../core/schedule-inference";
@@ -33,11 +30,8 @@ function monthBounds(month: string) {
   return { start, end, daysInMonth: end.date() };
 }
 
-function effectiveLeaveStartDate(
-  leaveStartDate: string,
-  createdAt: Date,
-): string {
-  return leaveStartDate || formatAttendanceDate(createdAt);
+function createdMonth(createdAt: Date): string {
+  return attendanceDayjs(createdAt).startOf("month").format("YYYY-MM");
 }
 
 function assertScheduleMonthAllowed(month: string) {
@@ -84,7 +78,6 @@ export class AttendanceScheduleService {
     userIds: string[],
     rangeStart: dayjs.Dayjs,
     rangeEnd: dayjs.Dayjs,
-    startDateByUser: ReadonlyMap<string, string>,
   ): Promise<Map<string, number>> {
     if (!userIds.length) return new Map();
     const entries = await this.prisma.scheduleEntry.findMany({
@@ -99,8 +92,6 @@ export class AttendanceScheduleService {
     });
     const totals = new Map<string, number>();
     for (const entry of entries) {
-      const startDate = startDateByUser.get(entry.userId);
-      if (startDate && entry.date < startDate) continue;
       const days =
         entry.shiftType === "full_rest"
           ? 1
@@ -135,15 +126,12 @@ export class AttendanceScheduleService {
   private async loadLeavePrefetch(
     userIds: string[],
     targetMonth: string,
-    usersMeta: Array<{ id: string; leaveStartDate: string }>,
+    usersMeta: Array<{ id: string; createdAt: Date }>,
   ) {
     const { end } = monthBounds(targetMonth);
-    const startDateByUser = new Map(
-      usersMeta.map((user) => [user.id, user.leaveStartDate] as const),
-    );
 
     const earliestMonth = usersMeta.reduce((min, user) => {
-      const month = user.leaveStartDate.slice(0, 7);
+      const month = createdMonth(user.createdAt);
       return month < min ? month : min;
     }, targetMonth);
 
@@ -151,12 +139,7 @@ export class AttendanceScheduleService {
     const targetStart = attendanceDayjs(`${targetMonth}-01`, "YYYY-MM-DD");
     const leaveByUserMonth = historyStart.isAfter(end, "day")
       ? new Map<string, number>()
-      : await this.fetchLeaveByUserMonth(
-          userIds,
-          historyStart,
-          end,
-          startDateByUser,
-        );
+      : await this.fetchLeaveByUserMonth(userIds, historyStart, end);
     const declaredMap = await this.fetchDeclaredMap(userIds, targetStart, end);
 
     const monthKeys: string[] = [];
@@ -191,7 +174,8 @@ export class AttendanceScheduleService {
   private remainingLeaveFromPrefetch(
     userId: string,
     month: string,
-    startDate: string,
+    initialBalance: number,
+    createdAt: Date,
     configMap: Map<string, number>,
     leaveByUserMonth: Map<string, number>,
     offsetByUserMonth: Map<string, number>,
@@ -208,8 +192,9 @@ export class AttendanceScheduleService {
       offsetDaysByMonth.set(key.slice(prefix.length), days);
     }
     return remainingLeaveSinceStart({
-      startDate,
+      createdMonth: createdMonth(createdAt),
       month,
+      initialBalance,
       allowanceByMonth: configMap,
       leaveDaysByMonth,
       offsetDaysByMonth,
@@ -219,7 +204,7 @@ export class AttendanceScheduleService {
   private async buildLeaveContext(
     userIds: string[],
     targetMonth: string,
-    usersMeta: Array<{ id: string; leaveStartDate: string }>,
+    usersMeta: Array<{ id: string; createdAt: Date }>,
   ) {
     const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
       await this.loadLeavePrefetch(userIds, targetMonth, usersMeta);
@@ -239,17 +224,13 @@ export class AttendanceScheduleService {
     monthBounds(month);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { leaveStartDate: true, createdAt: true },
+      select: { leaveInitialBalance: true, createdAt: true },
     });
     if (!user) throw new BadRequestException("用户不存在");
-    const leaveStartDate = effectiveLeaveStartDate(
-      user.leaveStartDate,
-      user.createdAt,
-    );
 
     const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
       await this.loadLeavePrefetch([userId], month, [
-        { id: userId, leaveStartDate },
+        { id: userId, createdAt: user.createdAt },
       ]);
 
     return {
@@ -262,7 +243,8 @@ export class AttendanceScheduleService {
       remainingLeave: this.remainingLeaveFromPrefetch(
         userId,
         month,
-        leaveStartDate,
+        user.leaveInitialBalance,
+        user.createdAt,
         configMap,
         leaveByUserMonth,
         offsetByUserMonth,
@@ -280,31 +262,24 @@ export class AttendanceScheduleService {
           id: true,
           displayName: true,
           username: true,
-          leaveStartDate: true,
+          leaveInitialBalance: true,
           createdAt: true,
         },
       }),
     ]);
 
     const userIds = users.map((u) => u.id);
-    const startDateByUser = new Map(
-      users.map((user) => [
-        user.id,
-        effectiveLeaveStartDate(user.leaveStartDate, user.createdAt),
-      ]),
-    );
     const { configMap, leaveByUserMonth, declaredMap, offsetByUserMonth } =
       await this.buildLeaveContext(
         userIds,
         month,
         users.map((user) => ({
           id: user.id,
-          leaveStartDate: startDateByUser.get(user.id) ?? "",
+          createdAt: user.createdAt,
         })),
       );
 
     const userRows = users.map((u) => {
-      const leaveStartDate = startDateByUser.get(u.id) ?? "";
       const days: Record<string, ScheduleShiftType | null> = {};
       let fullCount = 0;
       let morningCount = 0;
@@ -324,7 +299,8 @@ export class AttendanceScheduleService {
       const remainingLeave = this.remainingLeaveFromPrefetch(
         u.id,
         month,
-        leaveStartDate,
+        u.leaveInitialBalance,
+        u.createdAt,
         configMap,
         leaveByUserMonth,
         offsetByUserMonth,
@@ -340,7 +316,7 @@ export class AttendanceScheduleService {
         monthLeave,
         leaveOffsetDays: offsetByUserMonth.get(`${u.id}:${month}`) ?? null,
         remainingLeave,
-        leaveStartDate,
+        leaveInitialBalance: u.leaveInitialBalance,
       };
     });
 

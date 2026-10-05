@@ -8,7 +8,6 @@ import bcrypt from "bcrypt";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 
-import { isLeaveStartDate } from "../attendance/core/leave-balance";
 import { API_ROOT } from "../../common/api-root";
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -46,7 +45,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveStartDate: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -73,7 +72,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveStartDate: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -86,10 +85,16 @@ export class UsersService {
     displayName?: string;
     password?: string;
     role?: "user" | "admin";
-    leaveStartDate?: string;
+    leaveInitialBalance?: number;
   }) {
-    const { actor, targetUserId, displayName, password, role, leaveStartDate } =
-      params;
+    const {
+      actor,
+      targetUserId,
+      displayName,
+      password,
+      role,
+      leaveInitialBalance,
+    } = params;
     const isSelf = actor.userId === targetUserId;
     const isAdmin = actor.role === "admin";
 
@@ -116,11 +121,8 @@ export class UsersService {
     if (typeof password === "string" && password.length >= 6)
       data.passwordHash = await bcrypt.hash(password, 10);
     if (role && isAdmin) data.role = role;
-    if (typeof leaveStartDate === "string" && isAdmin) {
-      if (!isLeaveStartDate(leaveStartDate)) {
-        throw new BadRequestException("初始日期不合法");
-      }
-      data.leaveStartDate = leaveStartDate;
+    if (typeof leaveInitialBalance === "number" && isAdmin) {
+      data.leaveInitialBalance = leaveInitialBalance;
     }
 
     return await this.prisma.user.update({
@@ -132,7 +134,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveStartDate: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -155,7 +157,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         role: true,
-        leaveStartDate: true,
+        leaveInitialBalance: true,
         createdAt: true,
         updatedAt: true,
       },

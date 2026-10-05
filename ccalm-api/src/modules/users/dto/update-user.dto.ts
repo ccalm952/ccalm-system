@@ -1,8 +1,10 @@
+import { Type } from "class-transformer";
 import {
-  IsOptional,
   IsIn,
+  IsNumber,
+  IsOptional,
   IsString,
-  Matches,
+  Min,
   MinLength,
 } from "class-validator";
 
@@ -22,7 +24,8 @@ export class UpdateUserDto {
   role?: "user" | "admin";
 
   @IsOptional()
-  @IsString()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  leaveStartDate?: string;
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  leaveInitialBalance?: number;
 }
