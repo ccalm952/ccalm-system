@@ -30,7 +30,10 @@ import { ClearRestDto, DeclareRestDto } from "./dto/rest.dto";
 import { PunchDto } from "./dto/punch.dto";
 import { UnbindPunchDeviceDto } from "./dto/punch-device.dto";
 import { UpsertShiftDto } from "./dto/shift.dto";
-import { UpsertScheduleMonthConfigDto } from "./dto/schedule.dto";
+import {
+  UpsertScheduleLeaveOffsetDto,
+  UpsertScheduleMonthConfigDto,
+} from "./dto/schedule.dto";
 import { AttendanceMakeupService } from "./services/attendance-makeup.service";
 import { AttendancePunchDeviceUnbindService } from "./services/attendance-punch-device-unbind.service";
 import { AttendanceScheduleService } from "./services/attendance-schedule.service";
@@ -272,5 +275,14 @@ export class AttendanceController {
   ) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
     return await this.schedule.upsertMonthConfig(dto);
+  }
+
+  @Put("schedule/leave-offset")
+  async putScheduleLeaveOffset(
+    @Req() req: Request,
+    @Body() dto: UpsertScheduleLeaveOffsetDto,
+  ) {
+    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    return await this.schedule.setLeaveOffset(dto);
   }
 }

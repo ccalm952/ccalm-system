@@ -23,20 +23,33 @@ function leaveDaysForUser(data: ScheduleMonthData, name: string): number {
   return data.users.find((u) => u.userName === name)?.monthLeave ?? 0;
 }
 
+export type ScheduleLeaveSync = {
+  quotas: SalaryLeaveQuotas;
+  leaveDaysByName: Record<string, number>;
+};
+
 export async function fetchLeaveQuotasFromSchedule(
   salaryMonth: string,
-): Promise<SalaryLeaveQuotas> {
+): Promise<ScheduleLeaveSync> {
   try {
     const data = await api<ScheduleMonthData>(
       "GET",
       `/attendance/schedule?month=${encodeURIComponent(salaryMonth)}&includeOvertime=0`,
     );
+    const leaveDaysByName: Record<string, number> = {};
+    for (const user of data.users) {
+      if (user.leaveOffsetDays == null) continue;
+      leaveDaysByName[user.userName] = user.leaveOffsetDays;
+    }
     return {
-      chen: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.chen),
-      lu: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.lu),
-      xu: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.xu),
+      quotas: {
+        chen: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.chen),
+        lu: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.lu),
+        xu: leaveDaysForUser(data, SCHEDULE_LEAVE_EMPLOYEES.xu),
+      },
+      leaveDaysByName,
     };
   } catch {
-    return { chen: 0, lu: 0, xu: 0 };
+    return { quotas: { chen: 0, lu: 0, xu: 0 }, leaveDaysByName: {} };
   }
 }

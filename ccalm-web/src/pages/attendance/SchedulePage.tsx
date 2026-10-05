@@ -56,6 +56,52 @@ type LeaveStartDraft = {
   value: string;
 };
 
+const LEAVE_OFFSET_DRAFT = /^\d*\.?\d*$/;
+
+function LeaveOffsetInput({
+  value,
+  onCommit,
+}: {
+  value: number | null;
+  onCommit: (days: number) => void;
+}) {
+  const shown = value ?? 0;
+  const [draft, setDraft] = React.useState(String(shown));
+  const focusedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(String(value ?? 0));
+    }
+  }, [value]);
+
+  return (
+    <Input
+      inputMode="decimal"
+      value={draft}
+      className="h-8 px-1 text-center"
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (next === "" || LEAVE_OFFSET_DRAFT.test(next)) setDraft(next);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        const days = Number(draft);
+        const safe = Number.isFinite(days) && days >= 0 ? days : 0;
+        setDraft(String(safe));
+        if (safe === (value ?? 0)) return;
+        onCommit(safe);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+    />
+  );
+}
+
 export function SchedulePage() {
   const { me } = useAuth();
   const { minMonth, maxMonth } = React.useMemo(() => scheduleMonthRange(), []);
@@ -71,6 +117,7 @@ export function SchedulePage() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [leaveDraft, setLeaveDraft] = React.useState<LeaveStartDraft[]>([]);
   const [savingLeave, setSavingLeave] = React.useState(false);
+  const leaveSaveSeq = React.useRef<Record<string, number>>({});
   const [holidaysByYear, setHolidaysByYear] = React.useState<
     Record<string, ChinaHolidayYear>
   >({});
@@ -177,6 +224,40 @@ export function SchedulePage() {
       toast.error(errorMessage(e));
     } finally {
       setSavingLeave(false);
+    }
+  }
+
+  async function saveLeaveOffset(userId: string, days: number) {
+    const seq = (leaveSaveSeq.current[userId] ?? 0) + 1;
+    leaveSaveSeq.current[userId] = seq;
+    try {
+      const res = await api<{
+        days: number;
+        salary: "applied" | "missing_sheet" | "missing_employee";
+      }>("PUT", "/attendance/schedule/leave-offset", { month, userId, days });
+      if (leaveSaveSeq.current[userId] !== seq) return;
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          users: prev.users.map((user) =>
+            user.userId === userId
+              ? { ...user, leaveOffsetDays: res.days }
+              : user,
+          ),
+        };
+      });
+      if (res.salary === "applied") {
+        toast.success("已填入员工薪资假期");
+      } else if (res.salary === "missing_sheet") {
+        toast.success("已保存，该月还没有薪资表");
+      } else {
+        toast.success("已保存，薪资表里没有同名员工");
+      }
+    } catch (e) {
+      if (leaveSaveSeq.current[userId] !== seq) return;
+      toast.error(errorMessage(e));
+      await load(month);
     }
   }
 
@@ -330,6 +411,7 @@ export function SchedulePage() {
                     <TableHead className="w-10 text-center">上</TableHead>
                     <TableHead className="w-10 text-center">下</TableHead>
                     <TableHead className="w-16 text-center">本月请假</TableHead>
+                    <TableHead className="w-24 text-center">假期抵消</TableHead>
                     <TableHead className="w-16 text-center">本月假期</TableHead>
                     <TableHead className="w-16 text-center">剩余假期</TableHead>
                     <TableHead className="w-20 text-center">加班时长</TableHead>
@@ -370,6 +452,18 @@ export function SchedulePage() {
                       </TableCell>
                       <TableCell className="w-16 text-center">
                         {formatDayCount(user.monthLeave)}
+                      </TableCell>
+                      <TableCell className="w-24 px-1 text-center">
+                        {isAdmin ? (
+                          <LeaveOffsetInput
+                            value={user.leaveOffsetDays}
+                            onCommit={(days) =>
+                              void saveLeaveOffset(user.userId, days)
+                            }
+                          />
+                        ) : (
+                          formatDayCount(user.leaveOffsetDays ?? 0)
+                        )}
                       </TableCell>
                       <TableCell className="w-16 text-center">
                         {formatDayCount(data.monthAllowance)}
