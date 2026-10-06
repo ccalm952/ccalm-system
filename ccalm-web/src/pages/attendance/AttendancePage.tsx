@@ -636,7 +636,7 @@ export function AttendancePage() {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-0 z-0 bg-background bg-[url(/background-mobile-light.png)] bg-cover bg-center bg-no-repeat md:bg-[url(/background-light.png)] dark:bg-[url(/background-mobile-dark.png)] md:dark:bg-[url(/background-dark.png)]" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-background bg-[url(/background-mobile-light.png)] bg-cover bg-center bg-no-repeat md:bg-[url(/background-light.jpg)] dark:bg-[url(/background-mobile-dark.png)] md:dark:bg-[url(/background-dark.jpg)]" />
       <div className="relative z-10 p-4">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col gap-4">
