@@ -81,7 +81,9 @@ function CostAmountPopover({
       open={openKey === previewKey}
       onOpenChange={(open) => onOpenKeyChange(open ? previewKey : null)}
     >
-      <PopoverTrigger render={<Button variant="link" />}>
+      <PopoverTrigger
+        render={<Button variant="link" className="w-full min-w-0 px-0" />}
+      >
         {total}
       </PopoverTrigger>
       <PopoverContent>

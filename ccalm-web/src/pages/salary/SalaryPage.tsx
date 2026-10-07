@@ -1201,7 +1201,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1768px]">
+                      <div className="min-w-[1680px]">
                         <SalarySummaryTable
                           sheet={sheet}
                           computed={computed}
@@ -1228,7 +1228,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1768px]">
+                      <div className="min-w-[1680px]">
                         <InsuranceFundTable
                           insurance={sheet.insurance}
                           housingFund={sheet.housingFund}
