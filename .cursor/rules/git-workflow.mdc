@@ -1,0 +1,12 @@
+---
+description: 分支、PR、密钥与小程序工作区约定
+alwaysApply: true
+---
+
+# Git / 发布约定
+
+- 功能与修复开分支 + PR 合入 `master`，不要直推 `master`
+- 分支命名：`feat/mp-…`、`fix/web-…`、`chore/api-…` 等
+- 勿提交密钥：`**/.env`、`ccalm-miniprogram/utils/config.local.js`；小程序高德 Key 用 `config.local.example.js` 复制
+- 勿提交微信工具杂文件：`project.private.config.json`、`miniprogram_npm/project.*.json`；无业务改动的 `project.config.json` 字段重排用 `git restore` 丢弃
+- 仅改小程序/文档不触发服务器 Deploy；需微信开发者工具上传才生效
