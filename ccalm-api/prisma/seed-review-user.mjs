@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
 /** 与 wechat-review-account.ts 保持一致 */
 const REVIEW_USERNAME = "test";
 const REVIEW_PASSWORD = "123456";
-const REVIEW_DISPLAY_NAME = "审核测试";
+const REVIEW_DISPLAY_NAME = "测试";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
 if (!databaseUrl) {
