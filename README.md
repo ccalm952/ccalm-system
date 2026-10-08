@@ -9,6 +9,13 @@ ccalm-system/
   ccalm-miniprogram/  # 微信小程序（考勤打卡 MVP）
 ```
 
+## 开发约定
+
+- **开分支 + PR 再合 `master`**，避免直推主分支（绕过必检）。命名示例：`feat/mp-…`、`fix/web-…`、`chore/api-…`。
+- **密钥不进仓库**：`ccalm-api/.env`、`ccalm-web/.env`、`ccalm-miniprogram/utils/config.local.js` 仅本机/服务器保留；小程序高德 Key 用 `config.local.example.js` 复制填写。
+- **小程序工具文件**：勿提交 `project.private.config.json`、以及 `miniprogram_npm/` 下误生成的 `project.*.json`；`project.config.json` 无业务改动时的字段重排可 `git restore` 丢掉。
+- **发布边界**：只改小程序/文档不触发服务器 Deploy，需用微信开发者工具上传；改 `ccalm-web` / `ccalm-api` 才由 Actions 部署。
+
 ## 本地开发
 
 确保本机 PostgreSQL 已启动，且数据库已创建，例如 `ccalm_system`。
@@ -138,7 +145,7 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 - `https://www.ccalm.xyz`（API）
 - `https://restapi.amap.com`（中文地址逆地理）
 
-高德 Key：`ccalm-miniprogram/utils/config.local.js` 填入 **Web服务** 类型 Key（勿用网页 JS API Key）。
+高德 Key：复制 `ccalm-miniprogram/utils/config.local.example.js` 为 `config.local.js`，填入 **Web服务** 类型 Key（勿提交；勿用网页 JS API Key）。
 
 流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
 

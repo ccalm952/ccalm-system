@@ -11,7 +11,7 @@ WECHAT_APPID=wxf9d517b49440cd79
 WECHAT_APPSECRET=<AppSecret>
 ```
 
-2. 高德 **Web服务** Key：在 `utils/config.local.js` 填写。网页 `VITE_AMAP_KEY` 若是 JS API 类型，逆地理会 `USERKEY_PLAT_NOMATCH`。
+2. 高德 **Web服务** Key：复制 `utils/config.local.example.js` 为 `config.local.js` 后填写（勿提交）。网页 `VITE_AMAP_KEY` 若是 JS API 类型，逆地理会 `USERKEY_PLAT_NOMATCH`。
 
 3. 微信公众平台 request 合法域名：
 
