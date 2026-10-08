@@ -142,29 +142,22 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 
 流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
 
-### 小程序独立测试环境
+### 小程序审核测试账号
 
-生产站使用数据库 `ccalm_system`。测试打卡使用另一套库 `ccalm_test` 和端口 `3001` 的 API，账号只写在这套库里，生产网页 `https://www.ccalm.xyz` 读不到。
+给微信公众平台提交审核时填写：
 
-```bash
-pnpm dev:test-api
-```
-
-需要本机 Docker。脚本会启动测试库、迁移、写入账号，再启动测试 API。微信登录仍使用 `ccalm-api/.env` 里的 `WECHAT_APPID` / `WECHAT_APPSECRET`，不会改用其中的 `DATABASE_URL`。
-
-- 测试 API：`http://127.0.0.1:3001/api`
 - 账号：`test`
 - 密码：`123456`
 
-小程序开发者工具新建 `ccalm-miniprogram/utils/config.local.js`（已忽略，勿提交），并勾选「不校验合法域名」：
+在服务器上对生产库执行一次（读取 `ccalm-api/.env` 的 `DATABASE_URL`）：
 
-```js
-module.exports = {
-  API_BASE: "http://127.0.0.1:3001/api",
-};
+```bash
+cd /opt/ccalm-system/ccalm-api
+set -a && source .env && set +a
+pnpm seed:review-user
 ```
 
-首次微信登录会进入绑定页，填写上面的账号密码。真机访问不到本机 `127.0.0.1`；手机上使用时，把测试 API 放到已加入小程序 request 合法域名的 https 地址，再把 `API_BASE` 指过去。
+该账号会出现在网页端人员列表。微信绑定为临时：不写入长期 `wechatOpenId`，每次进入小程序都会先到绑定页，填账号密码后再进打卡页；普通员工账号仍是一次绑定后直接进入。
 
 ### 5) 初始化数据库
 

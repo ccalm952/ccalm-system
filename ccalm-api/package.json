@@ -20,7 +20,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed:test-user": "node prisma/seed-test-user.mjs"
+    "seed:review-user": "node prisma/seed-review-user.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.6",

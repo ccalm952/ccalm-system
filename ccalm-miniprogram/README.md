@@ -24,12 +24,4 @@ WECHAT_APPSECRET=<AppSecret>
 
 开发阶段可勾选「不校验合法域名」。
 
-独立测试环境（另一套库，不进生产网页）见仓库根目录 README「小程序独立测试环境」。本地连测试 API 时，在 `utils/config.local.js` 增加：
-
-```js
-module.exports = {
-  API_BASE: "http://127.0.0.1:3001/api",
-};
-```
-
-绑定账号 `test`，密码 `123456`。不改这个文件时，小程序仍请求 `https://www.ccalm.xyz/api`。
+微信审核测试账号见仓库根目录 README「小程序审核测试账号」：账号 `test`，密码 `123456`。该账号每次进入都会先绑定再打卡。

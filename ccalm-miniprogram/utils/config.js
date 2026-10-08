@@ -1,4 +1,4 @@
-/** 正式站。测试环境在 utils/config.local.js 里用 API_BASE 覆盖。 */
+/** 正式站。本地可在 utils/config.local.js 覆盖 API_BASE / AMAP_KEY。 */
 let API_BASE = "https://www.ccalm.xyz/api";
 
 let AMAP_KEY = "";
