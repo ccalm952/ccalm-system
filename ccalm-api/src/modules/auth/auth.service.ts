@@ -10,6 +10,7 @@ import bcrypt from "bcrypt";
 import { createHash } from "node:crypto";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { isWechatReviewUsername } from "./wechat-review-account";
 import { WechatService } from "./wechat.service";
 
 const WECHAT_BIND_PURPOSE = "wechat_bind" as const;
@@ -128,7 +129,13 @@ export class AuthService {
         updatedAt: true,
       },
     });
-    if (!user) {
+    if (!user || isWechatReviewUsername(user.username)) {
+      if (user && isWechatReviewUsername(user.username)) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { wechatOpenId: null },
+        });
+      }
       const bindTicket = await this.signBindTicket(openid);
       return { status: "need_bind" as const, bindTicket };
     }
@@ -143,29 +150,44 @@ export class AuthService {
 
   async wechatBind(bindTicket: string, username: string, password: string) {
     const openid = await this.verifyBindTicket(bindTicket);
+    const trimmedUsername = username.trim();
+    const reviewAccount = isWechatReviewUsername(trimmedUsername);
 
     const taken = await this.prisma.user.findUnique({
       where: { wechatOpenId: openid },
-      select: { id: true },
+      select: { id: true, username: true },
     });
     if (taken) {
-      throw new ConflictException("该微信已绑定其他账号");
+      if (isWechatReviewUsername(taken.username)) {
+        await this.prisma.user.update({
+          where: { id: taken.id },
+          data: { wechatOpenId: null },
+        });
+      } else {
+        throw new ConflictException("该微信已绑定其他账号");
+      }
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { username },
+      where: { username: trimmedUsername },
       include: { punchDevice: true },
     });
     if (!user) throw new UnauthorizedException("用户名或密码错误");
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw new UnauthorizedException("用户名或密码错误");
 
-    if (user.wechatOpenId && user.wechatOpenId !== openid) {
-      throw new ConflictException("该账号已绑定其他微信，请联系管理员解绑");
+    if (!reviewAccount) {
+      if (user.wechatOpenId && user.wechatOpenId !== openid) {
+        throw new ConflictException("该账号已绑定其他微信，请联系管理员解绑");
+      }
     }
 
     const tokenHash = this.hashDeviceToken(openid);
-    if (user.punchDevice && user.punchDevice.tokenHash !== tokenHash) {
+    if (
+      !reviewAccount &&
+      user.punchDevice &&
+      user.punchDevice.tokenHash !== tokenHash
+    ) {
       throw new BadRequestException(
         "该账号已绑定其他打卡设备，请联系管理员解绑后再绑定微信",
       );
@@ -174,7 +196,7 @@ export class AuthService {
     const updated = await this.prisma.$transaction(async (tx) => {
       const row = await tx.user.update({
         where: { id: user.id },
-        data: { wechatOpenId: openid },
+        data: reviewAccount ? { wechatOpenId: null } : { wechatOpenId: openid },
         select: {
           id: true,
           username: true,
@@ -185,7 +207,13 @@ export class AuthService {
           updatedAt: true,
         },
       });
-      if (!user.punchDevice) {
+      if (reviewAccount) {
+        await tx.attendancePunchDevice.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id, tokenHash },
+          update: { tokenHash, boundAt: new Date() },
+        });
+      } else if (!user.punchDevice) {
         await tx.attendancePunchDevice.create({
           data: { userId: user.id, tokenHash },
         });

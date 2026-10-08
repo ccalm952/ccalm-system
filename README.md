@@ -142,6 +142,23 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 
 流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
 
+### 小程序审核测试账号
+
+给微信公众平台提交审核时填写：
+
+- 账号：`test`
+- 密码：`123456`
+
+在服务器上对生产库执行一次（读取 `ccalm-api/.env` 的 `DATABASE_URL`）：
+
+```bash
+cd /opt/ccalm-system/ccalm-api
+set -a && source .env && set +a
+pnpm seed:review-user
+```
+
+该账号会出现在网页端人员列表。微信绑定为临时：不写入长期 `wechatOpenId`，每次进入小程序都会先到绑定页，填账号密码后再进打卡页；普通员工账号仍是一次绑定后直接进入。
+
 ### 5) 初始化数据库
 
 ```bash
