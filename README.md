@@ -138,7 +138,7 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 - `https://www.ccalm.xyz`（API）
 - `https://restapi.amap.com`（中文地址逆地理）
 
-高德 Key：`ccalm-miniprogram/utils/config.local.js` 填入 **Web服务** 类型 Key（勿提交；勿用网页 JS API Key）。
+高德 Key：`ccalm-miniprogram/utils/config.local.js` 填入 **Web服务** 类型 Key（勿用网页 JS API Key）。
 
 流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
 
