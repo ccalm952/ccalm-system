@@ -6,6 +6,7 @@
   "scripts": {
     "dev:web": "pnpm -C ccalm-web dev",
     "dev:api": "pnpm -C ccalm-api start:dev",
+    "dev:test-api": "bash scripts/dev-test-api.sh",
     "build:web": "pnpm -C ccalm-web build",
     "build:api": "pnpm -C ccalm-api build",
     "build": "pnpm -C ccalm-web build && pnpm -C ccalm-api build",
