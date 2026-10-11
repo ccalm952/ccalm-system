@@ -1,6 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 
+import { TimePicker } from "@/components/time-picker";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -54,8 +55,9 @@ export function MakeupRequestDialog(props: {
     onSuccess,
   } = props;
   const [submitting, setSubmitting] = React.useState(false);
+  const [time, setTime] = React.useState(DEFAULT_MAKEUP_TIME[type]);
   const isDirect = mode === "direct";
-  const time = DEFAULT_MAKEUP_TIME[type];
+  const submitTime = isDirect ? time : DEFAULT_MAKEUP_TIME[type];
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -69,7 +71,7 @@ export function MakeupRequestDialog(props: {
           userId,
           date,
           type,
-          time,
+          time: submitTime,
         });
         toast.success("补卡成功");
       } else {
@@ -79,7 +81,7 @@ export function MakeupRequestDialog(props: {
           {
             date,
             type,
-            time,
+            time: submitTime,
           },
         );
         toast.success("补卡申请已提交");
@@ -105,8 +107,17 @@ export function MakeupRequestDialog(props: {
           {isDirect && userName ? <div>员工：{userName}</div> : null}
           <div>日期：{dayjs(date).format("YYYY年M月D日")}</div>
           <div>类型：{ATTENDANCE_PUNCH_TYPE_LABEL[type]}</div>
-          <div>补卡时间：{time}</div>
+          {isDirect ? null : <div>补卡时间：{submitTime}</div>}
         </div>
+        {isDirect ? (
+          <TimePicker
+            id="makeup-time"
+            label="补卡时间"
+            value={time}
+            disabled={submitting}
+            onChange={setTime}
+          />
+        ) : null}
         <DialogFooter>
           <Button
             type="button"
@@ -117,7 +128,7 @@ export function MakeupRequestDialog(props: {
           </Button>
           <Button
             type="button"
-            disabled={submitting}
+            disabled={submitting || (isDirect && !/^\d{2}:\d{2}$/.test(time))}
             onClick={() => void handleSubmit()}
           >
             {submitting ? (

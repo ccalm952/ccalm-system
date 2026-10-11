@@ -1,6 +1,5 @@
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { cn } from "cn";
 
 export function TimePicker(props: {
   id?: string;
@@ -15,7 +14,7 @@ export function TimePicker(props: {
     label = "时间",
     value,
     onChange,
-    className,
+    className = "w-32",
     disabled,
   } = props;
 
@@ -23,17 +22,13 @@ export function TimePicker(props: {
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Input
-        id={id}
         type="time"
+        id={id}
         step="60"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value.slice(0, 5))}
-        className={cn(
-          "appearance-none bg-background",
-          "[&::-webkit-calendar-picker-indicator]:hidden",
-          "[&::-webkit-calendar-picker-indicator]:appearance-none",
-        )}
+        className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
       />
     </Field>
   );
