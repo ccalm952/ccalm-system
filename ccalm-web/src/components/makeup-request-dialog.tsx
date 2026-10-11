@@ -111,11 +111,7 @@ export function MakeupRequestDialog(props: {
         </div>
         <DialogFooter>
           {isDirect ? (
-            <TimePicker
-              value={time}
-              disabled={submitting}
-              onChange={setTime}
-            />
+            <TimePicker value={time} disabled={submitting} onChange={setTime} />
           ) : null}
           <Button
             type="button"

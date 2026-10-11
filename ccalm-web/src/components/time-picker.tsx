@@ -17,7 +17,7 @@ export function TimePicker(props: {
       disabled={disabled}
       onChange={(e) => onChange(e.target.value.slice(0, 5))}
       className={cn(
-        "w-auto shrink-0 field-sizing-content appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none",
+        "field-sizing-content w-auto shrink-0 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none",
         className,
       )}
     />
