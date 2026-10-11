@@ -109,16 +109,10 @@ export function MakeupRequestDialog(props: {
           <div>类型：{ATTENDANCE_PUNCH_TYPE_LABEL[type]}</div>
           {isDirect ? null : <div>补卡时间：{submitTime}</div>}
         </div>
-        {isDirect ? (
-          <TimePicker
-            id="makeup-time"
-            label="补卡时间"
-            value={time}
-            disabled={submitting}
-            onChange={setTime}
-          />
-        ) : null}
         <DialogFooter>
+          {isDirect ? (
+            <TimePicker value={time} disabled={submitting} onChange={setTime} />
+          ) : null}
           <Button
             type="button"
             variant="outline"
