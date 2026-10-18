@@ -7,8 +7,6 @@ ccalm-system/
   ccalm-web/          # React + Vite 前端
   ccalm-api/          # NestJS + Prisma 后端
   ccalm-miniprogram/  # 原生微信小程序（打卡/缺卡/排班/统计/我的）
-  ccalm-uniapp-x/     # uni-app x 参考实现
-  ccalm-uniapp/       # 旧版 uni-app 实现
 ```
 
 小程序内部结构见 `ccalm-miniprogram/README.md` 的「目录结构」。
@@ -142,7 +140,7 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 
 ### 打卡小程序
 
-目录：`ccalm-miniprogram/`（原生微信小程序，与 `ccalm-uniapp-x` 同一套样式和功能）。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
+目录：`ccalm-miniprogram/`（原生微信小程序）。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
 
 微信公众平台 request 合法域名：
 
