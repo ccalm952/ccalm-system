@@ -15,7 +15,6 @@ const wxGlobals = {
 
 export default defineConfig([
   globalIgnores([
-    "**/miniprogram_npm/**",
     "**/node_modules/**",
     "config/local.js",
     "eslint.config.mjs",

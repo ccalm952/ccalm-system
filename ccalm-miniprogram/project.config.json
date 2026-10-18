@@ -88,7 +88,7 @@
     "packNpmRelationList": []
   },
   "compileType": "miniprogram",
-  "libVersion": "2.33.0",
+  "libVersion": "3.17.4",
   "appid": "wx7cb4ede89b3180d3",
   "projectname": "ccalm-punch",
   "condition": {},
