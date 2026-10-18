@@ -17,7 +17,7 @@ export default defineConfig([
   globalIgnores([
     "**/miniprogram_npm/**",
     "**/node_modules/**",
-    "utils/config.local.js",
+    "config/local.js",
     "eslint.config.mjs",
   ]),
   {

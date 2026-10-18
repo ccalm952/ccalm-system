@@ -6,6 +6,5 @@ function isWechatReviewUsername(username) {
 }
 
 module.exports = {
-  WECHAT_REVIEW_USERNAME,
   isWechatReviewUsername,
 };

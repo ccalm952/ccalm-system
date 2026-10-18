@@ -1,5 +1,6 @@
-const { getStoredAuth, clearStoredAuth } = require("./utils/auth");
+const { getSession, clearSession } = require("./store/session");
 const { isWechatReviewUsername } = require("./utils/review-account");
+const { applyStatusBar } = require("./utils/theme");
 
 function loadInterFaces() {
   const faces = [
@@ -27,10 +28,10 @@ function loadInterFaces() {
 }
 
 function clearReviewSessionIfNeeded() {
-  const auth = getStoredAuth();
-  const username = auth && auth.user && auth.user.username;
+  const session = getSession();
+  const username = session && session.user && session.user.username;
   if (username && isWechatReviewUsername(username)) {
-    clearStoredAuth();
+    clearSession();
   }
 }
 
@@ -38,5 +39,10 @@ App({
   onLaunch() {
     loadInterFaces();
     clearReviewSessionIfNeeded();
+    applyStatusBar();
+  },
+
+  onShow() {
+    applyStatusBar();
   },
 });

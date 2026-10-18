@@ -1,0 +1,22 @@
+<view class="app-tab-bar">
+  <view
+    class="tab-item"
+    wx:for="{{items}}"
+    wx:key="key"
+    data-index="{{index}}"
+    bindtap="onTap"
+  >
+    <view class="tab-icon-wrap">
+      <image class="tab-icon" src="{{item.icon}}" mode="aspectFit"></image>
+      <view
+        wx:if="{{item.badge === 'missing' && missingBadge}}"
+        class="tab-badge"
+      >{{missingBadge}}</view>
+      <view
+        wx:if="{{item.badge === 'review' && reviewBadge}}"
+        class="tab-badge tab-badge-primary"
+      >{{reviewBadge}}</view>
+    </view>
+    <text class="tab-label {{current === index ? 'tab-label-active' : ''}}">{{item.label}}</text>
+  </view>
+</view>

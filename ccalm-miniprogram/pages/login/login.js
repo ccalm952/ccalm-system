@@ -1,80 +1,97 @@
-const { success } = require("../../utils/toast");
-const { request, wxLoginCode } = require("../../utils/api");
-const { setStoredAuth } = require("../../utils/auth");
-const { wallpaperSrc, bindWallpaper } = require("../../utils/theme");
+const { loginWithWechat, bindWechatAccount } = require("../../services/auth");
+const { hasSession } = require("../../store/session");
+const { HOME_PAGE } = require("../../constants/routes");
+const { applyStatusBar, getTheme } = require("../../utils/theme");
 
 Page({
   data: {
-    wallpaperSrc: wallpaperSrc("light"),
     step: "loading",
     bindTicket: "",
     username: "",
     password: "",
     submitting: false,
     error: "",
+    theme: "light",
   },
 
-  unbindTheme: null,
-
   onLoad(query) {
-    this.unbindTheme = bindWallpaper(this);
-    // 预览绑定页：wx.reLaunch({ url: "/pages/login/login?preview=1" })
+    this.applyTheme();
+    this.bindThemeChange();
     if (query && query.preview === "1") {
       this.setData({ step: "bind", bindTicket: "" });
+      return;
+    }
+    if (hasSession()) {
+      wx.reLaunch({ url: HOME_PAGE });
       return;
     }
     this.startWechatLogin();
   },
 
-  onUnload() {
-    if (this.unbindTheme) {
-      this.unbindTheme();
-      this.unbindTheme = null;
-    }
+  onShow() {
+    this.applyTheme();
   },
 
-  onUsername(e) {
-    const v = e.detail;
+  applyTheme(theme) {
+    const next = theme === "dark" || theme === "light" ? theme : getTheme();
+    if (next !== this.data.theme) this.setData({ theme: next });
+    applyStatusBar(next);
+  },
+
+  bindThemeChange() {
+    if (typeof wx.onThemeChange !== "function") return;
+    this.themeHandler = (res) => this.applyTheme(res && res.theme);
+    wx.onThemeChange(this.themeHandler);
+  },
+
+  unbindThemeChange() {
+    if (this.themeHandler && typeof wx.offThemeChange === "function") {
+      wx.offThemeChange(this.themeHandler);
+    }
+    this.themeHandler = null;
+  },
+
+  onUnload() {
+    if (this.redirectTimer) {
+      clearTimeout(this.redirectTimer);
+      this.redirectTimer = null;
+    }
+    this.unbindThemeChange();
+  },
+
+  onUsername(event) {
     this.setData({
-      username: typeof v === "string" ? v : (v && v.value) || "",
+      username: String((event.detail && event.detail.value) || ""),
     });
   },
 
-  onPassword(e) {
-    const v = e.detail;
+  onPassword(event) {
     this.setData({
-      password: typeof v === "string" ? v : (v && v.value) || "",
+      password: String((event.detail && event.detail.value) || ""),
     });
   },
 
   async startWechatLogin() {
     this.setData({ step: "loading", error: "", bindTicket: "" });
     try {
-      const code = await wxLoginCode();
-      const res = await request(
-        "POST",
-        "/auth/wechat/login",
-        { code },
-        { skipAuth: true },
-      );
-      if (res.status === "bound") {
-        setStoredAuth({
-          accessToken: res.accessToken,
-          deviceToken: res.deviceToken,
-          user: res.user,
-        });
-        wx.reLaunch({ url: "/pages/punch/punch" });
+      const result = await loginWithWechat();
+      if (result.status === "bound") {
+        if (!result.session) {
+          this.setData({ step: "bind", error: "登录数据不完整" });
+          return;
+        }
+        wx.reLaunch({ url: HOME_PAGE });
         return;
       }
-      if (res.status === "need_bind") {
-        this.setData({ step: "bind", bindTicket: res.bindTicket });
+      if (result.status === "need_bind") {
+        this.setData({ step: "bind", bindTicket: result.bindTicket || "" });
         return;
       }
       this.setData({ step: "bind", error: "未知的登录状态" });
-    } catch (err) {
+    } catch (error) {
       this.setData({
         step: "bind",
-        error: err.message || "微信登录失败",
+        error: (error && error.message) || "微信登录失败",
       });
     }
   },
@@ -92,27 +109,22 @@ Page({
     }
     this.setData({ submitting: true, error: "" });
     try {
-      const res = await request(
-        "POST",
-        "/auth/wechat/bind",
-        {
-          bindTicket,
-          username: String(username).trim(),
-          password,
-        },
-        { skipAuth: true },
-      );
-      setStoredAuth({
-        accessToken: res.accessToken,
-        deviceToken: res.deviceToken,
-        user: res.user,
+      await bindWechatAccount({
+        bindTicket,
+        username: String(username).trim(),
+        password,
       });
-      success("绑定成功");
-      wx.reLaunch({ url: "/pages/punch/punch" });
-    } catch (err) {
-      this.setData({ error: err.message || "绑定失败" });
-    } finally {
-      this.setData({ submitting: false });
+      wx.showToast({ title: "绑定成功", icon: "success", duration: 800 });
+      this.redirectTimer = setTimeout(() => {
+        this.redirectTimer = null;
+        this.setData({ submitting: false });
+        wx.reLaunch({ url: HOME_PAGE });
+      }, 800);
+    } catch (error) {
+      this.setData({
+        error: (error && error.message) || "绑定失败",
+        submitting: false,
+      });
     }
   },
 });

@@ -1,0 +1,41 @@
+<view
+  wx:if="{{show}}"
+  class="dialog-mask"
+  bindtap="onMask"
+  catchtouchmove="noop"
+>
+  <view class="dialog-center" style="{{centerStyle}}">
+    <view class="dialog-panel" style="{{panelStyle}}" catchtap="noop">
+      <view class="dialog-header {{title ? '' : 'dialog-header-end'}}">
+        <text wx:if="{{title}}" class="dialog-title">{{title}}</text>
+        <view wx:if="{{closeable}}" class="dialog-close" catchtap="onCancel">
+          <image class="dialog-close-icon" src="/assets/icons/x.png" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <text wx:if="{{message}}" class="dialog-message">{{message}}</text>
+
+      <view wx:if="{{body}}" class="dialog-body">
+        <slot></slot>
+      </view>
+
+      <view class="dialog-footer">
+        <slot name="footer-extra" wx:if="{{extra}}"></slot>
+        <button
+          wx:if="{{showCancel}}"
+          class="dialog-btn dialog-btn-cancel"
+          hover-class="dialog-btn-cancel-hover"
+          disabled="{{loading}}"
+          bindtap="onCancel"
+        >{{cancelText}}</button>
+        <button
+          class="dialog-btn dialog-btn-confirm"
+          hover-class="dialog-btn-confirm-hover"
+          loading="{{loading}}"
+          disabled="{{loading || confirmDisabled}}"
+          bindtap="onConfirm"
+        >{{confirmText}}</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,183 @@
+@import "../../../styles/common.wxss";
+
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.empty-text {
+  display: block;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.schedule-card {
+  position: relative;
+  flex: 1 1 auto;
+  gap: 0;
+}
+
+.schedule-page {
+  padding: 16px;
+}
+
+.calendar {
+  width: 100%;
+}
+
+.calendar-title {
+  position: absolute;
+  left: 72px;
+  right: 72px;
+  bottom: 16px;
+  z-index: 1;
+  height: 44px;
+  line-height: 44px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-align: center;
+}
+
+.calendar-arrow {
+  position: absolute;
+  bottom: 16px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--secondary);
+}
+
+.calendar-arrow-prev {
+  left: 16px;
+}
+
+.calendar-arrow-next {
+  right: 16px;
+}
+
+.calendar-arrow-hover {
+  background-color: var(--accent);
+}
+
+.calendar-arrow-disabled {
+  opacity: 0.35;
+}
+
+.calendar-arrow-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.weekdays {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 32px;
+}
+
+.weekday-text {
+  flex: 1;
+  height: 32px;
+  font-size: 16px;
+  line-height: 32px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.week-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.week {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 72px;
+}
+
+.week-divider {
+  width: 100%;
+  height: 1px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  background-color: var(--border);
+}
+
+.day-col {
+  flex: 1;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.day-slot {
+  width: 100%;
+  height: 20px;
+}
+
+.day-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  font-size: 16px;
+  line-height: 32px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-align: center;
+}
+
+.day-holiday {
+  color: var(--destructive);
+}
+
+.day-today {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.mark-text {
+  width: 32px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.overtime-text {
+  height: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--chart-4);
+  text-align: center;
+}
+
+.full_rest {
+  color: var(--chart-2);
+}
+
+.morning_rest {
+  color: var(--chart-1);
+}
+
+.afternoon_rest {
+  color: var(--chart-3);
+}
+
+

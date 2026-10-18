@@ -1,0 +1,195 @@
+<view class="tab-panel">
+  <view
+    class="refresh-indicator"
+    style="transform: translate3d(0, {{pullY}}px, 0); opacity: {{pullOpacity}};"
+  >
+    <image class="refresh-spinner {{refreshing || pullDistance > 0 ? 'refresh-spinner-on' : ''}}" src="/assets/icons/spinner.png" mode="aspectFit"></image>
+    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance > pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
+  </view>
+
+  <scroll-view
+    class="tab-scroll"
+    scroll-y
+    enable-flex
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    refresher-default-style="none"
+    refresher-threshold="{{pullThreshold}}"
+    bindrefresherpulling="onRefresherPulling"
+    bindrefresherrestore="onRefresherRestore"
+    bindrefresherabort="onRefresherAbort"
+    bindrefresherrefresh="onRefresherRefresh"
+  >
+    <view class="page">
+      <view class="month-bar">
+        <view
+          class="month-btn {{month === lastMonth ? 'month-btn-on' : ''}}"
+          data-month="{{lastMonth}}"
+          bindtap="onMonthTap"
+        >
+          <text class="month-btn-text {{month === lastMonth ? 'month-btn-text-on' : ''}}">上月</text>
+        </view>
+        <view
+          class="month-btn {{month === thisMonth ? 'month-btn-on' : ''}}"
+          data-month="{{thisMonth}}"
+          bindtap="onMonthTap"
+        >
+          <text class="month-btn-text {{month === thisMonth ? 'month-btn-text-on' : ''}}">本月</text>
+        </view>
+      </view>
+
+      <view class="card">
+        <text wx:if="{{!users.length}}" class="empty-text">本月没有考勤记录</text>
+        <view wx:else class="stats-table-host">
+          <scroll-view
+            class="stats-table-y"
+            scroll-y
+            enable-flex
+            style="height: {{tableHeight}}px"
+          >
+            <scroll-view class="table-scroll" scroll-x enable-flex>
+              <view class="table stats-table" style="min-width: 640px">
+                <view class="grid-row grid-row-first">
+                  <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-name"><text class="cell-text">姓名</text></view>
+                  <view class="grid-cell grid-cell-fixed"><text class="cell-text">出勤天数</text></view>
+                  <view class="grid-cell grid-cell-fixed"><text class="cell-text">休息天数</text></view>
+                  <view class="grid-cell grid-cell-fixed"><text class="cell-text">缺卡</text></view>
+                  <view class="grid-cell grid-cell-fixed"><text class="cell-text">加班</text></view>
+                </view>
+
+                <view class="stats-block" wx:for="{{users}}" wx:for-item="user" wx:key="userId">
+                  <view
+                    class="grid-row {{user.expanded ? 'summary-row-on' : ''}}"
+                    hover-class="summary-row-hover"
+                    data-user="{{user.userId}}"
+                    bindtap="onToggle"
+                  >
+                    <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-name">
+                      <text class="cell-text cell-name">{{user.userName}}</text>
+                    </view>
+                    <view class="grid-cell grid-cell-fixed"><text class="cell-text">{{user.attendance}}</text></view>
+                    <view class="grid-cell grid-cell-fixed"><text class="cell-text">{{user.rest}}</text></view>
+                    <view class="grid-cell grid-cell-fixed">
+                      <text class="cell-text {{user.missingDanger ? 'cell-danger' : ''}}">{{user.missing}}</text>
+                    </view>
+                    <view class="grid-cell grid-cell-fixed"><text class="cell-text">{{user.overtime}}</text></view>
+                  </view>
+
+                  <view wx:if="{{user.expanded}}" class="stats-block">
+                    <view class="grid-row">
+                      <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-date"><text class="cell-text">日期</text></view>
+                      <view class="grid-cell grid-cell-fixed"><text class="cell-text">上午上班</text></view>
+                      <view class="grid-cell grid-cell-fixed"><text class="cell-text">上午下班</text></view>
+                      <view class="grid-cell grid-cell-fixed"><text class="cell-text">下午上班</text></view>
+                      <view class="grid-cell grid-cell-fixed"><text class="cell-text">下午下班</text></view>
+                    </view>
+                    <view
+                      class="grid-row"
+                      wx:for="{{user.details}}"
+                      wx:for-item="line"
+                      wx:key="key"
+                    >
+                      <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-date">
+                        <text class="cell-text">{{line.day}}</text>
+                      </view>
+                      <view
+                        class="grid-cell grid-cell-fixed"
+                        wx:for="{{line.slots}}"
+                        wx:for-item="slot"
+                        wx:key="key"
+                      >
+                        <view
+                          wx:if="{{slot.cell.actions.length || slot.cell.pending}}"
+                          class="cell-actions"
+                        >
+                          <button
+                            class="btn"
+                            hover-class="btn-hover"
+                            wx:for="{{slot.cell.actions}}"
+                            wx:for-item="action"
+                            wx:key="kind"
+                            data-user="{{user.userId}}"
+                            data-date="{{line.key}}"
+                            data-kind="{{action.kind}}"
+                            data-half="{{action.half}}"
+                            data-type="{{action.type}}"
+                            catchtap="onCellAction"
+                          >{{action.text}}</button>
+                          <text wx:if="{{slot.cell.pending}}" class="pending-text">审批中</text>
+                        </view>
+                        <text
+                          wx:else
+                          class="cell-text {{slot.cell.tone === 'muted' ? 'cell-head' : ''}}"
+                        >{{slot.cell.text}}</text>
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </scroll-view>
+          </scroll-view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+  <view wx:if="{{pageLoading}}" class="tab-loading">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中</text>
+  </view>
+  <view wx:if="{{toastText}}" class="toast">
+    <block wx:if="{{toastType === 'success'}}">
+      <image class="toast-icon icon-theme-light" src="/assets/icons/toast-success.png" mode="aspectFit"></image>
+      <image class="toast-icon icon-theme-dark" src="/assets/icons/toast-success-dark.png" mode="aspectFit"></image>
+    </block>
+    <image wx:else class="toast-icon" src="/assets/icons/toast-error.png" mode="aspectFit"></image>
+    <text class="toast-text">{{toastText}}</text>
+  </view>
+
+  <dialog
+    show="{{dialogShow}}"
+    title="{{restDialogShow ? restDialogTitle : ''}}"
+    message="{{restDialogShow ? restDialogMessage : ''}}"
+    body="{{!restDialogShow}}"
+    extra="{{!restDialogShow && makeupDirect}}"
+    loading="{{!restDialogShow && makeupSubmitting}}"
+    confirm-disabled="{{!restDialogShow && makeupConfirmDisabled}}"
+    center-style="{{shellStyle}}"
+    panel-style="{{makeupDialogLift}}"
+    bind:cancel="onDialogClose"
+    bind:confirm="onDialogConfirm"
+  >
+    <view wx:if="{{!restDialogShow}}" class="makeup-dialog-body">
+      <view class="makeup-dialog-meta">
+        <text class="meta-line">日期：{{makeupDateLabel}}</text>
+        <text class="meta-line">类型：{{makeupTypeLabel}}</text>
+        <text wx:if="{{!makeupDirect}}" class="meta-line">补卡时间：{{makeupTime}}</text>
+      </view>
+    </view>
+    <view wx:if="{{makeupDirect}}" slot="footer-extra" class="time-field">
+      <view
+        class="time-seg {{hourSegOn ? 'time-seg-on' : ''}}"
+        catchtap="onFocusHour"
+      >
+        <text class="time-seg-text {{hourTextOn ? 'time-seg-text-on' : ''}}">{{hourText}}</text>
+      </view>
+      <text class="time-colon">:</text>
+      <view
+        class="time-seg {{minuteSegOn ? 'time-seg-on' : ''}}"
+        catchtap="onFocusMinute"
+      >
+        <text class="time-seg-text {{minuteTextOn ? 'time-seg-text-on' : ''}}">{{minuteText}}</text>
+      </view>
+      <input
+        class="time-key"
+        type="number"
+        focus="{{timeFocus}}"
+        value="{{digitBuffer}}"
+        disabled="{{makeupSubmitting}}"
+        adjust-position="{{false}}"
+        bindinput="onTimeDigit"
+        bindblur="onTimeBlur"
+        bindkeyboardheightchange="onMakeupKeyboardHeight"
+      />
+    </view>
+  </dialog>
+</view>

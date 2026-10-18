@@ -1,0 +1,212 @@
+@import "../../../styles/common.wxss";
+
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.punch-page {
+  min-height: 100%;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.clock-block {
+  align-self: stretch;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-text,
+.loc-text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.loc-error {
+  color: var(--destructive);
+}
+
+.loc-address {
+  color: var(--foreground);
+}
+
+.locate-actions {
+  align-self: stretch;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.locate-btn {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  border-radius: 24px;
+  margin: 0;
+}
+
+.locate-line {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--foreground);
+  text-align: center;
+}
+
+.metric {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  height: 32px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.square-value-muted {
+  color: var(--muted-foreground);
+}
+
+.timeline-wrap {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
+
+.timeline-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.time-text {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--foreground);
+}
+
+.timeline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  width: 16px;
+  flex-shrink: 0;
+  margin: -2px 0;
+}
+
+.timeline-stem-grow {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background-color: var(--border);
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--primary);
+}
+
+.timeline-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-text {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.desc-text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.today-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-title {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.punch-page .card {
+  min-width: 0;
+}
+
+.stats {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+}
+
+.stat {
+  width: 25%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.stat-value {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--foreground);
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  text-align: center;
+}

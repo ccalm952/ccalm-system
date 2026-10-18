@@ -15,7 +15,7 @@ coverage
 *.tsbuildinfo
 .env
 *.local
-ccalm-miniprogram/utils/config.local.js
+ccalm-miniprogram/config/local.js
 ccalm-miniprogram/project.private.config.json
 ccalm-miniprogram/miniprogram_npm/project.config.json
 ccalm-miniprogram/miniprogram_npm/project.private.config.json
@@ -33,3 +33,7 @@ ccalm-api/uploads/
 *.njsproj
 *.sln
 *.sw?
+
+# WeChat upload secrets
+.secrets/
+*.key

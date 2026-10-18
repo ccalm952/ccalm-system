@@ -1,0 +1,122 @@
+<view class="tab-panel">
+  <view
+    class="refresh-indicator"
+    style="transform: translate3d(0, {{pullY}}px, 0); opacity: {{pullOpacity}};"
+  >
+    <image class="refresh-spinner {{refreshing || pullDistance > 0 ? 'refresh-spinner-on' : ''}}" src="/assets/icons/spinner.png" mode="aspectFit"></image>
+    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance > pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
+  </view>
+
+  <scroll-view
+    class="tab-scroll"
+    scroll-y
+    enable-flex
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    refresher-default-style="none"
+    refresher-threshold="{{pullThreshold}}"
+    bindrefresherpulling="onRefresherPulling"
+    bindrefresherrestore="onRefresherRestore"
+    bindrefresherabort="onRefresherAbort"
+    bindrefresherrefresh="onRefresherRefresh"
+  >
+    <view class="page schedule-page">
+      <view class="card schedule-card">
+        <view class="weekdays">
+          <text
+            class="weekday-text"
+            wx:for="{{weekdays}}"
+            wx:key="*this"
+          >{{item}}</text>
+        </view>
+
+        <view wx:if="{{empty}}">
+          <text class="empty-text">本月没有排班记录</text>
+        </view>
+        <view wx:else class="calendar">
+          <view class="week-block" wx:for="{{weeks}}" wx:for-item="week" wx:key="key">
+            <view class="week">
+              <view
+                class="day-col"
+                wx:for="{{week.cells}}"
+                wx:for-item="cell"
+                wx:key="key"
+              >
+                <text
+                  wx:if="{{!cell.blank}}"
+                  class="day-num {{cell.today ? 'day-today' : (cell.holiday ? 'day-holiday' : '')}}"
+                >{{cell.day}}</text>
+                <text
+                  wx:if="{{!cell.blank && cell.hasEvents && cell.label}}"
+                  class="mark-text {{cell.tone}}"
+                >{{cell.label}}</text>
+                <view
+                  wx:if="{{!cell.blank && cell.hasEvents && !cell.label}}"
+                  class="day-slot"
+                ></view>
+                <text
+                  wx:if="{{!cell.blank && cell.hasEvents && cell.overtime}}"
+                  class="overtime-text"
+                >{{cell.overtime}}</text>
+                <view
+                  wx:if="{{!cell.blank && cell.hasEvents && !cell.overtime}}"
+                  class="day-slot"
+                ></view>
+              </view>
+            </view>
+            <view wx:if="{{week.divider}}" class="week-divider"></view>
+          </view>
+        </view>
+
+        <view
+          class="calendar-arrow calendar-arrow-prev {{canPrev ? '' : 'calendar-arrow-disabled'}}"
+          hover-class="calendar-arrow-hover"
+          hover-stay-time="{{70}}"
+          bindtap="goPrevMonth"
+        >
+          <image
+            class="calendar-arrow-icon icon-theme-light"
+            src="/assets/icons/chevron-left.png"
+            mode="aspectFit"
+          ></image>
+          <image
+            class="calendar-arrow-icon icon-theme-dark"
+            src="/assets/icons/chevron-left-dark.png"
+            mode="aspectFit"
+          ></image>
+        </view>
+        <text class="calendar-title">{{monthTitle}}</text>
+        <view
+          class="calendar-arrow calendar-arrow-next {{canNext ? '' : 'calendar-arrow-disabled'}}"
+          hover-class="calendar-arrow-hover"
+          hover-stay-time="{{70}}"
+          bindtap="goNextMonth"
+        >
+          <image
+            class="calendar-arrow-icon icon-theme-light"
+            src="/assets/icons/chevron-right.png"
+            mode="aspectFit"
+          ></image>
+          <image
+            class="calendar-arrow-icon icon-theme-dark"
+            src="/assets/icons/chevron-right-dark.png"
+            mode="aspectFit"
+          ></image>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{pageLoading}}" class="tab-loading">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中</text>
+  </view>
+  <view wx:if="{{toastText}}" class="toast">
+    <block wx:if="{{toastType === 'success'}}">
+      <image class="toast-icon icon-theme-light" src="/assets/icons/toast-success.png" mode="aspectFit"></image>
+      <image class="toast-icon icon-theme-dark" src="/assets/icons/toast-success-dark.png" mode="aspectFit"></image>
+    </block>
+    <image wx:else class="toast-icon" src="/assets/icons/toast-error.png" mode="aspectFit"></image>
+    <text class="toast-text">{{toastText}}</text>
+  </view>
+</view>

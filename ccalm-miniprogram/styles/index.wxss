@@ -1,0 +1,3 @@
+@import "./theme.wxss";
+@import "./base.wxss";
+@import "./common.wxss";

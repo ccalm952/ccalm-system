@@ -1,0 +1,85 @@
+@import "../../../styles/common.wxss";
+
+:host {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.app-tab-bar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 56px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  background-color: var(--background);
+  padding-top: constant(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-bottom);
+  padding-top: calc(constant(safe-area-inset-bottom) - 16px);
+  padding-top: calc(env(safe-area-inset-bottom) - 16px);
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
+}
+
+.tab-item {
+  flex: 1;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+}
+
+.tab-icon-wrap {
+  position: relative;
+  height: 30px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.tab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.tab-label {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tab-label-active {
+  color: var(--primary);
+}
+
+.tab-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  min-width: 14px;
+  height: 14px;
+  line-height: 14px;
+  padding: 0;
+  border-radius: 7px;
+  background-color: #e15050;
+  color: #ffffff;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tab-badge-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+}

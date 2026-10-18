@@ -1,12 +1,3 @@
 {
-  "navigationBarTitleText": "登录绑定",
-  "navigationBarBackgroundColor": "#0a0a0a",
-  "navigationBarTextStyle": "white",
-  "backgroundColor": "#0a0a0a",
-  "usingComponents": {
-    "van-field": "@vant/weapp/field/index",
-    "van-button": "@vant/weapp/button/index",
-    "van-loading": "@vant/weapp/loading/index",
-    "van-toast": "@vant/weapp/toast/index"
-  }
+  "navigationStyle": "custom"
 }

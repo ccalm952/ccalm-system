@@ -1,0 +1,14 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "CCALM 打卡",
+  "disableScroll": true,
+  "usingComponents": {
+    "app-nav": "/components/layout/app-nav/app-nav",
+    "app-tab-bar": "/components/layout/app-tab-bar/app-tab-bar",
+    "punch-tab": "/components/tabs/punch/punch",
+    "missing-tab": "/components/tabs/missing/missing",
+    "schedule-tab": "/components/tabs/schedule/schedule",
+    "stats-tab": "/components/tabs/stats/stats",
+    "mine-tab": "/components/tabs/mine/mine"
+  }
+}

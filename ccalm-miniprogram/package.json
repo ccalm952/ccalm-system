@@ -1,7 +1,7 @@
 {
   "name": "ccalm-miniprogram",
   "version": "1.0.0",
-  "description": "MVP：微信登录、首次用现有账号绑定、上下班打卡、查看当日记录。",
+  "description": "CCALM 考勤打卡小程序：登录绑定、打卡、缺卡、排班、统计、我的。",
   "main": "app.js",
   "scripts": {
     "lint": "eslint .",
@@ -12,9 +12,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@vant/weapp": "^1.11.7"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.12.0",

@@ -1,48 +1,35 @@
-const WALLPAPER = {
-  light: "/assets/background-mobile-light.jpg",
-  dark: "/assets/background-mobile-dark.jpg",
-};
+/**
+ * 系统明暗主题读取与状态栏配色。
+ */
 
-function resolveTheme() {
+function getTheme() {
+  let theme = "light";
   try {
-    if (typeof wx.getAppBaseInfo === "function") {
-      const info = wx.getAppBaseInfo();
-      if (info && info.theme === "dark") return "dark";
-    }
+    const info = wx.getAppBaseInfo();
+    if (info && info.theme === "dark") theme = "dark";
   } catch (_) {
-    // fall through
+    // ignore
   }
-  try {
-    const info = wx.getSystemInfoSync();
-    if (info && info.theme === "dark") return "dark";
-  } catch (_) {
-    // fall through
-  }
-  return "light";
+  return theme;
 }
 
-function wallpaperSrc(theme) {
-  return WALLPAPER[theme === "dark" ? "dark" : "light"];
-}
-
-/** 绑定系统主题 → wallpaperSrc；返回 off 函数 */
-function bindWallpaper(page) {
-  const apply = (theme) => {
-    page.setData({ wallpaperSrc: wallpaperSrc(theme) });
-  };
-  apply(resolveTheme());
-  const onChange = (res) => apply(res && res.theme);
-  if (typeof wx.onThemeChange === "function") {
-    wx.onThemeChange(onChange);
+function applyStatusBar(theme) {
+  const name = theme || getTheme();
+  const dark = name === "dark";
+  try {
+    wx.setNavigationBarColor({
+      frontColor: dark ? "#ffffff" : "#000000",
+      backgroundColor: dark ? "#171413" : "#fdfdfd",
+    });
+    wx.setBackgroundColor({
+      backgroundColor: dark ? "#171413" : "#fdfdfd",
+    });
+  } catch (_) {
+    // ignore
   }
-  return () => {
-    if (typeof wx.offThemeChange === "function") {
-      wx.offThemeChange(onChange);
-    }
-  };
 }
 
 module.exports = {
-  wallpaperSrc,
-  bindWallpaper,
+  getTheme,
+  applyStatusBar,
 };

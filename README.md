@@ -6,14 +6,18 @@
 ccalm-system/
   ccalm-web/          # React + Vite 前端
   ccalm-api/          # NestJS + Prisma 后端
-  ccalm-miniprogram/  # 微信小程序（考勤打卡 MVP）
+  ccalm-miniprogram/  # 原生微信小程序（打卡/缺卡/排班/统计/我的）
+  ccalm-uniapp-x/     # uni-app x 参考实现
+  ccalm-uniapp/       # 旧版 uni-app 实现
 ```
+
+小程序内部结构见 `ccalm-miniprogram/README.md` 的「目录结构」。
 
 ## 开发约定
 
 - **开分支 + PR 再合 `master`**，避免直推主分支（绕过必检）。命名示例：`feat/mp-…`、`fix/web-…`、`chore/api-…`。
-- **密钥不进仓库**：`ccalm-api/.env`、`ccalm-web/.env`、`ccalm-miniprogram/utils/config.local.js` 仅本机/服务器保留；小程序高德 Key 用 `config.local.example.js` 复制填写。
-- **小程序工具文件**：勿提交 `project.private.config.json`、以及 `miniprogram_npm/` 下误生成的 `project.*.json`；`project.config.json` 无业务改动时的字段重排可 `git restore` 丢掉。
+- **密钥不进仓库**：`ccalm-api/.env`、`ccalm-web/.env`、`ccalm-miniprogram/config/local.js` 仅本机/服务器保留；小程序高德 Key 用 `config/local.example.js` 复制填写。
+- **小程序工具文件**：勿提交 `project.private.config.json`；`project.config.json` 无业务改动时的字段重排可 `git restore` 丢掉。
 - **发布边界**：只改小程序/文档不触发服务器 Deploy，需用微信开发者工具上传；改 `ccalm-web` / `ccalm-api` 才由 Actions 部署。
 
 ## 本地开发
@@ -138,16 +142,16 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 
 ### 打卡小程序
 
-目录：`ccalm-miniprogram/`（Vant Weapp）。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
+目录：`ccalm-miniprogram/`（原生微信小程序，与 `ccalm-uniapp-x` 同一套样式和功能）。用微信开发者工具打开该目录，AppID 与后端 `WECHAT_APPID` 一致。
 
 微信公众平台 request 合法域名：
 
 - `https://www.ccalm.xyz`（API）
 - `https://restapi.amap.com`（中文地址逆地理）
 
-高德 Key：复制 `ccalm-miniprogram/utils/config.local.example.js` 为 `config.local.js`，填入 **Web服务** 类型 Key（勿提交；勿用网页 JS API Key）。
+高德 Key：复制 `ccalm-miniprogram/config/local.example.js` 为 `config/local.js`，填入 **Web服务** 类型 Key（勿提交；勿用网页 JS API Key）。
 
-流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。`deviceToken` 为微信 `openid`。
+流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。底部五个 Tab：打卡、缺卡、排班、统计、我的。`deviceToken` 为微信 `openid`。
 
 ### 小程序审核测试账号
 

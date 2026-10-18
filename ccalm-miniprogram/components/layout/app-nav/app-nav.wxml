@@ -1,0 +1,8 @@
+<view class="app-nav" style="padding-top: {{statusBarHeight}}px">
+  <view
+    class="app-nav-content"
+    style="height: {{navContentHeight}}px; padding-left: {{sidePadding}}px; padding-right: {{sidePadding}}px;"
+  >
+    <text class="app-nav-title">{{title}}</text>
+  </view>
+</view>

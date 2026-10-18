@@ -1,15 +1,16 @@
 {
-  "pages": ["pages/punch/punch", "pages/login/login"],
-  "darkmode": true,
+  "pages": ["pages/home/home", "pages/login/login"],
   "window": {
+    "navigationStyle": "custom",
+    "navigationBarTextStyle": "@navTxtStyle",
     "navigationBarTitleText": "CCALM 打卡",
-    "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTextStyle": "black",
-    "backgroundColor": "#f7f8fa",
+    "navigationBarBackgroundColor": "@navBgColor",
+    "backgroundColor": "@bgColor",
     "backgroundTextStyle": "dark"
   },
+  "themeLocation": "theme.json",
+  "darkmode": true,
   "lazyCodeLoading": "requiredComponents",
-  "sitemapLocation": "sitemap.json",
   "permission": {
     "scope.userLocation": {
       "desc": "用于考勤打卡定位校验"

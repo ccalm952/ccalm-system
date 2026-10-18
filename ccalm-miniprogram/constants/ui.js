@@ -1,0 +1,9 @@
+const TOAST_DURATION_MS = 3000;
+const BADGE_REFRESH_MS = 30000;
+const PULL_THRESHOLD = 45;
+
+module.exports = {
+  TOAST_DURATION_MS,
+  BADGE_REFRESH_MS,
+  PULL_THRESHOLD,
+};

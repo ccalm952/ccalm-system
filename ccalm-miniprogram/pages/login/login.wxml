@@ -1,59 +1,38 @@
-<image
-  class="wallpaper"
-  src="{{wallpaperSrc}}"
-  mode="aspectFill"
-/>
-<view class="page">
-  <view class="card">
-    <view class="muted">首次使用请用现有账号绑定微信</view>
+<view class="app-root {{theme === 'dark' ? 'dark' : ''}} login-root">
+  <view class="page login-page">
+    <view class="card login-card">
+      <text class="hint-text">首次使用请用现有账号绑定微信</text>
 
-    <view wx:if="{{step === 'loading'}}" class="loading-wrap">
-      <van-loading size="24px" color="var(--punch-accent)">
-        正在微信登录…
-      </van-loading>
+      <view wx:if="{{step === 'loading'}}" class="loading-wrap">
+        <text class="hint-text">正在微信登录…</text>
+      </view>
+
+      <block wx:elif="{{step === 'bind'}}">
+        <input
+          class="login-field"
+          value="{{username}}"
+          placeholder="请输入账号"
+          placeholder-class="login-placeholder"
+          bindinput="onUsername"
+        />
+        <input
+          class="login-field"
+          password="{{true}}"
+          value="{{password}}"
+          placeholder="请输入密码"
+          placeholder-class="login-placeholder"
+          bindinput="onPassword"
+        />
+        <button
+          class="btn bind-btn"
+          hover-class="btn-hover"
+          loading="{{submitting}}"
+          disabled="{{submitting}}"
+          bindtap="onBind"
+        >绑定并登录</button>
+      </block>
+
+      <text wx:if="{{error}}" class="error-text">{{error}}</text>
     </view>
-
-    <block wx:elif="{{step === 'bind'}}">
-      <van-field
-        border="{{ false }}"
-        center
-        input-align="left"
-        custom-class="login-field"
-        custom-style="border-radius: 999px; overflow: hidden;"
-        value="{{username}}"
-        placeholder="请输入账号"
-        clearable
-        bind:change="onUsername"
-      />
-      <van-field
-        border="{{ false }}"
-        center
-        input-align="left"
-        custom-class="login-field"
-        custom-style="border-radius: 999px; overflow: hidden;"
-        value="{{password}}"
-        password
-        placeholder="请输入密码"
-        clearable
-        bind:change="onPassword"
-      />
-      <van-button
-        round
-        block
-        size="small"
-        type="primary"
-        color="var(--punch-accent)"
-        loading="{{submitting}}"
-        disabled="{{submitting}}"
-        custom-class="bind-btn"
-        bind:click="onBind"
-      >
-        绑定并登录
-      </van-button>
-    </block>
-
-    <view wx:if="{{error}}" class="error">{{error}}</view>
   </view>
 </view>
-
-<van-toast id="van-toast" />

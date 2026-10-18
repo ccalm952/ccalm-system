@@ -1,0 +1,14 @@
+/* Page-level resets; only imported by app.wxss, never by custom components. */
+
+view,
+text,
+button,
+input,
+scroll-view,
+image {
+  box-sizing: border-box;
+}
+
+button::after {
+  border-width: 0;
+}
