@@ -26,6 +26,11 @@ import { GripVertical, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Table,
   TableBody,
   TableCell,
@@ -53,6 +58,12 @@ import {
 
 type SalarySheetComputed = ReturnType<typeof computeSalarySheet>;
 
+type BonusDetailLine = {
+  id: string;
+  name: string;
+  amount: number;
+};
+
 function sumActualReceiptTotal(computed: SalarySheetComputed): number {
   return round2(
     computed.employees.reduce((sum, row) => sum + row.actualReceipt, 0),
@@ -68,6 +79,65 @@ function deductionTooltip(bonusMode: SalaryEmployeeInput["bonusMode"]): string {
     return "护士扣减";
   }
   return "医生扣减";
+}
+
+function bonusCommissionLabel(
+  bonusMode: SalaryEmployeeInput["bonusMode"],
+): string {
+  if (
+    bonusMode === "chen_pool" ||
+    bonusMode === "lu_pool" ||
+    bonusMode === "xu_pool"
+  ) {
+    return "池奖金";
+  }
+  return "阶梯提成";
+}
+
+function bonusDetailLines(row: SalaryEmployeeComputed): BonusDetailLine[] {
+  const lines: BonusDetailLine[] = [
+    {
+      id: "commission",
+      name: bonusCommissionLabel(row.bonusMode),
+      amount: row.bonusCommission,
+    },
+  ];
+  if (row.plantingBonus !== 0) {
+    lines.push({
+      id: "planting",
+      name: "种植奖金",
+      amount: row.plantingBonus,
+    });
+  }
+  lines.push(
+    { id: "social", name: "社保", amount: -row.socialInsurance },
+    { id: "medical", name: "医保", amount: -row.medicalInsurance },
+    { id: "housing", name: "公积金", amount: -row.housingFund },
+  );
+  return lines;
+}
+
+function BonusAmountPopover({ row }: { row: SalaryEmployeeComputed }) {
+  const lines = bonusDetailLines(row);
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={<Button variant="link" className="w-full min-w-0 px-0" />}
+      >
+        {row.bonus}
+      </PopoverTrigger>
+      <PopoverContent>
+        <div className="flex flex-col gap-2">
+          {lines.map((line) => (
+            <div key={line.id} className="flex justify-between gap-4">
+              <span>{line.name}</span>
+              <span>{line.amount}</span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function SortableEmployeeRow({
@@ -142,7 +212,9 @@ function SortableEmployeeRow({
         />
       </TableCell>
       <TableCell>{row.actualReceipt}</TableCell>
-      <TableCell>{row.bonus}</TableCell>
+      <TableCell>
+        <BonusAmountPopover row={row} />
+      </TableCell>
       <TableCell>
         <NumInput
           value={row.plantingCount}

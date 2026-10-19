@@ -170,6 +170,8 @@ export type SalaryEmployeeComputed = SalaryEmployeeInput & {
   leaveOffset: number;
   deductedBase: number;
   actualReceipt: number;
+  /** 阶梯提成或个人池×池比例（未加种植、未扣三险一金） */
+  bonusCommission: number;
   plantingBonus: number;
   socialInsurance: number;
   medicalInsurance: number;
