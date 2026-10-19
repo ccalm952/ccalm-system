@@ -101,7 +101,49 @@ describe("薪资计算", () => {
   it("先按分成比例计算实收，再扣减设置比例", () => {
     const row = computedEmployee(100_000, employee({ shareRatio: 0.5 }));
     expect(row.actualReceipt).toBe(40_000);
+    expect(row.bonusCommission).toBe(4_400);
     expect(row.bonus).toBe(4_400);
+  });
+
+  it("奖金明细：阶梯提成 + 种植 − 社保医保公积金 = 奖金", () => {
+    const data = sheet(100_000, [
+      employee({
+        shareRatio: 0.5,
+        deductionRate: 0,
+        plantingCount: 2,
+        housingFund: 100,
+      }),
+    ]);
+    data.insurance = {
+      ...data.insurance,
+      pensionBase: 1000,
+      pensionPersonalRate: 0.08,
+      pensionPersonalCount: 1,
+      unemploymentBase: 1000,
+      unemploymentPersonalRate: 0.005,
+      unemploymentPersonalCount: 1,
+      medicalBase: 1000,
+      medicalPersonalRate: 0.02,
+      medicalPersonalCount: 1,
+    };
+    const row = computeSalarySheet(data, {
+      month: "2026-08",
+      globalSettings: settings,
+    }).employees[0];
+    // 实收 50000 → 阶梯提成 5800；种植 2×50=100；社保 85；医保 20；公积金 100
+    expect(row.bonusCommission).toBe(5_800);
+    expect(row.plantingBonus).toBe(100);
+    expect(row.socialInsurance).toBe(85);
+    expect(row.medicalInsurance).toBe(20);
+    expect(row.housingFund).toBe(100);
+    expect(row.bonus).toBe(
+      row.bonusCommission +
+        row.plantingBonus -
+        row.socialInsurance -
+        row.medicalInsurance -
+        row.housingFund,
+    );
+    expect(row.bonus).toBe(5_695);
   });
 
   it("护士个人池按总收入×(1−个人扣减%)计算，请假与池比例不变", () => {
@@ -122,6 +164,7 @@ describe("薪资计算", () => {
       },
     );
     // 净收入 75000，请假 30 天 → 个人池 0 → 奖金 0
+    expect(result.employees[0].bonusCommission).toBe(0);
     expect(result.employees[0].bonus).toBe(0);
 
     const withWork = computeSalarySheet(
@@ -134,6 +177,7 @@ describe("薪资计算", () => {
             bonusMode: "chen_pool",
             shareRatio: 0,
             deductionRate: 0.25,
+            housingFund: 50,
           }),
         ]),
         leaveQuotas: { chen: 0, lu: 30, xu: 30 },
@@ -143,8 +187,17 @@ describe("薪资计算", () => {
         globalSettings: settings,
       },
     );
-    // 个人池 = 75000，奖金 = 75000 × 0.003 = 225
-    expect(withWork.employees[0].bonus).toBe(225);
+    // 个人池 = 75000，池奖金 = 75000 × 0.003 = 225
+    const nurse = withWork.employees[0];
+    expect(nurse.bonusCommission).toBe(225);
+    expect(nurse.bonus).toBe(
+      nurse.bonusCommission +
+        nurse.plantingBonus -
+        nurse.socialInsurance -
+        nurse.medicalInsurance -
+        nurse.housingFund,
+    );
+    expect(nurse.bonus).toBe(175);
   });
 
   it("区分吴介尘与其他员工的种植单价", () => {

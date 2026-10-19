@@ -445,12 +445,11 @@ function calcActualReceipt(
   return round0(totalIncome * shareRatio * (1 - deductionRate));
 }
 
-function calcTieredBonus(
+/** 按实收计算阶梯提成（不含种植奖金与扣减） */
+function calcTieredCommission(
   actualReceipt: number,
   thresholds: SalaryTierThresholds,
   rates: SalaryTierRates,
-  plantingBonus: number,
-  deductions: number,
 ): number {
   const caps = [
     thresholds.tier1,
@@ -476,14 +475,14 @@ function calcTieredBonus(
     commission += (Math.min(actualReceipt, caps[i]) - prev) * tierRates[i];
     prev = caps[i];
     if (actualReceipt <= caps[i]) {
-      return round2(commission + plantingBonus - deductions);
+      return round2(commission);
     }
   }
   const lastCap = caps[caps.length - 1];
   if (actualReceipt > lastCap) {
     commission += (actualReceipt - lastCap) * tierRates[tierRates.length - 1];
   }
-  return round2(commission + plantingBonus - deductions);
+  return round2(commission);
 }
 
 function computeEmployee(
@@ -520,34 +519,33 @@ function computeEmployee(
   const deductions = round2(emp.housingFund + ctx.social + ctx.medical);
   const tierRates = tierRatesForTitle(emp.title, ctx.globalSettings);
 
-  const bonus =
+  const bonusCommission =
     emp.bonusMode === "tiered"
-      ? calcTieredBonus(
+      ? calcTieredCommission(
           actualReceipt,
           ctx.globalSettings.tierThresholds,
           tierRates,
-          plantingBonus,
-          deductions,
         )
-      : calcPersonalLeavePool(
-          ctx.totalIncome,
-          deductionRate,
-          ctx.daysInMonth,
-          poolLeaveDays(emp.bonusMode, ctx.leaveQuotas),
-        ) *
-          poolBonusRateForMode(emp.bonusMode, ctx.globalSettings) +
-        plantingBonus -
-        deductions;
+      : round2(
+          calcPersonalLeavePool(
+            ctx.totalIncome,
+            deductionRate,
+            ctx.daysInMonth,
+            poolLeaveDays(emp.bonusMode, ctx.leaveQuotas),
+          ) * poolBonusRateForMode(emp.bonusMode, ctx.globalSettings),
+        );
+  const bonus = round2(bonusCommission + plantingBonus - deductions);
 
   return {
     ...emp,
     leaveOffset,
     deductedBase,
     actualReceipt,
+    bonusCommission,
     plantingBonus,
     socialInsurance: ctx.social,
     medicalInsurance: ctx.medical,
-    bonus: round2(bonus),
+    bonus,
     monthlySalary: round2(deductedBase + bonus),
   };
 }
