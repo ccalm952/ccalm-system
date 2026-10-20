@@ -20,6 +20,7 @@
       <schedule-tab
         id="schedule-tab"
         active="{{activeIndex === 2}}"
+        bind:attendancechanged="onAttendanceChanged"
       ></schedule-tab>
     </view>
     <view class="tab-host" style="display: {{activeIndex === 3 ? 'flex' : 'none'}}">

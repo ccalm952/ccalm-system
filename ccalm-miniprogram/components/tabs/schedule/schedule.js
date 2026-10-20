@@ -105,11 +105,14 @@ Component({
 
   methods: {
     refresh() {
-      if (!this.properties.active) return;
-      if (this.loading) return;
+      if (!this.properties.active || this.loading) return;
       const session = requireSession();
       if (!session) return;
       this.userId = (session.user && session.user.id) || this.userId;
+      if (!this.scheduleShown) {
+        this.activate();
+        return;
+      }
       this.loading = true;
       this.reloadAll(true).finally(() => {
         this.loading = false;
@@ -322,9 +325,13 @@ Component({
     },
 
     onRefresherRefresh() {
+      if (this.loading) return;
       this.beginRefresh();
       this.monthCache.delete(this.data.selectedMonth);
-      this.reloadAll(true).finally(() => this.endRefresh());
+      this.reloadAll(true).finally(() => {
+        this.endRefresh();
+        this.triggerEvent("attendancechanged");
+      });
     },
   },
 });

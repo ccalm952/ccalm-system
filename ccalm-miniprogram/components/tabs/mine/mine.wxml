@@ -45,7 +45,7 @@
             <view class="todo-btn" bindtap="onTodoOpen">
               <text class="todo-btn-text">待办</text>
             </view>
-            <view wx:if="{{badgeText}}" class="todo-badge">{{badgeText}}</view>
+            <view wx:if="{{badgeText}}" class="app-badge"><text class="app-badge-text">{{badgeText}}</text></view>
           </view>
         </view>
       </view>
@@ -138,4 +138,12 @@
       </scroll-view>
     </view>
   </view>
+
+  <dialog
+    show="{{dialogShow}}"
+    title="退出登录"
+    message="确定退出当前账号？"
+    bind:cancel="onDialogCancel"
+    bind:confirm="onDialogConfirm"
+  ></dialog>
 </view>

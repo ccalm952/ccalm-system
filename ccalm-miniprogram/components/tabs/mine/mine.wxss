@@ -59,22 +59,6 @@
   color: var(--foreground);
 }
 
-.todo-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(50%, -50%);
-  min-width: 14px;
-  height: 14px;
-  line-height: 14px;
-  border-radius: 7px;
-  background-color: var(--primary);
-  color: #ffffff;
-  font-size: 10px;
-  text-align: center;
-  white-space: nowrap;
-}
-
 .avatar-btn {
   width: 52px;
   height: 52px;

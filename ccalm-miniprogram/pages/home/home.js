@@ -16,6 +16,8 @@ Page({
 
   badgeTimer: null,
   badgeSeq: 0,
+  badgeLoading: false,
+  hasShown: false,
 
   onLoad() {
     this.applyTheme();
@@ -27,7 +29,9 @@ Page({
     this.applyTheme();
     this.refreshBadges();
     this.startBadgeTimer();
-    this.refreshActive();
+    const firstShow = !this.hasShown;
+    this.hasShown = true;
+    if (!firstShow) this.refreshActive();
   },
 
   applyTheme(theme) {
@@ -90,10 +94,12 @@ Page({
   },
 
   async refreshBadges() {
+    if (this.badgeLoading) return;
     if (!hasSession()) {
       this.setData({ missingBadge: "", reviewBadge: "" });
       return;
     }
+    this.badgeLoading = true;
     const seq = (this.badgeSeq += 1);
     try {
       const [state, missing] = await Promise.all([
@@ -112,6 +118,8 @@ Page({
       this.setData({ missingBadge, reviewBadge });
     } catch (_) {
       // keep previous badges when refresh fails
+    } finally {
+      this.badgeLoading = false;
     }
   },
 });

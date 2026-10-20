@@ -110,17 +110,30 @@ Component({
 
   methods: {
     refresh() {
-      if (this.properties.active) this.activate();
+      if (!this.properties.active) return;
+      if (this.loading) return;
+      if (!this.loaded) {
+        this.activate();
+        return;
+      }
+      this.setData({ todayLabel: formatDateLabel() });
+      this.tick();
+      this.startTimer();
+      this.loading = true;
+      this.reloadAll().finally(() => {
+        this.loading = false;
+      });
     },
 
     activate() {
       if (!requireSession()) return;
       if (this.loading) return;
-      this.loading = true;
-      if (!this.loaded) this.setData({ pageLoading: true });
       this.setData({ todayLabel: formatDateLabel() });
       this.tick();
       this.startTimer();
+      if (this.loaded) return;
+      this.loading = true;
+      this.setData({ pageLoading: true });
       this.reloadAll()
         .then((ok) => {
           this.setData({ pageLoading: false });
@@ -420,13 +433,17 @@ Component({
     },
 
     onRefresherRefresh() {
+      if (this.loading) return;
       this.beginRefresh();
       this.reloadAll()
         .then((ok) => {
           if (ok) return this.onRefreshLocate();
           return undefined;
         })
-        .finally(() => this.endRefresh());
+        .finally(() => {
+          this.endRefresh();
+          this.triggerEvent("attendancechanged");
+        });
     },
   },
 });

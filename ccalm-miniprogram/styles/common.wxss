@@ -1,26 +1,32 @@
 /* Shared primitives: layout, buttons, cards, table, dialog, toast, loading, refresh. */
 
-.app-nav-title,
-.tab-badge,
-.todo-badge,
-.dialog-message,
-.time-text,
-.stat-value,
-.square-value,
-.head-value,
-.day-num,
-.overtime-text,
-.td-text,
-.cell-text,
-.date-text,
-.loc-text,
-.meta-line,
-.todo-item-line,
-.toast-text,
-.time-seg-text,
-.time-colon {
-  font-family: Inter;
-  font-variant-numeric: tabular-nums;
+.app-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  min-width: 18px;
+  height: 18px;
+  line-height: 14px;
+  padding: 2px 6px;
+  border-radius: 9px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: #e15050;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.app-badge-text {
+  display: block;
+  line-height: 14px;
+  text-align: center;
 }
 
 .tab-panel {

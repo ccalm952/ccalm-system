@@ -31,6 +31,7 @@ Component({
     count: "0",
     tone: "muted",
     monthRows: [],
+    tableHeight: 0,
     pageLoading: false,
     dialogShow: false,
     restDialogShow: false,
@@ -62,14 +63,24 @@ Component({
 
   methods: {
     refresh() {
-      if (this.properties.active) this.activate();
+      if (!this.properties.active) return;
+      if (this.loading) return;
+      if (!this.loaded) {
+        this.activate();
+        return;
+      }
+      this.loading = true;
+      this.reloadAll().finally(() => {
+        this.loading = false;
+      });
     },
 
     activate() {
       if (!requireSession()) return;
       if (this.loading) return;
+      if (this.loaded) return;
       this.loading = true;
-      if (!this.loaded) this.setData({ pageLoading: true });
+      this.setData({ pageLoading: true });
       this.reloadAll()
         .then((ok) => {
           if (ok) this.loaded = true;
@@ -110,16 +121,44 @@ Component({
               entry.cell.actions.some((action) => action.kind === "makeup"),
             ),
           );
-        this.setData({
-          count: String(total),
-          tone: total > 0 ? "warn" : "muted",
-          monthRows: rows,
-        });
+        this.setData(
+          {
+            count: String(total),
+            tone: total > 0 ? "warn" : "muted",
+            monthRows: rows,
+          },
+          () => this.updateTableHeight(rows.length),
+        );
         return true;
       } catch (error) {
         this.showError(error, "加载失败");
         return false;
       }
+    },
+
+    updateTableHeight(rowCount) {
+      const count = Number(rowCount) || 0;
+      if (!count) {
+        this.setData({ tableHeight: 0 });
+        return;
+      }
+      wx.nextTick(() => {
+        const query = wx.createSelectorQuery().in(this);
+        query.select(".missing-page").boundingClientRect();
+        query.select(".head").boundingClientRect();
+        query.exec((res) => {
+          const page = res && res[0];
+          const head = res && res[1];
+          if (!page) return;
+          const headHeight = head ? head.height : 40;
+          const available = Math.max(
+            81,
+            page.height - 32 - 32 - headHeight - 16,
+          );
+          const content = 40 + count * 41;
+          this.setData({ tableHeight: Math.min(content, available) });
+        });
+      });
     },
 
     onCellActionTap(event) {
@@ -235,8 +274,12 @@ Component({
     },
 
     onRefresherRefresh() {
+      if (this.loading) return;
       this.beginRefresh();
-      this.reloadAll().finally(() => this.endRefresh());
+      this.reloadAll().finally(() => {
+        this.endRefresh();
+        this.triggerEvent("attendancechanged");
+      });
     },
   },
 });

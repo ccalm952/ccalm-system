@@ -85,7 +85,7 @@ Component({
 
   methods: {
     refresh() {
-      if (!this.properties.active) return;
+      if (!this.properties.active || !this.statsLoaded) return;
       this.load(false);
     },
 
@@ -495,8 +495,12 @@ Component({
     },
 
     onRefresherRefresh() {
+      if (this.loading) return;
       this.beginRefresh();
-      this.load(false).finally(() => this.endRefresh());
+      this.load(false).finally(() => {
+        this.endRefresh();
+        this.triggerEvent("attendancechanged");
+      });
     },
   },
 });

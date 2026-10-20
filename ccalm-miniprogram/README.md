@@ -94,7 +94,7 @@ ccalm-miniprogram/
 │   ├── common.wxss               # 公共类（组件可安全引用）
 │   └── index.wxss                # 页面/全局汇总 import
 ├── assets/                       # 静态资源
-│   ├── fonts/                    # Inter 字体
+│   ├── fonts/                    # Maple Mono 字体
 │   └── icons/                    # 图标
 ├── app.js                        # 应用入口：字体、主题、审核账号清理
 ├── app.json                      # 页面注册、窗口、定位权限

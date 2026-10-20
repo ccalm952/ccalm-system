@@ -52,6 +52,7 @@ Component({
     mineItems: [],
     pendingItems: [],
     todoEmpty: "暂无申请记录",
+    dialogShow: false,
   },
 
   observers: {
@@ -69,10 +70,14 @@ Component({
 
   methods: {
     refresh() {
-      if (!this.properties.active) return;
+      if (!this.properties.active || this.loading) return;
       const session = getSession();
       if (!session || !session.user) return;
       this.applyProfile(session);
+      if (!this.loaded) {
+        this.activate();
+        return;
+      }
       this.reload(false);
     },
 
@@ -80,7 +85,8 @@ Component({
       const session = requireSession();
       if (!session) return;
       this.applyProfile(session);
-      this.reload(!this.loaded);
+      if (this.loading || this.loaded) return;
+      this.reload(true);
     },
 
     applyProfile(session) {
@@ -234,23 +240,27 @@ Component({
         return;
       }
       if (key === "logout") {
-        wx.showModal({
-          title: "退出登录",
-          content: "确定退出当前账号？",
-          success: (result) => {
-            if (!result.confirm) return;
-            clearSession();
-            wx.reLaunch({ url: LOGIN_PAGE });
-          },
-        });
+        this.setData({ dialogShow: true });
       }
     },
 
     onRefresherRefresh() {
+      if (this.loading) return;
       this.beginRefresh();
-      Promise.all([this.loadMonth(), this.loadTodo(null)]).finally(() =>
-        this.endRefresh(),
-      );
+      Promise.all([this.loadMonth(), this.loadTodo(null)]).finally(() => {
+        this.endRefresh();
+        this.triggerEvent("attendancechanged");
+      });
+    },
+
+    onDialogCancel() {
+      this.setData({ dialogShow: false });
+    },
+
+    onDialogConfirm() {
+      this.setData({ dialogShow: false });
+      clearSession();
+      wx.reLaunch({ url: LOGIN_PAGE });
     },
 
     noop() {},
