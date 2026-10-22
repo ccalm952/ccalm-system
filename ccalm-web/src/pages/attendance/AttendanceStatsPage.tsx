@@ -43,7 +43,7 @@ import {
   attendanceTableHeaderClass,
   detailOvertimeClass,
   hasOvertime,
-  summaryMissingSlotsClass,
+  summaryMissingClass,
   summaryOvertimeClass,
 } from "@/lib/attendance/attendance-theme";
 import {
@@ -52,6 +52,7 @@ import {
   type BackendShiftDto,
 } from "@/lib/attendance/shift";
 import type { RestHalf } from "@/lib/attendance/rest";
+import { setAttendanceEditStart } from "@/lib/attendance/edit-window";
 import { formatDayCount, todayKey } from "@/lib/attendance/summary";
 import type {
   AttendanceMakeupRequest,
@@ -87,7 +88,7 @@ type UserAgg = {
   userName: string;
   attendanceDays: number;
   restDays: number;
-  missingSlots: number;
+  allMissingSlots: number;
   overtimeStr: string;
   rows: AttendanceMonthlySummary["rows"];
   detailLoaded: boolean;
@@ -118,7 +119,7 @@ async function loadSummary(
 }> {
   const isAdmin = me.role === "admin";
 
-  const [pendingMakeupRequests, summaryResult] = await Promise.all([
+  const [pendingMakeupRequests, summaryResult, history] = await Promise.all([
     loadPendingMakeupRequests(isAdmin),
     isAdmin
       ? api<Omit<UserAgg, "detailLoaded">[]>(
@@ -136,13 +137,19 @@ async function loadSummary(
             userName: me.displayName || me.username,
             attendanceDays: s.attendanceDays,
             restDays: s.restDays,
-            missingSlots: s.missingSlots,
+            allMissingSlots: s.allMissingSlots,
             overtimeStr: s.overtimeStr,
             rows: s.rows,
             detailLoaded: true,
           },
         ]),
+    api<{ startDate: string | null }>(
+      "GET",
+      "/attendance/summary/missing-history",
+    ).catch(() => ({ startDate: null })),
   ]);
+
+  setAttendanceEditStart(history.startDate?.slice(0, 7));
 
   return {
     isAdmin,
@@ -313,10 +320,10 @@ export function AttendanceStatsPage() {
       },
       {
         header: "缺卡",
-        accessorKey: "missingSlots",
+        accessorKey: "allMissingSlots",
         cell: ({ getValue }) => {
           const n = Number(getValue() ?? 0);
-          return <span className={summaryMissingSlotsClass(n)}>{n}</span>;
+          return <span className={summaryMissingClass(n)}>{n}</span>;
         },
       },
       {

@@ -3,6 +3,7 @@ const {
   createMakeupRequest,
   declareRest,
   directMakeup,
+  getMissingHistory,
   getMonthlySummaries,
   getMonthlySummary,
   getShift,
@@ -31,6 +32,7 @@ const {
   formatMonthTitle,
   formatOvertimeHours,
   monthKey,
+  setEditStartMonth,
   shiftMonthKey,
 } = require("../../../utils/time");
 
@@ -209,12 +211,18 @@ Component({
         const requestsPromise = admin
           ? listMakeupRequests("pending").catch(() => [])
           : listMyMakeupRequests("pending").catch(() => []);
-        const [shiftValue, requests] = await Promise.all([
+        const [shiftValue, requests, history] = await Promise.all([
           getShift(),
           requestsPromise,
+          getMissingHistory().catch(() => null),
         ]);
         this.shift = shiftValue;
         this.pendingRequests = Array.isArray(requests) ? requests : [];
+        setEditStartMonth(
+          history && history.startDate
+            ? String(history.startDate).slice(0, 7)
+            : "",
+        );
         let lines = [];
         if (admin) {
           const list = await getMonthlySummaries(month);

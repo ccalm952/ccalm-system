@@ -1,6 +1,6 @@
 const { requireSession, hasSession } = require("../../store/session");
 const { fetchTodoState } = require("../../services/todo");
-const { fetchMissingCount } = require("../../services/badge");
+const { fetchMissingTotal } = require("../../services/badge");
 const { badgeText } = require("../../utils/badge");
 const { BADGE_REFRESH_MS } = require("../../constants/ui");
 const { TABS, TAB_INDEX } = require("../../constants/tabs");
@@ -106,7 +106,7 @@ Page({
     try {
       const [state, missing] = await Promise.all([
         fetchTodoState(),
-        fetchMissingCount().catch(() => 0),
+        fetchMissingTotal().catch(() => 0),
       ]);
       if (seq !== this.badgeSeq) return;
       const missingBadge = badgeText(missing);

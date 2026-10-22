@@ -125,7 +125,7 @@ export function hasOvertime(overtimeStr: string): boolean {
   return v !== "" && v !== "-";
 }
 
-export function summaryMissingSlotsClass(count: number): string {
+export function summaryMissingClass(count: number): string {
   return count > 0 ? attendanceMissingTextClass : attendanceTimeTextClass;
 }
 

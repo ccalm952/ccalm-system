@@ -106,7 +106,7 @@ export type AttendanceMonthlySummary = {
   rangeEnd: string; // YYYY-MM-DD
   attendanceDays: number;
   restDays: number;
-  missingSlots: number;
+  allMissingSlots: number;
   overtimeMinutes: number;
   overtimeStr: string;
   remainingLeave?: number;

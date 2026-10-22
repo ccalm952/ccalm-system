@@ -123,10 +123,19 @@ function buildEditWindowContext(today = todayYmd()) {
   };
 }
 
+let editStartMonth = "";
+
+function setEditStartMonth(month) {
+  editStartMonth = /^\d{4}-\d{2}$/.test(month || "") ? String(month) : "";
+}
+
 function isWithinEditWindow(dateStr, ctx = buildEditWindowContext()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || "")) return false;
   if (dateStr > ctx.todayYmd) return false;
   const month = dateStr.slice(0, 7);
+  if (editStartMonth) {
+    return month >= editStartMonth && month <= ctx.currentMonth;
+  }
   return month === ctx.currentMonth || month === ctx.previousMonth;
 }
 
@@ -147,5 +156,6 @@ module.exports = {
   isWallClockInInclusiveRange,
   isWallClockAfter,
   buildEditWindowContext,
+  setEditStartMonth,
   isWithinEditWindow,
 };

@@ -48,7 +48,7 @@ import {
   attendanceErrorTextClass,
   attendanceMutedTextClass,
   hasOvertime,
-  summaryMissingSlotsClass,
+  summaryMissingClass,
   summaryOvertimeClass,
 } from "@/lib/attendance/attendance-theme";
 import type { RestHalf } from "@/lib/attendance/rest";
@@ -748,10 +748,10 @@ export function AttendancePage() {
                         <div
                           className={cn(
                             "text-sm",
-                            summaryMissingSlotsClass(monthSummary.missingSlots),
+                            summaryMissingClass(monthSummary.allMissingSlots),
                           )}
                         >
-                          {monthSummary.missingSlots}
+                          {monthSummary.allMissingSlots}
                         </div>
                         <div className="text-sm">缺卡</div>
                       </div>

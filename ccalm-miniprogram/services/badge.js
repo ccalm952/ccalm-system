@@ -2,7 +2,7 @@ const { getMissingHistory, getMonthlySummary } = require("./attendance");
 const { getSession, hasSession } = require("../store/session");
 const { monthKey } = require("../utils/time");
 
-async function fetchMissingCount() {
+async function fetchMissingTotal() {
   if (!hasSession()) return 0;
   const session = getSession();
   const userId = session.user && session.user.id;
@@ -16,5 +16,5 @@ async function fetchMissingCount() {
 }
 
 module.exports = {
-  fetchMissingCount,
+  fetchMissingTotal,
 };
