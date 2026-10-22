@@ -85,7 +85,6 @@ Component({
     weeks: [],
     empty: false,
     pageLoading: false,
-    columnWidth: 0,
   },
 
   observers: {
@@ -102,33 +101,9 @@ Component({
       this.prefetching = new Map();
       if (this.properties.active) this.activate();
     },
-    ready() {
-      this.updateColumnWidth();
-    },
-  },
-
-  pageLifetimes: {
-    resize() {
-      this.updateColumnWidth();
-    },
   },
 
   methods: {
-    updateColumnWidth() {
-      wx.nextTick(() => {
-        const query = wx.createSelectorQuery().in(this);
-        query.select(".weekdays").boundingClientRect();
-        query.exec((res) => {
-          const rect = res && res[0];
-          if (!rect || !rect.width) return;
-          const width = rect.width / 7;
-          if (Math.abs(width - this.data.columnWidth) > 0.5) {
-            this.setData({ columnWidth: width });
-          }
-        });
-      });
-    },
-
     refresh() {
       if (!this.properties.active || this.loading) return;
       const session = requireSession();
@@ -149,7 +124,6 @@ Component({
       const session = requireSession();
       if (!session) return;
       this.userId = (session.user && session.user.id) || this.userId;
-      this.updateColumnWidth();
       if (this.loading) return;
       const cached = this.monthCache.get(this.data.selectedMonth);
       if (cached) {

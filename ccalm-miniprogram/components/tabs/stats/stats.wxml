@@ -22,51 +22,19 @@
   >
     <view class="page stats-page">
       <view class="card stats-card">
-        <view class="month-switch">
-          <view
-            class="month-arrow"
-            hover-class="month-arrow-hover"
-            hover-stay-time="{{70}}"
-            bindtap="goPrevMonth"
-          >
-            <image
-              class="month-arrow-icon icon-theme-light"
-              src="/assets/icons/chevron-left.png"
-              mode="aspectFit"
-            ></image>
-            <image
-              class="month-arrow-icon icon-theme-dark"
-              src="/assets/icons/chevron-left-dark.png"
-              mode="aspectFit"
-            ></image>
-          </view>
-          <text class="month-title">{{monthTitle}}</text>
-          <view
-            class="month-arrow {{canNext ? '' : 'month-arrow-disabled'}}"
-            hover-class="month-arrow-hover"
-            hover-stay-time="{{70}}"
-            bindtap="goNextMonth"
-          >
-            <image
-              class="month-arrow-icon icon-theme-light"
-              src="/assets/icons/chevron-right.png"
-              mode="aspectFit"
-            ></image>
-            <image
-              class="month-arrow-icon icon-theme-dark"
-              src="/assets/icons/chevron-right-dark.png"
-              mode="aspectFit"
-            ></image>
-          </view>
-        </view>
-
         <text wx:if="{{!users.length}}" class="empty-text">该月没有考勤记录</text>
         <view wx:else class="stats-table-host">
-          <scroll-view class="stats-table-y" scroll-y enable-flex>
+          <scroll-view
+            class="stats-table-y"
+            scroll-y
+            enable-flex
+            enhanced="{{true}}"
+            show-scrollbar="{{false}}"
+          >
             <scroll-view class="table-scroll" scroll-x enable-flex>
-              <view class="table stats-table" style="min-width: 576px">
+              <view class="table stats-table" style="min-width: 640px">
                 <view class="grid-row grid-row-first">
-                  <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-name"><text class="cell-text">姓名</text></view>
+                  <view class="grid-cell grid-cell-fixed grid-cell-name"><text class="cell-text">姓名</text></view>
                   <view class="grid-cell grid-cell-fixed"><text class="cell-text">出勤天数</text></view>
                   <view class="grid-cell grid-cell-fixed"><text class="cell-text">休息天数</text></view>
                   <view class="grid-cell grid-cell-fixed"><text class="cell-text">缺卡</text></view>
@@ -80,7 +48,7 @@
                     data-user="{{user.userId}}"
                     bindtap="onToggle"
                   >
-                    <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-name">
+                    <view class="grid-cell grid-cell-fixed grid-cell-name">
                       <text class="cell-text cell-name">{{user.userName}}</text>
                     </view>
                     <view class="grid-cell grid-cell-fixed"><text class="cell-text">{{user.attendance}}</text></view>
@@ -93,7 +61,7 @@
 
                   <view wx:if="{{user.expanded}}" class="stats-block">
                     <view class="grid-row">
-                      <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-date"><text class="cell-text">日期</text></view>
+                      <view class="grid-cell grid-cell-fixed grid-cell-date"><text class="cell-text">日期</text></view>
                       <view class="grid-cell grid-cell-fixed"><text class="cell-text">上午上班</text></view>
                       <view class="grid-cell grid-cell-fixed"><text class="cell-text">上午下班</text></view>
                       <view class="grid-cell grid-cell-fixed"><text class="cell-text">下午上班</text></view>
@@ -105,7 +73,7 @@
                       wx:for-item="line"
                       wx:key="key"
                     >
-                      <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-date">
+                      <view class="grid-cell grid-cell-fixed grid-cell-date">
                         <text class="cell-text">{{line.day}}</text>
                       </view>
                       <view
@@ -144,6 +112,44 @@
               </view>
             </scroll-view>
           </scroll-view>
+        </view>
+      </view>
+
+      <view class="month-switch">
+        <view
+          class="month-arrow"
+          hover-class="month-arrow-hover"
+          hover-stay-time="{{70}}"
+          bindtap="goPrevMonth"
+        >
+          <image
+            class="month-arrow-icon icon-theme-light"
+            src="/assets/icons/chevron-left.png"
+            mode="aspectFit"
+          ></image>
+          <image
+            class="month-arrow-icon icon-theme-dark"
+            src="/assets/icons/chevron-left-dark.png"
+            mode="aspectFit"
+          ></image>
+        </view>
+        <text class="month-title">{{monthTitle}}</text>
+        <view
+          class="month-arrow {{canNext ? '' : 'month-arrow-disabled'}}"
+          hover-class="month-arrow-hover"
+          hover-stay-time="{{70}}"
+          bindtap="goNextMonth"
+        >
+          <image
+            class="month-arrow-icon icon-theme-light"
+            src="/assets/icons/chevron-right.png"
+            mode="aspectFit"
+          ></image>
+          <image
+            class="month-arrow-icon icon-theme-dark"
+            src="/assets/icons/chevron-right-dark.png"
+            mode="aspectFit"
+          ></image>
         </view>
       </view>
     </view>

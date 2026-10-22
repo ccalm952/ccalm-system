@@ -21,10 +21,7 @@
     bindrefresherrefresh="onRefresherRefresh"
   >
     <view class="page schedule-page">
-      <view
-        class="card schedule-card"
-        style="--schedule-col-width: {{columnWidth}}px;"
-      >
+      <view class="card schedule-card">
         <view class="weekdays">
           <text
             class="weekday-text"
@@ -71,37 +68,40 @@
           </view>
         </view>
 
+      </view>
+
+      <view class="month-switch">
         <view
-          class="calendar-arrow calendar-arrow-prev {{canPrev ? '' : 'calendar-arrow-disabled'}}"
-          hover-class="calendar-arrow-hover"
+          class="month-arrow {{canPrev ? '' : 'month-arrow-disabled'}}"
+          hover-class="month-arrow-hover"
           hover-stay-time="{{70}}"
           bindtap="goPrevMonth"
         >
           <image
-            class="calendar-arrow-icon icon-theme-light"
+            class="month-arrow-icon icon-theme-light"
             src="/assets/icons/chevron-left.png"
             mode="aspectFit"
           ></image>
           <image
-            class="calendar-arrow-icon icon-theme-dark"
+            class="month-arrow-icon icon-theme-dark"
             src="/assets/icons/chevron-left-dark.png"
             mode="aspectFit"
           ></image>
         </view>
-        <text class="calendar-title">{{monthTitle}}</text>
+        <text class="month-title">{{monthTitle}}</text>
         <view
-          class="calendar-arrow calendar-arrow-next {{canNext ? '' : 'calendar-arrow-disabled'}}"
-          hover-class="calendar-arrow-hover"
+          class="month-arrow {{canNext ? '' : 'month-arrow-disabled'}}"
+          hover-class="month-arrow-hover"
           hover-stay-time="{{70}}"
           bindtap="goNextMonth"
         >
           <image
-            class="calendar-arrow-icon icon-theme-light"
+            class="month-arrow-icon icon-theme-light"
             src="/assets/icons/chevron-right.png"
             mode="aspectFit"
           ></image>
           <image
-            class="calendar-arrow-icon icon-theme-dark"
+            class="month-arrow-icon icon-theme-dark"
             src="/assets/icons/chevron-right-dark.png"
             mode="aspectFit"
           ></image>
