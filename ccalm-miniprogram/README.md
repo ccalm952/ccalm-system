@@ -86,7 +86,6 @@ ccalm-miniprogram/
 │   ├── attendance-table.js       # 统计页月表明细单元格
 │   ├── avatar.js                 # 本地头像读写
 │   ├── nav-metrics.js            # 状态栏/胶囊按钮/安全区
-│   ├── layout.js                 # 页面/表格/底栏尺寸常量
 │   ├── theme.js                  # 明暗主题与状态栏
 │   ├── badge.js                  # 角标数字格式化
 │   └── review-account.js         # 审核测试账号判断

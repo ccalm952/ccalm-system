@@ -5,7 +5,6 @@ import {
   applyDayAttendance,
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
-  countMakeupButtonSlots,
   countUnresolvedMissingSlots,
   employeeMakeupSlotDenyReason,
   makeupSlotDenyMessage,
@@ -406,78 +405,5 @@ describe("adminMakeupSlotDenyReason", () => {
     expect(
       adminMakeupSlotDenyReason(row(), "afternoon_out", env, undefined, LATE),
     ).toBe("need_in");
-  });
-});
-
-describe("countMakeupButtonSlots", () => {
-  it("空记录且无 gate 时只统计两个上班卡", () => {
-    expect(countMakeupButtonSlots(row(), [], undefined, LATE)).toBe(2);
-  });
-
-  it("只有上午上班卡时可补上午下班与下午上班", () => {
-    expect(
-      countMakeupButtonSlots(row({ morningIn: "08:30" }), [], undefined, LATE),
-    ).toBe(2);
-  });
-
-  it("四个时段齐全时为 0", () => {
-    expect(
-      countMakeupButtonSlots(
-        row({
-          morningIn: "08:30",
-          morningOut: "12:00",
-          afternoonIn: "14:30",
-          afternoonOut: "18:00",
-        }),
-        [],
-        undefined,
-        LATE,
-      ),
-    ).toBe(0);
-  });
-
-  it("半天休息会去掉对应两个按钮", () => {
-    expect(
-      countMakeupButtonSlots(
-        row({ declaredRest: "full_rest" }),
-        [],
-        undefined,
-        LATE,
-      ),
-    ).toBe(0);
-    expect(
-      countMakeupButtonSlots(
-        row({ declaredRest: "morning_rest" }),
-        [],
-        undefined,
-        LATE,
-      ),
-    ).toBe(1);
-  });
-
-  it("审批中的申请不再计入缺卡", () => {
-    const pending: PendingMakeup[] = [
-      { date: PAST_DATE, type: "morning_in", status: "pending" },
-    ];
-    expect(countMakeupButtonSlots(row(), pending, undefined, LATE)).toBe(1);
-  });
-
-  it("窗口外的日期不计任何缺卡", () => {
-    expect(
-      countMakeupButtonSlots(row({ date: "2000-01-01" }), [], undefined, LATE),
-    ).toBe(0);
-  });
-
-  it("今日在打卡窗口结束前不可补，窗口结束后正常统计", () => {
-    const gate = {
-      morningInWindowEnd: "09:00",
-      afternoonInWindowEnd: "15:00",
-    };
-    expect(countMakeupButtonSlots(row({ date: TODAY }), [], gate, EARLY)).toBe(
-      0,
-    );
-    expect(countMakeupButtonSlots(row({ date: TODAY }), [], gate, LATE)).toBe(
-      2,
-    );
   });
 });

@@ -120,8 +120,8 @@ describe("computeMonthlySummaryAggregate", () => {
     expect(result.restDays).toBe(1.5);
     expect(result.overtimeMinutes).toBe(0);
     expect(result.overtimeStr).toBe("-");
-    // 这些日期早已超出编辑窗口，因此缺卡数为 0
-    expect(result.missingSlots).toBe(0);
+    // 历史缺卡不受编辑窗口影响
+    expect(result.allMissingSlots).toBe(3);
   });
 
   it("区分补卡来源与半天休息归属", () => {
@@ -191,7 +191,7 @@ describe("computeMonthlySummaryAggregate", () => {
     expect(r.morningOutIsMakeup).toBe(true);
   });
 
-  it("没有记录时全为 null 且所有汇总为 0", () => {
+  it("没有记录时日期全为 null，可补卡为 0，历史缺卡为 2", () => {
     const result = computeMonthlySummaryAggregate({
       start: attendanceDayjs("2020-01-07"),
       end: attendanceDayjs("2020-01-07"),
@@ -204,7 +204,7 @@ describe("computeMonthlySummaryAggregate", () => {
     expect(result).toEqual({
       attendanceDays: 0,
       restDays: 0,
-      missingSlots: 0,
+      allMissingSlots: 2,
       overtimeMinutes: 0,
       overtimeStr: "-",
       rows: [

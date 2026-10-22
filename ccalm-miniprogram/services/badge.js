@@ -8,10 +8,10 @@ async function fetchMissingCount() {
   const userId = session.user && session.user.id;
   const [monthly, history] = await Promise.all([
     getMonthlySummary(monthKey(), userId),
-    getMissingHistory().catch(() => ({ missingSlots: 0 })),
+    getMissingHistory().catch(() => ({ allMissingSlots: 0 })),
   ]);
-  const current = monthly ? Number(monthly.missingSlots) : 0;
-  const previous = history ? Number(history.missingSlots) : 0;
+  const current = monthly ? Number(monthly.allMissingSlots) : 0;
+  const previous = history ? Number(history.allMissingSlots) : 0;
   return current + previous;
 }
 

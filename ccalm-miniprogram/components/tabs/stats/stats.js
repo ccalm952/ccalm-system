@@ -28,22 +28,11 @@ const {
 } = require("../../../utils/punch-rule");
 const {
   formatDayCount,
+  formatMonthTitle,
   formatOvertimeHours,
   monthKey,
-  previousMonthKey,
+  shiftMonthKey,
 } = require("../../../utils/time");
-const {
-  readWindowMetrics,
-  navBarContentHeight,
-  resetNavMetrics,
-} = require("../../../utils/nav-metrics");
-const {
-  tabBarHeight,
-  tableContentHeight,
-  PAGE_PADDING,
-  CARD_PADDING,
-  CARD_GAP,
-} = require("../../../utils/layout");
 
 Component({
   behaviors: [toastBehavior, pullRefreshBehavior, makeupTimeBehavior],
@@ -54,11 +43,11 @@ Component({
 
   data: {
     thisMonth: monthKey(),
-    lastMonth: previousMonthKey(),
     month: monthKey(),
+    monthTitle: formatMonthTitle(monthKey()),
+    canNext: false,
     users: [],
     pageLoading: false,
-    tableHeight: 240,
     expandedId: "",
     dialogShow: false,
     restDialogShow: false,
@@ -86,16 +75,7 @@ Component({
   lifetimes: {
     attached() {
       this.pendingRequests = [];
-      this.tableMax = 0;
-      this.updateTableHeight();
       if (this.properties.active) this.activate();
-    },
-  },
-
-  pageLifetimes: {
-    resize() {
-      resetNavMetrics();
-      this.updateTableHeight();
     },
   },
 
@@ -108,7 +88,6 @@ Component({
     activate() {
       const session = requireSession();
       if (!session) return;
-      this.updateTableHeight();
       this.setData({ makeupDirect: isAdmin(session) });
       if (this.statsLoaded) {
         this.setData({ pageLoading: false });
@@ -127,38 +106,6 @@ Component({
         this.loading = false;
         this.setData({ pageLoading: false });
       }
-    },
-
-    updateTableHeight() {
-      wx.nextTick(() => {
-        const query = wx.createSelectorQuery().in(this);
-        query.select(".month-bar").boundingClientRect();
-        query.exec((res) => {
-          const monthBar = res && res[0];
-          if (!monthBar || !monthBar.height) return;
-          const info = readWindowMetrics();
-          const height =
-            info.windowHeight -
-            info.statusBarHeight -
-            navBarContentHeight() -
-            tabBarHeight(info) -
-            PAGE_PADDING * 2 -
-            CARD_PADDING * 2 -
-            CARD_GAP -
-            monthBar.height;
-          this.tableMax = Math.floor(height);
-          this.syncTableHeight();
-        });
-      });
-    },
-
-    syncTableHeight() {
-      const users = this.data.users || [];
-      let content = tableContentHeight(users.length);
-      if (this.data.expandedId || content > this.tableMax) {
-        content = this.tableMax;
-      }
-      this.setData({ tableHeight: content });
     },
 
     requestsFor(userId) {
@@ -198,13 +145,14 @@ Component({
     },
 
     mapSummary(item, loaded) {
+      const missing = Number(item.allMissingSlots);
       return {
         userId: item.userId,
         userName: item.userName,
         attendance: formatDayCount(item.attendanceDays),
         rest: formatDayCount(item.restDays),
-        missing: String(item.missingSlots),
-        missingDanger: item.missingSlots > 0,
+        missing: String(missing),
+        missingDanger: missing > 0,
         overtime: this.showOvertime(item.overtimeStr),
         expanded: false,
         details: loaded ? this.mapDetails(item.rows, item.userId) : [],
@@ -237,13 +185,14 @@ Component({
     },
 
     applyMonthSummary(userId, detail) {
+      const missing = Number(detail.allMissingSlots);
       const users = (this.data.users || []).map((item) => {
         if (item.userId !== userId) return item;
         return Object.assign({}, item, {
           attendance: formatDayCount(detail.attendanceDays),
           rest: formatDayCount(detail.restDays),
-          missing: String(detail.missingSlots),
-          missingDanger: detail.missingSlots > 0,
+          missing: String(missing),
+          missingDanger: missing > 0,
           overtime: this.showOvertime(detail.overtimeStr),
         });
       });
@@ -281,7 +230,7 @@ Component({
                 userName: name,
                 attendanceDays: summary.attendanceDays,
                 restDays: summary.restDays,
-                missingSlots: summary.missingSlots,
+                allMissingSlots: summary.allMissingSlots,
                 overtimeStr: summary.overtimeStr,
                 rows: summary.rows,
               },
@@ -293,9 +242,7 @@ Component({
           Object.assign({}, line, { expanded: line.userId === keep }),
         );
         this.statsLoaded = true;
-        this.setData({ users: lines, expandedId: keep }, () => {
-          this.syncTableHeight();
-        });
+        this.setData({ users: lines, expandedId: keep });
         if (keep) {
           const current = this.findUser(keep);
           if (current && !current.detailLoaded) {
@@ -307,17 +254,23 @@ Component({
       }
     },
 
-    onMonthTap(event) {
-      const value = String(
-        (event.currentTarget.dataset && event.currentTarget.dataset.month) ||
-          "",
-      );
-      if (value) this.onMonth(value);
+    goPrevMonth() {
+      this.onMonth(shiftMonthKey(this.data.month, -1));
+    },
+
+    goNextMonth() {
+      if (!this.data.canNext) return;
+      this.onMonth(shiftMonthKey(this.data.month, 1));
     },
 
     onMonth(value) {
       if (!value || this.data.month === value) return;
-      this.setData({ month: value, expandedId: "" });
+      this.setData({
+        month: value,
+        monthTitle: formatMonthTitle(value),
+        canNext: value < this.data.thisMonth,
+        expandedId: "",
+      });
       this.load(true);
     },
 
@@ -332,7 +285,6 @@ Component({
       this.applyMonthSummary(userId, detail);
       this.setData({ expandedId: userId });
       this.setExpanded(userId, true, details, true);
-      this.syncTableHeight();
     },
 
     async onToggle(event) {
@@ -345,7 +297,6 @@ Component({
       if (current.expanded) {
         this.setData({ expandedId: "" });
         this.setExpanded(userId, false, [], false);
-        this.syncTableHeight();
         return;
       }
       try {

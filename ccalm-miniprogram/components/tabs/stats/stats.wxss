@@ -9,38 +9,64 @@
   min-height: 0;
 }
 
-.month-bar {
+.month-switch {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
-.month-btn {
+.month-arrow {
+  width: 32px;
   height: 32px;
-  padding: 0 12px;
+  flex-shrink: 0;
   border-radius: 16px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  background-color: var(--card);
-  border: 1px solid var(--border);
+  background-color: var(--secondary);
 }
 
-.month-btn-on {
-  background-color: var(--primary);
-  border-color: var(--primary);
+.month-arrow-hover {
+  background-color: var(--accent);
 }
 
-.month-btn-text {
-  font-size: 14px;
+.month-arrow-disabled {
+  opacity: 0.35;
+}
+
+.month-arrow-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.month-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
   line-height: 20px;
   color: var(--foreground);
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.month-btn-text-on {
-  color: var(--primary-foreground);
+.stats-table .grid-cell-name,
+.stats-table .grid-cell-date {
+  width: 64px;
+  flex: 0 0 64px;
+}
+
+.stats-page {
+  min-height: 100%;
+}
+
+.stats-card {
+  flex: 1;
+  min-height: 0;
 }
 
 .stats-block {
@@ -52,10 +78,21 @@
 .stats-table-host {
   width: 100%;
   min-width: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .stats-table-y {
   width: 100%;
+  height: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.stats-card > .empty-text {
+  margin: auto;
 }
 
 .summary-row-on {

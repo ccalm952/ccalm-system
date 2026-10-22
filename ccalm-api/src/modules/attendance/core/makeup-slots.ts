@@ -181,46 +181,6 @@ export function makeupSlotDenyMessage(
   }
 }
 
-function employeeMakeupSlotState(
-  row: DayPunchRow,
-  type: MakeupSlotType,
-  pending: PendingMakeup[],
-  env: MakeupSlotsEnv,
-  gate: MakeupTodayGate | undefined,
-  at: Date = new Date(),
-): "apply" | null {
-  if (
-    employeeMakeupSlotDenyReason(row, type, pending, env, gate, at) !== null
-  ) {
-    return null;
-  }
-  return "apply";
-}
-
-/** 与打卡页一致：每个可点击的「补/补卡」按钮计 1 次缺卡（审批中不计）。 */
-export function countMakeupButtonSlots(
-  row: DayPunchRow,
-  pending: PendingMakeup[] = [],
-  gate?: MakeupTodayGate,
-  at: Date = new Date(),
-): number {
-  const env = makeupSlotsEnv();
-  let count = 0;
-  for (const type of [
-    "morning_in",
-    "afternoon_in",
-    "morning_out",
-    "afternoon_out",
-  ] as const) {
-    if (
-      employeeMakeupSlotState(row, type, pending, env, gate, at) === "apply"
-    ) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
 /**
  * 统计历史缺卡：不受“只能补本月/上月”的编辑窗口限制，
  * 只排除已登记休息和已存在审批中补卡申请的时段。

@@ -5,7 +5,10 @@ import {
   attendanceTodayStart,
   formatAttendanceTime,
 } from "./attendance-dayjs";
-import { applyDayAttendance, countMakeupButtonSlots } from "./makeup-slots";
+import {
+  applyDayAttendance,
+  countUnresolvedMissingSlots,
+} from "./makeup-slots";
 import { leaveDaysForShift } from "./schedule-inference";
 import { minutesFromMidnight } from "./time";
 
@@ -94,7 +97,7 @@ export function computeMonthlySummaryAggregate(params: {
 }): {
   attendanceDays: number;
   restDays: number;
-  missingSlots: number;
+  allMissingSlots: number;
   overtimeMinutes: number;
   overtimeStr: string;
   rows: MonthlySummaryRow[];
@@ -116,14 +119,9 @@ export function computeMonthlySummaryAggregate(params: {
     byDate.set(key, arr);
   }
 
-  const gate = {
-    morningInWindowEnd: shift.morningInWindowEnd,
-    afternoonInWindowEnd: shift.afternoonInWindowEnd,
-  };
-
   let attendanceDays = 0;
   let restDays = 0;
-  let missingSlots = 0;
+  let allMissingSlots = 0;
   let overtimeMinutes = 0;
   const rows: MonthlySummaryRow[] = [];
 
@@ -175,7 +173,7 @@ export function computeMonthlySummaryAggregate(params: {
       attendanceDays += applyDayAttendance(row);
     }
 
-    missingSlots += countMakeupButtonSlots(row, pendingMakeups, gate);
+    allMissingSlots += countUnresolvedMissingSlots(row, pendingMakeups);
 
     const overtime = overtimeMinutesForOutTimes(
       row.morningOut,
@@ -192,7 +190,7 @@ export function computeMonthlySummaryAggregate(params: {
   return {
     attendanceDays,
     restDays,
-    missingSlots,
+    allMissingSlots,
     overtimeMinutes,
     overtimeStr: fmtOvertimeMinutes(overtimeMinutes),
     rows,

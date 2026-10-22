@@ -31,7 +31,7 @@ const GLOBAL_CONFIG_ID = "global" as const;
 const MISSING_HISTORY_TTL_MS = 5 * 60 * 1000;
 
 type MissingHistory = {
-  missingSlots: number;
+  allMissingSlots: number;
   startDate: string | null;
   endDate: string | null;
 };
@@ -471,15 +471,16 @@ export class AttendanceService {
     };
 
     if (!firstRecord) {
-      return cache({ missingSlots: 0, startDate: null, endDate: null });
+      return cache({ allMissingSlots: 0, startDate: null, endDate: null });
     }
 
-    const start = attendanceDayjs(firstRecord.punchDate, "YYYY-MM-DD").startOf(
-      "day",
-    );
+    const start = attendanceDayjs(
+      `${firstRecord.punchDate.slice(0, 7)}-01`,
+      "YYYY-MM-DD",
+    ).startOf("month");
     const end = attendanceTodayStart().startOf("month").subtract(1, "day");
     if (!start.isValid() || start.isAfter(end, "day")) {
-      return cache({ missingSlots: 0, startDate: null, endDate: null });
+      return cache({ allMissingSlots: 0, startDate: null, endDate: null });
     }
 
     const startDate = start.format("YYYY-MM-DD");
@@ -524,7 +525,7 @@ export class AttendanceService {
       pendingByDate.set(item.date, list);
     }
 
-    let missingSlots = 0;
+    let allMissingSlots = 0;
     for (
       let cursor = start;
       !cursor.isAfter(end, "day");
@@ -536,13 +537,13 @@ export class AttendanceService {
         declaredMap?.get(date) ?? null,
         recordsByDate.get(date) ?? [],
       );
-      missingSlots += countUnresolvedMissingSlots(
+      allMissingSlots += countUnresolvedMissingSlots(
         row,
         pendingByDate.get(date) ?? [],
       );
     }
 
-    return cache({ missingSlots, startDate, endDate: rangeEnd });
+    return cache({ allMissingSlots, startDate, endDate: rangeEnd });
   }
 
   async attendanceBundle(userId: string, month: string) {
@@ -638,7 +639,7 @@ export class AttendanceService {
         userName: u.displayName || u.username,
         attendanceDays: aggregate.attendanceDays,
         restDays: aggregate.restDays,
-        missingSlots: aggregate.missingSlots,
+        allMissingSlots: aggregate.allMissingSlots,
         overtimeStr: aggregate.overtimeStr,
         rows: includeRows ? aggregate.rows : [],
       };

@@ -20,35 +20,51 @@
     bindrefresherabort="onRefresherAbort"
     bindrefresherrefresh="onRefresherRefresh"
   >
-    <view class="page">
-      <view class="month-bar">
-        <view
-          class="month-btn {{month === lastMonth ? 'month-btn-on' : ''}}"
-          data-month="{{lastMonth}}"
-          bindtap="onMonthTap"
-        >
-          <text class="month-btn-text {{month === lastMonth ? 'month-btn-text-on' : ''}}">上月</text>
-        </view>
-        <view
-          class="month-btn {{month === thisMonth ? 'month-btn-on' : ''}}"
-          data-month="{{thisMonth}}"
-          bindtap="onMonthTap"
-        >
-          <text class="month-btn-text {{month === thisMonth ? 'month-btn-text-on' : ''}}">本月</text>
-        </view>
-      </view>
-
-      <view class="card">
-        <text wx:if="{{!users.length}}" class="empty-text">本月没有考勤记录</text>
-        <view wx:else class="stats-table-host">
-          <scroll-view
-            class="stats-table-y"
-            scroll-y
-            enable-flex
-            style="height: {{tableHeight}}px"
+    <view class="page stats-page">
+      <view class="card stats-card">
+        <view class="month-switch">
+          <view
+            class="month-arrow"
+            hover-class="month-arrow-hover"
+            hover-stay-time="{{70}}"
+            bindtap="goPrevMonth"
           >
+            <image
+              class="month-arrow-icon icon-theme-light"
+              src="/assets/icons/chevron-left.png"
+              mode="aspectFit"
+            ></image>
+            <image
+              class="month-arrow-icon icon-theme-dark"
+              src="/assets/icons/chevron-left-dark.png"
+              mode="aspectFit"
+            ></image>
+          </view>
+          <text class="month-title">{{monthTitle}}</text>
+          <view
+            class="month-arrow {{canNext ? '' : 'month-arrow-disabled'}}"
+            hover-class="month-arrow-hover"
+            hover-stay-time="{{70}}"
+            bindtap="goNextMonth"
+          >
+            <image
+              class="month-arrow-icon icon-theme-light"
+              src="/assets/icons/chevron-right.png"
+              mode="aspectFit"
+            ></image>
+            <image
+              class="month-arrow-icon icon-theme-dark"
+              src="/assets/icons/chevron-right-dark.png"
+              mode="aspectFit"
+            ></image>
+          </view>
+        </view>
+
+        <text wx:if="{{!users.length}}" class="empty-text">该月没有考勤记录</text>
+        <view wx:else class="stats-table-host">
+          <scroll-view class="stats-table-y" scroll-y enable-flex>
             <scroll-view class="table-scroll" scroll-x enable-flex>
-              <view class="table stats-table" style="min-width: 640px">
+              <view class="table stats-table" style="min-width: 576px">
                 <view class="grid-row grid-row-first">
                   <view class="grid-cell grid-cell-fixed grid-cell-sticky grid-cell-name"><text class="cell-text">姓名</text></view>
                   <view class="grid-cell grid-cell-fixed"><text class="cell-text">出勤天数</text></view>
