@@ -6,44 +6,29 @@
       <punch-tab
         id="punch-tab"
         active="{{activeIndex === 0}}"
+        review-badge="{{reviewBadge}}"
         bind:attendancechanged="onAttendanceChanged"
       ></punch-tab>
     </view>
     <view class="tab-host" style="display: {{activeIndex === 1 ? 'flex' : 'none'}}">
-      <missing-tab
-        id="missing-tab"
-        active="{{activeIndex === 1}}"
-        bind:attendancechanged="onAttendanceChanged"
-      ></missing-tab>
-    </view>
-    <view class="tab-host" style="display: {{activeIndex === 2 ? 'flex' : 'none'}}">
       <schedule-tab
         id="schedule-tab"
-        active="{{activeIndex === 2}}"
+        active="{{activeIndex === 1}}"
         bind:attendancechanged="onAttendanceChanged"
       ></schedule-tab>
     </view>
-    <view class="tab-host" style="display: {{activeIndex === 3 ? 'flex' : 'none'}}">
+    <view class="tab-host" style="display: {{activeIndex === 2 ? 'flex' : 'none'}}">
       <stats-tab
         id="stats-tab"
-        active="{{activeIndex === 3}}"
+        active="{{activeIndex === 2}}"
         bind:attendancechanged="onAttendanceChanged"
       ></stats-tab>
-    </view>
-    <view class="tab-host" style="display: {{activeIndex === 4 ? 'flex' : 'none'}}">
-      <mine-tab
-        id="mine-tab"
-        active="{{activeIndex === 4}}"
-        bind:attendancechanged="onAttendanceChanged"
-        bind:switchtab="onTabChange"
-      ></mine-tab>
     </view>
   </view>
 
   <app-tab-bar
     current="{{activeIndex}}"
     missing-badge="{{missingBadge}}"
-    review-badge="{{reviewBadge}}"
     bind:change="onTabChange"
   ></app-tab-bar>
 </view>

@@ -6,6 +6,7 @@ import {
   adminMakeupSlotDenyReason,
   buildDayPunchRow,
   countMakeupButtonSlots,
+  countUnresolvedMissingSlots,
   employeeMakeupSlotDenyReason,
   makeupSlotDenyMessage,
   makeupSlotsEnv,
@@ -32,6 +33,48 @@ function row(partial: Partial<DayPunchRow> = {}): DayPunchRow {
     ...partial,
   };
 }
+
+describe("countUnresolvedMissingSlots", () => {
+  it("历史日期即使超出补卡窗口也统计缺卡", () => {
+    expect(countUnresolvedMissingSlots(row({ date: "2000-01-01" }))).toBe(2);
+  });
+
+  it("只统计缺失的上班卡和缺失的下班卡", () => {
+    expect(countUnresolvedMissingSlots(row({ morningIn: "08:30" }))).toBe(2);
+    expect(
+      countUnresolvedMissingSlots(
+        row({ morningIn: "08:30", morningOut: "12:00" }),
+      ),
+    ).toBe(1);
+    expect(
+      countUnresolvedMissingSlots(
+        row({
+          morningIn: "08:30",
+          morningOut: "12:00",
+          afternoonIn: "14:30",
+          afternoonOut: "18:00",
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  it("休息时段不计缺卡", () => {
+    expect(
+      countUnresolvedMissingSlots(row({ declaredRest: "full_rest" })),
+    ).toBe(0);
+    expect(
+      countUnresolvedMissingSlots(row({ declaredRest: "morning_rest" })),
+    ).toBe(1);
+  });
+
+  it("审批中的补卡不计缺卡", () => {
+    const pending: PendingMakeup[] = [
+      { date: PAST_DATE, type: "morning_in", status: "pending" },
+      { date: PAST_DATE, type: "afternoon_in", status: "pending" },
+    ];
+    expect(countUnresolvedMissingSlots(row(), pending)).toBe(0);
+  });
+});
 
 describe("buildDayPunchRow", () => {
   it("把打卡记录按类型填入对应时段", () => {

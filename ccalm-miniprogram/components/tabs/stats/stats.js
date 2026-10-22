@@ -35,7 +35,15 @@ const {
 const {
   readWindowMetrics,
   navBarContentHeight,
+  resetNavMetrics,
 } = require("../../../utils/nav-metrics");
+const {
+  tabBarHeight,
+  tableContentHeight,
+  PAGE_PADDING,
+  CARD_PADDING,
+  CARD_GAP,
+} = require("../../../utils/layout");
 
 Component({
   behaviors: [toastBehavior, pullRefreshBehavior, makeupTimeBehavior],
@@ -56,6 +64,7 @@ Component({
     restDialogShow: false,
     restDialogTitle: "",
     restDialogMessage: "",
+    makeupDialogTitle: "补卡",
     makeupUserId: "",
     makeupDate: "",
     makeupDateLabel: "",
@@ -77,9 +86,16 @@ Component({
   lifetimes: {
     attached() {
       this.pendingRequests = [];
-      this.tableMax = 240;
+      this.tableMax = 0;
       this.updateTableHeight();
       if (this.properties.active) this.activate();
+    },
+  },
+
+  pageLifetimes: {
+    resize() {
+      resetNavMetrics();
+      this.updateTableHeight();
     },
   },
 
@@ -114,28 +130,35 @@ Component({
     },
 
     updateTableHeight() {
-      const info = readWindowMetrics();
-      const tabTop = Math.max(0, info.safeBottom - 16);
-      const tabBar = 56 + tabTop + info.safeBottom;
-      const chrome = 16 + 32 + 16 + 2 + 16 + 16 + 16;
-      let height =
-        info.windowHeight -
-        info.statusBarHeight -
-        navBarContentHeight() -
-        tabBar -
-        chrome;
-      if (height < 160) height = 160;
-      this.tableMax = Math.floor(height);
-      this.syncTableHeight();
+      wx.nextTick(() => {
+        const query = wx.createSelectorQuery().in(this);
+        query.select(".month-bar").boundingClientRect();
+        query.exec((res) => {
+          const monthBar = res && res[0];
+          if (!monthBar || !monthBar.height) return;
+          const info = readWindowMetrics();
+          const height =
+            info.windowHeight -
+            info.statusBarHeight -
+            navBarContentHeight() -
+            tabBarHeight(info) -
+            PAGE_PADDING * 2 -
+            CARD_PADDING * 2 -
+            CARD_GAP -
+            monthBar.height;
+          this.tableMax = Math.floor(height);
+          this.syncTableHeight();
+        });
+      });
     },
 
     syncTableHeight() {
       const users = this.data.users || [];
-      let content = 40 + users.length * 41;
+      let content = tableContentHeight(users.length);
       if (this.data.expandedId || content > this.tableMax) {
         content = this.tableMax;
       }
-      this.setData({ tableHeight: Math.max(41, content) });
+      this.setData({ tableHeight: content });
     },
 
     requestsFor(userId) {

@@ -4,7 +4,7 @@
     style="transform: translate3d(0, {{pullY}}px, 0); opacity: {{pullOpacity}};"
   >
     <image class="refresh-spinner {{refreshing || pullDistance > 0 ? 'refresh-spinner-on' : ''}}" src="/assets/icons/spinner.png" mode="aspectFit"></image>
-    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance > pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
+    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance >= pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
   </view>
 
   <scroll-view
@@ -21,33 +21,17 @@
     bindrefresherrefresh="onRefresherRefresh"
   >
     <view class="page punch-page">
-      <view class="clock-block">
+      <profile-header
+        badge="{{reviewBadge}}"
+        bind:todo="onTodoOpen"
+      ></profile-header>
+
+      <view class="card punch-status-card">
         <text class="date-text">{{todayLabel}}</text>
         <text wx:if="{{locError}}" class="loc-text loc-error">{{locError}}</text>
         <text wx:elif="{{address}}" class="loc-text loc-address">{{address}}</text>
         <text wx:elif="{{latitude !== null}}" class="loc-text">{{latitude}}, {{longitude}}</text>
         <text wx:else class="loc-text">尚未获取定位</text>
-
-        <view class="locate-actions">
-          <view class="card metric">
-            <text class="locate-line">加</text>
-            <text class="locate-line square-value {{overtimeMuted ? 'square-value-muted' : ''}}">{{overtimeText}}</text>
-          </view>
-          <view class="card metric">
-            <text class="locate-line">剩</text>
-            <text class="locate-line square-value">{{leaveText}}</text>
-          </view>
-          <view class="card metric">
-            <text class="locate-line square-value">{{nowText}}</text>
-          </view>
-          <button
-            class="btn locate-btn"
-            hover-class="btn-hover"
-            loading="{{locating || punching}}"
-            disabled="{{locating || punching}}"
-            bindtap="onRefreshLocate"
-          >{{locating || punching ? '' : '刷新'}}</button>
-        </view>
       </view>
 
       <view class="card">
@@ -72,48 +56,6 @@
         </view>
       </view>
 
-      <view class="card">
-        <scroll-view class="table-scroll" scroll-x enable-flex>
-          <view class="table" style="min-width: 640px">
-            <view class="grid-row grid-row-first">
-              <view class="grid-cell"><text class="grid-head">日期</text></view>
-              <view class="grid-cell"><text class="grid-head">上午上班</text></view>
-              <view class="grid-cell"><text class="grid-head">上午下班</text></view>
-              <view class="grid-cell"><text class="grid-head">下午上班</text></view>
-              <view class="grid-cell"><text class="grid-head">下午下班</text></view>
-            </view>
-            <view class="grid-row" wx:for="{{todayRows}}" wx:key="date">
-              <view class="grid-cell">
-                <text class="td-text month-day">{{item.day}}</text>
-              </view>
-              <view
-                class="grid-cell"
-                wx:for="{{item.slots}}"
-                wx:for-item="entry"
-                wx:key="key"
-              >
-                <view wx:if="{{entry.cell.actions.length}}" class="cell-actions">
-                  <button
-                    class="btn"
-                    hover-class="btn-hover"
-                    wx:for="{{entry.cell.actions}}"
-                    wx:for-item="act"
-                    wx:key="kind"
-                    data-date="{{item.date}}"
-                    data-kind="{{act.kind}}"
-                    data-half="{{act.half}}"
-                    data-type="{{act.type}}"
-                    bindtap="onCellActionTap"
-                  >{{act.text}}</button>
-                </view>
-                <text wx:elif="{{entry.cell.pending}}" class="pending-text">审批中</text>
-                <text wx:else class="cell-text {{entry.cell.tone}}">{{entry.cell.text}}</text>
-              </view>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-
       <view wx:if="{{scheduleStats.length > 0}}" class="card">
         <view class="stats">
           <view class="stat" wx:for="{{scheduleStats}}" wx:key="label">
@@ -121,6 +63,15 @@
             <text class="stat-label">{{item.label}}</text>
           </view>
         </view>
+      </view>
+
+      <view class="logout-row">
+        <text class="logout-hint">下拉刷新</text>
+        <button
+          class="btn logout-btn"
+          hover-class="btn-hover"
+          bindtap="onLogoutOpen"
+        >退出登录</button>
       </view>
     </view>
   </scroll-view>
@@ -137,22 +88,17 @@
     <text class="toast-text">{{toastText}}</text>
   </view>
 
+  <todo-drawer
+    show="{{todoShow}}"
+    bind:close="onTodoClose"
+    bind:changed="onTodoChanged"
+  ></todo-drawer>
+
   <dialog
-    show="{{dialogShow}}"
-    title="{{restDialogShow ? restDialogTitle : ''}}"
-    message="{{restDialogShow ? restDialogMessage : ''}}"
-    body="{{!restDialogShow}}"
-    loading="{{!restDialogShow && makeupSubmitting}}"
-    confirm-disabled="{{!restDialogShow && makeupSubmitting}}"
-    bind:cancel="onDialogClose"
-    bind:confirm="onDialogConfirm"
-  >
-    <view wx:if="{{!restDialogShow}}" class="makeup-dialog-body">
-      <view class="makeup-dialog-meta">
-        <text class="meta-line">日期：{{makeupDateLabel}}</text>
-        <text class="meta-line">类型：{{makeupTypeLabel}}</text>
-        <text class="meta-line">补卡时间：{{makeupTime}}</text>
-      </view>
-    </view>
-  </dialog>
+    show="{{logoutShow}}"
+    title="退出登录"
+    message="确定退出当前账号？"
+    bind:cancel="onLogoutCancel"
+    bind:confirm="onLogoutConfirm"
+  ></dialog>
 </view>

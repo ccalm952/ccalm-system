@@ -167,6 +167,11 @@ export class AttendanceController {
     return await this.attendance.monthlySummariesForAll(month, detail !== "0");
   }
 
+  @Get("summary/missing-history")
+  async missingHistory(@Req() req: Request) {
+    return await this.attendance.missingHistory(authUserId(req));
+  }
+
   @Get("summary/monthly")
   async monthly(
     @Req() req: Request,

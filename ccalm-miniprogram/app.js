@@ -1,6 +1,7 @@
 const { getSession, clearSession } = require("./store/session");
 const { isWechatReviewUsername } = require("./utils/review-account");
 const { applyStatusBar } = require("./utils/theme");
+const { resetNavMetrics } = require("./utils/nav-metrics");
 const mapleFonts = require("./assets/fonts/maple-fonts");
 
 // 真机 wx.loadFontFace 不读取本地 assets 路径，使用 base64 内嵌字体。
@@ -46,6 +47,7 @@ App({
     loadMapleFaces();
     clearReviewSessionIfNeeded();
     applyStatusBar();
+    if (wx.onWindowResize) wx.onWindowResize(resetNavMetrics);
   },
 
   onShow() {

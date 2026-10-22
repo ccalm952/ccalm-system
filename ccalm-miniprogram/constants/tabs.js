@@ -6,13 +6,6 @@ const TABS = [
     component: "punch-tab",
   },
   {
-    key: "missing",
-    label: "缺卡",
-    icon: "/assets/icons/missing.png",
-    component: "missing-tab",
-    badge: "missing",
-  },
-  {
     key: "schedule",
     label: "排班",
     icon: "/assets/icons/schedule.png",
@@ -23,22 +16,14 @@ const TABS = [
     label: "统计",
     icon: "/assets/icons/stats.png",
     component: "stats-tab",
-  },
-  {
-    key: "mine",
-    label: "我的",
-    icon: "/assets/icons/mine.png",
-    component: "mine-tab",
-    badge: "review",
+    badge: "missing",
   },
 ];
 
 const TAB_INDEX = {
   PUNCH: 0,
-  MISSING: 1,
-  SCHEDULE: 2,
-  STATS: 3,
-  MINE: 4,
+  SCHEDULE: 1,
+  STATS: 2,
 };
 
 module.exports = {

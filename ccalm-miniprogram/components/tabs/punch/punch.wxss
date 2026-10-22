@@ -15,21 +15,34 @@
   padding-bottom: 16px;
 }
 
-.clock-block {
+.punch-status-card {
   align-self: stretch;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  gap: 0;
 }
 
-.date-text,
-.loc-text {
+.date-text {
+  display: block;
+  width: 100%;
   font-size: 14px;
   line-height: 20px;
-  color: var(--muted-foreground);
-  text-align: center;
+  font-weight: 400;
+  color: var(--foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.loc-text {
+  display: block;
+  width: 100%;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--foreground);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loc-error {
@@ -38,50 +51,6 @@
 
 .loc-address {
   color: var(--foreground);
-}
-
-.locate-actions {
-  align-self: stretch;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.locate-btn {
-  flex: 1;
-  width: 0;
-  min-width: 0;
-  height: 32px;
-  padding: 0;
-  border-radius: 24px;
-  margin: 0;
-}
-
-.locate-line {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--foreground);
-  text-align: center;
-}
-
-.metric {
-  flex: 1;
-  width: 0;
-  min-width: 0;
-  padding: 0;
-  height: 32px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.square-value-muted {
-  color: var(--muted-foreground);
 }
 
 .timeline-wrap {
@@ -186,7 +155,9 @@
 }
 
 .stat {
-  width: 25%;
+  flex: 1;
+  width: 0;
+  min-width: 0;
   padding: 0;
   box-sizing: border-box;
 }
@@ -209,4 +180,30 @@
   font-weight: 400;
   color: var(--muted-foreground);
   text-align: center;
+}
+
+.logout-row {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logout-hint {
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.logout-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 20px;
 }

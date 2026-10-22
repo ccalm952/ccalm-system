@@ -44,9 +44,9 @@ function formatClock(d = new Date()) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function formatDateLabel(d = new Date()) {
+function formatDateShort(d = new Date()) {
   const week = ["日", "一", "二", "三", "四", "五", "六"];
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${week[d.getDay()]}`;
+  return `${d.getMonth() + 1}月${d.getDate()}日星期${week[d.getDay()]}`;
 }
 
 function formatHm(iso) {
@@ -139,7 +139,7 @@ module.exports = {
   todayYmd,
   dayOfMonth,
   formatClock,
-  formatDateLabel,
+  formatDateShort,
   formatHm,
   formatYmdHm,
   formatDayCount,

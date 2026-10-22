@@ -4,7 +4,6 @@ Component({
   properties: {
     current: { type: Number, value: 0 },
     missingBadge: { type: String, value: "" },
-    reviewBadge: { type: String, value: "" },
   },
 
   data: {

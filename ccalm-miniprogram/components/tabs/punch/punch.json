@@ -1,6 +1,8 @@
 {
   "component": true,
   "usingComponents": {
-    "dialog": "../../feedback/dialog/dialog"
+    "dialog": "../../feedback/dialog/dialog",
+    "profile-header": "../../profile/profile-header/profile-header",
+    "todo-drawer": "../../feedback/todo-drawer/todo-drawer"
   }
 }

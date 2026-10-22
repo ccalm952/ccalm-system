@@ -107,19 +107,6 @@ function buildAttendanceRow(row, shift, requests, at = new Date()) {
   return result;
 }
 
-function missingCount(rows, shift, requests, at = new Date()) {
-  let count = 0;
-  (rows || []).forEach((row) => {
-    const item = buildAttendanceRow(row, shift, requests, at);
-    item.slots.forEach((entry) => {
-      if (entry.cell.actions.some((action) => action.kind === "makeup")) {
-        count += 1;
-      }
-    });
-  });
-  return count;
-}
-
 function dateDisplay(date) {
   return `${date.slice(0, 4)}年${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`;
 }
@@ -140,7 +127,6 @@ function restConfirmMessage(row, half, clearing) {
 
 module.exports = {
   buildAttendanceRow,
-  missingCount,
   dateDisplay,
   restConfirmMessage,
 };

@@ -66,6 +66,11 @@ function getMonthlySummary(month, userId) {
   return get(userId ? `${base}&userId=${userId}` : base);
 }
 
+/** 当前用户从最早记录到上月底的累计缺卡。 */
+function getMissingHistory() {
+  return get("/attendance/summary/missing-history");
+}
+
 /**
  * 管理员查看全员月汇总（不含明细行）。
  * @param {string} month YYYY-MM
@@ -97,6 +102,7 @@ module.exports = {
   rejectMakeupRequest,
   getMonthlySummary,
   getMonthlySummaries,
+  getMissingHistory,
   getSchedule,
   getHolidays,
 };

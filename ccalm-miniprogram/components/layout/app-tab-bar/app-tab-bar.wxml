@@ -12,10 +12,6 @@
         wx:if="{{item.badge === 'missing' && missingBadge}}"
         class="app-badge"
       ><text class="app-badge-text">{{missingBadge}}</text></view>
-      <view
-        wx:if="{{item.badge === 'review' && reviewBadge}}"
-        class="app-badge"
-      ><text class="app-badge-text">{{reviewBadge}}</text></view>
     </view>
     <text class="tab-label {{current === index ? 'tab-label-active' : ''}}">{{item.label}}</text>
   </view>

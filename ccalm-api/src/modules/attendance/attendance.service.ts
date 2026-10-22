@@ -5,8 +5,17 @@ import { createHash } from "node:crypto";
 import { isPrismaUniqueViolation } from "../../common/prisma-errors";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AttendanceScheduleService } from "./services/attendance-schedule.service";
-import { attendanceDayjs, formatAttendanceDate } from "./core/attendance-dayjs";
+import {
+  attendanceDayjs,
+  attendanceTodayStart,
+  formatAttendanceDate,
+} from "./core/attendance-dayjs";
 import { DEFAULT_SHIFT_ROW, DEFAULT_GEOFENCE_ROW } from "./core/defaults";
+import {
+  buildDayPunchRow,
+  countUnresolvedMissingSlots,
+  type PendingMakeup,
+} from "./core/makeup-slots";
 import type { UpsertGeofenceDto } from "./dto/geofence.dto";
 import type { UpsertShiftDto } from "./dto/shift.dto";
 import type { PunchDto } from "./dto/punch.dto";
@@ -19,6 +28,13 @@ import {
 import { minutesFromMidnight } from "./core/time";
 
 const GLOBAL_CONFIG_ID = "global" as const;
+const MISSING_HISTORY_TTL_MS = 5 * 60 * 1000;
+
+type MissingHistory = {
+  missingSlots: number;
+  startDate: string | null;
+  endDate: string | null;
+};
 
 function hashPunchDeviceToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -26,6 +42,11 @@ function hashPunchDeviceToken(token: string): string {
 
 @Injectable()
 export class AttendanceService {
+  private readonly missingHistoryCache = new Map<
+    string,
+    { value: MissingHistory; expiresAt: number }
+  >();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly schedule: AttendanceScheduleService,
@@ -429,6 +450,99 @@ export class AttendanceService {
       ...aggregate,
       remainingLeave: leaveBundle.remainingLeave,
     };
+  }
+
+  async missingHistory(userId: string): Promise<MissingHistory> {
+    const cached = this.missingHistoryCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+    const firstRecord = await this.prisma.attendanceRecord.findFirst({
+      where: { userId },
+      orderBy: { punchDate: "asc" },
+      select: { punchDate: true },
+    });
+
+    const cache = (value: MissingHistory) => {
+      this.missingHistoryCache.set(userId, {
+        value,
+        expiresAt: Date.now() + MISSING_HISTORY_TTL_MS,
+      });
+      return value;
+    };
+
+    if (!firstRecord) {
+      return cache({ missingSlots: 0, startDate: null, endDate: null });
+    }
+
+    const start = attendanceDayjs(firstRecord.punchDate, "YYYY-MM-DD").startOf(
+      "day",
+    );
+    const end = attendanceTodayStart().startOf("month").subtract(1, "day");
+    if (!start.isValid() || start.isAfter(end, "day")) {
+      return cache({ missingSlots: 0, startDate: null, endDate: null });
+    }
+
+    const startDate = start.format("YYYY-MM-DD");
+    const rangeEnd = end.format("YYYY-MM-DD");
+    const [declaredMaps, records, pending] = await Promise.all([
+      this.schedule.declaredScheduleMapsForUsers([userId], startDate, rangeEnd),
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          userId,
+          punchDate: { gte: startDate, lte: rangeEnd },
+        },
+        orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
+        select: {
+          punchDate: true,
+          punchTime: true,
+          type: true,
+          source: true,
+        },
+      }),
+      this.prisma.attendanceMakeupRequest.findMany({
+        where: {
+          userId,
+          status: "pending",
+          date: { gte: startDate, lte: rangeEnd },
+        },
+        select: { date: true, type: true, status: true },
+      }),
+    ]);
+
+    const declaredMap = declaredMaps.get(userId);
+    const recordsByDate = new Map<string, typeof records>();
+    for (const record of records) {
+      const list = recordsByDate.get(record.punchDate) ?? [];
+      list.push(record);
+      recordsByDate.set(record.punchDate, list);
+    }
+
+    const pendingByDate = new Map<string, PendingMakeup[]>();
+    for (const item of pending) {
+      const list = pendingByDate.get(item.date) ?? [];
+      list.push(item);
+      pendingByDate.set(item.date, list);
+    }
+
+    let missingSlots = 0;
+    for (
+      let cursor = start;
+      !cursor.isAfter(end, "day");
+      cursor = cursor.add(1, "day")
+    ) {
+      const date = cursor.format("YYYY-MM-DD");
+      const row = buildDayPunchRow(
+        date,
+        declaredMap?.get(date) ?? null,
+        recordsByDate.get(date) ?? [],
+      );
+      missingSlots += countUnresolvedMissingSlots(
+        row,
+        pendingByDate.get(date) ?? [],
+      );
+    }
+
+    return cache({ missingSlots, startDate, endDate: rangeEnd });
   }
 
   async attendanceBundle(userId: string, month: string) {

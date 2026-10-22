@@ -221,6 +221,35 @@ export function countMakeupButtonSlots(
   return count;
 }
 
+/**
+ * 统计历史缺卡：不受“只能补本月/上月”的编辑窗口限制，
+ * 只排除已登记休息和已存在审批中补卡申请的时段。
+ */
+export function countUnresolvedMissingSlots(
+  row: DayPunchRow,
+  pending: PendingMakeup[] = [],
+): number {
+  let count = 0;
+  if (!isPunchBlockedByScheduleRest("morning_in", row.declaredRest)) {
+    if (!row.morningIn) {
+      if (!hasPending(row, "morning_in", pending)) count += 1;
+    } else if (!row.morningOut && !hasPending(row, "morning_out", pending)) {
+      count += 1;
+    }
+  }
+  if (!isPunchBlockedByScheduleRest("afternoon_in", row.declaredRest)) {
+    if (!row.afternoonIn) {
+      if (!hasPending(row, "afternoon_in", pending)) count += 1;
+    } else if (
+      !row.afternoonOut &&
+      !hasPending(row, "afternoon_out", pending)
+    ) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 /** 按半天统计出勤：有上班卡 +0.5 出勤。 */
 export function applyDayAttendance(row: DayPunchRow): number {
   let attendanceDays = 0;

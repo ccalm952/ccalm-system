@@ -2,7 +2,11 @@ const {
   readWindowMetrics,
   readCapsuleMetrics,
   navBarContentHeight,
+  resetNavMetrics,
 } = require("../../../utils/nav-metrics");
+
+const initialMetrics = readWindowMetrics();
+const initialCapsule = readCapsuleMetrics();
 
 Component({
   properties: {
@@ -10,13 +14,26 @@ Component({
   },
 
   data: {
-    statusBarHeight: 20,
-    navContentHeight: 44,
-    sidePadding: 52,
+    statusBarHeight: initialMetrics.statusBarHeight,
+    navContentHeight: navBarContentHeight(),
+    sidePadding: initialCapsule.sidePadding,
   },
 
   lifetimes: {
     attached() {
+      this.updateMetrics();
+    },
+  },
+
+  pageLifetimes: {
+    resize() {
+      resetNavMetrics();
+      this.updateMetrics();
+    },
+  },
+
+  methods: {
+    updateMetrics() {
       const metrics = readWindowMetrics();
       const capsule = readCapsuleMetrics();
       this.setData({

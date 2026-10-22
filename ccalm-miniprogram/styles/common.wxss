@@ -253,7 +253,7 @@
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  height: 48px;
+  height: 52px;
   padding: 0 16px;
   box-sizing: border-box;
   border-radius: 24px;

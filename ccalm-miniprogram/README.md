@@ -1,6 +1,6 @@
 # CCALM 考勤打卡小程序（原生微信小程序）
 
-包含五个 Tab（打卡 / 缺卡 / 排班 / 统计 / 我的），使用自定义顶部导航与底部标签栏，支持浅色/深色主题、下拉刷新、自定义消息条与弹窗。
+包含三个 Tab（打卡 / 排班 / 统计），使用自定义顶部导航与底部标签栏，支持浅色/深色主题、下拉刷新、自定义消息条与弹窗。头像、姓名、待办入口和退出登录放在打卡页，缺卡角标显示在统计 Tab。
 
 项目已按原生小程序方式重新分层，不依赖 Vant Weapp，也不需要“构建 npm”，微信开发者工具直接编译即可。
 
@@ -33,7 +33,7 @@ WECHAT_APPSECRET=<AppSecret>
 ```text
 ccalm-miniprogram/
 ├── pages/                        # 页面
-│   ├── home/                     # 主壳：导航 + 五个 Tab + 底栏
+│   ├── home/                     # 主壳：导航 + 三个 Tab + 底栏
 │   │   ├── home.js               # 主壳逻辑
 │   │   ├── home.json             # 页面配置
 │   │   ├── home.wxml             # 主壳结构
@@ -47,14 +47,15 @@ ccalm-miniprogram/
 │   ├── layout/                   # 页面骨架
 │   │   ├── app-nav/              # app-nav.{js,json,wxml,wxss}
 │   │   └── app-tab-bar/          # app-tab-bar.{js,json,wxml,wxss}
+│   ├── profile/                  # 个人资料
+│   │   └── profile-header/       # 头像、姓名、待办入口
 │   ├── feedback/                 # 反馈类组件
-│   │   └── dialog/               # 通用弹窗：标题/内容/底部按钮，支持 slot
-│   └── tabs/                     # 五个业务 Tab
+│   │   ├── dialog/               # 通用弹窗：标题/内容/底部按钮，支持 slot
+│   │   └── todo-drawer/          # 待办抽屉与审批
+│   └── tabs/                     # 三个业务 Tab
 │       ├── punch/                # punch.{js,json,wxml,wxss}，标签 <punch-tab>
-│       ├── missing/              # missing.{js,json,wxml,wxss}
 │       ├── schedule/             # schedule.{js,json,wxml,wxss}
-│       ├── stats/                # stats.{js,json,wxml,wxss}
-│       └── mine/                 # mine.{js,json,wxml,wxss}
+│       └── stats/                # stats.{js,json,wxml,wxss}
 ├── services/                     # 接口与微信能力，页面不直接发请求
 │   ├── http.js                   # 请求封装、登录态、401 处理
 │   ├── auth.js                   # 微信登录、账号绑定
@@ -71,7 +72,7 @@ ccalm-miniprogram/
 │   ├── pull-refresh.js           # 下拉刷新状态与指示器
 │   └── makeup-time.js            # 补卡时间分段输入与数字键盘
 ├── constants/                    # 业务常量
-│   ├── tabs.js                   # 五个 Tab 的 key / 标签 / 图标 / 角标
+│   ├── tabs.js                   # 三个 Tab 的 key / 标签 / 图标 / 角标
 │   ├── routes.js                 # 页面路径
 │   ├── review.js                 # 审批状态文案
 │   └── ui.js                     # 消息条/角标/下拉刷新常量
@@ -82,9 +83,10 @@ ccalm-miniprogram/
 ├── utils/                        # 纯函数
 │   ├── time.js                   # 日期、月份、格式化
 │   ├── punch-rule.js             # 打卡/补卡/休息规则
-│   ├── attendance-table.js       # 月表单元格
+│   ├── attendance-table.js       # 统计页月表明细单元格
 │   ├── avatar.js                 # 本地头像读写
 │   ├── nav-metrics.js            # 状态栏/胶囊按钮/安全区
+│   ├── layout.js                 # 页面/表格/底栏尺寸常量
 │   ├── theme.js                  # 明暗主题与状态栏
 │   ├── badge.js                  # 角标数字格式化
 │   └── review-account.js         # 审核测试账号判断
@@ -132,10 +134,10 @@ ccalm-miniprogram/
 
 | 页面 | 文件 | 说明 |
 |---|---|---|
-| 主壳 | `pages/home/home` | 顶部导航 + 五个 Tab 组件 + 底部标签栏 |
+| 主壳 | `pages/home/home` | 顶部导航 + 三个 Tab 组件 + 底部标签栏 |
 | 登录 | `pages/login/login` | 微信登录、首次用现有账号绑定 |
 
-五个业务 Tab 由 `pages/home/home` 控制显示，切换时不销毁状态。Tab 元数据统一在 `constants/tabs.js` 维护。
+三个业务 Tab 由 `pages/home/home` 控制显示，切换时不销毁状态。Tab 元数据统一在 `constants/tabs.js` 维护。头像、姓名、待办入口和退出登录位于打卡页，缺卡角标显示在统计 Tab。
 
 ## 样式
 
@@ -147,6 +149,24 @@ ccalm-miniprogram/
 
 各 Tab 独有样式放在组件自己的 `.wxss` 中，例如 `components/tabs/punch/punch.wxss`。
 
+## 字体
+
+- 字体：Maple Mono 7.9，SIL OFL 1.1，许可证见 `assets/fonts/maple-OFL.txt`
+- 字重：400 / 500 / 600，均为 Latin 子集
+- 真机不能直接读取包内 `.woff2`，因此 `assets/fonts/maple-fonts.js` 保存 base64 字体数据，由 `app.js` 通过 `wx.loadFontFace` 以 data URI 加载
+- 中文不在 Latin 子集内，会回退到 `PingFang SC` / `微软雅黑`
+- 修改字体或字重时，需要重新生成 `maple-fonts.js`，不要直接手改 base64 字符串
+
 ## 数据与请求
 
-Tab 内的操作（打卡、休息登记、补卡、审批）完成后会向主壳抛 `attendancechanged`，主壳刷新底部角标；重新进入某个 Tab 时会静默刷新数据。
+Tab 内的操作（打卡、休息登记、补卡、审批）完成后会向主壳抛 `attendancechanged`，主壳刷新底部角标。
+
+### 刷新策略
+
+- 首次进入某个 Tab：加载一次数据
+- 再次切换 Tab：不重新请求，直接复用组件内的数据
+- 下拉刷新：刷新当前 Tab，并通过 `attendancechanged` 刷新底栏角标
+- 首页从后台回到前台：只刷新当前 Tab
+- 排班：按月份使用 `monthCache`，切月优先命中缓存
+- 统计：首次进入加载，之后切换不重复请求
+- 角标：首页 `onShow`、30 秒定时器、下拉刷新、操作成功后刷新；缺卡数 = 历史累计 + 当月，历史部分由后端缓存 5 分钟

@@ -1,0 +1,48 @@
+<view wx:if="{{show}}" class="todo-layer">
+  <view class="todo-mask" bindtap="onClose" catchtouchmove="noop"></view>
+  <view class="todo-panel" catchtap="onKeep">
+    <view wx:if="{{isAdmin}}" class="todo-tabs">
+      <view
+        class="todo-tab {{todoTab === 'mine' ? 'todo-tab-on' : ''}}"
+        data-tab="mine"
+        bindtap="onTab"
+      >
+        <text class="todo-tab-text {{todoTab === 'mine' ? 'todo-tab-text-on' : ''}}">我创建的</text>
+      </view>
+      <view
+        class="todo-tab {{todoTab === 'pending' ? 'todo-tab-on' : ''}}"
+        data-tab="pending"
+        bindtap="onTab"
+      >
+        <text class="todo-tab-text {{todoTab === 'pending' ? 'todo-tab-text-on' : ''}}">待我处理</text>
+      </view>
+    </view>
+
+    <scroll-view class="todo-scroll" scroll-y>
+      <text wx:if="{{!todoItems.length}}" class="todo-empty-text">{{todoEmpty}}</text>
+      <view class="todo-item" wx:for="{{todoItems}}" wx:key="key">
+        <view class="todo-item-main">
+          <text wx:if="{{item.title}}" class="todo-item-title">{{item.title}}</text>
+          <text class="todo-item-line">{{item.line}}</text>
+        </view>
+        <view wx:if="{{item.canReview}}" class="todo-item-side">
+          <button
+            class="btn"
+            hover-class="btn-hover"
+            data-kind="{{item.kind}}"
+            data-id="{{item.id}}"
+            bindtap="onApprove"
+          >通过</button>
+          <button
+            class="btn"
+            hover-class="btn-hover"
+            data-kind="{{item.kind}}"
+            data-id="{{item.id}}"
+            bindtap="onReject"
+          >拒绝</button>
+        </view>
+        <text wx:else class="todo-status {{item.status}}">{{item.statusLabel}}</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

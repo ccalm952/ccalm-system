@@ -1,0 +1,131 @@
+@import "../../../styles/common.wxss";
+
+.todo-layer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.todo-mask {
+  flex: 1;
+}
+
+.todo-panel {
+  height: 70%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  background-color: var(--card);
+}
+
+.todo-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.todo-tab {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--secondary);
+}
+
+.todo-tab-on {
+  background-color: var(--primary);
+}
+
+.todo-tab-text {
+  font-size: 14px;
+  line-height: 32px;
+  color: var(--muted-foreground);
+}
+
+.todo-tab-text-on {
+  color: var(--primary-foreground);
+}
+
+.todo-scroll {
+  flex: 1;
+  height: 0;
+  margin-top: 12px;
+}
+
+.todo-empty-text {
+  display: block;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.todo-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.todo-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-item-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.todo-item-line {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.todo-item-side {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.todo-status {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+}
+
+.todo-status.pending {
+  color: var(--chart-4);
+}
+
+.todo-status.approved {
+  color: var(--chart-5);
+}
+
+.todo-status.rejected {
+  color: var(--destructive);
+}

@@ -4,7 +4,7 @@
     style="transform: translate3d(0, {{pullY}}px, 0); opacity: {{pullOpacity}};"
   >
     <image class="refresh-spinner {{refreshing || pullDistance > 0 ? 'refresh-spinner-on' : ''}}" src="/assets/icons/spinner.png" mode="aspectFit"></image>
-    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance > pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
+    <text class="refresh-text">{{refreshing ? '正在刷新' : (pullDistance >= pullThreshold ? '松手刷新' : '下拉刷新')}}</text>
   </view>
 
   <scroll-view
@@ -21,7 +21,10 @@
     bindrefresherrefresh="onRefresherRefresh"
   >
     <view class="page schedule-page">
-      <view class="card schedule-card">
+      <view
+        class="card schedule-card"
+        style="--schedule-col-width: {{columnWidth}}px;"
+      >
         <view class="weekdays">
           <text
             class="weekday-text"

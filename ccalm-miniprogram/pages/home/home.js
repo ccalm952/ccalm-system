@@ -17,6 +17,7 @@ Page({
   badgeTimer: null,
   badgeSeq: 0,
   badgeLoading: false,
+  // 首次 onShow 交给 Tab 的首次 activate 加载，避免重复请求
   hasShown: false,
 
   onLoad() {
@@ -93,6 +94,7 @@ Page({
     this.badgeTimer = null;
   },
 
+  // 同一时间只允许一个角标请求，避免定时器和操作事件重复触发
   async refreshBadges() {
     if (this.badgeLoading) return;
     if (!hasSession()) {

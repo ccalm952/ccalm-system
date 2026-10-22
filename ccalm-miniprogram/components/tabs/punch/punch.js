@@ -2,49 +2,36 @@ const {
   getAttendanceBundle,
   getGeofence,
   getSchedule,
-  listMyMakeupRequests,
   submitPunch,
-  declareRest,
-  clearRest,
-  createMakeupRequest,
 } = require("../../../services/attendance");
 const { getLocation } = require("../../../services/wechat");
 const { reverseGeocode } = require("../../../services/amap");
 const {
+  clearSession,
   getSession,
   redirectToLogin,
   requireSession,
 } = require("../../../store/session");
+const { LOGIN_PAGE } = require("../../../constants/routes");
 const toastBehavior = require("../../../behaviors/toast");
 const pullRefreshBehavior = require("../../../behaviors/pull-refresh");
 const {
   PUNCH_TYPES,
   PUNCH_LABEL,
-  DEFAULT_MAKEUP_TIME,
   insideFence,
   todayTypeMap,
   pickQuickPunchType,
 } = require("../../../utils/punch-rule");
 const {
-  buildAttendanceRow,
-  dateDisplay,
-  restConfirmMessage,
-} = require("../../../utils/attendance-table");
-const {
   monthKey,
   todayYmd,
-  formatClock,
-  formatDateLabel,
+  formatDateShort,
   formatHm,
   formatDayCount,
   formatOvertimeHours,
 } = require("../../../utils/time");
 
-function hasOvertime(value) {
-  return !!value && value !== "0" && value !== "0分钟" && value !== "0小时";
-}
-
-function buildScheduleStats(schedule, userId) {
+function buildScheduleStats(schedule, userId, monthly) {
   const user = ((schedule && schedule.users) || []).find(
     (item) => item.userId === userId,
   );
@@ -52,8 +39,11 @@ function buildScheduleStats(schedule, userId) {
   return [
     { label: "本月假期", value: formatDayCount(schedule.monthAllowance) },
     { label: "本月请假", value: formatDayCount(user.monthLeave) },
-    { label: "假期抵消", value: formatDayCount(user.leaveOffsetDays) },
     { label: "剩余假期", value: formatDayCount(user.remainingLeave) },
+    {
+      label: "加班时长",
+      value: formatOvertimeHours(monthly && monthly.overtimeStr) || "0.0h",
+    },
   ];
 }
 
@@ -62,10 +52,10 @@ Component({
 
   properties: {
     active: { type: Boolean, value: false },
+    reviewBadge: { type: String, value: "" },
   },
 
   data: {
-    nowText: "00:00",
     todayLabel: "",
     locating: false,
     punching: false,
@@ -74,22 +64,10 @@ Component({
     latitude: null,
     longitude: null,
     todaySteps: [],
-    overtimeText: "0.0h",
-    overtimeMuted: true,
-    leaveText: "0",
-    todayRows: [],
     scheduleStats: [],
     pageLoading: false,
-    dialogShow: false,
-    restDialogShow: false,
-    restDialogTitle: "",
-    restDialogMessage: "",
-    makeupDate: "",
-    makeupDateLabel: "",
-    makeupType: "",
-    makeupTypeLabel: "",
-    makeupTime: "08:30",
-    makeupSubmitting: false,
+    todoShow: false,
+    logoutShow: false,
   },
 
   observers: {
@@ -116,9 +94,7 @@ Component({
         this.activate();
         return;
       }
-      this.setData({ todayLabel: formatDateLabel() });
-      this.tick();
-      this.startTimer();
+      this.setData({ todayLabel: formatDateShort() });
       this.loading = true;
       this.reloadAll().finally(() => {
         this.loading = false;
@@ -128,9 +104,7 @@ Component({
     activate() {
       if (!requireSession()) return;
       if (this.loading) return;
-      this.setData({ todayLabel: formatDateLabel() });
-      this.tick();
-      this.startTimer();
+      this.setData({ todayLabel: formatDateShort() });
       if (this.loaded) return;
       this.loading = true;
       this.setData({ pageLoading: true });
@@ -153,44 +127,27 @@ Component({
 
     deactivate() {
       this.clearToast();
-      this.stopTimer();
-    },
-
-    startTimer() {
-      this.stopTimer();
-      this.timer = setInterval(() => this.tick(), 60000);
-    },
-
-    stopTimer() {
-      if (!this.timer) return;
-      clearInterval(this.timer);
-      this.timer = null;
-    },
-
-    tick() {
-      this.setData({ nowText: formatClock() });
     },
 
     async reloadAll() {
       try {
         const month = monthKey();
         const session = getSession();
-        const [bundle, fence, makeups, schedule] = await Promise.all([
+        const [bundle, fence, schedule] = await Promise.all([
           getAttendanceBundle(month),
           getGeofence(),
-          listMyMakeupRequests("pending").catch(() => []),
           getSchedule(month).catch(() => null),
         ]);
         this.shift = bundle.shift || null;
         this.fence = fence || null;
         this.todayRecords = Array.isArray(bundle.today) ? bundle.today : [];
         this.allMonthRows = (bundle.monthly && bundle.monthly.rows) || [];
-        this.makeupRequests = Array.isArray(makeups) ? makeups : [];
         this.scheduleStats = buildScheduleStats(
           schedule,
           session && session.user && session.user.id,
+          bundle.monthly,
         );
-        this.applyView(bundle.monthly || {});
+        this.applyView();
         return true;
       } catch (error) {
         this.showError(error, "加载失败");
@@ -198,7 +155,7 @@ Component({
       }
     },
 
-    applyView(monthly) {
+    applyView() {
       const map = todayTypeMap(this.todayRecords);
       const steps = PUNCH_TYPES.filter((type) => map[type]).map((type) => {
         const record = map[type];
@@ -215,21 +172,8 @@ Component({
           desc,
         };
       });
-      const overtime = hasOvertime(monthly.overtimeStr);
-      const today = todayYmd();
-      const rows = this.allMonthRows
-        .filter((row) => row.date === today)
-        .map((row) =>
-          buildAttendanceRow(row, this.shift, this.makeupRequests, new Date()),
-        );
       this.setData({
         todaySteps: steps,
-        overtimeText: overtime
-          ? formatOvertimeHours(monthly.overtimeStr)
-          : "0.0h",
-        overtimeMuted: !overtime,
-        leaveText: formatDayCount(monthly.remainingLeave),
-        todayRows: rows,
         scheduleStats: this.scheduleStats || [],
       });
     },
@@ -321,115 +265,30 @@ Component({
       }
     },
 
-    onCellActionTap(event) {
-      const data = event.currentTarget.dataset || {};
-      const half = data.half && data.half !== "null" ? String(data.half) : null;
-      const type = data.type && data.type !== "null" ? String(data.type) : null;
-      this.handleAction({
-        date: String(data.date || ""),
-        kind: String(data.kind || ""),
-        half,
-        type,
-      });
+    onTodoOpen() {
+      this.setData({ todoShow: true });
     },
 
-    handleAction(action) {
-      if (action.kind === "makeup" && action.type) {
-        this.setData({
-          dialogShow: true,
-          restDialogShow: false,
-          makeupDate: action.date,
-          makeupDateLabel: dateDisplay(action.date),
-          makeupType: action.type,
-          makeupTypeLabel: PUNCH_LABEL[action.type] || action.type,
-          makeupTime: DEFAULT_MAKEUP_TIME[action.type] || "08:30",
-        });
-        return;
-      }
-      if (!action.half) return;
-      const row =
-        this.allMonthRows.find((item) => item.date === action.date) || null;
-      if (!row) return;
-      const clearing = action.kind === "clearRest";
-      this.restPending = {
-        date: action.date,
-        half: action.half,
-        clearing,
-      };
-      this.setData({
-        dialogShow: true,
-        restDialogShow: true,
-        restDialogTitle: clearing ? "取消休息" : "登记休息",
-        restDialogMessage: restConfirmMessage(row, action.half, clearing),
-      });
+    onTodoClose() {
+      this.setData({ todoShow: false });
     },
 
-    onDialogClose() {
-      if (this.data.restDialogShow) {
-        this.onRestClose();
-        return;
-      }
-      this.onMakeupClose();
+    onTodoChanged() {
+      this.triggerEvent("attendancechanged");
     },
 
-    onDialogConfirm() {
-      if (this.data.restDialogShow) {
-        this.onRestConfirm();
-        return;
-      }
-      this.onMakeupSubmit();
+    onLogoutOpen() {
+      this.setData({ logoutShow: true });
     },
 
-    onRestClose() {
-      this.setData({ restDialogShow: false, dialogShow: false });
-      this.restPending = null;
+    onLogoutCancel() {
+      this.setData({ logoutShow: false });
     },
 
-    async onRestConfirm() {
-      const pending = this.restPending;
-      if (!pending || this.restSubmitting) return;
-      this.restSubmitting = true;
-      try {
-        const body = { date: pending.date, half: pending.half };
-        if (pending.clearing) {
-          await clearRest(body);
-          this.showToast("已取消休息登记", "success");
-        } else {
-          await declareRest(body);
-          this.showToast("休息登记成功", "success");
-        }
-        this.onRestClose();
-        this.triggerEvent("attendancechanged");
-        await this.reloadAll();
-      } catch (error) {
-        this.showError(error, "操作失败");
-      } finally {
-        this.restSubmitting = false;
-      }
-    },
-
-    onMakeupClose() {
-      this.setData({ dialogShow: false });
-    },
-
-    async onMakeupSubmit() {
-      if (this.data.makeupSubmitting) return;
-      this.setData({ makeupSubmitting: true });
-      try {
-        await createMakeupRequest({
-          date: this.data.makeupDate,
-          type: this.data.makeupType,
-          time: this.data.makeupTime,
-        });
-        this.showToast("补卡申请已提交", "success");
-        this.setData({ dialogShow: false });
-        this.triggerEvent("attendancechanged");
-        await this.reloadAll();
-      } catch (error) {
-        this.showError(error, "提交失败");
-      } finally {
-        this.setData({ makeupSubmitting: false });
-      }
+    onLogoutConfirm() {
+      this.setData({ logoutShow: false });
+      clearSession();
+      wx.reLaunch({ url: LOGIN_PAGE });
     },
 
     onRefresherRefresh() {

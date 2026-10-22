@@ -1,0 +1,30 @@
+<view class="profile-header">
+  <button
+    class="avatar-btn"
+    open-type="chooseAvatar"
+    bindchooseavatar="onChooseAvatar"
+  >
+    <image
+      wx:if="{{avatarUrl}}"
+      class="avatar"
+      src="{{avatarUrl}}"
+      mode="aspectFill"
+    ></image>
+    <view wx:else class="avatar avatar-fallback">
+      <text class="avatar-text">{{avatarText}}</text>
+    </view>
+  </button>
+
+  <view class="profile-name">
+    <text class="hello-text">{{displayName}}</text>
+  </view>
+
+  <view class="todo-entry">
+    <view class="todo-btn" bindtap="onTodoTap">
+      <text class="todo-btn-text">待办</text>
+    </view>
+    <view wx:if="{{badge}}" class="app-badge">
+      <text class="app-badge-text">{{badge}}</text>
+    </view>
+  </view>
+</view>

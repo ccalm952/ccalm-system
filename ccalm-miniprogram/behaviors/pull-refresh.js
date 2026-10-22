@@ -1,4 +1,9 @@
-const { PULL_THRESHOLD } = require("../constants/ui");
+const {
+  PULL_THRESHOLD,
+  PULL_OFFSET,
+  PULL_MAX,
+  PULL_EPSILON,
+} = require("../constants/ui");
 
 /**
  * 下拉刷新行为：统一刷新状态、下拉距离和指示器位置。
@@ -8,7 +13,7 @@ module.exports = Behavior({
   data: {
     refreshing: false,
     pullDistance: 0,
-    pullY: -40,
+    pullY: -PULL_OFFSET,
     pullOpacity: 0,
     pullThreshold: PULL_THRESHOLD,
   },
@@ -19,7 +24,7 @@ module.exports = Behavior({
       this.setData({
         refreshing: true,
         pullDistance: this.data.pullThreshold,
-        pullY: Math.min(this.data.pullThreshold, 70) - 40,
+        pullY: Math.min(this.data.pullThreshold, PULL_MAX) - PULL_OFFSET,
         pullOpacity: 1,
       });
     },
@@ -29,18 +34,18 @@ module.exports = Behavior({
       this.setData({
         refreshing: false,
         pullDistance: 0,
-        pullY: -40,
+        pullY: -PULL_OFFSET,
         pullOpacity: 0,
       });
     },
 
     updatePull(distance) {
-      const current = Math.max(0, Math.min(Number(distance) || 0, 200));
+      const current = Math.max(0, Math.min(Number(distance) || 0, PULL_MAX));
       const opacity =
         current > 0 ? Math.min(1, current / this.data.pullThreshold) : 0;
       this.setData({
         pullDistance: current,
-        pullY: Math.min(current, 70) - 40,
+        pullY: Math.min(current, PULL_MAX) - PULL_OFFSET,
         pullOpacity: opacity,
       });
     },
@@ -49,7 +54,7 @@ module.exports = Behavior({
       const distance = Number(event.detail && event.detail.dy) || 0;
       if (
         this.lastPullDistance !== undefined &&
-        Math.abs(distance - this.lastPullDistance) < 2
+        Math.abs(distance - this.lastPullDistance) < PULL_EPSILON
       ) {
         return;
       }

@@ -8,25 +8,15 @@ let navHeight = 0;
 
 function readWindowMetrics() {
   if (metrics) return metrics;
-  let info;
-  try {
-    info = wx.getWindowInfo();
-  } catch (_) {
-    info = undefined;
-  }
-  const statusBarHeight = (info && info.statusBarHeight) || 20;
-  const windowWidth = (info && info.windowWidth) || 375;
-  const windowHeight = (info && info.windowHeight) || 0;
-  const screenHeight = (info && info.screenHeight) || windowHeight;
-  const safeArea = (info && info.safeArea) || null;
-  const safeAreaBottom = safeArea ? safeArea.bottom : screenHeight;
+  const info = wx.getWindowInfo();
+  const safeAreaBottom = info.safeArea.bottom;
   metrics = {
-    statusBarHeight,
-    windowWidth,
-    windowHeight,
-    screenHeight,
+    statusBarHeight: info.statusBarHeight,
+    windowWidth: info.windowWidth,
+    windowHeight: info.windowHeight,
+    screenHeight: info.screenHeight,
     safeAreaBottom,
-    safeBottom: Math.max(0, screenHeight - safeAreaBottom),
+    safeBottom: info.screenHeight - safeAreaBottom,
   };
   return metrics;
 }
@@ -37,24 +27,15 @@ function readWindowMetrics() {
 function readCapsuleMetrics() {
   if (capsule) return capsule;
   const info = readWindowMetrics();
-  let menu;
-  try {
-    menu = wx.getMenuButtonBoundingClientRect();
-  } catch (_) {
-    menu = undefined;
-  }
-  const width = (menu && menu.width) || 87;
-  const top = (menu && menu.top) || info.statusBarHeight + 6;
-  const height = (menu && menu.height) || 32;
-  const right = (menu && menu.right) || info.windowWidth - 16;
-  const rightGap = Math.max(0, info.windowWidth - right);
+  const menu = wx.getMenuButtonBoundingClientRect();
+  const rightGap = info.windowWidth - menu.right;
   capsule = {
-    top,
-    width,
-    height,
-    right,
+    top: menu.top,
+    width: menu.width,
+    height: menu.height,
+    right: menu.right,
     rightGap,
-    sidePadding: rightGap + width + rightGap,
+    sidePadding: rightGap + menu.width + rightGap,
   };
   return capsule;
 }
@@ -68,8 +49,15 @@ function navBarContentHeight() {
   return navHeight;
 }
 
+function resetNavMetrics() {
+  metrics = null;
+  capsule = null;
+  navHeight = 0;
+}
+
 module.exports = {
   readWindowMetrics,
   readCapsuleMetrics,
   navBarContentHeight,
+  resetNavMetrics,
 };
