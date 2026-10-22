@@ -83,7 +83,9 @@ export class AttendanceController {
 
   @Post("punch")
   async punch(@Req() req: Request, @Body() dto: PunchDto) {
-    return await this.attendance.punch(authUserId(req), dto);
+    const result = await this.attendance.punch(authUserId(req), dto);
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Get("punch-device")
@@ -190,13 +192,17 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: CreateMakeupRequestDto,
   ) {
-    return await this.makeup.createRequest(authUserId(req), dto);
+    const result = await this.makeup.createRequest(authUserId(req), dto);
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Post("makeup")
   async directMakeup(@Req() req: Request, @Body() dto: AdminMakeupDto) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
-    return await this.makeup.directMakeup(dto);
+    const result = await this.makeup.directMakeup(dto);
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Post("rest")
@@ -205,7 +211,13 @@ export class AttendanceController {
     if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
       throw new ForbiddenException("仅管理员可为他人登记休息");
     }
-    return await this.schedule.declareRest(targetUserId, dto.date, dto.half);
+    const result = await this.schedule.declareRest(
+      targetUserId,
+      dto.date,
+      dto.half,
+    );
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Post("rest/clear")
@@ -214,7 +226,13 @@ export class AttendanceController {
     if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
       throw new ForbiddenException("仅管理员可为他人取消休息");
     }
-    return await this.schedule.clearRestHalf(targetUserId, dto.date, dto.half);
+    const result = await this.schedule.clearRestHalf(
+      targetUserId,
+      dto.date,
+      dto.half,
+    );
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Get("makeup-requests/mine")
@@ -237,13 +255,17 @@ export class AttendanceController {
   @Post("makeup-requests/:id/approve")
   async approveMakeupRequest(@Req() req: Request, @Param("id") id: string) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
-    return await this.makeup.approve(id, authUserId(req));
+    const result = await this.makeup.approve(id, authUserId(req));
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Post("makeup-requests/:id/reject")
   async rejectMakeupRequest(@Req() req: Request, @Param("id") id: string) {
     requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
-    return await this.makeup.reject(id, authUserId(req));
+    const result = await this.makeup.reject(id, authUserId(req));
+    this.attendance.clearMissingHistoryCache();
+    return result;
   }
 
   @Get("schedule")

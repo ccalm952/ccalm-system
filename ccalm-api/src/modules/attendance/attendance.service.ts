@@ -452,6 +452,10 @@ export class AttendanceService {
     };
   }
 
+  clearMissingHistoryCache() {
+    this.missingHistoryCache.clear();
+  }
+
   async missingHistory(userId: string): Promise<MissingHistory> {
     const cached = this.missingHistoryCache.get(userId);
     if (cached && cached.expiresAt > Date.now()) return cached.value;

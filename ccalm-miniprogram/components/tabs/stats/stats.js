@@ -282,6 +282,26 @@ Component({
       this.load(true);
     },
 
+    async refreshUser(userId) {
+      const detail = await getMonthlySummary(this.data.month, userId);
+      const details = this.mapDetails(detail.rows, userId);
+      const missing = Number(detail.allMissingSlots);
+      const users = (this.data.users || []).map((item) => {
+        if (item.userId !== userId) return item;
+        return Object.assign({}, item, {
+          attendance: formatDayCount(detail.attendanceDays),
+          rest: formatDayCount(detail.restDays),
+          missing: String(missing),
+          missingDanger: missing > 0,
+          overtime: this.showOvertime(detail.overtimeStr),
+          details,
+          detailLoaded: true,
+          expanded: true,
+        });
+      });
+      this.setData({ users, expandedId: userId });
+    },
+
     async openUser(userId) {
       const current = this.findUser(userId);
       if (!current) {
@@ -413,7 +433,7 @@ Component({
         }
         this.onRestClose();
         this.triggerEvent("attendancechanged");
-        await this.reload();
+        await this.refreshUser(pending.userId);
       } catch (error) {
         this.showError(error, "操作失败");
       } finally {
@@ -460,7 +480,7 @@ Component({
         });
         this.resetTimeEntry();
         this.triggerEvent("attendancechanged");
-        await this.reload();
+        await this.refreshUser(this.data.makeupUserId);
       } catch (error) {
         this.showError(error, "提交失败");
       } finally {
