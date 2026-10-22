@@ -73,6 +73,19 @@ describe("countUnresolvedMissingSlots", () => {
     ];
     expect(countUnresolvedMissingSlots(row(), pending)).toBe(0);
   });
+
+  it("今天在打卡窗口结束前不提前计缺卡", () => {
+    const gate = {
+      morningInWindowEnd: "09:00",
+      afternoonInWindowEnd: "15:00",
+    };
+    expect(
+      countUnresolvedMissingSlots(row({ date: TODAY }), [], gate, EARLY),
+    ).toBe(0);
+    expect(
+      countUnresolvedMissingSlots(row({ date: TODAY }), [], gate, LATE),
+    ).toBe(2);
+  });
 });
 
 describe("buildDayPunchRow", () => {

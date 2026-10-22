@@ -188,20 +188,38 @@ export function makeupSlotDenyMessage(
 export function countUnresolvedMissingSlots(
   row: DayPunchRow,
   pending: PendingMakeup[] = [],
+  gate?: MakeupTodayGate,
+  at: Date = new Date(),
 ): number {
+  const env = makeupSlotsEnv();
   let count = 0;
   if (!isPunchBlockedByScheduleRest("morning_in", row.declaredRest)) {
     if (!row.morningIn) {
-      if (!hasPending(row, "morning_in", pending)) count += 1;
-    } else if (!row.morningOut && !hasPending(row, "morning_out", pending)) {
+      if (
+        passesGate(row.date, "morning_in", gate, at, env) &&
+        !hasPending(row, "morning_in", pending)
+      ) {
+        count += 1;
+      }
+    } else if (
+      !row.morningOut &&
+      passesGate(row.date, "morning_out", gate, at, env) &&
+      !hasPending(row, "morning_out", pending)
+    ) {
       count += 1;
     }
   }
   if (!isPunchBlockedByScheduleRest("afternoon_in", row.declaredRest)) {
     if (!row.afternoonIn) {
-      if (!hasPending(row, "afternoon_in", pending)) count += 1;
+      if (
+        passesGate(row.date, "afternoon_in", gate, at, env) &&
+        !hasPending(row, "afternoon_in", pending)
+      ) {
+        count += 1;
+      }
     } else if (
       !row.afternoonOut &&
+      passesGate(row.date, "afternoon_out", gate, at, env) &&
       !hasPending(row, "afternoon_out", pending)
     ) {
       count += 1;

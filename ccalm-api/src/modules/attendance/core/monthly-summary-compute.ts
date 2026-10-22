@@ -119,6 +119,11 @@ export function computeMonthlySummaryAggregate(params: {
     byDate.set(key, arr);
   }
 
+  const gate = {
+    morningInWindowEnd: shift.morningInWindowEnd,
+    afternoonInWindowEnd: shift.afternoonInWindowEnd,
+  };
+
   let attendanceDays = 0;
   let restDays = 0;
   let allMissingSlots = 0;
@@ -173,7 +178,7 @@ export function computeMonthlySummaryAggregate(params: {
       attendanceDays += applyDayAttendance(row);
     }
 
-    allMissingSlots += countUnresolvedMissingSlots(row, pendingMakeups);
+    allMissingSlots += countUnresolvedMissingSlots(row, pendingMakeups, gate);
 
     const overtime = overtimeMinutesForOutTimes(
       row.morningOut,
