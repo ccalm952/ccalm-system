@@ -461,11 +461,17 @@ export class AttendanceScheduleService {
     throw new BadRequestException("下午已登记休息，请先取消休息登记后再打卡");
   }
 
-  private assertRestDateAllowed(dateStr: string) {
+  private async assertRestDateAllowed(userId: string, dateStr: string) {
     const d = attendanceDayjs(dateStr, "YYYY-MM-DD");
     if (!d.isValid()) throw new BadRequestException("日期不合法");
-    if (!isWithinAttendanceEditWindow(dateStr)) {
-      throw new BadRequestException("仅支持登记本月或上月的休息");
+    const first = await this.prisma.attendanceRecord.findFirst({
+      where: { userId },
+      orderBy: { punchDate: "asc" },
+      select: { punchDate: true },
+    });
+    const earliestMonth = first ? first.punchDate.slice(0, 7) : undefined;
+    if (!isWithinAttendanceEditWindow(dateStr, earliestMonth)) {
+      throw new BadRequestException("仅支持登记最早记录月份及之后的休息");
     }
   }
 
@@ -494,7 +500,7 @@ export class AttendanceScheduleService {
     date: string,
     half: "morning" | "afternoon",
   ) {
-    this.assertRestDateAllowed(date);
+    await this.assertRestDateAllowed(userId, date);
 
     const punched = await this.dayPunchTypes(userId, date);
     if (
@@ -550,7 +556,7 @@ export class AttendanceScheduleService {
     date: string,
     half: "morning" | "afternoon",
   ) {
-    this.assertRestDateAllowed(date);
+    await this.assertRestDateAllowed(userId, date);
 
     const existing = await this.prisma.scheduleEntry.findUnique({
       where: { userId_date: { userId, date } },

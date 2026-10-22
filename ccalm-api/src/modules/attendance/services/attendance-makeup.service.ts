@@ -209,6 +209,15 @@ export class AttendanceMakeupService {
     throw new BadRequestException(makeupSlotDenyMessage(reason, type));
   }
 
+  private async earliestMonthForUser(userId: string) {
+    const first = await this.prisma.attendanceRecord.findFirst({
+      where: { userId },
+      orderBy: { punchDate: "asc" },
+      select: { punchDate: true },
+    });
+    return first ? first.punchDate.slice(0, 7) : undefined;
+  }
+
   private async assertEmployeeMakeupSlot(
     userId: string,
     dateStr: string,
@@ -220,7 +229,7 @@ export class AttendanceMakeupService {
       this.getMakeupTodayGate(),
       this.pendingForUserDate(userId, dateStr, excludeRequestId),
     ]);
-    const env = makeupSlotsEnv();
+    const env = makeupSlotsEnv(await this.earliestMonthForUser(userId));
     const reason = employeeMakeupSlotDenyReason(
       row,
       type,
@@ -241,7 +250,7 @@ export class AttendanceMakeupService {
       this.buildMakeupRow(userId, dateStr),
       this.getMakeupTodayGate(),
     ]);
-    const env = makeupSlotsEnv();
+    const env = makeupSlotsEnv(await this.earliestMonthForUser(userId));
     const reason = adminMakeupSlotDenyReason(row, type, env, gate, new Date());
     this.throwIfMakeupDenied(reason, type);
   }

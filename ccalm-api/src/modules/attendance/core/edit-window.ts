@@ -4,14 +4,18 @@ export type EditWindowContext = {
   previousMonth: string;
 };
 
-/** 与考勤统计「本月 / 上个月」一致：仅允许编辑本月与上个自然月内的日期。 */
+/** 默认限本月/上月；传入最早记录月时，允许该月至今。 */
 export function isWithinAttendanceEditWindow(
   dateStr: string,
   ctx: EditWindowContext,
+  earliestMonth?: string,
 ): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   if (dateStr > ctx.todayYmd) return false;
   const month = dateStr.slice(0, 7);
+  if (earliestMonth) {
+    return month >= earliestMonth && month <= ctx.currentMonth;
+  }
   return month === ctx.currentMonth || month === ctx.previousMonth;
 }
 

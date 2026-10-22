@@ -171,7 +171,7 @@ describe("applyDayAttendance", () => {
 
 describe("makeupSlotDenyMessage", () => {
   const cases: Array<[MakeupSlotDenyReason, MakeupSlotType, string]> = [
-    ["window", "morning_in", "仅支持补本月或上月的缺卡"],
+    ["window", "morning_in", "仅支持补最早记录月份及之后的缺卡"],
     ["gate", "morning_in", "需等今日上午上班打卡窗口结束后才能补卡"],
     ["gate", "morning_out", "需等今日上午上班打卡窗口结束后才能补卡"],
     ["gate", "afternoon_in", "需等今日下午上班打卡窗口结束后才能补卡"],

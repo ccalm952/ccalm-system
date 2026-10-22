@@ -29,6 +29,7 @@ export type MakeupSlotDenyReason =
 
 type MakeupSlotsEnv = {
   editWindowContext: EditWindowContext;
+  earliestMonth?: string;
   isToday: (dateStr: string) => boolean;
   wallMinutes: (at: Date) => number;
 };
@@ -41,10 +42,11 @@ const IN_TYPE_BY_OUT: Record<
   afternoon_out: "afternoon_in",
 };
 
-function makeupSlotsEnv(): MakeupSlotsEnv {
+function makeupSlotsEnv(earliestMonth?: string): MakeupSlotsEnv {
   const todayYmd = attendanceTodayStart().format("YYYY-MM-DD");
   return {
     editWindowContext: buildEditWindowContext(todayYmd),
+    earliestMonth,
     isToday: isAttendanceDateToday,
     wallMinutes: (d) =>
       attendanceDayjs(d).hour() * 60 + attendanceDayjs(d).minute(),
@@ -82,7 +84,11 @@ function slotTime(row: DayPunchRow, type: MakeupSlotType): string | null {
 }
 
 function isWithinMakeupWindow(dateStr: string, env: MakeupSlotsEnv): boolean {
-  return isWithinAttendanceEditWindow(dateStr, env.editWindowContext);
+  return isWithinAttendanceEditWindow(
+    dateStr,
+    env.editWindowContext,
+    env.earliestMonth,
+  );
 }
 
 function passesGate(
@@ -158,7 +164,7 @@ export function makeupSlotDenyMessage(
 ): string {
   switch (reason) {
     case "window":
-      return "仅支持补本月或上月的缺卡";
+      return "仅支持补最早记录月份及之后的缺卡";
     case "gate": {
       const label =
         type === "morning_in" || type === "morning_out"

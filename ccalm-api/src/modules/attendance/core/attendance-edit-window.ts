@@ -5,11 +5,15 @@ import {
 
 import { attendanceTodayStart } from "./attendance-dayjs";
 
-/** 与考勤统计「本月 / 上个月」一致：仅允许编辑本月与上个自然月内的日期。 */
-export function isWithinAttendanceEditWindow(dateStr: string): boolean {
+/** 默认限本月/上月；传入最早记录月时，允许该月至今。 */
+export function isWithinAttendanceEditWindow(
+  dateStr: string,
+  earliestMonth?: string,
+): boolean {
   const today = attendanceTodayStart();
   return isWithinEditWindow(
     dateStr,
     buildEditWindowContext(today.format("YYYY-MM-DD")),
+    earliestMonth,
   );
 }
