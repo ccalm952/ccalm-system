@@ -3,7 +3,6 @@ const {
   createMakeupRequest,
   declareRest,
   directMakeup,
-  getMissingHistory,
   getMonthlySummaries,
   getMonthlySummary,
   getShift,
@@ -32,7 +31,6 @@ const {
   formatMonthTitle,
   formatOvertimeHours,
   monthKey,
-  setEditStartMonth,
   shiftMonthKey,
 } = require("../../../utils/time");
 
@@ -50,6 +48,7 @@ Component({
     canNext: false,
     users: [],
     pageLoading: false,
+    tableScrollTop: 0,
     expandedId: "",
     dialogShow: false,
     restDialogShow: false,
@@ -81,15 +80,31 @@ Component({
     },
   },
 
+  pageLifetimes: {
+    show() {
+      this.syncCurrentMonth();
+    },
+  },
+
   methods: {
     refresh() {
       if (!this.properties.active || !this.statsLoaded) return;
       this.load(false);
     },
 
+    syncCurrentMonth() {
+      const thisMonth = monthKey();
+      if (thisMonth === this.data.thisMonth) return;
+      this.setData({
+        thisMonth,
+        canNext: this.data.month < thisMonth,
+      });
+    },
+
     activate() {
       const session = requireSession();
       if (!session) return;
+      this.syncCurrentMonth();
       this.setData({ makeupDirect: isAdmin(session) });
       if (this.statsLoaded) {
         this.setData({ pageLoading: false });
@@ -127,12 +142,22 @@ Component({
       };
     },
 
-    mapDetails(rows, userId) {
+    onTableScroll(event) {
+      this.tableScrollTop = Number(event.detail && event.detail.scrollTop) || 0;
+    },
+
+    mapDetails(rows, userId, editStartMonth) {
       const requests = this.requestsFor(userId);
       const at = new Date();
       return (rows || []).map((row) => {
         const source = this.toMonthlyRow(row);
-        const built = buildAttendanceRow(source, this.shift, requests, at);
+        const built = buildAttendanceRow(
+          source,
+          this.shift,
+          requests,
+          at,
+          editStartMonth,
+        );
         return {
           key: row.date,
           day: built.day,
@@ -148,6 +173,9 @@ Component({
 
     mapSummary(item, loaded) {
       const missing = Number(item.allMissingSlots);
+      const earliestMonth = item.earliestPunchDate
+        ? String(item.earliestPunchDate).slice(0, 7)
+        : "";
       return {
         userId: item.userId,
         userName: item.userName,
@@ -156,8 +184,11 @@ Component({
         missing: String(missing),
         missingDanger: missing > 0,
         overtime: this.showOvertime(item.overtimeStr),
+        earliestMonth,
         expanded: false,
-        details: loaded ? this.mapDetails(item.rows, item.userId) : [],
+        details: loaded
+          ? this.mapDetails(item.rows, item.userId, earliestMonth)
+          : [],
         detailLoaded: loaded,
       };
     },
@@ -188,6 +219,9 @@ Component({
 
     applyMonthSummary(userId, detail) {
       const missing = Number(detail.allMissingSlots);
+      const earliestMonth = detail.earliestPunchDate
+        ? String(detail.earliestPunchDate).slice(0, 7)
+        : "";
       const users = (this.data.users || []).map((item) => {
         if (item.userId !== userId) return item;
         return Object.assign({}, item, {
@@ -196,6 +230,7 @@ Component({
           missing: String(missing),
           missingDanger: missing > 0,
           overtime: this.showOvertime(detail.overtimeStr),
+          earliestMonth,
         });
       });
       this.setData({ users });
@@ -211,18 +246,12 @@ Component({
         const requestsPromise = admin
           ? listMakeupRequests("pending").catch(() => [])
           : listMyMakeupRequests("pending").catch(() => []);
-        const [shiftValue, requests, history] = await Promise.all([
+        const [shiftValue, requests] = await Promise.all([
           getShift(),
           requestsPromise,
-          getMissingHistory().catch(() => null),
         ]);
         this.shift = shiftValue;
         this.pendingRequests = Array.isArray(requests) ? requests : [];
-        setEditStartMonth(
-          history && history.startDate
-            ? String(history.startDate).slice(0, 7)
-            : "",
-        );
         let lines = [];
         if (admin) {
           const list = await getMonthlySummaries(month);
@@ -282,12 +311,28 @@ Component({
       this.load(true);
     },
 
+    async loadPendingRequests() {
+      const session = getSession();
+      if (!session || !session.user) return;
+      try {
+        const requests = isAdmin(session)
+          ? await listMakeupRequests("pending")
+          : await listMyMakeupRequests("pending");
+        this.pendingRequests = Array.isArray(requests) ? requests : [];
+      } catch (_) {
+        // 保留旧待办列表，避免补卡已成功却提示失败
+      }
+    },
+
     async refreshUser(userId) {
       const detail = await getMonthlySummary(
         this.data.month,
         this.targetUserId(userId) || undefined,
       );
-      const details = this.mapDetails(detail.rows, userId);
+      const earliestMonth = detail.earliestPunchDate
+        ? String(detail.earliestPunchDate).slice(0, 7)
+        : "";
+      const details = this.mapDetails(detail.rows, userId, earliestMonth);
       const missing = Number(detail.allMissingSlots);
       const users = (this.data.users || []).map((item) => {
         if (item.userId !== userId) return item;
@@ -297,12 +342,19 @@ Component({
           missing: String(missing),
           missingDanger: missing > 0,
           overtime: this.showOvertime(detail.overtimeStr),
+          earliestMonth,
           details,
           detailLoaded: true,
           expanded: true,
         });
       });
-      this.setData({ users, expandedId: userId });
+      const scrollTop = this.tableScrollTop || 0;
+      this.setData({ users, expandedId: userId }, () => {
+        if (!scrollTop) return;
+        this.setData({ tableScrollTop: Math.max(0, scrollTop - 0.5) }, () => {
+          this.setData({ tableScrollTop: scrollTop });
+        });
+      });
     },
 
     async openUser(userId) {
@@ -315,7 +367,10 @@ Component({
         this.data.month,
         this.targetUserId(userId) || undefined,
       );
-      const details = this.mapDetails(detail.rows, userId);
+      const earliestMonth = detail.earliestPunchDate
+        ? String(detail.earliestPunchDate).slice(0, 7)
+        : "";
+      const details = this.mapDetails(detail.rows, userId, earliestMonth);
       this.applyMonthSummary(userId, detail);
       this.setData({ expandedId: userId });
       this.setExpanded(userId, true, details, true);
@@ -486,6 +541,9 @@ Component({
         });
         this.resetTimeEntry();
         this.triggerEvent("attendancechanged");
+        if (!this.data.makeupDirect) {
+          await this.loadPendingRequests();
+        }
         await this.refreshUser(this.data.makeupUserId);
       } catch (error) {
         this.showError(error, "提交失败");

@@ -407,31 +407,37 @@ export class AttendanceService {
 
     const { start, end, todayYmd, startDate, rangeEnd } = bounds;
 
-    const [leaveBundle, list, shift, pendingMakeups] = await Promise.all([
-      this.schedule.getMonthlyLeaveBundle(userId, month, startDate, rangeEnd),
-      this.prisma.attendanceRecord.findMany({
-        where: {
-          userId,
-          punchDate: { gte: startDate, lte: rangeEnd },
-        },
-        orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
-        select: {
-          punchDate: true,
-          punchTime: true,
-          type: true,
-          source: true,
-        },
-      }),
-      shiftOverride ?? this.getShift(),
-      this.prisma.attendanceMakeupRequest.findMany({
-        where: {
-          userId,
-          status: "pending",
-          date: { gte: startDate, lte: rangeEnd },
-        },
-        select: { date: true, type: true, status: true },
-      }),
-    ]);
+    const [leaveBundle, list, shift, pendingMakeups, firstRecord] =
+      await Promise.all([
+        this.schedule.getMonthlyLeaveBundle(userId, month, startDate, rangeEnd),
+        this.prisma.attendanceRecord.findMany({
+          where: {
+            userId,
+            punchDate: { gte: startDate, lte: rangeEnd },
+          },
+          orderBy: [{ punchDate: "asc" }, { punchTime: "asc" }],
+          select: {
+            punchDate: true,
+            punchTime: true,
+            type: true,
+            source: true,
+          },
+        }),
+        shiftOverride ?? this.getShift(),
+        this.prisma.attendanceMakeupRequest.findMany({
+          where: {
+            userId,
+            status: "pending",
+            date: { gte: startDate, lte: rangeEnd },
+          },
+          select: { date: true, type: true, status: true },
+        }),
+        this.prisma.attendanceRecord.findFirst({
+          where: { userId },
+          orderBy: { punchDate: "asc" },
+          select: { punchDate: true },
+        }),
+      ]);
 
     const aggregate = computeMonthlySummaryAggregate({
       start,
@@ -443,11 +449,18 @@ export class AttendanceService {
       pendingMakeups,
     });
 
+    const earliestPunchDate = firstRecord?.punchDate ?? null;
+    const earliestMonth = earliestPunchDate?.slice(0, 7);
+    const allMissingSlots =
+      earliestMonth && month < earliestMonth ? 0 : aggregate.allMissingSlots;
+
     return {
       month,
       startDate,
       rangeEnd,
       ...aggregate,
+      allMissingSlots,
+      earliestPunchDate,
       remainingLeave: leaveBundle.remainingLeave,
     };
   }
@@ -576,7 +589,7 @@ export class AttendanceService {
     const userIds = users.map((u) => u.id);
     const { start, end, todayYmd, startDate, rangeEnd } = bounds;
 
-    const [declaredScheduleMaps, allRecords, shift, allPending] =
+    const [declaredScheduleMaps, allRecords, shift, allPending, earliestRows] =
       await Promise.all([
         this.schedule.declaredScheduleMapsForUsers(
           userIds,
@@ -606,6 +619,11 @@ export class AttendanceService {
           },
           select: { userId: true, date: true, type: true, status: true },
         }),
+        this.prisma.attendanceRecord.groupBy({
+          by: ["userId"],
+          where: { userId: { in: userIds } },
+          _min: { punchDate: true },
+        }),
       ]);
 
     const recordsByUser = new Map<string, typeof allRecords>();
@@ -625,6 +643,10 @@ export class AttendanceService {
       pendingByUser.set(p.userId, arr);
     }
 
+    const earliestByUser = new Map(
+      earliestRows.map((row) => [row.userId, row._min.punchDate]),
+    );
+
     return users.map((u) => {
       const userDeclaredScheduleMap =
         declaredScheduleMaps.get(u.id) ??
@@ -638,12 +660,18 @@ export class AttendanceService {
         shift,
         pendingMakeups: pendingByUser.get(u.id) ?? [],
       });
+      const earliestPunchDate = earliestByUser.get(u.id) ?? null;
+      const earliestMonth = earliestPunchDate?.slice(0, 7);
+      const allMissingSlots =
+        earliestMonth && month < earliestMonth ? 0 : aggregate.allMissingSlots;
+
       return {
         userId: u.id,
         userName: u.displayName || u.username,
         attendanceDays: aggregate.attendanceDays,
         restDays: aggregate.restDays,
-        allMissingSlots: aggregate.allMissingSlots,
+        allMissingSlots,
+        earliestPunchDate,
         overtimeStr: aggregate.overtimeStr,
         rows: includeRows ? aggregate.rows : [],
       };

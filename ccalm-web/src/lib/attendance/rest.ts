@@ -15,11 +15,15 @@ import type { AttendancePunchDayRow, ScheduleRestType } from "./types";
 export type { RestHalf };
 export { isHalfDeclaredRest };
 
-function isWithinRestEditWindow(dateStr: string): boolean {
+function isWithinRestEditWindow(
+  dateStr: string,
+  earliestMonth?: string,
+): boolean {
   const today = attendanceTodayStart();
   return isWithinAttendanceEditWindow(
     dateStr,
     buildEditWindowContext(today.format("YYYY-MM-DD")),
+    earliestMonth,
   );
 }
 
@@ -34,7 +38,7 @@ export function canDeclareRest(
   row: AttendancePunchDayRow,
   half: RestHalf,
 ): boolean {
-  if (!isWithinRestEditWindow(row.date)) return false;
+  if (!isWithinRestEditWindow(row.date, row.earliestMonth)) return false;
   if (halfHasPunch(row, half)) return false;
   if (isHalfDeclaredRest(row.declaredRest, half)) return false;
   return true;

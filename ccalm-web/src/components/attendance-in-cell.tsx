@@ -54,6 +54,8 @@ export function AttendanceInCell(props: {
     inType,
     makeupRequests,
     makeupTodayGate,
+    undefined,
+    row.earliestMonth,
   );
   const showRest = canDeclareRest(row, half);
 

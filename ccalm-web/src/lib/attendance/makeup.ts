@@ -40,8 +40,9 @@ export function adminMakeupSlotStateWithPending(
   requests: AttendanceMakeupRequest[] = [],
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | "pending" | null {
-  const base = adminMakeupSlotStateCore(row, type, gate, at);
+  const base = adminMakeupSlotStateCore(row, type, gate, at, earliestMonth);
   return withPending(base, row, type, requests);
 }
 
@@ -51,8 +52,9 @@ export function makeupSlotState(
   requests: AttendanceMakeupRequest[],
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | "pending" | null {
-  const base = makeupOutSlotStateCore(row, type, gate, at);
+  const base = makeupOutSlotStateCore(row, type, gate, at, earliestMonth);
   if (!base) return null;
   return withPending(base, row, type, requests);
 }
@@ -63,8 +65,9 @@ export function makeupInSlotState(
   requests: AttendanceMakeupRequest[],
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | "pending" | null {
-  const base = makeupInSlotStateCore(row, type, gate, at);
+  const base = makeupInSlotStateCore(row, type, gate, at, earliestMonth);
   if (!base) return null;
   return withPending(base, row, type, requests);
 }

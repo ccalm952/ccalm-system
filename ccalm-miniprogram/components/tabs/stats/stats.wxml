@@ -30,6 +30,8 @@
             enable-flex
             enhanced="{{true}}"
             show-scrollbar="{{false}}"
+            scroll-top="{{tableScrollTop}}"
+            bindscroll="onTableScroll"
           >
             <scroll-view class="table-scroll" scroll-x enable-flex>
               <view class="table stats-table" style="min-width: 640px">

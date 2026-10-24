@@ -18,6 +18,7 @@ import { isAttendanceDateToday } from "./makeup-today-gate";
 
 type MakeupSlotsEnv = {
   editWindowContext: EditWindowContext;
+  earliestMonth?: string;
   isToday: (dateStr: string) => boolean;
   wallMinutes: (at: Date) => number;
 };
@@ -30,10 +31,11 @@ const IN_TYPE_BY_OUT: Record<
   afternoon_out: "afternoon_in",
 };
 
-function makeupSlotsEnv(): MakeupSlotsEnv {
+function makeupSlotsEnv(earliestMonth?: string): MakeupSlotsEnv {
   const todayYmd = attendanceTodayStart().format("YYYY-MM-DD");
   return {
     editWindowContext: buildEditWindowContext(todayYmd),
+    earliestMonth,
     isToday: isAttendanceDateToday,
     wallMinutes: (d) => d.getHours() * 60 + d.getMinutes(),
   };
@@ -47,7 +49,11 @@ function slotTime(row: DayPunchRow, type: MakeupSlotType): string | null {
 }
 
 function isWithinMakeupWindow(dateStr: string, env: MakeupSlotsEnv): boolean {
-  return isWithinAttendanceEditWindow(dateStr, env.editWindowContext);
+  return isWithinAttendanceEditWindow(
+    dateStr,
+    env.editWindowContext,
+    env.earliestMonth,
+  );
 }
 
 function passesGate(
@@ -89,8 +95,15 @@ export function makeupInSlotStateCore(
   type: "morning_in" | "afternoon_in",
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | null {
-  return employeeMakeupSlotState(row, type, makeupSlotsEnv(), gate, at);
+  return employeeMakeupSlotState(
+    row,
+    type,
+    makeupSlotsEnv(earliestMonth),
+    gate,
+    at,
+  );
 }
 
 export function makeupOutSlotStateCore(
@@ -98,8 +111,15 @@ export function makeupOutSlotStateCore(
   type: "morning_out" | "afternoon_out",
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | null {
-  return employeeMakeupSlotState(row, type, makeupSlotsEnv(), gate, at);
+  return employeeMakeupSlotState(
+    row,
+    type,
+    makeupSlotsEnv(earliestMonth),
+    gate,
+    at,
+  );
 }
 
 export function adminMakeupSlotStateCore(
@@ -107,6 +127,13 @@ export function adminMakeupSlotStateCore(
   type: MakeupSlotType,
   gate?: MakeupTodayGate,
   at: Date = new Date(),
+  earliestMonth?: string,
 ): "apply" | null {
-  return employeeMakeupSlotState(row, type, makeupSlotsEnv(), gate, at);
+  return employeeMakeupSlotState(
+    row,
+    type,
+    makeupSlotsEnv(earliestMonth),
+    gate,
+    at,
+  );
 }

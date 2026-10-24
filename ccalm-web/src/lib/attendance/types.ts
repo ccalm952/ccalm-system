@@ -61,6 +61,7 @@ export type AttendancePunchDayRow = {
   morningOutIsMakeup?: boolean;
   afternoonOutIsMakeup?: boolean;
   declaredRest?: ScheduleRestType | null;
+  earliestMonth?: string;
   overtimeMinutes: number;
   overtimeStr: string;
 };
@@ -107,6 +108,7 @@ export type AttendanceMonthlySummary = {
   attendanceDays: number;
   restDays: number;
   allMissingSlots: number;
+  earliestPunchDate: string | null;
   overtimeMinutes: number;
   overtimeStr: string;
   remainingLeave?: number;

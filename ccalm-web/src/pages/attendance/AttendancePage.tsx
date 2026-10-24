@@ -392,8 +392,13 @@ export function AttendancePage() {
       monthly: AttendanceMonthlySummary;
       shift: BackendShiftDto;
     }>("GET", `/attendance/bundle?month=${month}`);
+    const earliestMonth = monthly.earliestPunchDate?.slice(0, 7);
+    const monthlyWithEarliest = {
+      ...monthly,
+      rows: monthly.rows.map((row) => ({ ...row, earliestMonth })),
+    };
     setRecords(todayRes);
-    setMonthSummary(monthly);
+    setMonthSummary(monthlyWithEarliest);
     setShift(shiftRes);
     setMakeupTodayGate(makeupTodayGateFromShift(shiftRes));
     return { todayRes, monthly, shiftRes };
