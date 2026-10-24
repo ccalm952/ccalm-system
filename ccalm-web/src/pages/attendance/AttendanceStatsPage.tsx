@@ -52,7 +52,6 @@ import {
   type BackendShiftDto,
 } from "@/lib/attendance/shift";
 import type { RestHalf } from "@/lib/attendance/rest";
-import { setAttendanceEditStart } from "@/lib/attendance/edit-window";
 import { formatDayCount, todayKey } from "@/lib/attendance/summary";
 import type {
   AttendanceMakeupRequest,
@@ -89,10 +88,19 @@ type UserAgg = {
   attendanceDays: number;
   restDays: number;
   allMissingSlots: number;
+  earliestPunchDate: string | null;
   overtimeStr: string;
   rows: AttendanceMonthlySummary["rows"];
   detailLoaded: boolean;
 };
+
+function withEarliestMonth(
+  rows: AttendanceMonthlySummary["rows"],
+  earliestPunchDate: string | null,
+): AttendanceMonthlySummary["rows"] {
+  const earliestMonth = earliestPunchDate?.slice(0, 7);
+  return rows.map((row) => ({ ...row, earliestMonth }));
+}
 
 async function loadPendingMakeupRequests(
   isAdmin: boolean,
@@ -119,7 +127,7 @@ async function loadSummary(
 }> {
   const isAdmin = me.role === "admin";
 
-  const [pendingMakeupRequests, summaryResult, history] = await Promise.all([
+  const [pendingMakeupRequests, summaryResult] = await Promise.all([
     loadPendingMakeupRequests(isAdmin),
     isAdmin
       ? api<Omit<UserAgg, "detailLoaded">[]>(
@@ -138,18 +146,13 @@ async function loadSummary(
             attendanceDays: s.attendanceDays,
             restDays: s.restDays,
             allMissingSlots: s.allMissingSlots,
+            earliestPunchDate: s.earliestPunchDate,
             overtimeStr: s.overtimeStr,
-            rows: s.rows,
+            rows: withEarliestMonth(s.rows, s.earliestPunchDate),
             detailLoaded: true,
           },
         ]),
-    api<{ startDate: string | null }>(
-      "GET",
-      "/attendance/summary/missing-history",
-    ).catch(() => ({ startDate: null })),
   ]);
-
-  setAttendanceEditStart(history.startDate?.slice(0, 7));
 
   return {
     isAdmin,
@@ -238,7 +241,10 @@ export function AttendanceStatsPage() {
               "GET",
               `/attendance/summary/monthly?month=${month}&userId=${userId}`,
             );
-            return [userId, detail.rows] as const;
+            return [
+              userId,
+              withEarliestMonth(detail.rows, detail.earliestPunchDate),
+            ] as const;
           }),
         );
         const rowsByUser = new Map(details);
@@ -286,7 +292,14 @@ export function AttendanceStatsPage() {
             (current) =>
               current?.map((item) =>
                 item.userId === user.userId
-                  ? { ...item, rows: detail.rows, detailLoaded: true }
+                  ? {
+                      ...item,
+                      rows: withEarliestMonth(
+                        detail.rows,
+                        detail.earliestPunchDate,
+                      ),
+                      detailLoaded: true,
+                    }
                   : item,
               ) ?? null,
           );

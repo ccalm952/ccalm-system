@@ -4,23 +4,17 @@ export type EditWindowContext = {
   previousMonth: string;
 };
 
-let editStartMonth = "";
-
-/** 以最早打卡记录所在月为下限；为空时保持原来的本月/上月限制。 */
-export function setAttendanceEditStart(month: string | null | undefined) {
-  editStartMonth = /^\d{4}-\d{2}$/.test(month || "") ? String(month) : "";
-}
-
-/** 与考勤统计「本月 / 上个月」一致，允许编辑最早记录月至今天。 */
+/** 默认限本月/上月；传入最早记录月时，允许该月至今。 */
 export function isWithinAttendanceEditWindow(
   dateStr: string,
   ctx: EditWindowContext,
+  earliestMonth?: string,
 ): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   if (dateStr > ctx.todayYmd) return false;
   const month = dateStr.slice(0, 7);
-  if (editStartMonth) {
-    return month >= editStartMonth && month <= ctx.currentMonth;
+  if (earliestMonth) {
+    return month >= earliestMonth && month <= ctx.currentMonth;
   }
   return month === ctx.currentMonth || month === ctx.previousMonth;
 }

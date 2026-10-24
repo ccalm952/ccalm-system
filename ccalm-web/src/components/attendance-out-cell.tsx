@@ -45,6 +45,8 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
       props.type,
       makeupRequests,
       makeupTodayGate,
+      undefined,
+      row.earliestMonth,
     );
   } else {
     slotState = makeupSlotState(
@@ -52,6 +54,8 @@ export function AttendanceOutCell(props: AttendanceOutCellProps) {
       props.type,
       makeupRequests,
       makeupTodayGate,
+      undefined,
+      row.earliestMonth,
     );
   }
 

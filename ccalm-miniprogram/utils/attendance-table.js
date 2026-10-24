@@ -31,7 +31,7 @@ function isPending(requests, date, type) {
   );
 }
 
-function buildCell(row, meta, shift, requests, at) {
+function buildCell(row, meta, shift, requests, at, editStartMonth) {
   const time = slotTime(row, meta.type);
   if (time) {
     return { text: time, tone: "plain", actions: [], pending: false };
@@ -50,7 +50,11 @@ function buildCell(row, meta, shift, requests, at) {
     };
   }
   const waiting = isPending(requests, row.date, meta.type);
-  const inWindow = isWithinEditWindow(row.date, buildEditWindowContext());
+  const inWindow = isWithinEditWindow(
+    row.date,
+    buildEditWindowContext(),
+    editStartMonth,
+  );
   const gate = shift
     ? {
         morningInWindowEnd: shift.morningInWindowEnd,
@@ -93,15 +97,42 @@ function buildSlots(row) {
   ];
 }
 
-function buildAttendanceRow(row, shift, requests, at = new Date()) {
+function buildAttendanceRow(
+  row,
+  shift,
+  requests,
+  at = new Date(),
+  editStartMonth,
+) {
   const result = {
     date: row.date,
     day: dayOfMonth(row.date),
     source: row,
-    morningIn: buildCell(row, MORNING_IN, shift, requests, at),
-    morningOut: buildCell(row, MORNING_OUT, shift, requests, at),
-    afternoonIn: buildCell(row, AFTERNOON_IN, shift, requests, at),
-    afternoonOut: buildCell(row, AFTERNOON_OUT, shift, requests, at),
+    morningIn: buildCell(row, MORNING_IN, shift, requests, at, editStartMonth),
+    morningOut: buildCell(
+      row,
+      MORNING_OUT,
+      shift,
+      requests,
+      at,
+      editStartMonth,
+    ),
+    afternoonIn: buildCell(
+      row,
+      AFTERNOON_IN,
+      shift,
+      requests,
+      at,
+      editStartMonth,
+    ),
+    afternoonOut: buildCell(
+      row,
+      AFTERNOON_OUT,
+      shift,
+      requests,
+      at,
+      editStartMonth,
+    ),
   };
   result.slots = buildSlots(result);
   return result;
