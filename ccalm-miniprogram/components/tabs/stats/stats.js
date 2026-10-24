@@ -48,7 +48,6 @@ Component({
     canNext: false,
     users: [],
     pageLoading: false,
-    tableScrollTop: 0,
     expandedId: "",
     dialogShow: false,
     restDialogShow: false,
@@ -140,10 +139,6 @@ Component({
         afternoonOut: row.afternoonOut,
         declaredRest: row.declaredRest,
       };
-    },
-
-    onTableScroll(event) {
-      this.tableScrollTop = Number(event.detail && event.detail.scrollTop) || 0;
     },
 
     mapDetails(rows, userId, editStartMonth) {
@@ -348,13 +343,7 @@ Component({
           expanded: true,
         });
       });
-      const scrollTop = this.tableScrollTop || 0;
-      this.setData({ users, expandedId: userId }, () => {
-        if (!scrollTop) return;
-        this.setData({ tableScrollTop: Math.max(0, scrollTop - 0.5) }, () => {
-          this.setData({ tableScrollTop: scrollTop });
-        });
-      });
+      this.setData({ users, expandedId: userId });
     },
 
     async openUser(userId) {
