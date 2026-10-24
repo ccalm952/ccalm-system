@@ -283,7 +283,10 @@ Component({
     },
 
     async refreshUser(userId) {
-      const detail = await getMonthlySummary(this.data.month, userId);
+      const detail = await getMonthlySummary(
+        this.data.month,
+        this.targetUserId(userId) || undefined,
+      );
       const details = this.mapDetails(detail.rows, userId);
       const missing = Number(detail.allMissingSlots);
       const users = (this.data.users || []).map((item) => {
@@ -308,7 +311,10 @@ Component({
         this.setData({ expandedId: "" });
         return;
       }
-      const detail = await getMonthlySummary(this.data.month, userId);
+      const detail = await getMonthlySummary(
+        this.data.month,
+        this.targetUserId(userId) || undefined,
+      );
       const details = this.mapDetails(detail.rows, userId);
       this.applyMonthSummary(userId, detail);
       this.setData({ expandedId: userId });

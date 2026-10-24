@@ -1,13 +1,11 @@
 const { getMissingHistory, getMonthlySummary } = require("./attendance");
-const { getSession, hasSession } = require("../store/session");
+const { hasSession } = require("../store/session");
 const { monthKey } = require("../utils/time");
 
 async function fetchMissingTotal() {
   if (!hasSession()) return 0;
-  const session = getSession();
-  const userId = session.user && session.user.id;
   const [monthly, history] = await Promise.all([
-    getMonthlySummary(monthKey(), userId),
+    getMonthlySummary(monthKey()),
     getMissingHistory().catch(() => ({ allMissingSlots: 0 })),
   ]);
   const current = monthly ? Number(monthly.allMissingSlots) : 0;

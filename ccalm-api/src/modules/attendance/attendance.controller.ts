@@ -181,7 +181,7 @@ export class AttendanceController {
     @Query("userId") userId?: string,
   ) {
     const targetUserId = userId ? String(userId) : authUserId(req);
-    if (userId && !isAdmin(req)) {
+    if (userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
       throw new ForbiddenException("仅管理员可查看他人考勤统计");
     }
     return await this.attendance.monthlySummary(targetUserId, month);
