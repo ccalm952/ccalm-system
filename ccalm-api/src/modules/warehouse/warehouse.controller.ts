@@ -9,12 +9,7 @@ import {
   Put,
   Query,
   Req,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
-import { memoryStorage } from "multer";
 import type { Request } from "express";
 
 import { actor } from "../../common/request-auth";
@@ -102,28 +97,6 @@ export class WarehouseController {
   @Delete("txns/:id")
   deleteTxn(@Param("id", ParseIntPipe) id: number) {
     return this.warehouse.deleteTxn(id);
-  }
-
-  @Post("import/lichi")
-  @UseInterceptors(
-    FileInterceptor("file", {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        if (!/\.xlsx?$/i.test(file.originalname)) {
-          cb(new BadRequestException("仅支持 .xls / .xlsx 文件"), false);
-          return;
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  importLichi(@Req() req: Request, @UploadedFile() file?: Express.Multer.File) {
-    const a = actor(req);
-    if (!file?.buffer?.length) {
-      throw new BadRequestException("请上传 Excel 文件");
-    }
-    return this.warehouse.importLichiExcel(file.buffer, a.userId);
   }
 
   @Get("stats/purchase")
