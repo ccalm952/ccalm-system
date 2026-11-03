@@ -265,6 +265,10 @@ Component({
       }
     },
 
+    onToast(event) {
+      this.triggerEvent("toast", event.detail || {});
+    },
+
     onTodoOpen() {
       this.setData({ todoShow: true });
     },

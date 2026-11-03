@@ -263,6 +263,7 @@ Component({
                 attendanceDays: summary.attendanceDays,
                 restDays: summary.restDays,
                 allMissingSlots: summary.allMissingSlots,
+                earliestPunchDate: summary.earliestPunchDate,
                 overtimeStr: summary.overtimeStr,
                 rows: summary.rows,
               },
@@ -476,18 +477,26 @@ Component({
         if (target) body.userId = target;
         if (pending.clearing) {
           await clearRest(body);
-          this.showToast("已取消休息登记", "success");
         } else {
           await declareRest(body);
-          this.showToast("休息登记成功", "success");
         }
-        this.onRestClose();
-        this.triggerEvent("attendancechanged");
-        await this.refreshUser(pending.userId);
       } catch (error) {
         this.showError(error, "操作失败");
-      } finally {
         this.restSubmitting = false;
+        return;
+      }
+      this.restSubmitting = false;
+
+      this.showToast(
+        pending.clearing ? "已取消休息登记" : "休息登记成功",
+        "success",
+      );
+      this.onRestClose();
+      this.triggerEvent("attendancechanged");
+      try {
+        await this.refreshUser(pending.userId);
+      } catch (error) {
+        this.showError(error, "刷新失败");
       }
     },
 
@@ -505,39 +514,46 @@ Component({
       if (this.data.makeupDirect && !this.isClockTime(this.data.makeupTime)) {
         return;
       }
+      const direct = this.data.makeupDirect;
+      const userId = this.data.makeupUserId;
       this.setData({ makeupSubmitting: true });
       try {
-        if (this.data.makeupDirect) {
+        if (direct) {
           await directMakeup({
-            userId: this.data.makeupUserId,
+            userId,
             date: this.data.makeupDate,
             type: this.data.makeupType,
             time: this.data.makeupTime,
           });
-          this.showToast("补卡成功", "success");
         } else {
           await createMakeupRequest({
             date: this.data.makeupDate,
             type: this.data.makeupType,
             time: this.data.makeupTime,
           });
-          this.showToast("补卡申请已提交", "success");
         }
-        this.setData({
-          dialogShow: false,
-          shellStyle: "",
-          makeupDialogLift: "",
-        });
-        this.resetTimeEntry();
-        this.triggerEvent("attendancechanged");
-        if (!this.data.makeupDirect) {
-          await this.loadPendingRequests();
-        }
-        await this.refreshUser(this.data.makeupUserId);
       } catch (error) {
         this.showError(error, "提交失败");
-      } finally {
         this.setData({ makeupSubmitting: false });
+        return;
+      }
+      this.setData({ makeupSubmitting: false });
+
+      this.showToast(direct ? "补卡成功" : "补卡申请已提交", "success");
+      this.setData({
+        dialogShow: false,
+        shellStyle: "",
+        makeupDialogLift: "",
+      });
+      this.resetTimeEntry();
+      this.triggerEvent("attendancechanged");
+      if (!direct) {
+        await this.loadPendingRequests();
+      }
+      try {
+        await this.refreshUser(userId);
+      } catch (error) {
+        this.showError(error, "刷新失败");
       }
     },
 

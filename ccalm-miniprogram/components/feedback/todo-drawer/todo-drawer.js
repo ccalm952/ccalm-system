@@ -38,7 +38,10 @@ Component({
           todoEmpty: next === "pending" ? "暂无待办" : "暂无申请记录",
         });
       } catch (_) {
-        wx.showToast({ title: "待办加载失败", icon: "none" });
+        this.triggerEvent("toast", {
+          text: "待办加载失败",
+          type: "error",
+        });
       }
     },
 
@@ -80,14 +83,20 @@ Component({
       this.reviewing = true;
       try {
         await (approve ? approveRequest(kind, id) : rejectRequest(kind, id));
-        wx.showToast({
-          title: approve ? "已通过" : "已拒绝",
-          icon: "none",
+        this.triggerEvent("toast", {
+          text: approve ? "已通过" : "已拒绝",
+          type: "success",
         });
         this.triggerEvent("changed");
         await this.loadTodo("pending");
-      } catch (_) {
-        wx.showToast({ title: "操作失败", icon: "none" });
+      } catch (error) {
+        this.triggerEvent("toast", {
+          text: (error && error.message) || "操作失败",
+          type: "error",
+        });
+        if (error && error.status === 400) {
+          await this.loadTodo("pending");
+        }
       } finally {
         this.reviewing = false;
       }

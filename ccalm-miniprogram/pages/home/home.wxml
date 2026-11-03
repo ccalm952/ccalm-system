@@ -1,5 +1,8 @@
 <view class="app-root {{theme === 'dark' ? 'dark' : ''}}">
-  <app-nav></app-nav>
+  <app-nav
+    toast-text="{{toastText}}"
+    toast-type="{{toastType}}"
+  ></app-nav>
 
   <view class="app-body">
     <view class="tab-host" style="display: {{activeIndex === 0 ? 'flex' : 'none'}}">
@@ -8,6 +11,7 @@
         active="{{activeIndex === 0}}"
         review-badge="{{reviewBadge}}"
         bind:attendancechanged="onAttendanceChanged"
+        bind:toast="onToast"
       ></punch-tab>
     </view>
     <view class="tab-host" style="display: {{activeIndex === 1 ? 'flex' : 'none'}}">
@@ -15,6 +19,7 @@
         id="schedule-tab"
         active="{{activeIndex === 1}}"
         bind:attendancechanged="onAttendanceChanged"
+        bind:toast="onToast"
       ></schedule-tab>
     </view>
     <view class="tab-host" style="display: {{activeIndex === 2 ? 'flex' : 'none'}}">
@@ -22,6 +27,7 @@
         id="stats-tab"
         active="{{activeIndex === 2}}"
         bind:attendancechanged="onAttendanceChanged"
+        bind:toast="onToast"
       ></stats-tab>
     </view>
   </view>
@@ -29,6 +35,7 @@
   <app-tab-bar
     current="{{activeIndex}}"
     missing-badge="{{missingBadge}}"
+    review-badge="{{reviewBadge}}"
     bind:change="onTabChange"
   ></app-tab-bar>
 </view>

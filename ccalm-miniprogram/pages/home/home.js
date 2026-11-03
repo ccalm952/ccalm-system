@@ -2,7 +2,7 @@ const { requireSession, hasSession } = require("../../store/session");
 const { fetchTodoState } = require("../../services/todo");
 const { fetchMissingTotal } = require("../../services/badge");
 const { badgeText } = require("../../utils/badge");
-const { BADGE_REFRESH_MS } = require("../../constants/ui");
+const { BADGE_REFRESH_MS, TOAST_DURATION_MS } = require("../../constants/ui");
 const { TABS, TAB_INDEX } = require("../../constants/tabs");
 const { applyStatusBar, getTheme } = require("../../utils/theme");
 
@@ -12,6 +12,8 @@ Page({
     theme: "light",
     missingBadge: "",
     reviewBadge: "",
+    toastText: "",
+    toastType: "",
   },
 
   badgeTimer: null,
@@ -57,10 +59,12 @@ Page({
 
   onHide() {
     this.stopBadgeTimer();
+    this.clearPageToast();
   },
 
   onUnload() {
     this.stopBadgeTimer();
+    this.clearPageToast();
     this.unbindThemeChange();
   },
 
@@ -73,6 +77,30 @@ Page({
 
   onAttendanceChanged() {
     this.refreshBadges();
+  },
+
+  onToast(event) {
+    const detail = event.detail || {};
+    const text = String(detail.text || "");
+    this.clearPageToast();
+    if (!text) return;
+    this.setData({
+      toastText: text,
+      toastType: detail.type || "",
+    });
+    this.toastTimer = setTimeout(() => {
+      this.clearPageToast();
+    }, TOAST_DURATION_MS);
+  },
+
+  clearPageToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    if (this.data.toastText) {
+      this.setData({ toastText: "", toastType: "" });
+    }
   },
 
   refreshActive() {
@@ -110,7 +138,7 @@ Page({
     try {
       const [state, missing] = await Promise.all([
         fetchTodoState(),
-        fetchMissingTotal().catch(() => 0),
+        fetchMissingTotal(),
       ]);
       if (seq !== this.badgeSeq) return;
       const missingBadge = badgeText(missing);
