@@ -95,8 +95,10 @@ ccalm-miniprogram/
 │   ├── common.wxss               # 公共类（组件可安全引用）
 │   └── index.wxss                # 页面/全局汇总 import
 ├── assets/                       # 静态资源
-│   ├── fonts/                    # Maple Mono 字体
+│   ├── fonts/                    # Maple Mono 许可证
 │   └── icons/                    # 图标
+├── package-fonts/                # 字体分包（base64，首屏后再加载）
+│   └── maple-fonts.js
 ├── app.js                        # 应用入口：字体、主题、审核账号清理
 ├── app.json                      # 页面注册、窗口、定位权限
 ├── app.wxss                      # 全局样式入口
@@ -136,7 +138,7 @@ ccalm-miniprogram/
 | 主壳 | `pages/home/home` | 顶部导航 + 三个 Tab 组件 + 底部标签栏 |
 | 登录 | `pages/login/login` | 微信登录、首次用现有账号绑定 |
 
-三个业务 Tab 由 `pages/home/home` 控制显示，切换时不销毁状态。Tab 元数据统一在 `constants/tabs.js` 维护。头像、姓名、待办入口和退出登录位于打卡页，缺卡角标显示在统计 Tab。
+三个业务 Tab 由 `pages/home/home` 控制显示。排班和统计在第一次点开前不创建；点开后保持挂载，再切换不销毁状态。Tab 元数据统一在 `constants/tabs.js` 维护。头像、姓名、待办入口和退出登录位于打卡页，缺卡角标显示在统计 Tab。
 
 ## 样式
 
@@ -152,9 +154,10 @@ ccalm-miniprogram/
 
 - 字体：Maple Mono 7.9，SIL OFL 1.1，许可证见 `assets/fonts/maple-OFL.txt`
 - 字重：400 / 500 / 600，均为 Latin 子集
-- 真机不能直接读取包内 `.woff2`，因此 `assets/fonts/maple-fonts.js` 保存 base64 字体数据，由 `app.js` 通过 `wx.loadFontFace` 以 data URI 加载
-- 中文不在 Latin 子集内，会回退到 `PingFang SC` / `微软雅黑`
-- 修改字体或字重时，需要重新生成 `maple-fonts.js`，不要直接手改 base64 字符串
+- 真机不能直接读取包内 `.woff2`，因此 `package-fonts/maple-fonts.js` 保存 base64 字体数据。该目录是分包，不进主包
+- 页面首屏渲染完成（`onReady`）后，`app.js` 用 `require.async` 拉取分包，再通过 `wx.loadFontFace` 以 data URI 加载
+- 中文不在 Latin 子集内，会回退到 `PingFang SC` / `微软雅黑`。字体未加载完成前，拉丁字符同样先用系统字体
+- 修改字体或字重时，需要重新生成 `package-fonts/maple-fonts.js`，不要直接手改 base64 字符串
 
 ## 数据与请求
 

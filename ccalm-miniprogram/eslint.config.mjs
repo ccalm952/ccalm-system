@@ -17,7 +17,7 @@ export default defineConfig([
   globalIgnores([
     "**/node_modules/**",
     "config/local.js",
-    "assets/fonts/maple-fonts.js",
+    "package-fonts/maple-fonts.js",
     "eslint.config.mjs",
   ]),
   {

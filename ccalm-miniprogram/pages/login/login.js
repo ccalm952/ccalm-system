@@ -11,7 +11,7 @@ Page({
     password: "",
     submitting: false,
     error: "",
-    theme: "light",
+    theme: getTheme(),
   },
 
   onLoad(query) {
@@ -30,6 +30,11 @@ Page({
 
   onShow() {
     this.applyTheme();
+  },
+
+  onReady() {
+    const app = getApp();
+    if (app && app.loadFontsAfterFirstPaint) app.loadFontsAfterFirstPaint();
   },
 
   applyTheme(theme) {

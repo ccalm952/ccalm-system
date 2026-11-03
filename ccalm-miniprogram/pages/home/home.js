@@ -1,4 +1,8 @@
-const { requireSession, hasSession } = require("../../store/session");
+const {
+  requireSession,
+  hasSession,
+  redirectToLogin,
+} = require("../../store/session");
 const { fetchTodoState } = require("../../services/todo");
 const { fetchMissingTotal } = require("../../services/badge");
 const { badgeText } = require("../../utils/badge");
@@ -8,10 +12,13 @@ const { applyStatusBar, getTheme } = require("../../utils/theme");
 
 Page({
   data: {
+    booted: hasSession(),
     activeIndex: TAB_INDEX.PUNCH,
-    theme: "light",
+    theme: getTheme(),
     missingBadge: "",
     reviewBadge: "",
+    mountedSchedule: false,
+    mountedStats: false,
   },
 
   badgeTimer: null,
@@ -22,12 +29,24 @@ Page({
   hasShown: false,
 
   onLoad() {
+    if (!hasSession()) {
+      if (this.data.booted) this.setData({ booted: false });
+      redirectToLogin();
+      return;
+    }
+    if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.bindThemeChange();
   },
 
+  onReady() {
+    const app = getApp();
+    if (app && app.loadFontsAfterFirstPaint) app.loadFontsAfterFirstPaint();
+  },
+
   onShow() {
     if (!requireSession()) return;
+    if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.refreshBadges();
     this.startBadgeTimer();
@@ -68,7 +87,14 @@ Page({
     const index = Number(event.detail && event.detail.index);
     if (!Number.isFinite(index) || index < 0 || index >= TABS.length) return;
     if (index === this.data.activeIndex) return;
-    this.setData({ activeIndex: index });
+    const patch = { activeIndex: index };
+    if (index === TAB_INDEX.SCHEDULE && !this.data.mountedSchedule) {
+      patch.mountedSchedule = true;
+    }
+    if (index === TAB_INDEX.STATS && !this.data.mountedStats) {
+      patch.mountedStats = true;
+    }
+    this.setData(patch);
   },
 
   onAttendanceChanged() {

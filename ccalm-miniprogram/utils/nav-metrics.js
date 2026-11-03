@@ -6,17 +6,37 @@ let metrics = null;
 let capsule = null;
 let navHeight = 0;
 
+function emptyWindowMetrics() {
+  return {
+    statusBarHeight: 0,
+    windowWidth: 0,
+    windowHeight: 0,
+    screenHeight: 0,
+    safeAreaBottom: 0,
+    safeBottom: 0,
+  };
+}
+
 function readWindowMetrics() {
   if (metrics) return metrics;
-  const info = wx.getWindowInfo();
-  const safeAreaBottom = info.safeArea.bottom;
+  let info;
+  try {
+    info = wx.getWindowInfo();
+  } catch (_) {
+    info = null;
+  }
+  if (!info) return emptyWindowMetrics();
+  const safeArea = info.safeArea || {};
+  const screenHeight = info.screenHeight || 0;
+  const safeAreaBottom =
+    safeArea.bottom != null ? safeArea.bottom : screenHeight;
   metrics = {
-    statusBarHeight: info.statusBarHeight,
-    windowWidth: info.windowWidth,
-    windowHeight: info.windowHeight,
-    screenHeight: info.screenHeight,
+    statusBarHeight: info.statusBarHeight || 0,
+    windowWidth: info.windowWidth || 0,
+    windowHeight: info.windowHeight || 0,
+    screenHeight,
     safeAreaBottom,
-    safeBottom: info.screenHeight - safeAreaBottom,
+    safeBottom: screenHeight - safeAreaBottom,
   };
   return metrics;
 }
@@ -27,7 +47,22 @@ function readWindowMetrics() {
 function readCapsuleMetrics() {
   if (capsule) return capsule;
   const info = readWindowMetrics();
-  const menu = wx.getMenuButtonBoundingClientRect();
+  let menu;
+  try {
+    menu = wx.getMenuButtonBoundingClientRect();
+  } catch (_) {
+    menu = null;
+  }
+  if (!menu) {
+    return {
+      top: info.statusBarHeight,
+      width: 0,
+      height: 0,
+      right: info.windowWidth,
+      rightGap: 0,
+      sidePadding: 0,
+    };
+  }
   const rightGap = info.windowWidth - menu.right;
   capsule = {
     top: menu.top,

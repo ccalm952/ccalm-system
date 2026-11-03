@@ -11,6 +11,13 @@
   "themeLocation": "theme.json",
   "darkmode": true,
   "lazyCodeLoading": "requiredComponents",
+  "subPackages": [
+    {
+      "root": "package-fonts",
+      "pages": [],
+      "entry": "maple-fonts.js"
+    }
+  ],
   "permission": {
     "scope.userLocation": {
       "desc": "用于考勤打卡定位校验"

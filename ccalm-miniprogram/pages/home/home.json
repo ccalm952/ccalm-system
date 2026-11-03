@@ -8,5 +8,9 @@
     "punch-tab": "/components/tabs/punch/punch",
     "schedule-tab": "/components/tabs/schedule/schedule",
     "stats-tab": "/components/tabs/stats/stats"
+  },
+  "componentPlaceholder": {
+    "schedule-tab": "view",
+    "stats-tab": "view"
   }
 }

@@ -36,11 +36,17 @@ Component({
     updateMetrics() {
       const metrics = readWindowMetrics();
       const capsule = readCapsuleMetrics();
-      this.setData({
-        statusBarHeight: metrics.statusBarHeight,
-        navContentHeight: navBarContentHeight(),
-        sidePadding: capsule.sidePadding,
-      });
+      const statusBarHeight = metrics.statusBarHeight;
+      const navContentHeight = navBarContentHeight();
+      const sidePadding = capsule.sidePadding;
+      if (
+        statusBarHeight === this.data.statusBarHeight &&
+        navContentHeight === this.data.navContentHeight &&
+        sidePadding === this.data.sidePadding
+      ) {
+        return;
+      }
+      this.setData({ statusBarHeight, navContentHeight, sidePadding });
     },
   },
 });
