@@ -1,34 +1,51 @@
 <view class="app-root {{theme === 'dark' ? 'dark' : ''}}">
-  <app-nav></app-nav>
+  <block wx:if="{{booted}}">
+    <app-nav
+      toast-text="{{toastText}}"
+      toast-type="{{toastType}}"
+    ></app-nav>
 
-  <view class="app-body">
-    <view class="tab-host" style="display: {{activeIndex === 0 ? 'flex' : 'none'}}">
-      <punch-tab
-        id="punch-tab"
-        active="{{activeIndex === 0}}"
-        review-badge="{{reviewBadge}}"
-        bind:attendancechanged="onAttendanceChanged"
-      ></punch-tab>
+    <view class="app-body">
+      <view class="tab-host" style="display: {{activeIndex === 0 ? 'flex' : 'none'}}">
+        <punch-tab
+          id="punch-tab"
+          active="{{activeIndex === 0}}"
+          review-badge="{{reviewBadge}}"
+          bind:attendancechanged="onAttendanceChanged"
+          bind:toast="onToast"
+        ></punch-tab>
+      </view>
+      <view
+        wx:if="{{mountedSchedule}}"
+        class="tab-host"
+        style="display: {{activeIndex === 1 ? 'flex' : 'none'}}"
+      >
+        <schedule-tab
+          id="schedule-tab"
+          active="{{activeIndex === 1}}"
+          bind:attendancechanged="onAttendanceChanged"
+          bind:toast="onToast"
+        ></schedule-tab>
+      </view>
+      <view
+        wx:if="{{mountedStats}}"
+        class="tab-host"
+        style="display: {{activeIndex === 2 ? 'flex' : 'none'}}"
+      >
+        <stats-tab
+          id="stats-tab"
+          active="{{activeIndex === 2}}"
+          bind:attendancechanged="onAttendanceChanged"
+          bind:toast="onToast"
+        ></stats-tab>
+      </view>
     </view>
-    <view class="tab-host" style="display: {{activeIndex === 1 ? 'flex' : 'none'}}">
-      <schedule-tab
-        id="schedule-tab"
-        active="{{activeIndex === 1}}"
-        bind:attendancechanged="onAttendanceChanged"
-      ></schedule-tab>
-    </view>
-    <view class="tab-host" style="display: {{activeIndex === 2 ? 'flex' : 'none'}}">
-      <stats-tab
-        id="stats-tab"
-        active="{{activeIndex === 2}}"
-        bind:attendancechanged="onAttendanceChanged"
-      ></stats-tab>
-    </view>
-  </view>
 
-  <app-tab-bar
-    current="{{activeIndex}}"
-    missing-badge="{{missingBadge}}"
-    bind:change="onTabChange"
-  ></app-tab-bar>
+    <app-tab-bar
+      current="{{activeIndex}}"
+      missing-badge="{{missingBadge}}"
+      review-badge="{{reviewBadge}}"
+      bind:change="onTabChange"
+    ></app-tab-bar>
+  </block>
 </view>

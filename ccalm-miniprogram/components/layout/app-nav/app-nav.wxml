@@ -4,5 +4,18 @@
     style="height: {{navContentHeight}}px; padding-left: {{sidePadding}}px; padding-right: {{sidePadding}}px;"
   >
     <text class="app-nav-title">{{title}}</text>
+
+    <view
+      wx:if="{{toastText}}"
+      class="nav-toast"
+      style="left: 50%; max-width: {{toastMaxWidth}}px;"
+    >
+      <block wx:if="{{toastType === 'success'}}">
+        <image class="nav-toast-icon icon-theme-light" src="/assets/icons/toast-success.png" mode="aspectFit"></image>
+        <image class="nav-toast-icon icon-theme-dark" src="/assets/icons/toast-success-dark.png" mode="aspectFit"></image>
+      </block>
+      <image wx:else class="nav-toast-icon" src="/assets/icons/toast-error.png" mode="aspectFit"></image>
+      <text class="nav-toast-text">{{toastText}}</text>
+    </view>
   </view>
 </view>

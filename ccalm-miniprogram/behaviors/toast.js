@@ -1,21 +1,15 @@
-const { TOAST_DURATION_MS } = require("../constants/ui");
-
 /**
- * 顶部消息条行为：统一 toastText / toastType 和自动关闭逻辑。
+ * 顶部消息条行为：只把消息抛给页面，由页面统一显示在导航栏。
  */
 module.exports = Behavior({
-  data: {
-    toastText: "",
-    toastType: "",
-  },
-
   methods: {
     showToast(text, type) {
       const value = String(text || "");
       if (!value) return;
-      this.clearToast();
-      this.setData({ toastText: value, toastType: type || "" });
-      this.toastTimer = setTimeout(() => this.clearToast(), TOAST_DURATION_MS);
+      this.triggerEvent("toast", {
+        text: value,
+        type: type || "",
+      });
     },
 
     showError(error, fallback) {
@@ -24,17 +18,7 @@ module.exports = Behavior({
     },
 
     clearToast() {
-      if (this.toastTimer) {
-        clearTimeout(this.toastTimer);
-        this.toastTimer = null;
-      }
-      this.setData({ toastText: "", toastType: "" });
-    },
-  },
-
-  lifetimes: {
-    detached() {
-      this.clearToast();
+      // 自动关闭由页面统一处理，Tab 切换不影响当前提示。
     },
   },
 });

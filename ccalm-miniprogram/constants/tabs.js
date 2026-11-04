@@ -4,6 +4,7 @@ const TABS = [
     label: "打卡",
     icon: "/assets/icons/punch.png",
     component: "punch-tab",
+    badge: "review",
   },
   {
     key: "schedule",

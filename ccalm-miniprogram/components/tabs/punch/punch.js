@@ -104,10 +104,15 @@ Component({
     activate() {
       if (!requireSession()) return;
       if (this.loading) return;
-      this.setData({ todayLabel: formatDateShort() });
-      if (this.loaded) return;
+      const todayLabel = formatDateShort();
+      if (this.loaded) {
+        if (todayLabel !== this.data.todayLabel) this.setData({ todayLabel });
+        return;
+      }
       this.loading = true;
-      this.setData({ pageLoading: true });
+      const patch = { pageLoading: true };
+      if (todayLabel !== this.data.todayLabel) patch.todayLabel = todayLabel;
+      this.setData(patch);
       this.reloadAll()
         .then((ok) => {
           this.setData({ pageLoading: false });
@@ -263,6 +268,10 @@ Component({
       } finally {
         this.setData({ punching: false });
       }
+    },
+
+    onToast(event) {
+      this.triggerEvent("toast", event.detail || {});
     },
 
     onTodoOpen() {

@@ -65,33 +65,26 @@
         </view>
       </view>
 
-      <view class="logout-row">
-        <text class="logout-hint">下拉刷新</text>
-        <button
-          class="btn logout-btn"
-          hover-class="btn-hover"
-          bindtap="onLogoutOpen"
-        >退出登录</button>
-      </view>
     </view>
   </scroll-view>
+
+  <view class="logout-row">
+    <text class="logout-hint">下拉刷新</text>
+    <button
+      class="btn logout-btn"
+      hover-class="btn-hover"
+      bindtap="onLogoutOpen"
+    >退出登录</button>
+  </view>
   <view wx:if="{{pageLoading}}" class="tab-loading">
     <view class="loading-spinner"></view>
     <text class="loading-text">加载中</text>
   </view>
-  <view wx:if="{{toastText}}" class="toast">
-    <block wx:if="{{toastType === 'success'}}">
-      <image class="toast-icon icon-theme-light" src="/assets/icons/toast-success.png" mode="aspectFit"></image>
-      <image class="toast-icon icon-theme-dark" src="/assets/icons/toast-success-dark.png" mode="aspectFit"></image>
-    </block>
-    <image wx:else class="toast-icon" src="/assets/icons/toast-error.png" mode="aspectFit"></image>
-    <text class="toast-text">{{toastText}}</text>
-  </view>
-
   <todo-drawer
     show="{{todoShow}}"
     bind:close="onTodoClose"
     bind:changed="onTodoChanged"
+    bind:toast="onToast"
   ></todo-drawer>
 
   <dialog

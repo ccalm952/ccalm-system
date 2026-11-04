@@ -2,36 +2,41 @@ const { getSession, clearSession } = require("./store/session");
 const { isWechatReviewUsername } = require("./utils/review-account");
 const { applyStatusBar } = require("./utils/theme");
 const { resetNavMetrics } = require("./utils/nav-metrics");
-const mapleFonts = require("./assets/fonts/maple-fonts");
 
-// 真机 wx.loadFontFace 不读取本地 assets 路径，使用 base64 内嵌字体。
-function mapleSource(key) {
-  return `url("data:font/woff2;base64,${mapleFonts[key]}")`;
+// Maple Mono 约 190KB。放在分包里，首屏渲染完成后再加载。
+// require.async 的路径必须是字符串字面量，微信才会把该文件打进分包。
+
+let fontsScheduled = false;
+
+function mapleSource(fonts, key) {
+  return `url("data:font/woff2;base64,${fonts[key]}")`;
 }
 
-function loadMapleFaces() {
-  const faces = [
-    {
-      weight: "400",
-      source: mapleSource("regular"),
-    },
-    {
-      weight: "500",
-      source: mapleSource("medium"),
-    },
-    {
-      weight: "600",
-      source: mapleSource("semibold"),
-    },
-  ];
-  faces.forEach(({ weight, source }) => {
+function applyMapleFaces(fonts) {
+  if (!fonts || !fonts.regular || !fonts.medium || !fonts.semibold) return;
+  [
+    ["400", "regular"],
+    ["500", "medium"],
+    ["600", "semibold"],
+  ].forEach(([weight, key]) => {
     wx.loadFontFace({
       global: true,
       family: "Maple Mono",
-      source,
+      source: mapleSource(fonts, key),
       desc: { weight },
+      fail() {},
     });
   });
+}
+
+function loadMapleFaces() {
+  if (typeof require.async !== "function") return;
+  require
+    .async("./package-fonts/maple-fonts.js")
+    .then((fonts) => {
+      applyMapleFaces(fonts);
+    })
+    .catch(() => {});
 }
 
 function clearReviewSessionIfNeeded() {
@@ -44,7 +49,6 @@ function clearReviewSessionIfNeeded() {
 
 App({
   onLaunch() {
-    loadMapleFaces();
     clearReviewSessionIfNeeded();
     applyStatusBar();
     if (wx.onWindowResize) wx.onWindowResize(resetNavMetrics);
@@ -52,5 +56,11 @@ App({
 
   onShow() {
     applyStatusBar();
+  },
+
+  loadFontsAfterFirstPaint() {
+    if (fontsScheduled) return;
+    fontsScheduled = true;
+    setTimeout(loadMapleFaces, 0);
   },
 });

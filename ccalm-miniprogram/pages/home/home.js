@@ -1,17 +1,26 @@
-const { requireSession, hasSession } = require("../../store/session");
+const {
+  requireSession,
+  hasSession,
+  redirectToLogin,
+} = require("../../store/session");
 const { fetchTodoState } = require("../../services/todo");
 const { fetchMissingTotal } = require("../../services/badge");
 const { badgeText } = require("../../utils/badge");
-const { BADGE_REFRESH_MS } = require("../../constants/ui");
+const { BADGE_REFRESH_MS, TOAST_DURATION_MS } = require("../../constants/ui");
 const { TABS, TAB_INDEX } = require("../../constants/tabs");
 const { applyStatusBar, getTheme } = require("../../utils/theme");
 
 Page({
   data: {
+    booted: hasSession(),
     activeIndex: TAB_INDEX.PUNCH,
     theme: "light",
     missingBadge: "",
     reviewBadge: "",
+    toastText: "",
+    toastType: "",
+    mountedSchedule: false,
+    mountedStats: false,
   },
 
   badgeTimer: null,
@@ -22,12 +31,25 @@ Page({
   hasShown: false,
 
   onLoad() {
+    if (!hasSession()) {
+      if (this.data.booted) this.setData({ booted: false });
+      redirectToLogin();
+      return;
+    }
+    if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.bindThemeChange();
   },
 
+  onReady() {
+    if (!this.data.booted) return;
+    const app = getApp();
+    if (app && app.loadFontsAfterFirstPaint) app.loadFontsAfterFirstPaint();
+  },
+
   onShow() {
     if (!requireSession()) return;
+    if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.refreshBadges();
     this.startBadgeTimer();
@@ -57,10 +79,12 @@ Page({
 
   onHide() {
     this.stopBadgeTimer();
+    this.clearPageToast();
   },
 
   onUnload() {
     this.stopBadgeTimer();
+    this.clearPageToast();
     this.unbindThemeChange();
   },
 
@@ -68,11 +92,42 @@ Page({
     const index = Number(event.detail && event.detail.index);
     if (!Number.isFinite(index) || index < 0 || index >= TABS.length) return;
     if (index === this.data.activeIndex) return;
-    this.setData({ activeIndex: index });
+    const patch = { activeIndex: index };
+    if (index === TAB_INDEX.SCHEDULE && !this.data.mountedSchedule) {
+      patch.mountedSchedule = true;
+    }
+    if (index === TAB_INDEX.STATS && !this.data.mountedStats) {
+      patch.mountedStats = true;
+    }
+    this.setData(patch);
   },
 
   onAttendanceChanged() {
     this.refreshBadges();
+  },
+
+  onToast(event) {
+    const detail = event.detail || {};
+    const text = String(detail.text || "");
+    this.clearPageToast();
+    if (!text) return;
+    this.setData({
+      toastText: text,
+      toastType: detail.type || "",
+    });
+    this.toastTimer = setTimeout(() => {
+      this.clearPageToast();
+    }, TOAST_DURATION_MS);
+  },
+
+  clearPageToast() {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    if (this.data.toastText) {
+      this.setData({ toastText: "", toastType: "" });
+    }
   },
 
   refreshActive() {
@@ -110,7 +165,7 @@ Page({
     try {
       const [state, missing] = await Promise.all([
         fetchTodoState(),
-        fetchMissingTotal().catch(() => 0),
+        fetchMissingTotal(),
       ]);
       if (seq !== this.badgeSeq) return;
       const missingBadge = badgeText(missing);

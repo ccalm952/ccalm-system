@@ -89,16 +89,20 @@ Component({
 
   observers: {
     active(value) {
+      if (!this.isAttached) return;
       if (value) this.activate();
       else this.clearToast();
     },
   },
 
   lifetimes: {
-    attached() {
+    created() {
       this.monthCache = new Map();
       this.holidayCache = new Map();
       this.prefetching = new Map();
+    },
+    attached() {
+      this.isAttached = true;
       if (this.properties.active) this.activate();
     },
   },
@@ -121,6 +125,7 @@ Component({
     },
 
     activate() {
+      if (!this.monthCache) return;
       const session = requireSession();
       if (!session) return;
       this.userId = (session.user && session.user.id) || this.userId;

@@ -48,15 +48,15 @@ async function fetchTodoState() {
   }
   const admin = isAdmin(session);
   const [mineMakeups, mineUnbinds] = await Promise.all([
-    listMyMakeupRequests(null).catch(() => []),
-    listMyUnbindRequests(null).catch(() => []),
+    listMyMakeupRequests(null),
+    listMyUnbindRequests(null),
   ]);
   let pendingMakeups = [];
   let pendingUnbinds = [];
   if (admin) {
     [pendingMakeups, pendingUnbinds] = await Promise.all([
-      listMakeupRequests("pending").catch(() => []),
-      listUnbindRequests("pending").catch(() => []),
+      listMakeupRequests("pending"),
+      listUnbindRequests("pending"),
     ]);
   }
   const minePending =
