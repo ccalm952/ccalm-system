@@ -47,12 +47,26 @@ Component({
     updateMetrics() {
       const metrics = readWindowMetrics();
       const capsule = readCapsuleMetrics();
+      const statusBarHeight = metrics.statusBarHeight;
+      const navContentHeight = navBarContentHeight();
+      const sidePadding = capsule.sidePadding;
+      const rightGap = capsule.rightGap;
+      const nextToastMaxWidth = toastMaxWidth(metrics, capsule);
+      if (
+        statusBarHeight === this.data.statusBarHeight &&
+        navContentHeight === this.data.navContentHeight &&
+        sidePadding === this.data.sidePadding &&
+        rightGap === this.data.rightGap &&
+        nextToastMaxWidth === this.data.toastMaxWidth
+      ) {
+        return;
+      }
       this.setData({
-        statusBarHeight: metrics.statusBarHeight,
-        navContentHeight: navBarContentHeight(),
-        sidePadding: capsule.sidePadding,
-        rightGap: capsule.rightGap,
-        toastMaxWidth: toastMaxWidth(metrics, capsule),
+        statusBarHeight,
+        navContentHeight,
+        sidePadding,
+        rightGap,
+        toastMaxWidth: nextToastMaxWidth,
       });
     },
   },
