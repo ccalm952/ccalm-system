@@ -95,9 +95,11 @@ ccalm-miniprogram/
 │   ├── common.wxss               # 公共类（组件可安全引用）
 │   └── index.wxss                # 页面/全局汇总 import
 ├── assets/                       # 静态资源
-│   ├── fonts/                    # Maple Mono 字体
+│   ├── fonts/                    # Maple Mono 许可证
 │   └── icons/                    # 图标
-├── app.js                        # 应用入口：字体、主题、审核账号清理
+├── package-fonts/                # Maple Mono 分包，首屏后再加载
+│   └── maple-fonts.js
+├── app.js                        # 应用入口：主题、审核账号清理、延迟加载字体
 ├── app.json                      # 页面注册、窗口、定位权限
 ├── app.wxss                      # 全局样式入口
 ├── theme.json                    # 原生导航/页面深浅色配置
@@ -152,7 +154,7 @@ ccalm-miniprogram/
 
 - 字体：Maple Mono 7.9，SIL OFL 1.1，许可证见 `assets/fonts/maple-OFL.txt`
 - 字重：400 / 500 / 600，均为 Latin 子集
-- 真机不能直接读取包内 `.woff2`，因此 `assets/fonts/maple-fonts.js` 保存 base64 字体数据，由 `app.js` 通过 `wx.loadFontFace` 以 data URI 加载
+- 真机不能直接读取包内 `.woff2`，因此 `package-fonts/maple-fonts.js` 保存 base64 字体数据。页面 `onReady` 之后由 `app.js` 用 `require.async` 取出，再以 data URI 调用 `wx.loadFontFace`
 - 中文不在 Latin 子集内，会回退到 `PingFang SC` / `微软雅黑`
 - 修改字体或字重时，需要重新生成 `maple-fonts.js`，不要直接手改 base64 字符串
 

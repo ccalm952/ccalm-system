@@ -1,4 +1,4 @@
 node_modules
 config/local.js
 package-lock.json
-assets/fonts/maple-fonts.js
+package-fonts/maple-fonts.js

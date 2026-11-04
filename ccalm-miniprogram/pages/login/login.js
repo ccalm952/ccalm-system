@@ -28,6 +28,11 @@ Page({
     this.startWechatLogin();
   },
 
+  onReady() {
+    const app = getApp();
+    if (app && app.loadFontsAfterFirstPaint) app.loadFontsAfterFirstPaint();
+  },
+
   onShow() {
     this.applyTheme();
   },
