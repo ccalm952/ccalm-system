@@ -67,14 +67,18 @@ Component({
 
   observers: {
     active(value) {
+      if (!this.isAttached) return;
       if (value) this.activate();
       else this.clearToast();
     },
   },
 
   lifetimes: {
-    attached() {
+    created() {
       this.pendingRequests = [];
+    },
+    attached() {
+      this.isAttached = true;
       if (this.properties.active) this.activate();
     },
   },
@@ -101,6 +105,7 @@ Component({
     },
 
     activate() {
+      if (!this.isAttached) return;
       const session = requireSession();
       if (!session) return;
       this.syncCurrentMonth();
