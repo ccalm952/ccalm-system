@@ -1,6 +1,12 @@
 import dayjs from "dayjs";
 
-import { round2 } from "./calc";
+import {
+  round2,
+  socialInsuredCount,
+  medicalInsuredCount,
+  insuranceWithAutoHeadcounts,
+  syncAutoInsuranceHeadcounts,
+} from "./calc";
 import { defaultDeductionRateForMode } from "./settings";
 import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
@@ -10,6 +16,7 @@ import type {
   SalaryMaterialLine,
   SalaryOperatingExpenses,
   SalaryOperatingLine,
+  SalaryOtherInsured,
   SalaryProcessingLine,
   SalarySheetData,
 } from "./types";
@@ -28,6 +35,7 @@ function emp(
     leaveDays: 0,
     housingFund: 0,
     deductionRate: 0.2,
+    paySocialMedical: true,
     ...partial,
   };
 }
@@ -58,7 +66,10 @@ export function resolveDefaultSalarySheet(
   const sheet = template
     ? normalizeSalarySheet(template, month)
     : createDefaultSalarySheet(month);
-  return clearMaterialLines(sheet);
+  return syncAutoInsuranceHeadcounts({
+    ...clearMaterialLines(sheet),
+    insuranceHeadcountAuto: true,
+  });
 }
 
 /** 设为默认时去掉材料明细，避免带到新月 */
@@ -74,7 +85,7 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
   employeeId = 0;
   const daysInMonth = calendarDaysForMonth(month);
 
-  return {
+  return syncAutoInsuranceHeadcounts({
     summary: {
       totalIncome: 0,
       daysInMonth,
@@ -176,25 +187,25 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
     insurance: {
       pensionBase: 4043,
       pensionEmployerRate: 0.16,
-      pensionEmployerCount: 11,
+      pensionEmployerCount: 9,
       pensionPersonalRate: 0.08,
-      pensionPersonalCount: 11,
+      pensionPersonalCount: 9,
       unemploymentBase: 4043,
       unemploymentEmployerRate: 0.005,
-      unemploymentEmployerCount: 11,
+      unemploymentEmployerCount: 9,
       unemploymentPersonalRate: 0.005,
-      unemploymentPersonalCount: 11,
+      unemploymentPersonalCount: 9,
       injuryBase: 4414,
       injuryEmployerRate: 0.002,
-      injuryEmployerCount: 11,
+      injuryEmployerCount: 9,
       medicalBase: 4433,
       medicalEmployerRate: 0.075,
-      medicalEmployerCount: 12,
+      medicalEmployerCount: 9,
       medicalPersonalRate: 0.02,
-      medicalPersonalCount: 12,
+      medicalPersonalCount: 9,
       maternityBase: 4433,
       maternityEmployerRate: 0.005,
-      maternityEmployerCount: 12,
+      maternityEmployerCount: 9,
     },
     housingFund: {
       base: 1200,
@@ -211,7 +222,9 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
       processing: 0,
     },
     materialLines: [],
-  };
+    otherInsured: [],
+    insuranceHeadcountAuto: true,
+  });
 }
 
 function isLegacyOperatingExpenses(
@@ -354,14 +367,45 @@ function normalizeEmployees(
   return employees.map((row) => {
     const id = ids.has(row.id) ? nextEntityId("emp") : row.id;
     ids.add(id);
-    if (
+    const paySocialMedical = row.paySocialMedical !== false;
+    const deductionOk =
       typeof row.deductionRate === "number" &&
-      Number.isFinite(row.deductionRate)
+      Number.isFinite(row.deductionRate);
+    if (
+      deductionOk &&
+      id === row.id &&
+      row.paySocialMedical === paySocialMedical
     ) {
-      return id === row.id ? row : { ...row, id };
+      return row;
     }
-    return { ...row, id, deductionRate: Number.NaN };
+    return {
+      ...row,
+      id,
+      paySocialMedical,
+      ...(deductionOk ? {} : { deductionRate: Number.NaN }),
+    };
   });
+}
+
+function normalizeOtherInsured(raw: unknown): SalaryOtherInsured[] {
+  if (!Array.isArray(raw)) return [];
+  const ids = new Set<string>();
+  const rows: SalaryOtherInsured[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Partial<SalaryOtherInsured>;
+    let id = typeof row.id === "string" ? row.id.trim() : "";
+    if (!id || ids.has(id)) id = nextEntityId("ins");
+    ids.add(id);
+    rows.push({
+      id,
+      name: typeof row.name === "string" ? row.name : "",
+      note: typeof row.note === "string" ? row.note : "",
+      paySocial: row.paySocial !== false,
+      payMedical: row.payMedical !== false,
+    });
+  }
+  return rows;
 }
 
 /** 缺省扣减时用全局医生/护士扣减默认值补齐（便于旧月数据迁移） */
@@ -406,6 +450,23 @@ export function normalizeSalarySheet(
     costItems.materials,
   );
   const materials = sumMaterialLines(materialLines);
+  const employees = normalizeEmployees(
+    stripped.employees as SalarySheetData["employees"],
+  );
+  const otherInsured = normalizeOtherInsured(
+    (stripped as { otherInsured?: unknown }).otherInsured,
+  );
+  const insuranceHeadcountAuto =
+    (stripped as { insuranceHeadcountAuto?: unknown })
+      .insuranceHeadcountAuto === true;
+  const insurance =
+    insuranceHeadcountAuto && stripped.insurance
+      ? insuranceWithAutoHeadcounts(
+          stripped.insurance,
+          socialInsuredCount({ employees, otherInsured }),
+          medicalInsuredCount({ employees, otherInsured }),
+        )
+      : stripped.insurance;
 
   return applyMonthCalendar(
     {
@@ -414,10 +475,10 @@ export function normalizeSalarySheet(
         workingDays: stripped.summary.workingDays || 25,
       },
       leaveQuotas: stripped.leaveQuotas,
-      employees: normalizeEmployees(
-        stripped.employees as SalarySheetData["employees"],
-      ),
-      insurance: stripped.insurance,
+      employees,
+      otherInsured,
+      insurance,
+      ...(insuranceHeadcountAuto ? { insuranceHeadcountAuto: true } : {}),
       housingFund: stripped.housingFund,
       costItems: { ...costItems, materials },
       materialLines,
@@ -461,5 +522,16 @@ export function createEmptyEmployee(): SalarySheetData["employees"][number] {
     housingFund: 0,
     bonusMode: "tiered",
     deductionRate: 0.2,
+    paySocialMedical: true,
+  };
+}
+
+export function createEmptyOtherInsured(): SalaryOtherInsured {
+  return {
+    id: nextEntityId("ins"),
+    name: "",
+    note: "",
+    paySocial: true,
+    payMedical: true,
   };
 }

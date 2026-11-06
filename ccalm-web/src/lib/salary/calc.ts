@@ -69,6 +69,81 @@ function personalMedical(insurance: SalaryInsuranceInput): number {
   return round2(insurance.medicalBase * insurance.medicalPersonalRate);
 }
 
+function countEnrolled(
+  employees: readonly { paySocialMedical?: boolean }[],
+  others: readonly { enrolled: boolean }[],
+): number {
+  let count = 0;
+  for (const emp of employees) {
+    if (emp.paySocialMedical !== false) count += 1;
+  }
+  for (const row of others) {
+    if (row.enrolled) count += 1;
+  }
+  return count;
+}
+
+/** 缴纳社保的人数：员工「交医社保」为开 + 其他参保人员勾选交社保 */
+export function socialInsuredCount(
+  data: Pick<SalarySheetData, "employees" | "otherInsured">,
+): number {
+  return countEnrolled(
+    data.employees,
+    (data.otherInsured ?? []).map((row) => ({ enrolled: row.paySocial })),
+  );
+}
+
+/** 缴纳医保的人数：员工「交医社保」为开 + 其他参保人员勾选交医保 */
+export function medicalInsuredCount(
+  data: Pick<SalarySheetData, "employees" | "otherInsured">,
+): number {
+  return countEnrolled(
+    data.employees,
+    (data.otherInsured ?? []).map((row) => ({ enrolled: row.payMedical })),
+  );
+}
+
+/**
+ * 社保、医保的单位人数与个人人数使用同一人数。
+ * 工伤只有单位；生育只有单位。公积金人数不在这里改。
+ */
+export function insuranceWithAutoHeadcounts(
+  insurance: SalaryInsuranceInput,
+  socialCount: number,
+  medicalCount: number,
+): SalaryInsuranceInput {
+  return {
+    ...insurance,
+    pensionEmployerCount: socialCount,
+    pensionPersonalCount: socialCount,
+    unemploymentEmployerCount: socialCount,
+    unemploymentPersonalCount: socialCount,
+    injuryEmployerCount: socialCount,
+    medicalEmployerCount: medicalCount,
+    medicalPersonalCount: medicalCount,
+    maternityEmployerCount: medicalCount,
+  };
+}
+
+/** 已开启自动人数时按在册人员覆盖社保/医保人数，否则用表里保存的人数 */
+export function effectiveInsuranceInput(
+  data: SalarySheetData,
+): SalaryInsuranceInput {
+  if (!data.insuranceHeadcountAuto) return data.insurance;
+  return insuranceWithAutoHeadcounts(
+    data.insurance,
+    socialInsuredCount(data),
+    medicalInsuredCount(data),
+  );
+}
+
+export function syncAutoInsuranceHeadcounts(
+  data: SalarySheetData,
+): SalarySheetData {
+  if (!data.insuranceHeadcountAuto) return data;
+  return { ...data, insurance: effectiveInsuranceInput(data) };
+}
+
 function insurancePayment(base: number, rate: number): number {
   return round2(base * rate);
 }
@@ -562,8 +637,9 @@ export function computeSalarySheet(
 
   const netIncome = round2(data.summary.totalIncome - costTotal);
 
-  const social = personalSocial(data.insurance);
-  const medical = personalMedical(data.insurance);
+  const socialFull = personalSocial(data.insurance);
+  const medicalFull = personalMedical(data.insurance);
+  const insurance = effectiveInsuranceInput(data);
   const priorBonusByName = context.priorBonusByName ?? {};
 
   const employees = data.employees.map((emp) =>
@@ -573,8 +649,8 @@ export function computeSalarySheet(
       daysInMonth: data.summary.daysInMonth,
       workingDays: data.summary.workingDays,
       leaveQuotas: data.leaveQuotas,
-      social,
-      medical,
+      social: emp.paySocialMedical === false ? 0 : socialFull,
+      medical: emp.paySocialMedical === false ? 0 : medicalFull,
       priorBonusByName,
     }),
   );
@@ -590,8 +666,7 @@ export function computeSalarySheet(
   );
 
   const insuranceEmployerTotal = round2(
-    employerInsuranceTotal(data.insurance) +
-      employerHousingTotal(data.housingFund),
+    employerInsuranceTotal(insurance) + employerHousingTotal(data.housingFund),
   );
 
   const employeePayrollTotal = round2(totals.monthlySalary);

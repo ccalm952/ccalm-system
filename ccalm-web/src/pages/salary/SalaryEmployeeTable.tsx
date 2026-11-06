@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -223,6 +224,15 @@ function SortableEmployeeRow({
       </TableCell>
       <TableCell>{row.plantingBonus}</TableCell>
       <TableCell>{row.monthlySalary}</TableCell>
+      <TableCell>
+        <Checkbox
+          className="mx-auto"
+          checked={row.paySocialMedical !== false}
+          onCheckedChange={(checked) =>
+            updateEmployee(index, { paySocialMedical: checked })
+          }
+        />
+      </TableCell>
       <TableCell>{row.socialInsurance}</TableCell>
       <TableCell>{row.medicalInsurance}</TableCell>
       <TableCell>
@@ -273,6 +283,7 @@ function EmployeeDragPreview({ row }: { row: SalaryEmployeeComputed }) {
           <TableCell>{row.plantingCount}</TableCell>
           <TableCell>{row.plantingBonus}</TableCell>
           <TableCell>{row.monthlySalary}</TableCell>
+          <TableCell />
           <TableCell>{row.socialInsurance}</TableCell>
           <TableCell>{row.medicalInsurance}</TableCell>
           <TableCell>{row.housingFund}</TableCell>
@@ -351,6 +362,7 @@ export function SalaryEmployeeTable({
             <TableHead>种植</TableHead>
             <TableHead>种植奖金</TableHead>
             <TableHead>月薪</TableHead>
+            <TableHead>交医社保</TableHead>
             <TableHead>社保</TableHead>
             <TableHead>医保</TableHead>
             <TableHead>公积金</TableHead>
@@ -386,6 +398,7 @@ export function SalaryEmployeeTable({
             <TableCell />
             <TableCell />
             <TableCell>{computed.totals.monthlySalary}</TableCell>
+            <TableCell />
             <TableCell />
             <TableCell />
             <TableCell />

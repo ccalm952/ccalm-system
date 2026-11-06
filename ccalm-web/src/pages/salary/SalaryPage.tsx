@@ -37,7 +37,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROUTES } from "@/config/routes";
-import { computeSalarySheet, buildPriorBonusMap } from "@/lib/salary/calc";
+import {
+  computeSalarySheet,
+  buildPriorBonusMap,
+  effectiveInsuranceInput,
+  syncAutoInsuranceHeadcounts,
+} from "@/lib/salary/calc";
 import {
   applyMonthCalendar,
   createEmptyEmployee,
@@ -57,6 +62,7 @@ import type {
   SalaryGlobalSettings,
   SalaryLeaveQuotas,
   SalaryOtherCostItem,
+  SalaryOtherInsured,
   SalarySheetData,
 } from "@/lib/salary/types";
 import {
@@ -74,6 +80,7 @@ import { useAuth } from "@/lib/use-auth";
 import { DatePickerField } from "@/components/date-picker-field";
 import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog";
 import { InsuranceFundTable } from "./InsuranceFundTable";
+import { OtherInsuredTable } from "./OtherInsuredTable";
 import { SalaryEmployeeTable } from "./SalaryEmployeeTable";
 import { SalarySummaryTable } from "./SalarySummaryTable";
 import { NumInput, RatePercentInput } from "./salary-table-inputs";
@@ -430,7 +437,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
 
   const patchSheet = React.useCallback(
     (month: string, patch: SalarySheetData) => {
-      const data = applyMonthCalendar(patch, month);
+      const prepared = patch.insuranceHeadcountAuto
+        ? syncAutoInsuranceHeadcounts(patch)
+        : patch;
+      const data = applyMonthCalendar(prepared, month);
       setSheets((prev) => ({ ...prev, [month]: data }));
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = window.setTimeout(() => {
@@ -465,7 +475,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     const employees = sheet.employees.map((row, i) =>
       i === index ? { ...row, ...patch } : row,
     );
-    patchSheet(activeMonth, { ...sheet, employees });
+    patchSheet(activeMonth, {
+      ...sheet,
+      employees,
+      ...("paySocialMedical" in patch ? { insuranceHeadcountAuto: true } : {}),
+    });
   }
 
   function addEmployee() {
@@ -473,6 +487,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     patchSheet(activeMonth, {
       ...sheet,
       employees: [...sheet.employees, createEmptyEmployee()],
+      insuranceHeadcountAuto: true,
     });
   }
 
@@ -485,6 +500,16 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     patchSheet(activeMonth, {
       ...sheet,
       employees: sheet.employees.filter((_, i) => i !== index),
+      insuranceHeadcountAuto: true,
+    });
+  }
+
+  function setOtherInsured(rows: SalaryOtherInsured[]) {
+    if (!sheet || !activeMonth) return;
+    patchSheet(activeMonth, {
+      ...sheet,
+      otherInsured: rows,
+      insuranceHeadcountAuto: true,
     });
   }
 
@@ -1201,7 +1226,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea>
-                      <div className="min-w-[1680px]">
+                      <div className="min-w-[1800px]">
                         <SalarySummaryTable
                           sheet={sheet}
                           computed={computed}
@@ -1226,11 +1251,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">五险一金</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <ScrollArea>
                       <div className="min-w-[1680px]">
                         <InsuranceFundTable
-                          insurance={sheet.insurance}
+                          insurance={effectiveInsuranceInput(sheet)}
                           housingFund={sheet.housingFund}
                           onInsuranceChange={(patch) =>
                             patchSheet(month, {
@@ -1248,6 +1273,10 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                       </div>
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>
+                    <OtherInsuredTable
+                      rows={sheet.otherInsured ?? []}
+                      onChange={setOtherInsured}
+                    />
                   </CardContent>
                 </Card>
               </>

@@ -40,8 +40,8 @@ export function InsuranceFundTable({
     groupTotal: number,
     groupSubtotal: { employer: number; personal: number | null },
     patchBase: (value: number) => void,
-    patchEmployer: (patch: { rate?: number; count?: number }) => void,
-    patchPersonal: (patch: { rate?: number; count?: number }) => void,
+    patchEmployerRate: (rate: number) => void,
+    patchPersonalRate: (rate: number) => void,
   ) {
     return (
       <TableRow key={line.key}>
@@ -55,7 +55,7 @@ export function InsuranceFundTable({
         <TableCell>
           <RatePercentInput
             value={line.employerRate}
-            onChange={(rate) => patchEmployer({ rate })}
+            onChange={patchEmployerRate}
           />
         </TableCell>
         <TableCell>{line.employerPayment}</TableCell>
@@ -64,17 +64,12 @@ export function InsuranceFundTable({
             {groupSubtotal.employer}
           </TableCell>
         ) : null}
-        <TableCell>
-          <NumInput
-            value={line.employerCount}
-            onChange={(count) => patchEmployer({ count })}
-          />
-        </TableCell>
+        <TableCell>{line.employerCount}</TableCell>
         <TableCell>
           {line.personalRate != null ? (
             <RatePercentInput
               value={line.personalRate}
-              onChange={(rate) => patchPersonal({ rate })}
+              onChange={patchPersonalRate}
             />
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -98,10 +93,7 @@ export function InsuranceFundTable({
         ) : null}
         <TableCell>
           {line.personalCount != null ? (
-            <NumInput
-              value={line.personalCount}
-              onChange={(count) => patchPersonal({ count })}
-            />
+            line.personalCount
           ) : (
             <span className="text-muted-foreground">—</span>
           )}
@@ -118,40 +110,25 @@ export function InsuranceFundTable({
     {
       line: socialLines[0],
       base: (v: number) => onInsuranceChange({ pensionBase: v }),
-      employer: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { pensionEmployerRate: p.rate } : {}),
-          ...(p.count != null ? { pensionEmployerCount: p.count } : {}),
-        }),
-      personal: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { pensionPersonalRate: p.rate } : {}),
-          ...(p.count != null ? { pensionPersonalCount: p.count } : {}),
-        }),
+      employerRate: (rate: number) =>
+        onInsuranceChange({ pensionEmployerRate: rate }),
+      personalRate: (rate: number) =>
+        onInsuranceChange({ pensionPersonalRate: rate }),
     },
     {
       line: socialLines[1],
       base: (v: number) => onInsuranceChange({ unemploymentBase: v }),
-      employer: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { unemploymentEmployerRate: p.rate } : {}),
-          ...(p.count != null ? { unemploymentEmployerCount: p.count } : {}),
-        }),
-      personal: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { unemploymentPersonalRate: p.rate } : {}),
-          ...(p.count != null ? { unemploymentPersonalCount: p.count } : {}),
-        }),
+      employerRate: (rate: number) =>
+        onInsuranceChange({ unemploymentEmployerRate: rate }),
+      personalRate: (rate: number) =>
+        onInsuranceChange({ unemploymentPersonalRate: rate }),
     },
     {
       line: socialLines[2],
       base: (v: number) => onInsuranceChange({ injuryBase: v }),
-      employer: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { injuryEmployerRate: p.rate } : {}),
-          ...(p.count != null ? { injuryEmployerCount: p.count } : {}),
-        }),
-      personal: () => undefined,
+      employerRate: (rate: number) =>
+        onInsuranceChange({ injuryEmployerRate: rate }),
+      personalRate: () => undefined,
     },
   ];
 
@@ -159,26 +136,17 @@ export function InsuranceFundTable({
     {
       line: medicalLines[0],
       base: (v: number) => onInsuranceChange({ medicalBase: v }),
-      employer: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { medicalEmployerRate: p.rate } : {}),
-          ...(p.count != null ? { medicalEmployerCount: p.count } : {}),
-        }),
-      personal: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { medicalPersonalRate: p.rate } : {}),
-          ...(p.count != null ? { medicalPersonalCount: p.count } : {}),
-        }),
+      employerRate: (rate: number) =>
+        onInsuranceChange({ medicalEmployerRate: rate }),
+      personalRate: (rate: number) =>
+        onInsuranceChange({ medicalPersonalRate: rate }),
     },
     {
       line: medicalLines[1],
       base: (v: number) => onInsuranceChange({ maternityBase: v }),
-      employer: (p: { rate?: number; count?: number }) =>
-        onInsuranceChange({
-          ...(p.rate != null ? { maternityEmployerRate: p.rate } : {}),
-          ...(p.count != null ? { maternityEmployerCount: p.count } : {}),
-        }),
-      personal: () => undefined,
+      employerRate: (rate: number) =>
+        onInsuranceChange({ maternityEmployerRate: rate }),
+      personalRate: () => undefined,
     },
   ];
 
@@ -215,8 +183,8 @@ export function InsuranceFundTable({
             groupTotals.social,
             groupSubtotals.social,
             row.base,
-            row.employer,
-            row.personal,
+            row.employerRate,
+            row.personalRate,
           ),
         )}
         {medicalPatches.map((row, idx) =>
@@ -227,8 +195,8 @@ export function InsuranceFundTable({
             groupTotals.medical,
             groupSubtotals.medical,
             row.base,
-            row.employer,
-            row.personal,
+            row.employerRate,
+            row.personalRate,
           ),
         )}
         <TableRow key="housing">
