@@ -19,6 +19,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
@@ -79,6 +80,20 @@ export function MainLayout() {
                   >
                     {warehouseNavItem.title}
                   </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>资料</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {materialsSubNavItems.map((item) => (
+                      <NavigationMenuLink
+                        className="w-62"
+                        key={item.title}
+                        render={<Link to={item.url} />}
+                      >
+                        {item.title}
+                      </NavigationMenuLink>
+                    ))}
+                  </NavigationMenuContent>
                 </NavigationMenuItem>
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>

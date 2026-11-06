@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  BookOpen,
   CalendarCheck2,
   ChevronRightIcon,
   Package,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
@@ -208,6 +210,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span>{warehouseLink.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarNavCollapsible
+              title="资料"
+              icon={BookOpen}
+              items={materialsSubNavItems}
+              activePath={activePath}
+              onNavClick={onNavClick}
+            />
             {me?.role === "admin" ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
