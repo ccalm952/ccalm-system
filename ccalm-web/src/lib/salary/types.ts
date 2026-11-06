@@ -21,6 +21,8 @@ export type SalaryEmployeeInput = {
   bonusMode: SalaryBonusMode;
   /** 个人扣减比例：阶梯为实收扣减，池行为护士扣减；如 0.2 表示 20% */
   deductionRate: number;
+  /** 是否缴纳社保与医保。缺省视为缴纳。 */
+  paySocialMedical?: boolean;
 };
 
 export type SalaryInsuranceInput = {
@@ -68,6 +70,15 @@ export type SalaryMaterialLine = {
   id: string;
   name: string;
   amount: number;
+};
+
+/** 不在员工表中、只缴社保和/或医保的人员 */
+export type SalaryOtherInsured = {
+  id: string;
+  name: string;
+  note: string;
+  paySocial: boolean;
+  payMedical: boolean;
 };
 
 /** 设备分期计划（全局；按起算月与期数自动计入各月「设备」成本） */
@@ -159,7 +170,14 @@ export type SalarySheetData = {
   summary: SalarySummaryInput;
   leaveQuotas: SalaryLeaveQuotas;
   employees: SalaryEmployeeInput[];
+  /** 其他参保人员。缺省表示没有。 */
+  otherInsured?: SalaryOtherInsured[];
   insurance: SalaryInsuranceInput;
+  /**
+   * 为 true 时，社保/医保缴费人数按员工与其他参保人员重算。
+   * 缺省表示沿用 insurance 中已保存的人数。
+   */
+  insuranceHeadcountAuto?: boolean;
   housingFund: SalaryHousingFundInput;
   costItems: SalaryCostItems;
   /** 当月材料明细；合计写入 / 计算 costItems.materials */
