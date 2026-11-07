@@ -182,6 +182,8 @@
       <view
         class="time-seg {{hourSegOn ? 'time-seg-on' : ''}}"
         catchtap="onFocusHour"
+        aria-role="button"
+        aria-label="编辑小时，当前 {{hourText}}"
       >
         <text class="time-seg-text {{hourTextOn ? 'time-seg-text-on' : ''}}">{{hourText}}</text>
       </view>
@@ -189,20 +191,26 @@
       <view
         class="time-seg {{minuteSegOn ? 'time-seg-on' : ''}}"
         catchtap="onFocusMinute"
+        aria-role="button"
+        aria-label="编辑分钟，当前 {{minuteText}}"
       >
         <text class="time-seg-text {{minuteTextOn ? 'time-seg-text-on' : ''}}">{{minuteText}}</text>
       </view>
-      <input
-        class="time-key"
-        type="number"
-        focus="{{timeFocus}}"
-        value="{{digitBuffer}}"
-        disabled="{{makeupSubmitting}}"
-        adjust-position="{{false}}"
-        bindinput="onTimeDigit"
-        bindblur="onTimeBlur"
-        bindkeyboardheightchange="onMakeupKeyboardHeight"
-      />
+      <view class="time-key-clip">
+        <input
+          class="time-key"
+          type="number"
+          always-embed="{{true}}"
+          aria-label="补卡时间 {{hourText}}:{{minuteText}}"
+          focus="{{timeFocus}}"
+          value="{{digitBuffer}}"
+          disabled="{{makeupSubmitting}}"
+          adjust-position="{{false}}"
+          bindinput="onTimeDigit"
+          bindblur="onTimeBlur"
+          bindkeyboardheightchange="onMakeupKeyboardHeight"
+        />
+      </view>
     </view>
   </dialog>
 </view>
