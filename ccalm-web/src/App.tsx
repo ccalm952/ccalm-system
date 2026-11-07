@@ -90,6 +90,11 @@ const WarehouseSection = lazy(() =>
     default: m.WarehouseSection,
   })),
 );
+const ImplantComparePage = lazy(() =>
+  import("./pages/materials/ImplantComparePage").then((m) => ({
+    default: m.ImplantComparePage,
+  })),
+);
 
 function RouteFallback() {
   return (
@@ -212,6 +217,16 @@ function App() {
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 
             <Route path="warehouse/*" element={<WarehouseSection />} />
+
+            <Route path="materials">
+              <Route
+                index
+                element={
+                  <Navigate to={ROUTES.materials.implantCompare} replace />
+                }
+              />
+              <Route path="implant-compare" element={<ImplantComparePage />} />
+            </Route>
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>

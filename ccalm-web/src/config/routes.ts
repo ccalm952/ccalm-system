@@ -25,6 +25,9 @@ export const ROUTES = {
   warehouse: {
     root: "/warehouse",
   },
+  materials: {
+    implantCompare: "/materials/implant-compare",
+  },
   salary: {
     root: "/salary",
   },
