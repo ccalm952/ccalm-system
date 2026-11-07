@@ -133,11 +133,28 @@
   flex-shrink: 0;
 }
 
-.time-key {
+/* 输入框留在时间字段内承接数字键盘。1px 裁剪盒只藏系统光标，不把焦点移出弹窗。 */
+.time-key-clip {
   position: absolute;
   left: 0;
   top: 0;
   width: 1px;
   height: 1px;
+  overflow: hidden;
+}
+
+.time-key {
+  display: block;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
   opacity: 0;
+  color: transparent;
+  background-color: transparent;
+  font-size: 16px;
+  text-indent: -9999px;
+  pointer-events: none;
 }
