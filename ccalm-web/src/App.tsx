@@ -90,6 +90,32 @@ const WarehouseSection = lazy(() =>
     default: m.WarehouseSection,
   })),
 );
+const WorkbenchPage = lazy(() =>
+  import("./pages/workbench/WorkbenchPage").then((m) => ({
+    default: m.WorkbenchPage,
+  })),
+);
+const PatientsPage = lazy(() =>
+  import("./pages/patients/PatientsPage").then((m) => ({
+    default: m.PatientsPage,
+  })),
+);
+const PatientDetailPage = lazy(() =>
+  import("./pages/patients/PatientDetailPage").then((m) => ({
+    default: m.PatientDetailPage,
+  })),
+);
+const ImplantComparePage = lazy(() =>
+  import("./pages/materials/ImplantComparePage").then((m) => ({
+    default: m.ImplantComparePage,
+  })),
+);
+
+const FeeItemsPage = lazy(() =>
+  import("./pages/fee-items/FeeItemsPage").then((m) => ({
+    default: m.FeeItemsPage,
+  })),
+);
 
 function RouteFallback() {
   return (
@@ -173,10 +199,17 @@ function App() {
         />
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-            <Route path={ROUTES.home} element={<AttendancePage />} />
+            <Route
+              path={ROUTES.home}
+              element={<Navigate to={ROUTES.workbench.root} replace />}
+            />
 
             <Route path="attendance">
-              <Route index element={<Navigate to={ROUTES.home} replace />} />
+              <Route
+                index
+                element={<Navigate to={ROUTES.attendance.checkIn} replace />}
+              />
+              <Route path="check-in" element={<AttendancePage />} />
               <Route path="check-in-range" element={<CheckInRangePage />} />
               <Route
                 path="shift-settings"
@@ -187,6 +220,13 @@ function App() {
             </Route>
 
             <Route path={ROUTES.users.root} element={<UsersPage />} />
+
+            <Route path={ROUTES.workbench.root} element={<WorkbenchPage />} />
+
+            <Route path="patients">
+              <Route index element={<PatientsPage />} />
+              <Route path=":id" element={<PatientDetailPage />} />
+            </Route>
 
             <Route path="implant">
               <Route
@@ -212,6 +252,17 @@ function App() {
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
 
             <Route path="warehouse/*" element={<WarehouseSection />} />
+
+            <Route path="materials">
+              <Route
+                index
+                element={
+                  <Navigate to={ROUTES.materials.implantCompare} replace />
+                }
+              />
+              <Route path="implant-compare" element={<ImplantComparePage />} />
+              <Route path="fee-items" element={<FeeItemsPage />} />
+            </Route>
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
           </Route>

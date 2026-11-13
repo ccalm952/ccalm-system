@@ -8,9 +8,14 @@ import dayjs from "dayjs";
 
 import { PrismaService } from "../../prisma/prisma.service";
 import {
+  findOrCreatePatient,
+  normalizePatientIdentity,
+} from "../patients/patient-identity";
+import {
   CreateOrthodonticsPatientDto,
   UpdateOrthodonticsPatientDto,
 } from "./dto/orthodontics-patient.dto";
+import { daysSinceVisit } from "./follow-up";
 
 const CATEGORY_SET = new Set<string>(Object.values(OrthodonticsCategory));
 
@@ -36,19 +41,11 @@ export class OrthodonticsService {
     return d.format("YYYY-MM-DD");
   }
 
-  private daysSince(lastVisitDate: string | null): number | null {
-    if (!lastVisitDate) return null;
-    const d = dayjs(lastVisitDate);
-    if (!d.isValid()) return null;
-    return dayjs().startOf("day").diff(d.startOf("day"), "day");
-  }
-
   private mapRow(row: {
     id: number;
     category: OrthodonticsCategory;
-    chartNo: string;
-    name: string;
-    phone: string;
+    patientId: number;
+    patient: { name: string; phone: string; chartNo: string };
     applianceModel: string;
     lastVisitDate: string | null;
     followUp: string;
@@ -60,12 +57,13 @@ export class OrthodonticsService {
     return {
       id: row.id,
       category: row.category,
-      chartNo: row.chartNo,
-      name: row.name,
-      phone: row.phone,
+      patientId: row.patientId,
+      chartNo: row.patient.chartNo,
+      name: row.patient.name,
+      phone: row.patient.phone,
       applianceModel: row.applianceModel,
       lastVisitDate: row.lastVisitDate,
-      daysSinceLastVisit: this.daysSince(row.lastVisitDate),
+      daysSinceLastVisit: daysSinceVisit(row.lastVisitDate),
       followUp: row.followUp,
       remark: row.remark,
       doctor: row.doctor,
@@ -85,9 +83,15 @@ export class OrthodonticsService {
         ...(keyword
           ? {
               OR: [
-                { name: { contains: keyword, mode: "insensitive" } },
-                { phone: { contains: keyword } },
-                { chartNo: { contains: keyword, mode: "insensitive" } },
+                {
+                  patient: {
+                    OR: [
+                      { name: { contains: keyword, mode: "insensitive" } },
+                      { phone: { contains: keyword } },
+                      { chartNo: { contains: keyword, mode: "insensitive" } },
+                    ],
+                  },
+                },
                 { doctor: { contains: keyword, mode: "insensitive" } },
                 { remark: { contains: keyword, mode: "insensitive" } },
                 { followUp: { contains: keyword, mode: "insensitive" } },
@@ -96,27 +100,33 @@ export class OrthodonticsService {
             }
           : {}),
       },
+      include: { patient: true },
       orderBy: [{ lastVisitDate: "asc" }, { id: "asc" }],
     });
     return rows.map((row) => this.mapRow(row));
   }
 
   async create(dto: CreateOrthodonticsPatientDto) {
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException("请填写姓名");
+    const identity = normalizePatientIdentity(dto);
+    if (!identity.name) throw new BadRequestException("请填写姓名");
     const category = this.parseCategory(dto.category);
-    const row = await this.prisma.orthodonticsPatient.create({
-      data: {
-        category,
-        name,
-        chartNo: dto.chartNo?.trim() ?? "",
-        phone: dto.phone?.trim() ?? "",
-        applianceModel: dto.applianceModel?.trim() ?? "",
-        lastVisitDate: this.normalizeDate(dto.lastVisitDate),
-        followUp: dto.followUp?.trim() ?? "",
-        remark: dto.remark?.trim() ?? "",
-        doctor: dto.doctor?.trim() ?? "",
-      },
+    const lastVisitDate = this.normalizeDate(dto.lastVisitDate);
+    const row = await this.prisma.$transaction(async (tx) => {
+      const patient = await findOrCreatePatient(tx, identity, {
+        patientId: dto.patientId,
+      });
+      return tx.orthodonticsPatient.create({
+        data: {
+          category,
+          patientId: patient.id,
+          applianceModel: dto.applianceModel?.trim() ?? "",
+          lastVisitDate,
+          followUp: dto.followUp?.trim() ?? "",
+          remark: dto.remark?.trim() ?? "",
+          doctor: dto.doctor?.trim() ?? "",
+        },
+        include: { patient: true },
+      });
     });
     return this.mapRow(row);
   }
@@ -126,23 +136,28 @@ export class OrthodonticsService {
       where: { id },
     });
     if (!existing) throw new NotFoundException("记录不存在");
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException("请填写姓名");
-    const row = await this.prisma.orthodonticsPatient.update({
-      where: { id },
-      data: {
-        name,
-        chartNo: dto.chartNo?.trim() ?? "",
-        phone: dto.phone?.trim() ?? "",
-        applianceModel: dto.applianceModel?.trim() ?? "",
-        lastVisitDate: this.normalizeDate(dto.lastVisitDate),
-        followUp: dto.followUp?.trim() ?? "",
-        remark: dto.remark?.trim() ?? "",
-        doctor: dto.doctor?.trim() ?? "",
-        ...(dto.category != null
-          ? { category: this.parseCategory(dto.category) }
-          : {}),
-      },
+    const identity = normalizePatientIdentity(dto);
+    if (!identity.name) throw new BadRequestException("请填写姓名");
+    const lastVisitDate = this.normalizeDate(dto.lastVisitDate);
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.patient.update({
+        where: { id: existing.patientId },
+        data: identity,
+      });
+      return tx.orthodonticsPatient.update({
+        where: { id },
+        data: {
+          applianceModel: dto.applianceModel?.trim() ?? "",
+          lastVisitDate,
+          followUp: dto.followUp?.trim() ?? "",
+          remark: dto.remark?.trim() ?? "",
+          doctor: dto.doctor?.trim() ?? "",
+          ...(dto.category != null
+            ? { category: this.parseCategory(dto.category) }
+            : {}),
+        },
+        include: { patient: true },
+      });
     });
     return this.mapRow(row);
   }

@@ -1,5 +1,16 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
+
+import { PrismaService } from "../../../prisma/prisma.service";
+
+const REMOTE_TIMEOUT_MS = 8000;
+/** 当年及以后的数据可能随国务院通知更新，存了超过 7 天就在后台重新下载 */
+const REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type ChinaHolidayDay = {
   date: string;
@@ -29,6 +40,9 @@ type HolidayCnJson = {
 @Injectable()
 export class ChinaHolidaysService {
   private readonly cache = new Map<number, ChinaHolidayYear>();
+  private readonly pending = new Map<number, Promise<ChinaHolidayYear>>();
+
+  constructor(private readonly prisma: PrismaService) {}
 
   private groupOffDayPeriods(days: ChinaHolidayDay[]): ChinaHolidayPeriod[] {
     const offDays = days
@@ -85,13 +99,50 @@ export class ChinaHolidaysService {
     const cached = this.cache.get(year);
     if (cached) return cached;
 
+    let pending = this.pending.get(year);
+    if (!pending) {
+      pending = this.loadYear(year).finally(() => this.pending.delete(year));
+      this.pending.set(year, pending);
+    }
+    return pending;
+  }
+
+  private async loadYear(year: number): Promise<ChinaHolidayYear> {
+    const stored = await this.prisma.holidayYear.findUnique({
+      where: { year },
+    });
+    if (!stored) return this.fetchRemote(year);
+
+    const normalized = this.normalize(stored.data as unknown as HolidayCnJson);
+    this.cache.set(year, normalized);
+    const stale = Date.now() - stored.fetchedAt.getTime() > REFRESH_AFTER_MS;
+    if (stale && year >= dayjs().year()) {
+      void this.fetchRemote(year).catch(() => undefined);
+    }
+    return normalized;
+  }
+
+  private async fetchRemote(year: number): Promise<ChinaHolidayYear> {
     const url = `https://cdn.jsdelivr.net/gh/NateScarlet/holiday-cn@master/${year}.json`;
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
+      });
+    } catch {
+      throw new ServiceUnavailableException("节假日数据下载失败，请稍后再试");
+    }
     if (!res.ok) {
       throw new NotFoundException(`暂无 ${year} 年节假日数据`);
     }
 
     const raw = (await res.json()) as HolidayCnJson;
+    const data = raw as unknown as Prisma.InputJsonValue;
+    await this.prisma.holidayYear.upsert({
+      where: { year },
+      create: { year, data },
+      update: { data, fetchedAt: new Date() },
+    });
     const normalized = this.normalize(raw);
     this.cache.set(year, normalized);
     return normalized;

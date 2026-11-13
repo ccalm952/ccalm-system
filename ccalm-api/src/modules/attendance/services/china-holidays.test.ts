@@ -7,6 +7,7 @@ import {
   type ChinaHolidayPeriod,
   type ChinaHolidayYear,
 } from "./china-holidays.service";
+import type { PrismaService } from "../../../prisma/prisma.service";
 
 type RawHolidayYear = {
   year: number;
@@ -19,8 +20,10 @@ type HolidayInternals = {
   normalize(raw: RawHolidayYear): ChinaHolidayYear;
 };
 
+const noPrisma = {} as PrismaService;
+
 function internals(): HolidayInternals {
-  return new ChinaHolidaysService() as unknown as HolidayInternals;
+  return new ChinaHolidaysService(noPrisma) as unknown as HolidayInternals;
 }
 
 describe("groupOffDayPeriods", () => {
@@ -116,7 +119,7 @@ describe("normalize", () => {
 });
 
 describe("getYear 参数校验", () => {
-  const service = new ChinaHolidaysService();
+  const service = new ChinaHolidaysService(noPrisma);
 
   it("年份早于 2000 或晚于 2100 时报 404", async () => {
     await expect(service.getYear(1999)).rejects.toThrow(NotFoundException);

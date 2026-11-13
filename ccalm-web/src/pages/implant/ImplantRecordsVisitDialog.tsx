@@ -52,6 +52,7 @@ type InventoryRow = { brand: string; model: string };
 
 type AddSuggestion = {
   id: number;
+  patientId: number;
   name: string;
   phone: string;
   source: string;
@@ -297,6 +298,7 @@ export function ImplantRecordsVisitDialog({
     dayjs().format("YYYY-MM-DD"),
   );
   const [patientName, setPatientName] = React.useState("");
+  const [patientId, setPatientId] = React.useState<number | null>(null);
   const [phone, setPhone] = React.useState("");
   const [chartNo, setChartNo] = React.useState("");
   const [birthday, setBirthday] = React.useState("");
@@ -341,6 +343,7 @@ export function ImplantRecordsVisitDialog({
   const resetForm = React.useCallback(() => {
     setVisitDate(dayjs().format("YYYY-MM-DD"));
     setPatientName("");
+    setPatientId(null);
     setPhone("");
     setChartNo("");
     setBirthday("");
@@ -497,6 +500,7 @@ export function ImplantRecordsVisitDialog({
 
   function selectSuggestion(suggestion: AddSuggestion) {
     setPatientName(suggestion.name);
+    setPatientId(suggestion.patientId);
     setPhone(suggestion.phone);
     setChartNo(suggestion.source);
     setBirthday(suggestion.birthday?.trim() ?? "");
@@ -563,6 +567,7 @@ export function ImplantRecordsVisitDialog({
     setSaving(true);
     try {
       await api("POST", "/implant/visits", {
+        patientId: patientId ?? undefined,
         phone: phone.trim(),
         patientName: patientName.trim(),
         chartNo: chartNo.trim(),
@@ -807,6 +812,7 @@ export function ImplantRecordsVisitDialog({
                               onValueChange={(value) => {
                                 setSuggestDismissed(false);
                                 setPatientName(value);
+                                setPatientId(null);
                               }}
                               onFocus={() => setSuggestDismissed(false)}
                               onBlur={dismissSuggestIfNotTyping}

@@ -42,10 +42,11 @@ npx shadcn@latest diff <组件名>   # 有 diff 再 overwrite
 
 ## 已删除的 registry 组件
 
-`badge.tsx` 与 `hover-card.tsx` 因无人引用已删除（`hover-card` 的用途被
-`Popover` 取代）。如后续需要，用 `npx shadcn@latest add <组件名>` 重新拉取；
-`hover-card.tsx` 曾有的定制是把 `cn` 改为从 `@/lib/utils` 导入，官方 base-rhea
-版本已一致，无需恢复。
+`hover-card.tsx` 因无人引用已删除（用途被 `Popover` 取代）。如后续需要，用
+`npx shadcn@latest add <组件名>` 重新拉取；曾有的定制是把 `cn` 改为从
+`@/lib/utils` 导入，官方 base-rhea 版本已一致，无需恢复。
+
+`badge.tsx` 已重新加入，供资料页种植体对比的档次标签使用。
 
 ## 已废弃定制（base-rhea 同步后勿恢复）
 

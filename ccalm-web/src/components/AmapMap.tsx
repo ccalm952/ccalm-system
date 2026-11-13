@@ -1,6 +1,8 @@
 import * as React from "react";
 import { load } from "@amap/amap-jsapi-loader";
 
+import { cn } from "cn";
+
 type MapInstance = {
   destroy?: () => void;
   on?: (event: string, cb: (e: unknown) => void) => void;
@@ -63,6 +65,8 @@ function getEnv(name: "VITE_AMAP_KEY" | "VITE_AMAP_SECURITY_JS_CODE"): string {
   return v;
 }
 
+const hasAmapKey = Boolean((import.meta.env.VITE_AMAP_KEY ?? "").trim());
+
 export function AmapMap(props: {
   height?: number;
   className?: string;
@@ -103,6 +107,7 @@ export function AmapMap(props: {
   const circleRef = React.useRef<CircleInstance | null>(null);
 
   React.useEffect(() => {
+    if (!hasAmapKey) return;
     const key = getEnv("VITE_AMAP_KEY");
     const securityJsCode = getEnv("VITE_AMAP_SECURITY_JS_CODE");
     if (securityJsCode) {
@@ -228,6 +233,20 @@ export function AmapMap(props: {
     circle.setMap?.(map);
     circleRef.current = circle;
   }, [center, radiusMeters, zoom]);
+
+  if (!hasAmapKey) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center text-sm text-muted-foreground",
+          className,
+        )}
+        style={{ height, width: "100%" }}
+      >
+        未配置高德地图 Key（VITE_AMAP_KEY），地图无法显示
+      </div>
+    );
+  }
 
   return (
     <div id={id} className={className} style={{ height, width: "100%" }} />

@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { MakeupTodoButton } from "@/components/makeup-todo-button";
+import { PageErrorBoundary } from "@/components/page-error-boundary";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -19,14 +20,18 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
+import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
+import { patientsNavItem } from "@/config/patients-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
+import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
 export function MainLayout() {
   const { me } = useAuth();
+  const location = useLocation();
   const attendanceItems = attendanceNavItemsForRole(me?.role);
 
   return (
@@ -38,6 +43,20 @@ export function MainLayout() {
             <SidebarTrigger className="size-9" />
             <NavigationMenu className="hidden md:block">
               <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    render={<Link to={workbenchNavItem.url} />}
+                  >
+                    {workbenchNavItem.title}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    render={<Link to={patientsNavItem.url} />}
+                  >
+                    {patientsNavItem.title}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>考勤</NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -80,6 +99,20 @@ export function MainLayout() {
                     {warehouseNavItem.title}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>资料</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {materialsSubNavItems.map((item) => (
+                      <NavigationMenuLink
+                        className="w-62"
+                        key={item.title}
+                        render={<Link to={item.url} />}
+                      >
+                        {item.title}
+                      </NavigationMenuLink>
+                    ))}
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink
@@ -104,7 +137,9 @@ export function MainLayout() {
               </div>
             }
           >
-            <Outlet />
+            <PageErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </PageErrorBoundary>
           </Suspense>
         </div>
       </SidebarInset>

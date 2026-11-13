@@ -71,7 +71,8 @@ function DialogContent({
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay className={overlayClassName} />
+      {/* CCALM: 嵌套弹窗也渲染遮罩，点击外部才能关闭内层弹窗 */}
+      <DialogOverlay forceRender className={overlayClassName} />
       <DialogCloseContext.Provider value={showCloseButton}>
         <DialogPrimitive.Popup
           data-slot="dialog-content"

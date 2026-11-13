@@ -27,6 +27,11 @@ export class ImplantToothInputDto {
 }
 
 export class CreateImplantVisitDto {
+  /** 下拉选中的已有患者 */
+  @IsOptional()
+  @IsInt()
+  patientId?: number;
+
   @IsString()
   phone!: string;
 
