@@ -14,7 +14,7 @@
     "check": "pnpm -C ccalm-web check && pnpm -C ccalm-api check && pnpm test",
     "test:web": "pnpm -C ccalm-web test",
     "test:api": "pnpm -C ccalm-api test",
-    "test": "pnpm -C ccalm-web test && pnpm -C ccalm-api test",
+    "test": "pnpm -C ccalm-web test && pnpm -C ccalm-api test && npm --prefix ccalm-miniprogram test",
     "lint:web": "pnpm -C ccalm-web lint",
     "lint:api": "pnpm -C ccalm-api lint:check",
     "lint:mp": "npm --prefix ccalm-miniprogram run lint",
