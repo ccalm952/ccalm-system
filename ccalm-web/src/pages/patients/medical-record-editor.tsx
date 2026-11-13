@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import {
@@ -38,7 +37,9 @@ import {
 } from "@/lib/medical-records/record-types";
 import { visitKindLabel, visitTimeRange } from "@/lib/visits/visit-options";
 import type { MedicalRecord, PatientVisit } from "./patient-detail-types";
+import { PhraseTextarea } from "./phrase-textarea";
 import { PlanQuoteInputs } from "./plan-quote";
+import { RootCanalField } from "./root-canal-field";
 import { StaffCombobox } from "./staff-combobox";
 import { ToothEntriesField, ToothEntriesView } from "./tooth-entries-field";
 
@@ -63,7 +64,6 @@ export type ReturnPlan = {
 };
 
 const NEW_VISIT = "new";
-const NO_VISIT = "none";
 
 function toForm(
   record: MedicalRecord | null,
@@ -71,11 +71,8 @@ function toForm(
 ): FormState {
   return {
     type: record?.type ?? (plan ? "return" : "first"),
-    visitLink: record
-      ? record.visitId == null
-        ? NO_VISIT
-        : String(record.visitId)
-      : NEW_VISIT,
+    // 病历必须挂一次就诊：没有关联的旧病历按「新建就诊」处理，保存时补一条
+    visitLink: record?.visitId != null ? String(record.visitId) : NEW_VISIT,
     visitDate: record?.visitDate ?? dayjs().format("YYYY-MM-DD"),
     visitTime: record?.visitTime ?? dayjs().format("HH:mm"),
     doctor: record?.doctor ?? plan?.doctor ?? "",
@@ -125,9 +122,24 @@ export function MedicalRecordEditor({
     isReturn ? opt.value === "return" : opt.value !== "return",
   );
 
+  /** 关联了已有就诊时，日期时间以该就诊为准 */
+  const linkedVisit = visits.find((v) => String(v.id) === form.visitLink);
+  const visitLocked = linkedVisit != null;
+
+  React.useEffect(() => {
+    const visit = visits.find((v) => String(v.id) === form.visitLink);
+    if (!visit) return;
+    setForm((f) => {
+      const visitTime = visit.startTime ?? "";
+      if (f.visitDate === visit.visitDate && f.visitTime === visitTime) {
+        return f;
+      }
+      return { ...f, visitDate: visit.visitDate, visitTime };
+    });
+  }, [form.visitLink, visits]);
+
   const visitItems = [
     { value: NEW_VISIT, label: "新建就诊（按上面的日期时间）" },
-    { value: NO_VISIT, label: "不关联就诊" },
     ...visits.map((v) => ({
       value: String(v.id),
       label: `${v.visitDate} ${visitTimeRange(v.startTime, v.endTime)} ${visitKindLabel(v.kind)}`,
@@ -166,13 +178,10 @@ export function MedicalRecordEditor({
       const body = {
         patientId,
         type: form.type,
-        visitId:
-          form.visitLink === NEW_VISIT || form.visitLink === NO_VISIT
-            ? null
-            : Number(form.visitLink),
+        visitId: form.visitLink === NEW_VISIT ? null : Number(form.visitLink),
         createVisit: form.visitLink === NEW_VISIT,
-        visitDate: form.visitDate,
-        visitTime: form.visitTime,
+        visitDate: linkedVisit?.visitDate ?? form.visitDate,
+        visitTime: linkedVisit?.startTime ?? form.visitTime,
         doctor: form.doctor.trim(),
         assistant: form.assistant.trim(),
         nurse: form.nurse.trim(),
@@ -241,7 +250,7 @@ export function MedicalRecordEditor({
       </CardHeader>
       <ScrollArea className="min-h-0 flex-1">
         <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Field>
               <FieldLabel>医生</FieldLabel>
               <StaffCombobox
@@ -266,19 +275,26 @@ export function MedicalRecordEditor({
             <Field>
               <FieldLabel>就诊日期</FieldLabel>
               <DatePickerField
+                className="h-8 justify-between rounded-2xl border-transparent bg-input/50 px-2.5 font-normal hover:bg-input/50 aria-expanded:bg-input/50 dark:bg-input/50 dark:hover:bg-input/50"
                 value={form.visitDate}
                 onValueChange={(v) => set("visitDate", v)}
+                disabled={visitLocked}
+                hideIcon
+                showChevron
               />
             </Field>
             <Field>
               <FieldLabel>就诊时间</FieldLabel>
               <Input
                 type="time"
+                aria-label="就诊时间"
+                className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 value={form.visitTime}
                 onChange={(e) => set("visitTime", e.target.value)}
+                disabled={visitLocked}
               />
             </Field>
-            <Field className="sm:col-span-2">
+            <Field>
               <FieldLabel>关联就诊</FieldLabel>
               <Select
                 items={visitItems}
@@ -306,6 +322,11 @@ export function MedicalRecordEditor({
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              {visitLocked ? (
+                <FieldDescription>
+                  已关联就诊，日期时间以该就诊为准
+                </FieldDescription>
+              ) : null}
             </Field>
           </div>
 
@@ -369,6 +390,7 @@ export function MedicalRecordEditor({
                 <ToothEntriesField
                   value={form.treatmentPlan}
                   onValueChange={(v) => set("treatmentPlan", v)}
+                  phraseField="treatmentPlan"
                   renderDetail={(item, update) => (
                     <PlanQuoteInputs item={item} onChange={update} />
                   )}
@@ -377,11 +399,24 @@ export function MedicalRecordEditor({
                 <ToothEntriesField
                   value={form[field]}
                   onValueChange={(v) => set(field, v)}
+                  phraseField={field}
+                  renderDetail={
+                    field === "treatment"
+                      ? (entry, update) => (
+                          <RootCanalField
+                            teeth={entry.teeth}
+                            text={entry.text}
+                            onChange={(next) => update({ text: next })}
+                          />
+                        )
+                      : undefined
+                  }
                 />
               ) : (
-                <Textarea
+                <PhraseTextarea
+                  field={field}
                   value={form[field]}
-                  onChange={(e) => set(field, e.target.value)}
+                  onChange={(next) => set(field, next)}
                 />
               )}
             </Field>
