@@ -1,8 +1,13 @@
-import { IsIn, IsOptional, IsString } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString } from "class-validator";
 
 const CATEGORIES = ["treating", "invisible", "appliance", "completed"] as const;
 
 export class CreateOrthodonticsPatientDto {
+  /** 下拉选中的已有患者 */
+  @IsOptional()
+  @IsInt()
+  patientId?: number;
+
   @IsIn(CATEGORIES)
   category!: (typeof CATEGORIES)[number];
 

@@ -1,6 +1,11 @@
-import { IsOptional, IsString, MinLength } from "class-validator";
+import { IsInt, IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreateImplantPendingDto {
+  /** 下拉选中的已有患者 */
+  @IsOptional()
+  @IsInt()
+  patientId?: number;
+
   @IsString()
   @MinLength(1)
   name!: string;

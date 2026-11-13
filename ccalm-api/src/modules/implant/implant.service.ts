@@ -5,7 +5,13 @@ import {
 } from "@nestjs/common";
 import dayjs from "dayjs";
 
+import type { Prisma } from "@prisma/client";
+
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  findOrCreatePatient,
+  normalizePatientIdentity,
+} from "../patients/patient-identity";
 import { AddInventoryDto, UpdateInventoryDto } from "./dto/inventory.dto";
 import {
   CreateImplantVisitDto,
@@ -17,6 +23,10 @@ import {
 } from "./dto/implant-pending.dto";
 import { UpdateImplantPatientDto } from "./dto/update-patient.dto";
 import { UpdateImplantVisitDto } from "./dto/update-visit.dto";
+import {
+  implantCountsForPending,
+  remainingPendingTeeth,
+} from "./pending-teeth";
 
 export type ImplantRecordRow = {
   patientId: number;
@@ -131,29 +141,15 @@ export class ImplantService {
       throw new BadRequestException("二期只能填写数字（月数）");
 
     return this.prisma.$transaction(async (tx) => {
-      let patient = await tx.implantPatient.findFirst({ where: { phone } });
-      if (!patient) {
-        patient = await tx.implantPatient.create({
-          data: {
-            name: patientName,
-            phone,
-            chartNo,
-            gender: "",
-            birthday: dto.birthday?.trim() || null,
-            age: dto.age ?? null,
-          },
-        });
-      } else {
-        patient = await tx.implantPatient.update({
-          where: { id: patient.id },
-          data: {
-            name: patientName,
-            chartNo: chartNo || patient.chartNo,
-            birthday: dto.birthday?.trim() || patient.birthday,
-            age: dto.age ?? patient.age,
-          },
-        });
-      }
+      const patient = await findOrCreatePatient(
+        tx,
+        normalizePatientIdentity({ name: patientName, phone, chartNo }),
+        {
+          birthday: dto.birthday?.trim() || null,
+          age: dto.age ?? null,
+          patientId: dto.patientId,
+        },
+      );
 
       const visit = await tx.implantVisit.create({
         data: {
@@ -173,8 +169,45 @@ export class ImplantService {
         include: { teeth: true },
       });
 
+      await this.consumePending(
+        tx,
+        patient.id,
+        visit.visitDate,
+        visit.teeth.map((t) => t.toothNo),
+      );
       return visit;
     });
+  }
+
+  /** 已种的牙位从该患者的待种植里去掉，全部种完的待种植记录删除 */
+  private async consumePending(
+    client: Pick<Prisma.TransactionClient, "implantPending">,
+    patientId: number,
+    visitDate: string,
+    toothNos: (string | null)[],
+  ) {
+    const rows = await client.implantPending.findMany({ where: { patientId } });
+    for (const row of rows) {
+      const createdDate = dayjs(row.createdAt).format("YYYY-MM-DD");
+      if (
+        !implantCountsForPending(visitDate, {
+          extractionDate: row.extractionDate,
+          createdDate,
+        })
+      ) {
+        continue;
+      }
+      const rest = remainingPendingTeeth(row.teeth, toothNos);
+      if (!rest) continue;
+      if (rest.length) {
+        await client.implantPending.update({
+          where: { id: row.id },
+          data: { teeth: rest.join(" ") },
+        });
+      } else {
+        await client.implantPending.delete({ where: { id: row.id } });
+      }
+    }
   }
 
   async updateVisit(visitId: number, dto: UpdateImplantVisitDto) {
@@ -191,7 +224,7 @@ export class ImplantService {
         throw new BadRequestException("患者不匹配");
       }
 
-      await tx.implantPatient.update({
+      await tx.patient.update({
         where: { id: visit.patientId },
         data: {
           ...(dto.patientName != null ? { name: dto.patientName } : {}),
@@ -228,6 +261,14 @@ export class ImplantService {
               : {}),
           },
         });
+        if (dto.toothNo) {
+          await this.consumePending(
+            tx,
+            visit.patientId,
+            dto.visitDate ?? visit.visitDate,
+            [dto.toothNo],
+          );
+        }
       }
 
       return { ok: true };
@@ -249,25 +290,21 @@ export class ImplantService {
       throw new BadRequestException("请至少填写牙位或植体信息");
     }
 
-    return this.prisma.implantTooth.create({
-      data: {
-        visitId,
-        toothNo: toothNo || null,
-        implantBrand: implantBrand || null,
-        implantModel: implantModel || null,
-        toothRemark: toothRemark || null,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const tooth = await tx.implantTooth.create({
+        data: {
+          visitId,
+          toothNo: toothNo || null,
+          implantBrand: implantBrand || null,
+          implantModel: implantModel || null,
+          toothRemark: toothRemark || null,
+        },
+      });
+      await this.consumePending(tx, visit.patientId, visit.visitDate, [
+        tooth.toothNo,
+      ]);
+      return tooth;
     });
-  }
-
-  /** 若该患者已无任何就诊，删除种植患者档案（避免库里残留空患者） */
-  private async deletePatientIfNoVisits(patientId: number) {
-    const remaining = await this.prisma.implantVisit.count({
-      where: { patientId },
-    });
-    if (remaining === 0) {
-      await this.prisma.implantPatient.deleteMany({ where: { id: patientId } });
-    }
   }
 
   async deleteVisitRow(visitId: number, toothId?: number | null) {
@@ -276,8 +313,6 @@ export class ImplantService {
     });
     if (!visit) throw new NotFoundException("就诊记录不存在");
 
-    const patientId = visit.patientId;
-
     if (toothId != null) {
       await this.prisma.implantTooth.deleteMany({
         where: { id: toothId, visitId },
@@ -285,11 +320,9 @@ export class ImplantService {
       const left = await this.prisma.implantTooth.count({ where: { visitId } });
       if (left === 0) {
         await this.prisma.implantVisit.delete({ where: { id: visitId } });
-        await this.deletePatientIfNoVisits(patientId);
       }
     } else {
       await this.prisma.implantVisit.delete({ where: { id: visitId } });
-      await this.deletePatientIfNoVisits(patientId);
     }
     return { ok: true };
   }
@@ -434,7 +467,7 @@ export class ImplantService {
 
   async listImplantPatients(q?: string) {
     const kw = q?.trim();
-    const patients = await this.prisma.implantPatient.findMany({
+    const patients = await this.prisma.patient.findMany({
       where: {
         visits: { some: {} },
         ...(kw
@@ -475,14 +508,14 @@ export class ImplantService {
   }
 
   async updateImplantPatient(id: number, dto: UpdateImplantPatientDto) {
-    const existing = await this.prisma.implantPatient.findUnique({
+    const existing = await this.prisma.patient.findUnique({
       where: { id },
     });
     if (!existing) throw new NotFoundException("患者不存在");
     const name = dto.name.trim();
     const phone = dto.phone.trim();
     if (!name || !phone) throw new BadRequestException("姓名与手机不能为空");
-    const updated = await this.prisma.implantPatient.update({
+    const updated = await this.prisma.patient.update({
       where: { id },
       data: {
         name,
@@ -499,13 +532,13 @@ export class ImplantService {
     return this.formatImplantPatientRow(updated);
   }
 
-  /** 删除患者及其就诊、牙位（级联由 Prisma schema 保证） */
+  /** 只删该患者的种植就诊与牙位；患者档案仍保留在患者管理里 */
   async deleteImplantPatient(id: number) {
-    const existing = await this.prisma.implantPatient.findUnique({
+    const existing = await this.prisma.patient.findUnique({
       where: { id },
     });
     if (!existing) throw new NotFoundException("患者不存在");
-    await this.prisma.implantPatient.delete({ where: { id } });
+    await this.prisma.implantVisit.deleteMany({ where: { patientId: id } });
     return { ok: true };
   }
 
@@ -514,23 +547,27 @@ export class ImplantService {
     if (!kw) return { list: [] as Array<Record<string, unknown>> };
     const take = Math.min(50, Math.max(1, pageSize));
     const [patients, pendings] = await Promise.all([
-      this.prisma.implantPatient.findMany({
+      this.prisma.patient.findMany({
         where: { name: { contains: kw, mode: "insensitive" as const } },
         take,
         orderBy: { name: "asc" },
       }),
       this.prisma.implantPending.findMany({
-        where: { name: { contains: kw, mode: "insensitive" as const } },
+        where: {
+          patient: { name: { contains: kw, mode: "insensitive" as const } },
+        },
+        include: { patient: true },
         take,
-        orderBy: { name: "asc" },
+        orderBy: { patient: { name: "asc" } },
       }),
     ]);
     const list = [
       ...pendings.map((p) => ({
         id: p.id,
-        name: p.name,
-        phone: p.phone ?? "",
-        source: p.chartNo ?? "",
+        patientId: p.patientId,
+        name: p.patient.name,
+        phone: p.patient.phone,
+        source: p.patient.chartNo,
         birthday: "",
         age: null as number | null,
         origin: "pending" as const,
@@ -539,6 +576,7 @@ export class ImplantService {
       })),
       ...patients.map((p) => ({
         id: p.id,
+        patientId: p.id,
         name: p.name,
         phone: p.phone ?? "",
         source: p.chartNo ?? "",
@@ -575,9 +613,8 @@ export class ImplantService {
 
   private mapPendingRow(row: {
     id: number;
-    name: string;
-    phone: string;
-    chartNo: string;
+    patientId: number;
+    patient: { name: string; phone: string; chartNo: string };
     teeth: string;
     extractionDate: string | null;
     remark: string;
@@ -586,9 +623,10 @@ export class ImplantService {
   }) {
     return {
       id: row.id,
-      name: row.name,
-      phone: row.phone,
-      chartNo: row.chartNo,
+      patientId: row.patientId,
+      name: row.patient.name,
+      phone: row.patient.phone,
+      chartNo: row.patient.chartNo,
       teeth: row.teeth,
       extractionDate: row.extractionDate,
       monthsAfter: this.monthsAfterExtraction(row.extractionDate),
@@ -603,12 +641,15 @@ export class ImplantService {
     const rows = await this.prisma.implantPending.findMany({
       where: keyword
         ? {
-            OR: [
-              { name: { contains: keyword, mode: "insensitive" } },
-              { phone: { contains: keyword } },
-            ],
+            patient: {
+              OR: [
+                { name: { contains: keyword, mode: "insensitive" } },
+                { phone: { contains: keyword } },
+              ],
+            },
           }
         : undefined,
+      include: { patient: true },
     });
     const mapped = rows.map((row) => this.mapPendingRow(row));
     mapped.sort((a, b) => {
@@ -624,17 +665,22 @@ export class ImplantService {
   }
 
   async createPending(dto: CreateImplantPendingDto) {
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException("请填写姓名");
-    const row = await this.prisma.implantPending.create({
-      data: {
-        name,
-        phone: dto.phone?.trim() ?? "",
-        chartNo: dto.chartNo?.trim() ?? "",
-        teeth: dto.teeth?.trim() ?? "",
-        extractionDate: this.normalizeExtractionDate(dto.extractionDate),
-        remark: dto.remark?.trim() ?? "",
-      },
+    const identity = normalizePatientIdentity(dto);
+    if (!identity.name) throw new BadRequestException("请填写姓名");
+    const extractionDate = this.normalizeExtractionDate(dto.extractionDate);
+    const row = await this.prisma.$transaction(async (tx) => {
+      const patient = await findOrCreatePatient(tx, identity, {
+        patientId: dto.patientId,
+      });
+      return tx.implantPending.create({
+        data: {
+          patientId: patient.id,
+          teeth: dto.teeth?.trim() ?? "",
+          extractionDate,
+          remark: dto.remark?.trim() ?? "",
+        },
+        include: { patient: true },
+      });
     });
     return this.mapPendingRow(row);
   }
@@ -644,18 +690,23 @@ export class ImplantService {
       where: { id },
     });
     if (!existing) throw new NotFoundException("记录不存在");
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException("请填写姓名");
-    const row = await this.prisma.implantPending.update({
-      where: { id },
-      data: {
-        name,
-        phone: dto.phone?.trim() ?? "",
-        chartNo: dto.chartNo?.trim() ?? "",
-        teeth: dto.teeth?.trim() ?? "",
-        extractionDate: this.normalizeExtractionDate(dto.extractionDate),
-        remark: dto.remark?.trim() ?? "",
-      },
+    const identity = normalizePatientIdentity(dto);
+    if (!identity.name) throw new BadRequestException("请填写姓名");
+    const extractionDate = this.normalizeExtractionDate(dto.extractionDate);
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.patient.update({
+        where: { id: existing.patientId },
+        data: identity,
+      });
+      return tx.implantPending.update({
+        where: { id },
+        data: {
+          teeth: dto.teeth?.trim() ?? "",
+          extractionDate,
+          remark: dto.remark?.trim() ?? "",
+        },
+        include: { patient: true },
+      });
     });
     return this.mapPendingRow(row);
   }

@@ -36,27 +36,27 @@ enum ScheduleShiftType {
 }
 
 model User {
-  id           String             @id @default(uuid())
-  username     String             @unique
-  passwordHash String
-  displayName  String
-  avatarUrl    String             @default("")
-  role         UserRole           @default(user)
-  leaveInitialBalance Float            @default(0)
-  sortOrder    Int                @default(0)
-  wechatOpenId String?            @unique
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id                  String   @id @default(uuid())
+  username            String   @unique
+  passwordHash        String
+  displayName         String
+  avatarUrl           String   @default("")
+  role                UserRole @default(user)
+  leaveInitialBalance Float    @default(0)
+  sortOrder           Int      @default(0)
+  wechatOpenId        String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  records              AttendanceRecord[]
-  makeupRequests       AttendanceMakeupRequest[] @relation("MakeupApplicant")
-  reviewedMakeupRequests AttendanceMakeupRequest[] @relation("MakeupReviewer")
-  scheduleEntries      ScheduleEntry[]
-  scheduleLeaveOffsets ScheduleLeaveOffset[]
-  punchDevice          AttendancePunchDevice?
-  punchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
+  records                           AttendanceRecord[]
+  makeupRequests                    AttendanceMakeupRequest[]            @relation("MakeupApplicant")
+  reviewedMakeupRequests            AttendanceMakeupRequest[]            @relation("MakeupReviewer")
+  scheduleEntries                   ScheduleEntry[]
+  scheduleLeaveOffsets              ScheduleLeaveOffset[]
+  punchDevice                       AttendancePunchDevice?
+  punchDeviceUnbindRequests         AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
   reviewedPunchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindReviewer")
-  warehouseTxnsOperated WarehouseTxn[]          @relation("WarehouseTxnOperator")
+  warehouseTxnsOperated             WarehouseTxn[]                       @relation("WarehouseTxnOperator")
 }
 
 model GeofenceConfig {
@@ -71,25 +71,25 @@ model GeofenceConfig {
 }
 
 model ShiftConfig {
-  id                       String   @id @default("global")
-  morningLabel             String   @default("上午")
-  morningRangeStart        String   @default("08:30")
-  morningRangeEnd          String   @default("12:00")
-  afternoonLabel           String   @default("下午")
-  afternoonRangeStart      String   @default("14:30")
-  afternoonRangeEnd        String   @default("18:00")
-  morningInWindowStart     String   @default("08:25")
-  morningInWindowEnd       String   @default("09:00")
-  morningOutWindowStart    String   @default("11:00")
-  morningOutWindowEnd      String   @default("14:20")
-  afternoonInWindowStart   String   @default("14:25")
-  afternoonInWindowEnd     String   @default("15:00")
-  afternoonOutWindowStart  String   @default("17:00")
-  afternoonOutWindowEnd    String   @default("20:20")
-  overtimeMorningNormalEnd String   @default("12:00")
-  overtimeAfternoonNormalEnd String @default("18:00")
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                         String   @id @default("global")
+  morningLabel               String   @default("上午")
+  morningRangeStart          String   @default("08:30")
+  morningRangeEnd            String   @default("12:00")
+  afternoonLabel             String   @default("下午")
+  afternoonRangeStart        String   @default("14:30")
+  afternoonRangeEnd          String   @default("18:00")
+  morningInWindowStart       String   @default("08:25")
+  morningInWindowEnd         String   @default("09:00")
+  morningOutWindowStart      String   @default("11:00")
+  morningOutWindowEnd        String   @default("14:20")
+  afternoonInWindowStart     String   @default("14:25")
+  afternoonInWindowEnd       String   @default("15:00")
+  afternoonOutWindowStart    String   @default("17:00")
+  afternoonOutWindowEnd      String   @default("20:20")
+  overtimeMorningNormalEnd   String   @default("12:00")
+  overtimeAfternoonNormalEnd String   @default("18:00")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 }
 
 model AttendancePunchDevice {
@@ -134,19 +134,19 @@ model AttendanceRecord {
 }
 
 model AttendanceMakeupRequest {
-  id           String                        @id @default(uuid())
-  userId       String
-  user         User                          @relation("MakeupApplicant", fields: [userId], references: [id], onDelete: Cascade)
-  date         String
-  type         AttendancePunchType
-  punchTime    DateTime
-  reason       String
-  status       AttendanceMakeupRequestStatus @default(pending)
-  reviewedBy   String?
-  reviewer     User?                         @relation("MakeupReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
-  reviewedAt   DateTime?
-  createdAt    DateTime                      @default(now())
-  updatedAt    DateTime                      @updatedAt
+  id         String                        @id @default(uuid())
+  userId     String
+  user       User                          @relation("MakeupApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  date       String
+  type       AttendancePunchType
+  punchTime  DateTime
+  reason     String
+  status     AttendanceMakeupRequestStatus @default(pending)
+  reviewedBy String?
+  reviewer   User?                         @relation("MakeupReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt DateTime?
+  createdAt  DateTime                      @default(now())
+  updatedAt  DateTime                      @updatedAt
 
   @@index([userId, date])
   @@index([userId, status, createdAt])
@@ -184,27 +184,199 @@ model ScheduleLeaveOffset {
   @@index([month])
 }
 
-/// 种植模块：患者（与系统登录 User 无关）
-model ImplantPatient {
-  id        Int            @id @default(autoincrement())
-  name      String
-  phone     String
-  chartNo   String         @default("")
-  gender    String         @default("")
-  birthday  String?
-  age       Int?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  visits    ImplantVisit[]
+/// holiday-cn 的年度节假日原始数据，避免每次重启都去外网下载
+model HolidayYear {
+  year      Int      @id
+  data      Json
+  fetchedAt DateTime @default(now())
+}
+
+/// 患者档案（与系统登录 User 无关），种植、待种植、正畸都挂在这里
+model Patient {
+  id             Int                   @id @default(autoincrement())
+  name           String
+  phone          String                @default("")
+  chartNo        String                @default("")
+  gender         String                @default("")
+  birthday       String?
+  age            Int?
+  tags           String[]              @default([])
+  remark         String                @default("")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  visits         ImplantVisit[]
+  pendings       ImplantPending[]
+  orthodontics   OrthodonticsPatient[]
+  clinicVisits   PatientVisit[]
+  medicalRecords MedicalRecord[]
+  chargeOrders   ChargeOrder[]
 
   @@index([name])
   @@index([phone])
+  @@index([chartNo])
+}
+
+/// 就诊（挂号/到店）；电子病历、收费单可挂在某次就诊上
+model PatientVisit {
+  id             Int             @id @default(autoincrement())
+  patientId      Int
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitDate      String
+  startTime      String          @default("")
+  endTime        String          @default("")
+  /// first 初诊 | return 复诊
+  kind           String          @default("return")
+  /// booked 已预约 | arrived 已到店 | completed 治疗完成 | cancelled 已取消 | missed 失约
+  status         String          @default("arrived")
+  doctor         String          @default("")
+  remark         String          @default("")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  medicalRecords MedicalRecord[]
+  chargeOrders   ChargeOrder[]
+
+  @@index([patientId, visitDate])
+  @@index([visitDate])
+}
+
+/// 电子病历；口腔检查/诊断/治疗计划/处置为 [{ teeth, text }] 牙位条目
+model MedicalRecord {
+  id             Int                 @id @default(autoincrement())
+  patientId      Int
+  patient        Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId        Int?
+  visit          PatientVisit?       @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  /// first 初诊 | return 复诊 | orthoFirst 正畸初诊 | orthoReturn 正畸复诊
+  type           String
+  visitDate      String
+  visitTime      String              @default("")
+  doctor         String              @default("")
+  assistant      String              @default("")
+  nurse          String              @default("")
+  chiefComplaint String              @default("")
+  presentIllness String              @default("")
+  pastHistory    String              @default("")
+  oralExam       Json                @default("[]")
+  auxiliaryExam  String              @default("")
+  diagnosis      Json                @default("[]")
+  treatment      Json                @default("[]")
+  advice         String              @default("")
+  remark         String              @default("")
+  /// 初诊疗程终止（放弃）的日期；null 为未终止
+  planStoppedAt  String?
+  /// 初诊病历的治疗计划，每行一个待完成项目
+  planItems      TreatmentPlanItem[] @relation("PlanItems")
+  /// 复诊病历本次处理的治疗计划行
+  planLinks      PlanItemFollowUp[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([patientId, visitDate])
+  @@index([visitId])
+}
+
+/// 初诊病历治疗计划的一行；有复诊勾了完成即该行完成
+model TreatmentPlanItem {
+  id           Int                @id @default(autoincrement())
+  recordId     Int
+  record       MedicalRecord      @relation("PlanItems", fields: [recordId], references: [id], onDelete: Cascade)
+  sort         Int                @default(0)
+  teeth        String             @default("")
+  text         String             @default("")
+  /// 报价：单价 × 数量；未报价为 null
+  unitPrice    Float?
+  quantity     Int?
+  discountNote String             @default("")
+  followUps    PlanItemFollowUp[]
+
+  @@index([recordId])
+}
+
+/// 复诊病历与治疗计划行的关联；一份复诊可处理多行
+model PlanItemFollowUp {
+  recordId   Int
+  record     MedicalRecord     @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  planItemId Int
+  planItem   TreatmentPlanItem @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+  /// 该复诊是否完成了这一行
+  completes  Boolean           @default(false)
+
+  @@id([recordId, planItemId])
+  @@index([planItemId])
+}
+
+/// 收费单；应收 = 明细金额合计，实收 = 支付记录合计
+model ChargeOrder {
+  id         Int             @id @default(autoincrement())
+  patientId  Int
+  patient    Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId    Int?
+  visit      PatientVisit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  chargeDate String
+  doctor     String          @default("")
+  /// normal 正常 | void 作废
+  status     String          @default("normal")
+  receivable Float           @default(0)
+  remark     String          @default("")
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  items      ChargeItem[]
+  payments   ChargePayment[]
+
+  @@index([patientId, chargeDate])
+  @@index([visitId])
+}
+
+model FeeCategory {
+  id    Int       @id @default(autoincrement())
+  name  String    @unique
+  sort  Int       @default(0)
+  items FeeItem[]
+}
+
+model FeeItem {
+  id          Int          @id @default(autoincrement())
+  categoryId  Int
+  category    FeeCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name        String
+  price       Float        @default(0)
+  sort        Int          @default(0)
+  chargeItems ChargeItem[]
+
+  @@unique([categoryId, name])
+}
+
+model ChargeItem {
+  id        Int         @id @default(autoincrement())
+  orderId   Int
+  order     ChargeOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  feeItemId Int?
+  feeItem   FeeItem?    @relation(fields: [feeItemId], references: [id], onDelete: SetNull)
+  name      String
+  teeth     String      @default("")
+  unitPrice Float       @default(0)
+  quantity  Int         @default(1)
+  amount    Float       @default(0)
+
+  @@index([orderId])
+}
+
+model ChargePayment {
+  id        Int         @id @default(autoincrement())
+  orderId   Int
+  order     ChargeOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String      @default("")
+  paidAt    String
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
 }
 
 model ImplantVisit {
   id        Int            @id @default(autoincrement())
   patientId Int
-  patient   ImplantPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient   Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   visitDate String
   remark    String?
   staff     String?
@@ -240,17 +412,15 @@ model ImplantInventory {
 /// 待种植名单（可被种植记录姓名搜索引用）
 model ImplantPending {
   id             Int      @id @default(autoincrement())
-  name           String
-  phone          String
-  chartNo        String   @default("")
+  patientId      Int
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   teeth          String   @default("")
   extractionDate String?
   remark         String   @default("")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@index([name])
-  @@index([phone])
+  @@index([patientId])
 }
 
 model SalarySheet {
@@ -300,36 +470,35 @@ enum WarehouseTxnBizType {
 
 /// 正畸随访名单（治疗中 / 矫治器 / 已完成）
 model OrthodonticsPatient {
-  id              Int                   @id @default(autoincrement())
-  category        OrthodonticsCategory
-  chartNo         String                @default("")
-  name            String
-  phone           String                @default("")
-  applianceModel  String                @default("")
-  lastVisitDate   String?
-  followUp        String                @default("")
-  remark          String                @default("")
-  doctor          String                @default("")
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  id             Int                  @id @default(autoincrement())
+  category       OrthodonticsCategory
+  patientId      Int
+  patient        Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  applianceModel String               @default("")
+  lastVisitDate  String?
+  followUp       String               @default("")
+  remark         String               @default("")
+  doctor         String               @default("")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([category])
-  @@index([name])
+  @@index([patientId])
   @@index([lastVisitDate])
 }
 
 model WarehouseProduct {
-  id             Int             @id @default(autoincrement())
-  name           String
-  category       String          @default("其他")
-  brand          String          @default("")
-  manufacturer   String          @default("")
-  supplierName   String          @default("")
-  defaultUnit    String          @default("个")
-  enabled        Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  items          WarehouseItem[]
+  id           Int             @id @default(autoincrement())
+  name         String
+  category     String          @default("其他")
+  brand        String          @default("")
+  manufacturer String          @default("")
+  supplierName String          @default("")
+  defaultUnit  String          @default("个")
+  enabled      Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  items        WarehouseItem[]
 
   @@unique([name, brand])
   @@index([name])
