@@ -101,7 +101,7 @@ export function parseTeethStrict(raw: string): number[] | null {
   return [...new Set(nums)].sort((a, b) => a - b);
 }
 
-/** 按象限分组，区内标签按从中线到外侧或保持选择序：用 Palmer 数字/字母拼接 */
+/** 按象限分组，用 Palmer 数字/字母拼接；左右镜像，中线一侧为 1（左侧 …321，右侧 123…） */
 export function groupPalmerLabels(fdis: number[]): Record<UiQuadrant, string> {
   const buckets: Record<UiQuadrant, number[]> = {
     UR: [],
@@ -123,6 +123,7 @@ export function groupPalmerLabels(fdis: number[]): Record<UiQuadrant, string> {
       if (da !== db) return da - db;
       return (a % 10) - (b % 10);
     });
+    if (q === "UR" || q === "LR") list.reverse();
     out[q] = list.map(palmerLabel).join("");
   }
   return out;

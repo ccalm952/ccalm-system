@@ -1,7 +1,4 @@
-import * as React from "react";
-
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "cn";
 import {
   deciduousInUi,
@@ -12,12 +9,10 @@ import {
   type UiQuadrant,
 } from "@/lib/tooth-fdi";
 
-type ToothChartDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** 当前已选 FDI；打开时作为草稿初始值 */
+type ToothChartPanelProps = {
+  /** 当前已选 FDI；点选即时生效 */
   value: number[];
-  onConfirm: (fdis: number[]) => void;
+  onValueChange: (fdis: number[]) => void;
 };
 
 function ToothCell({
@@ -169,48 +164,32 @@ function QuadrantBlock({
   );
 }
 
-export function ToothChartDialog({
-  open,
-  onOpenChange,
+export function ToothChartPanel({
   value,
-  onConfirm,
-}: ToothChartDialogProps) {
-  const [draft, setDraft] = React.useState<Set<number>>(() => new Set(value));
-
-  React.useEffect(() => {
-    if (open) setDraft(new Set(value));
-  }, [open, value]);
+  onValueChange,
+}: ToothChartPanelProps) {
+  const draft = new Set(value);
 
   function toggle(n: number) {
-    setDraft((prev) => {
-      const next = new Set(prev);
-      if (next.has(n)) next.delete(n);
-      else next.add(n);
-      return next;
-    });
+    const next = new Set(draft);
+    if (next.has(n)) next.delete(n);
+    else next.add(n);
+    onValueChange([...next]);
   }
 
   function applyShortcut(nums: number[]) {
-    setDraft((prev) => {
-      const next = new Set(prev);
-      const allOn = nums.every((n) => next.has(n));
-      if (allOn) {
-        for (const n of nums) next.delete(n);
-      } else {
-        for (const n of nums) next.add(n);
-      }
-      return next;
-    });
+    const next = new Set(draft);
+    const allOn = nums.every((n) => next.has(n));
+    if (allOn) {
+      for (const n of nums) next.delete(n);
+    } else {
+      for (const n of nums) next.add(n);
+    }
+    onValueChange([...next]);
   }
 
   function clearAll() {
-    setDraft(new Set());
-  }
-
-  function confirm() {
-    const list = [...draft].filter((n) => !Number.isNaN(n));
-    onConfirm(list.filter((n) => n > 0));
-    onOpenChange(false);
+    onValueChange([]);
   }
 
   const shortcuts: { label: string; nums: number[] }[] = [
@@ -221,86 +200,61 @@ export function ToothChartDialog({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-fit sm:max-w-none"
-      >
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {shortcuts.map((s) => (
-              <Button
-                key={s.label}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyShortcut(s.nums)}
-              >
-                {s.label}
-              </Button>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={clearAll}
-            >
-              清空
-            </Button>
-          </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        {shortcuts.map((s) => (
+          <Button
+            key={s.label}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => applyShortcut(s.nums)}
+          >
+            {s.label}
+          </Button>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={clearAll}>
+          清空
+        </Button>
+      </div>
 
-          <div className="mx-auto grid w-fit grid-cols-[auto_1px_auto] items-stretch">
-            <div className="pr-2 sm:pr-[12px]">
-              <QuadrantBlock
-                q="UR"
-                selected={draft}
-                toggle={toggle}
-                deciduousFirst
-              />
-            </div>
-            <div className="row-span-3 w-px bg-border" />
-            <div className="pl-2 sm:pl-[12px]">
-              <QuadrantBlock
-                q="UL"
-                selected={draft}
-                toggle={toggle}
-                deciduousFirst
-              />
-            </div>
-
-            <div className="flex items-center gap-2 py-0 sm:py-[6px]">
-              <div className="h-px min-w-6 flex-1 bg-border" />
-              <span className="shrink-0 text-xs text-muted-foreground">右</span>
-              <div className="h-px min-w-6 flex-1 bg-border" />
-            </div>
-            <div className="flex items-center gap-2 py-0 sm:py-[6px]">
-              <div className="h-px min-w-6 flex-1 bg-border" />
-              <span className="shrink-0 text-xs text-muted-foreground">左</span>
-              <div className="h-px min-w-6 flex-1 bg-border" />
-            </div>
-
-            <div className="pr-2 sm:pr-[12px]">
-              <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
-            </div>
-            <div className="pl-2 sm:pl-[12px]">
-              <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
-            </div>
-          </div>
+      <div className="mx-auto grid w-fit grid-cols-[auto_1px_auto] items-stretch">
+        <div className="pr-2 sm:pr-[12px]">
+          <QuadrantBlock
+            q="UR"
+            selected={draft}
+            toggle={toggle}
+            deciduousFirst
+          />
+        </div>
+        <div className="row-span-3 w-px bg-border" />
+        <div className="pl-2 sm:pl-[12px]">
+          <QuadrantBlock
+            q="UL"
+            selected={draft}
+            toggle={toggle}
+            deciduousFirst
+          />
         </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => onOpenChange(false)}
-          >
-            取消
-          </Button>
-          <Button type="button" onClick={confirm}>
-            确定
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="flex items-center gap-2 py-0 sm:py-[6px]">
+          <div className="h-px min-w-6 flex-1 bg-border" />
+          <span className="shrink-0 text-xs text-muted-foreground">右</span>
+          <div className="h-px min-w-6 flex-1 bg-border" />
+        </div>
+        <div className="flex items-center gap-2 py-0 sm:py-[6px]">
+          <div className="h-px min-w-6 flex-1 bg-border" />
+          <span className="shrink-0 text-xs text-muted-foreground">左</span>
+          <div className="h-px min-w-6 flex-1 bg-border" />
+        </div>
+
+        <div className="pr-2 sm:pr-[12px]">
+          <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
+        </div>
+        <div className="pl-2 sm:pl-[12px]">
+          <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
+        </div>
+      </div>
+    </div>
   );
 }

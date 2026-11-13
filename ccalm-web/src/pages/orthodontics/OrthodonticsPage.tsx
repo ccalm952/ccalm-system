@@ -49,6 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DatePickerField } from "@/components/date-picker-field";
+import { PatientNameCombobox } from "@/components/patient-name-combobox";
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
@@ -75,6 +76,8 @@ type OrthodonticsRow = {
 };
 
 type FormState = {
+  /** 新增时下拉选中的已有患者 */
+  patientId: number | null;
   category: OrthodonticsCategory;
   chartNo: string;
   name: string;
@@ -104,6 +107,7 @@ const ORTHODONTICS_TABLE_COL_COUNT = 1 + ORTHODONTICS_SHARE_COLS.length;
 
 function emptyForm(category: OrthodonticsCategory): FormState {
   return {
+    patientId: null,
     category,
     chartNo: "",
     name: "",
@@ -117,6 +121,7 @@ function emptyForm(category: OrthodonticsCategory): FormState {
 
 function formFromRow(row: OrthodonticsRow): FormState {
   return {
+    patientId: null,
     category: row.category,
     chartNo: row.chartNo,
     name: row.name,
@@ -259,6 +264,7 @@ export function OrthodonticsPage() {
           ? null
           : (rows.find((row) => row.id === editIdRef.current) ?? null);
       const body = {
+        patientId: form.patientId ?? undefined,
         category: form.category,
         chartNo: form.chartNo.trim(),
         name,
@@ -580,11 +586,35 @@ export function OrthodonticsPage() {
                 setForm((f) => ({ ...f, chartNo: e.target.value }))
               }
             />
-            <Input
-              placeholder="姓名"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            />
+            {editIdRef.current == null ? (
+              <PatientNameCombobox
+                value={form.name}
+                onValueChange={(name) =>
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    patientId: name === f.name ? f.patientId : null,
+                  }))
+                }
+                onSelect={(p) =>
+                  setForm((f) => ({
+                    ...f,
+                    patientId: p.id,
+                    name: p.name,
+                    phone: p.phone,
+                    chartNo: p.chartNo,
+                  }))
+                }
+              />
+            ) : (
+              <Input
+                placeholder="姓名"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            )}
             <Input
               placeholder="型号"
               value={form.applianceModel}

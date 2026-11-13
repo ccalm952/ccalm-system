@@ -4,6 +4,7 @@ import { Plus, SearchIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { DatePickerField } from "@/components/date-picker-field";
+import { PatientNameCombobox } from "@/components/patient-name-combobox";
 import { TablePagination } from "@/components/table-pagination";
 import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
 import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
@@ -69,6 +70,8 @@ type PendingRow = {
 };
 
 type FormState = {
+  /** 新增时下拉选中的已有患者 */
+  patientId: number | null;
   name: string;
   phone: string;
   chartNo: string;
@@ -79,6 +82,7 @@ type FormState = {
 
 function emptyForm(): FormState {
   return {
+    patientId: null,
     name: "",
     phone: "",
     chartNo: "",
@@ -99,6 +103,7 @@ function TeethCell({ teeth }: { teeth: string }) {
 
 function formFromRow(row: PendingRow): FormState {
   return {
+    patientId: null,
     name: row.name,
     phone: row.phone,
     chartNo: row.chartNo,
@@ -170,6 +175,7 @@ export function ImplantPendingPage() {
     setSaving(true);
     try {
       const body = {
+        patientId: form.patientId ?? undefined,
         name,
         phone: form.phone.trim(),
         chartNo: form.chartNo.trim(),
@@ -423,11 +429,35 @@ export function ImplantPendingPage() {
           className="text-base md:text-sm [&_button]:text-base md:[&_button]:text-sm [&_input]:text-base md:[&_input]:text-sm"
         >
           <div className="grid gap-4">
-            <Input
-              placeholder="姓名"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            />
+            {editIdRef.current == null ? (
+              <PatientNameCombobox
+                value={form.name}
+                onValueChange={(name) =>
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    patientId: name === f.name ? f.patientId : null,
+                  }))
+                }
+                onSelect={(p) =>
+                  setForm((f) => ({
+                    ...f,
+                    patientId: p.id,
+                    name: p.name,
+                    phone: p.phone,
+                    chartNo: p.chartNo,
+                  }))
+                }
+              />
+            ) : (
+              <Input
+                placeholder="姓名"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            )}
             <Input
               placeholder="手机"
               value={form.phone}

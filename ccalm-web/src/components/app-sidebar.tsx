@@ -4,9 +4,11 @@ import {
   BookOpen,
   CalendarCheck2,
   ChevronRightIcon,
+  LayoutDashboard,
   Package,
   Smile,
   Sprout,
+  Users,
   Wallet,
 } from "lucide-react";
 
@@ -34,8 +36,10 @@ import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
+import { patientsNavItem } from "@/config/patients-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
+import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/use-auth";
 
@@ -168,6 +172,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
+            {[
+              { link: workbenchNavItem, icon: LayoutDashboard },
+              { link: patientsNavItem, icon: Users },
+            ].map(({ link, icon: Icon }) => (
+              <SidebarMenuItem key={link.url}>
+                <SidebarMenuButton
+                  className="font-medium"
+                  isActive={subPathActive(activePath, link.url)}
+                  render={
+                    <Link to={link.url} onClick={() => onNavClick(link.url)} />
+                  }
+                  tooltip={link.title}
+                >
+                  <Icon className="shrink-0" />
+                  <span>{link.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
             {navMain.map((item) => (
               <SidebarNavCollapsible
                 key={item.title}

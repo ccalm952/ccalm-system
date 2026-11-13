@@ -6,7 +6,15 @@ export const ROUTES = {
   users: {
     root: "/users",
   },
+  workbench: {
+    root: "/workbench",
+  },
+  patients: {
+    root: "/patients",
+    detail: (id: number) => `/patients/${id}`,
+  },
   attendance: {
+    checkIn: "/attendance/check-in",
     stats: "/attendance/stats",
     schedule: "/attendance/schedule",
     shiftSettings: "/attendance/shift-settings",
@@ -27,6 +35,7 @@ export const ROUTES = {
   },
   materials: {
     implantCompare: "/materials/implant-compare",
+    feeItems: "/materials/fee-items",
   },
   salary: {
     root: "/salary",

@@ -8,6 +8,9 @@ type ToothPalmerMarkProps = {
   className?: string;
   /** 更紧凑，用于表格单元格 */
   compact?: boolean;
+  large?: boolean;
+  /** 左右列最小宽度（px），空牙位时也能显示完整十字 */
+  minColPx?: number;
 };
 
 /** 图1：十字象限 Palmer 标记；按实宽测左右列，等宽且保留水平 padding */
@@ -15,14 +18,25 @@ export function ToothPalmerMark({
   fdis,
   className,
   compact,
+  large,
+  minColPx = 0,
 }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const text = compact ? "text-[10px] leading-none" : "text-xs leading-none";
+  const text = compact
+    ? "text-[10px] leading-none"
+    : large
+      ? "text-sm leading-none"
+      : "text-xs leading-none";
   // 四边内边距；行高用 leading-none，避免 leading-[0] 把上下行压扁导致竖线消失
-  const cell = compact ? "min-h-[10px] p-0.5" : "min-h-3 p-0.5";
+  const cell = compact
+    ? "min-h-[10px] p-0.5"
+    : large
+      ? "min-h-4 p-0.5"
+      : "min-h-3 p-0.5";
   const line = "bg-sky-300";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
-  const measureKey = `${labels.join("\0")}:${compact ? "c" : "n"}`;
+  const size = compact ? "c" : large ? "l" : "n";
+  const measureKey = `${labels.join("\0")}:${size}`;
 
   const measureRef = React.useRef<HTMLSpanElement>(null);
   const [colPx, setColPx] = React.useState(0);
@@ -34,8 +48,8 @@ export function ToothPalmerMark({
     for (const el of root.querySelectorAll<HTMLElement>("[data-m]")) {
       max = Math.max(max, el.offsetWidth);
     }
-    setColPx(Math.ceil(max));
-  }, [measureKey]);
+    setColPx(Math.max(Math.ceil(max), minColPx));
+  }, [measureKey, minColPx]);
 
   return (
     <span
