@@ -120,7 +120,11 @@ export class MedicalRecordsService {
       });
       return visit.id;
     }
-    if (dto.visitId == null) return null;
+    if (dto.visitId == null) {
+      throw new BadRequestException(
+        "病历必须关联就诊：请新建或选择一条就诊记录",
+      );
+    }
     const visit = await tx.patientVisit.findUnique({
       where: { id: dto.visitId },
     });

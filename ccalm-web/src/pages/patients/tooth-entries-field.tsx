@@ -4,16 +4,19 @@ import { cn } from "cn";
 
 import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import type { ToothEntry } from "@/lib/medical-records/record-types";
+import { PhraseTextarea } from "./phrase-textarea";
 
 export function ToothEntriesField<T extends ToothEntry>({
   value,
   onValueChange,
   renderDetail,
+  phraseField,
 }: {
   value: T[];
   onValueChange: (v: T[]) => void;
+  /** 这个字段的词条；不传就是普通文本框 */
+  phraseField?: string;
   /** 文本框下方的附加输入 */
   renderDetail?: (
     entry: T,
@@ -39,11 +42,11 @@ export function ToothEntriesField<T extends ToothEntry>({
             onValueChange={(teeth) => update(index, { teeth } as Partial<T>)}
           />
           <div className="flex flex-1 flex-col gap-2">
-            <Textarea
+            <PhraseTextarea
+              field={phraseField}
+              closeOnInsert
               value={entry.text}
-              onChange={(e) =>
-                update(index, { text: e.target.value } as Partial<T>)
-              }
+              onChange={(text) => update(index, { text } as Partial<T>)}
             />
             {renderDetail?.(entry, (patch) => update(index, patch))}
           </div>

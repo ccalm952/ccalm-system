@@ -4,7 +4,7 @@ import * as React from "react";
 import dayjs from "dayjs";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -39,6 +39,10 @@ export type DatePickerFieldProps = {
   endMonth?: Date;
   /** 无选中值时日历初始月份；默认当天/当月。出生日期可传 2000-01 */
   emptyMonth?: Date;
+  /** 不显示左侧日历图标（用于和其它输入框对齐） */
+  hideIcon?: boolean;
+  /** 右侧显示下拉箭头 */
+  showChevron?: boolean;
 };
 
 export function DatePickerField({
@@ -53,6 +57,8 @@ export function DatePickerField({
   startMonth,
   endMonth,
   emptyMonth,
+  hideIcon,
+  showChevron,
   "aria-label": ariaLabel,
 }: DatePickerFieldProps) {
   const isMonth = granularity === "month";
@@ -116,8 +122,11 @@ export function DatePickerField({
           />
         }
       >
-        <CalendarIcon data-icon="inline-start" />
-        {displayLabel ?? <span>{placeholder}</span>}
+        {hideIcon ? null : <CalendarIcon data-icon="inline-start" />}
+        <span className="min-w-0 flex-1 truncate">
+          {displayLabel ?? <span>{placeholder}</span>}
+        </span>
+        {showChevron ? <ChevronDown className="size-4 opacity-50" /> : null}
       </PopoverTrigger>
       <PopoverContent
         className={cn("w-auto p-0", isDropdown && "overflow-hidden")}
