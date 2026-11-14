@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { appointmentsNavItem } from "@/config/appointments-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
@@ -49,6 +50,13 @@ export function MainLayout() {
                     render={<Link to={workbenchNavItem.url} />}
                   >
                     {workbenchNavItem.title}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    render={<Link to={appointmentsNavItem.url} />}
+                  >
+                    {appointmentsNavItem.title}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>

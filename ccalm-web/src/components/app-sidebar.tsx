@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   BookOpen,
   CalendarCheck2,
+  CalendarDays,
   ChevronRightIcon,
   LayoutDashboard,
   Package,
@@ -33,6 +34,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { appointmentsNavItem } from "@/config/appointments-nav";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
@@ -176,6 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {[
               { link: workbenchNavItem, icon: LayoutDashboard },
+              { link: appointmentsNavItem, icon: CalendarDays },
               { link: patientsNavItem, icon: Users },
             ].map(({ link, icon: Icon }) => (
               <SidebarMenuItem key={link.url}>
