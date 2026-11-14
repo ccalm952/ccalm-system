@@ -43,6 +43,12 @@ type Props = {
   defaultDate: string;
   defaultStart?: string;
   defaultDuration?: number;
+  timeSync?: {
+    visitDate: string;
+    startTime: string;
+    endTime: string;
+    nonce: number;
+  } | null;
   onSaved: () => void | Promise<void>;
 };
 
@@ -89,6 +95,7 @@ export function AppointmentDrawer({
   defaultDate,
   defaultStart = "09:00",
   defaultDuration,
+  timeSync,
   onSaved,
 }: Props) {
   const [patient, setPatient] = React.useState<PatientMatch | null>(null);
@@ -142,6 +149,23 @@ export function AppointmentDrawer({
     meta?.defaultDuration,
   ]);
 
+  React.useEffect(() => {
+    if (!open || !timeSync) return;
+    setVisitDate(timeSync.visitDate);
+    setStartTime(timeSync.startTime);
+    setDuration(
+      Math.max(
+        15,
+        Math.min(
+          120,
+          dayjs(`2000-01-01 ${timeSync.endTime}`).diff(
+            dayjs(`2000-01-01 ${timeSync.startTime}`),
+            "minute",
+          ),
+        ),
+      ),
+    );
+  }, [open, timeSync]);
   const patientId = patient?.id ?? initial?.patientId;
 
   React.useEffect(() => {

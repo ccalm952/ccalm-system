@@ -156,8 +156,16 @@ export function AppointmentBoardPage() {
     endTime: string;
     doctor: string;
   } | null>(null);
+  const [timeSync, setTimeSync] = React.useState<{
+    visitDate: string;
+    startTime: string;
+    endTime: string;
+    nonce: number;
+  } | null>(null);
   const dragRef = React.useRef<DragState | null>(null);
   const lastDragAt = React.useRef(0);
+  const drawerOpenRef = React.useRef(false);
+  const editingRef = React.useRef<AppointmentCard | null>(null);
   const [resize, setResize] = React.useState<{
     card: AppointmentCard;
     startY: number;
@@ -253,8 +261,21 @@ export function AppointmentBoardPage() {
     const map = new Map<string, AppointmentCard[]>();
     for (const col of columns) map.set(col.key, []);
     for (const source of visible) {
-      const a =
-        pendingMove && pendingMove.id === source.id
+      const dragging =
+        drag &&
+        drag.kind === "card" &&
+        drag.moved &&
+        drag.card?.id === source.id
+          ? {
+              visitDate: drag.date,
+              startTime: drag.start,
+              endTime: drag.end,
+              doctor: drag.doctor || source.doctor,
+            }
+          : null;
+      const a = dragging
+        ? { ...source, ...dragging }
+        : pendingMove && pendingMove.id === source.id
           ? { ...source, ...pendingMove }
           : source;
       if (a.isPending || !a.startTime) continue;
@@ -273,7 +294,7 @@ export function AppointmentBoardPage() {
       map.set(col.key, list);
     }
     return map;
-  }, [visible, columns, view, dayDate, pendingMove]);
+  }, [visible, columns, view, dayDate, pendingMove, drag]);
   function toggleLegend(key: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -448,6 +469,8 @@ export function AppointmentBoardPage() {
   }
 
   dragRef.current = drag;
+  drawerOpenRef.current = drawerOpen;
+  editingRef.current = editing;
   const dragActive = drag != null;
 
   React.useEffect(() => {
@@ -485,14 +508,23 @@ export function AppointmentBoardPage() {
           endTime: d.end,
           doctor: d.doctor || d.card.doctor,
         });
-        setEditing({
-          ...d.card,
-          visitDate: d.date,
-          startTime: d.start,
-          endTime: d.end,
-          doctor: d.doctor || d.card.doctor,
-        });
-        setDrawerOpen(true);
+        if (drawerOpenRef.current && editingRef.current?.id === d.card.id) {
+          setTimeSync({
+            visitDate: d.date,
+            startTime: d.start,
+            endTime: d.end,
+            nonce: Date.now(),
+          });
+        } else {
+          setEditing({
+            ...d.card,
+            visitDate: d.date,
+            startTime: d.start,
+            endTime: d.end,
+            doctor: d.doctor || d.card.doctor,
+          });
+          setDrawerOpen(true);
+        }
       } else if (d.kind === "pending" && d.pending) {
         setDraftDate(d.date);
         setDraftStart(d.start || "09:00");
@@ -676,7 +708,6 @@ export function AppointmentBoardPage() {
           ) : null}
         </div>
       </div>
-
       {unscheduled.length ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
           <span className="text-xs font-medium text-muted-foreground">
@@ -872,11 +903,16 @@ export function AppointmentBoardPage() {
                               width: `calc(${width}% - 4px)`,
                               backgroundColor: tone.bg,
                               borderLeftColor: tone.bar,
-                              opacity:
+                              zIndex:
                                 drag?.kind === "card" &&
                                 drag.card?.id === card.id
-                                  ? 0.25
-                                  : 1,
+                                  ? 30
+                                  : undefined,
+                              boxShadow:
+                                drag?.kind === "card" &&
+                                drag.card?.id === card.id
+                                  ? "0 8px 20px rgba(0,0,0,.25)"
+                                  : undefined,
                             }}
                           >
                             <span className="flex items-center gap-1">
@@ -935,7 +971,6 @@ export function AppointmentBoardPage() {
           )}
         </div>
       </div>
-
       {/* 明细 */}
       <Dialog
         open={selected != null}
@@ -1056,7 +1091,6 @@ export function AppointmentBoardPage() {
           ) : null}
         </DialogContent>
       </Dialog>
-
       {/* 失约/取消原因 */}
       <Dialog
         open={reason != null}
@@ -1094,8 +1128,7 @@ export function AppointmentBoardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {drag && drag.moved ? (
+      {drag && drag.moved && drag.kind !== "card" ? (
         <div
           className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-xl"
           style={{
@@ -1104,22 +1137,18 @@ export function AppointmentBoardPage() {
             width: drag.width,
             height: drag.height,
             backgroundColor:
-              drag.kind === "card" && drag.card
-                ? toneOf(drag.card).bg
+              drag.kind === "pending"
+                ? APPOINTMENT_TONES.pending.bg
                 : APPOINTMENT_TONES.booked.bg,
             borderLeftColor:
-              drag.kind === "card" && drag.card
-                ? toneOf(drag.card).bar
+              drag.kind === "pending"
+                ? APPOINTMENT_TONES.pending.bar
                 : APPOINTMENT_TONES.booked.bar,
           }}
         >
           <span className="flex items-center gap-1">
             <span className="truncate font-semibold">
-              {drag.kind === "card"
-                ? drag.card?.patientName
-                : drag.kind === "pending"
-                  ? drag.pending?.patientName
-                  : "新预约"}
+              {drag.kind === "pending" ? drag.pending?.patientName : "新预约"}
             </span>
             {drag.doctor ? (
               <span className="truncate opacity-70">[{drag.doctor}]</span>
@@ -1127,11 +1156,9 @@ export function AppointmentBoardPage() {
           </span>
           {drag.height >= 36 ? (
             <span className="block truncate opacity-80">
-              {drag.kind === "card"
-                ? drag.card?.items.join("/")
-                : drag.kind === "pending"
-                  ? drag.pending?.items.join("/")
-                  : "拖到时间后松开"}
+              {drag.kind === "pending"
+                ? drag.pending?.items.join("/")
+                : "拖到时间后松开"}
             </span>
           ) : null}
           {drag.height >= 48 && drag.start ? (
@@ -1140,7 +1167,7 @@ export function AppointmentBoardPage() {
             </span>
           ) : null}
         </div>
-      ) : null}
+      ) : null}{" "}
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={(next) => {
@@ -1152,6 +1179,7 @@ export function AppointmentBoardPage() {
         defaultDate={draftDate}
         defaultStart={draftStart}
         defaultDuration={draftDuration}
+        timeSync={timeSync}
         onSaved={() => {
           setPendingMove(null);
           return load();
