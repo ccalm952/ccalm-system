@@ -46,7 +46,8 @@ import { AppointmentDrawer } from "./appointment-drawer";
 
 const DAY_START = 8 * 60;
 const DAY_END = 22 * 60;
-const PX_PER_MIN = 0.8;
+const SLOT_PX = 28;
+const PX_PER_MIN = SLOT_PX / 15;
 const WEEKDAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const HOURS = Array.from(
   { length: (DAY_END - DAY_START) / 60 },
@@ -149,6 +150,7 @@ export function AppointmentBoardPage() {
   const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
     undefined,
   );
+  const [draftPlaced, setDraftPlaced] = React.useState(false);
   const [pendingMove, setPendingMove] = React.useState<{
     id: number;
     visitDate: string;
@@ -471,6 +473,7 @@ export function AppointmentBoardPage() {
   function beginFloatDrag(e: React.PointerEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
+    setDraftPlaced(true);
     const rect = e.currentTarget.getBoundingClientRect();
     const start = draftStart || "09:00";
     const dur = draftDuration ?? meta?.defaultDuration ?? 30;
@@ -564,6 +567,7 @@ export function AppointmentBoardPage() {
       } else if (drawerOpenRef.current && !editingRef.current) {
         setDraftDate(d.date);
         setDraftStart(d.start);
+        setDraftPlaced(true);
         setTimeSync({
           visitDate: d.date,
           startTime: d.start,
@@ -574,6 +578,7 @@ export function AppointmentBoardPage() {
         setDraftDate(d.date);
         setDraftStart(d.start);
         setDraftDuration(15);
+        setDraftPlaced(true);
         setEditing(null);
         setDrawerOpen(true);
       }
@@ -730,6 +735,7 @@ export function AppointmentBoardPage() {
               type="button"
               onClick={() => {
                 setEditing(null);
+                setDraftPlaced(false);
                 setDraftDate(view === "day" ? dayDate : anchor);
                 setDraftStart("09:00");
                 setDrawerOpen(true);
@@ -834,7 +840,7 @@ export function AppointmentBoardPage() {
                 })}
               </div>
 
-              {drawerOpen && !editing ? (
+              {drawerOpen && !editing && !draftPlaced ? (
                 <div
                   onPointerDown={beginFloatDrag}
                   className="absolute top-9 left-16 z-30 h-10 w-36 cursor-grab touch-none rounded-md bg-slate-600 px-2 py-1 text-[11px] leading-tight text-white shadow-lg select-none"
@@ -907,6 +913,7 @@ export function AppointmentBoardPage() {
                         setDraftDate(col.date);
                         setDraftStart(timeAt(snapped));
                         setDraftDuration(15);
+                        setDraftPlaced(false);
                         setEditing(null);
                         setDrawerOpen(true);
                       }}
@@ -940,6 +947,44 @@ export function AppointmentBoardPage() {
                         />
                       ) : null}
 
+                      {(() => {
+                        const dur =
+                          draftDuration ?? meta?.defaultDuration ?? 30;
+                        const active =
+                          drag?.kind === "new" &&
+                          drag.moved &&
+                          drag.date === col.date;
+                        const placed =
+                          drawerOpen &&
+                          !editing &&
+                          draftPlaced &&
+                          draftDate === col.date &&
+                          !active;
+                        if (!active && !placed) return null;
+                        const start = active ? drag.start : draftStart;
+                        const top = Math.max(
+                          0,
+                          (minutesOf(start) - DAY_START) * PX_PER_MIN,
+                        );
+                        return (
+                          <div
+                            onPointerDown={beginFloatDrag}
+                            className="absolute inset-x-1 z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
+                            style={{ top, height: dur * PX_PER_MIN }}
+                          >
+                            <span className="flex items-center justify-between gap-1">
+                              <span className="truncate font-semibold">
+                                新预约
+                              </span>
+                            </span>
+                            {dur * PX_PER_MIN >= 36 ? (
+                              <span className="block truncate tabular-nums opacity-80">
+                                {start} - {timeAt(minutesOf(start) + dur)}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                       {laidOut.map((card) => {
                         const tone = toneOf(card);
                         const top =
@@ -1202,7 +1247,7 @@ export function AppointmentBoardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {drag && drag.moved && drag.kind !== "card" ? (
+      {drag && drag.moved && drag.kind === "pending" ? (
         <div
           className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-xl"
           style={{
@@ -1210,29 +1255,16 @@ export function AppointmentBoardPage() {
             top: drag.y - drag.offsetY,
             width: drag.width,
             height: drag.height,
-            backgroundColor:
-              drag.kind === "pending"
-                ? APPOINTMENT_TONES.pending.bg
-                : APPOINTMENT_TONES.booked.bg,
-            borderLeftColor:
-              drag.kind === "pending"
-                ? APPOINTMENT_TONES.pending.bar
-                : APPOINTMENT_TONES.booked.bar,
+            backgroundColor: APPOINTMENT_TONES.pending.bg,
+            borderLeftColor: APPOINTMENT_TONES.pending.bar,
           }}
         >
-          <span className="flex items-center gap-1">
-            <span className="truncate font-semibold">
-              {drag.kind === "pending" ? drag.pending?.patientName : "新预约"}
-            </span>
-            {drag.doctor ? (
-              <span className="truncate opacity-70">[{drag.doctor}]</span>
-            ) : null}
+          <span className="block truncate font-semibold">
+            {drag.pending?.patientName}
           </span>
           {drag.height >= 36 ? (
             <span className="block truncate opacity-80">
-              {drag.kind === "pending"
-                ? drag.pending?.items.join("/")
-                : "拖到时间后松开"}
+              {drag.pending?.items.join("/")}
             </span>
           ) : null}
           {drag.height >= 48 && drag.start ? (
@@ -1245,7 +1277,10 @@ export function AppointmentBoardPage() {
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={(next) => {
-          if (!next) setPendingMove(null);
+          if (!next) {
+            setPendingMove(null);
+            setDraftPlaced(false);
+          }
           setDrawerOpen(next);
         }}
         meta={meta}
