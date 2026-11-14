@@ -952,7 +952,7 @@ export function AppointmentBoardPage() {
                         return (
                           <div
                             onPointerDown={beginFloatDrag}
-                            className="absolute inset-x-0 z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
+                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
                             style={{
                               top,
                               height: Math.max(16, dur * PX_PER_MIN - 2),
