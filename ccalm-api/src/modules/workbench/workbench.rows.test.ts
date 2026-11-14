@@ -13,6 +13,7 @@ function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
     kind: "return",
     status: "completed",
     doctor: "吴介尘",
+    remark: "",
     patient,
     medicalRecords: [],
     ...overrides,
@@ -59,5 +60,50 @@ describe("todayVisitRow", () => {
       }),
     );
     expect(row.staff).toBe("吴介尘");
+  });
+
+  it("正畸名单点「就诊」建的就诊即使还没写病历也算正畸", () => {
+    const row = todayVisitRow(visit({ status: "arrived", remark: "正畸就诊" }));
+    expect(row).toMatchObject({
+      key: "orthodontics-1",
+      kind: "orthodontics",
+      detail: "visited",
+      status: "arrived",
+    });
+  });
+
+  it("写完病历后仍是一行，内容换成病历类型", () => {
+    const row = todayVisitRow(
+      visit({
+        remark: "正畸就诊",
+        medicalRecords: [{ type: "orthoReturn", doctor: "胡" }],
+      }),
+    );
+    expect(row).toMatchObject({
+      key: "orthodontics-1",
+      kind: "orthodontics",
+      detail: "orthoReturn",
+    });
+  });
+
+  it("正畸就诊后写的是普通复诊病历时，内容按普通复诊显示", () => {
+    const row = todayVisitRow(
+      visit({
+        remark: "正畸就诊",
+        medicalRecords: [{ type: "return", doctor: "吴介尘" }],
+      }),
+    );
+    expect(row).toMatchObject({
+      kind: "orthodontics",
+      detail: "return",
+      staff: "吴介尘",
+    });
+  });
+
+  it("普通门诊就诊挂了普通病历仍算门诊", () => {
+    const row = todayVisitRow(
+      visit({ medicalRecords: [{ type: "return", doctor: "吴介尘" }] }),
+    );
+    expect(row.kind).toBe("clinic");
   });
 });

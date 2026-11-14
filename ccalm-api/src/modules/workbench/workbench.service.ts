@@ -10,7 +10,7 @@ import {
   daysSinceVisit,
   isOrthodonticsFollowUpDue,
 } from "../orthodontics/follow-up";
-import { TODAY_ORTHO_RECORD_TYPES, todayVisitRow } from "./workbench.rows";
+import { todayVisitRow } from "./workbench.rows";
 
 @Injectable()
 export class WorkbenchService {
@@ -26,9 +26,7 @@ export class WorkbenchService {
           include: {
             patient: true,
             medicalRecords: {
-              where: { type: { in: [...TODAY_ORTHO_RECORD_TYPES] } },
               orderBy: { id: "desc" },
-              take: 1,
               select: { type: true, doctor: true },
             },
           },

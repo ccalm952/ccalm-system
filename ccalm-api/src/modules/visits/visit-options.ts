@@ -14,3 +14,6 @@ export type VisitStatus = (typeof VISIT_STATUSES)[number];
 export function visitKindForRecordType(type: string): VisitKind {
   return type === "first" || type === "orthoFirst" ? "first" : "return";
 }
+
+/** 正畸名单点「就诊」建的就诊备注；工作台据此把这次就诊归为正畸 */
+export const ORTHO_VISIT_REMARK = "正畸就诊";

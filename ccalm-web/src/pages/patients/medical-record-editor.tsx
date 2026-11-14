@@ -36,6 +36,7 @@ import {
   type ToothEntry,
 } from "@/lib/medical-records/record-types";
 import { visitKindLabel, visitTimeRange } from "@/lib/visits/visit-options";
+import { pickPendingVisitId } from "@/lib/visits/pending-visit";
 import type { MedicalRecord, PatientVisit } from "./patient-detail-types";
 import { PhraseTextarea } from "./phrase-textarea";
 import { PlanQuoteInputs } from "./plan-quote";
@@ -65,14 +66,26 @@ export type ReturnPlan = {
 
 const NEW_VISIT = "new";
 
+/** 新病历默认挂到当天还没写病历的就诊（正畸名单点过「就诊」或已挂号），没有才新建 */
+function defaultVisitLink(
+  record: MedicalRecord | null,
+  visits: PatientVisit[],
+): string {
+  if (record) {
+    return record.visitId != null ? String(record.visitId) : NEW_VISIT;
+  }
+  const pending = pickPendingVisitId(visits, dayjs().format("YYYY-MM-DD"));
+  return pending == null ? NEW_VISIT : String(pending);
+}
+
 function toForm(
   record: MedicalRecord | null,
   plan: ReturnPlan | null,
+  visits: PatientVisit[],
 ): FormState {
   return {
     type: record?.type ?? (plan ? "return" : "first"),
-    // 病历必须挂一次就诊：没有关联的旧病历按「新建就诊」处理，保存时补一条
-    visitLink: record?.visitId != null ? String(record.visitId) : NEW_VISIT,
+    visitLink: defaultVisitLink(record, visits),
     visitDate: record?.visitDate ?? dayjs().format("YYYY-MM-DD"),
     visitTime: record?.visitTime ?? dayjs().format("HH:mm"),
     doctor: record?.doctor ?? plan?.doctor ?? "",
@@ -114,7 +127,9 @@ export function MedicalRecordEditor({
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
 }) {
-  const [form, setForm] = React.useState<FormState>(() => toForm(record, plan));
+  const [form, setForm] = React.useState<FormState>(() =>
+    toForm(record, plan, visits),
+  );
   const [saving, setSaving] = React.useState(false);
 
   const isReturn = plan != null || record?.type === "return";
