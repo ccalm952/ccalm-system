@@ -835,30 +835,30 @@ export function AppointmentBoardPage() {
                 })}
               </div>
 
-              <div className="flex pt-2">
+              <div className="flex">
                 <div className="w-16 shrink-0">
                   <div className="relative" style={{ height: gridHeight }}>
                     {Array.from(
                       { length: (DAY_END - DAY_START) / 15 },
                       (_, i) => i,
-                    )
-                      .filter((i) => i !== 0)
-                      .map((i) => (
-                        <div
-                          key={`axis-${i}`}
-                          className={
-                            i % 4 === 0
+                    ).map((i) => (
+                      <div
+                        key={`axis-${i}`}
+                        className={
+                          i === 0
+                            ? "absolute inset-x-0 border-t border-border"
+                            : i % 4 === 0
                               ? "absolute inset-x-0 border-t border-dashed border-border/70"
                               : "absolute inset-x-0 border-t border-border/30"
-                          }
-                          style={{ top: i * SLOT_PX }}
-                        />
-                      ))}
+                        }
+                        style={{ top: i * SLOT_PX }}
+                      />
+                    ))}
                     <div className="absolute inset-y-0 left-7 w-px bg-border/70" />
                     {HOURS.map((h) => (
                       <div key={h}>
                         <div
-                          className="absolute left-0 w-7 text-center text-[10px] font-semibold text-muted-foreground tabular-nums"
+                          className="absolute left-0 w-7 -translate-y-1/2 text-center text-[10px] font-semibold text-muted-foreground tabular-nums"
                           style={{
                             top:
                               (h * 60 - DAY_START) * PX_PER_MIN + SLOT_PX / 2,
@@ -869,7 +869,7 @@ export function AppointmentBoardPage() {
                         {[0, 15, 30, 45].map((m) => (
                           <div
                             key={m}
-                            className="absolute right-1 left-7 text-center text-[10px] text-muted-foreground tabular-nums"
+                            className="absolute right-1 left-7 -translate-y-1/2 text-center text-[10px] text-muted-foreground tabular-nums"
                             style={{
                               top:
                                 (h * 60 + m - DAY_START) * PX_PER_MIN +
@@ -912,10 +912,14 @@ export function AppointmentBoardPage() {
                         setDrawerOpen(true);
                       }}
                     >
-                      {HOURS.filter((h) => h !== 8).map((h) => (
+                      {HOURS.map((h) => (
                         <div
                           key={h}
-                          className="absolute inset-x-0 border-t border-dashed border-border/70"
+                          className={`absolute inset-x-0 border-t ${
+                            h === 8
+                              ? "border-border"
+                              : "border-dashed border-border/70"
+                          }`}
                           style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
                         />
                       ))}
