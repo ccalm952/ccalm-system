@@ -3,7 +3,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -20,6 +19,9 @@ import { diskStorage } from "multer";
 import type { Request } from "express";
 
 import { API_ROOT } from "../../common/api-root";
+import { BUILTIN_ROLE_IDS } from "../../common/permissions/permissions";
+import { PermissionsService } from "../../common/permissions/permissions.service";
+import { RequirePermissions } from "../../common/permissions/require-permissions.decorator";
 import { actor } from "../../common/request-auth";
 
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -33,22 +35,39 @@ const avatarMimeExtensions = new Map([
   ["image/webp", ".webp"],
 ]);
 
+/** 兼容旧前端只传 role 的情况 */
+function roleIdsFromDto(dto: {
+  roleIds?: string[];
+  role?: "user" | "admin";
+}): string[] | undefined {
+  if (dto.roleIds) return dto.roleIds;
+  if (dto.role === "admin") return [BUILTIN_ROLE_IDS.admin];
+  if (dto.role === "user") return [BUILTIN_ROLE_IDS.doctor];
+  return undefined;
+}
+
 @Controller("users")
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Get()
-  async list(@Req() req: Request) {
-    const a = actor(req);
-    if (a.role !== "admin") throw new ForbiddenException("仅管理员可管理人员");
+  @RequirePermissions("staff.manage")
+  async list() {
     return await this.users.listAll();
   }
 
   @Post()
-  async create(@Req() req: Request, @Body() dto: CreateUserDto) {
-    const a = actor(req);
-    if (a.role !== "admin") throw new ForbiddenException("仅管理员可创建用户");
-    return await this.users.createByAdmin(dto);
+  @RequirePermissions("staff.manage")
+  async create(@Body() dto: CreateUserDto) {
+    return await this.users.createByAdmin({
+      username: dto.username,
+      password: dto.password,
+      displayName: dto.displayName,
+      roleIds: roleIdsFromDto(dto),
+    });
   }
 
   @Post("me/avatar")
@@ -93,20 +112,22 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ) {
     const a = actor(req);
+    const canManage = await this.permissions.has(a.userId, "staff.manage");
     return await this.users.update({
-      actor: a,
+      actorUserId: a.userId,
+      canManage,
       targetUserId: id,
       displayName: dto.displayName,
       password: dto.password,
-      role: dto.role,
+      roleIds: roleIdsFromDto(dto),
       leaveInitialBalance: dto.leaveInitialBalance,
     });
   }
 
   @Delete(":id")
+  @RequirePermissions("staff.manage")
   async remove(@Req() req: Request, @Param("id") id: string) {
     const a = actor(req);
-    if (a.role !== "admin") throw new ForbiddenException("仅管理员可删除用户");
     return await this.users.deleteByAdmin({
       actorUserId: a.userId,
       targetUserId: id,

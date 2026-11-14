@@ -1,5 +1,7 @@
 import { Type } from "class-transformer";
 import {
+  ArrayUnique,
+  IsArray,
   IsIn,
   IsNumber,
   IsOptional,
@@ -18,7 +20,13 @@ export class UpdateUserDto {
   password?: string;
 
   @IsOptional()
-  @IsString()
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  roleIds?: string[];
+
+  /** @deprecated 旧前端字段，仅用于兼容 */
+  @IsOptional()
   @IsIn(["user", "admin"])
   role?: "user" | "admin";
 

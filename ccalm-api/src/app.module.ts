@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common";
 
 import { PrismaModule } from "./prisma/prisma.module";
+import { PermissionsModule } from "./common/permissions/permissions.module";
+import { PermissionsGuard } from "./common/permissions/permissions.guard";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard";
 import { APP_GUARD } from "@nestjs/core";
 import { UsersModule } from "./modules/users/users.module";
+import { RolesModule } from "./modules/roles/roles.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { ChargesModule } from "./modules/charges/charges.module";
 import { FeeCatalogModule } from "./modules/fee-catalog/fee-catalog.module";
@@ -21,8 +24,10 @@ import { WorkbenchModule } from "./modules/workbench/workbench.module";
 @Module({
   imports: [
     PrismaModule,
+    PermissionsModule,
     AuthModule,
     UsersModule,
+    RolesModule,
     AttendanceModule,
     ChargesModule,
     FeeCatalogModule,
@@ -41,6 +46,10 @@ import { WorkbenchModule } from "./modules/workbench/workbench.module";
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
   ],
 })

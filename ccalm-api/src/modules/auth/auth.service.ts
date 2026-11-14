@@ -109,10 +109,38 @@ export class AuthService {
         role: true,
         createdAt: true,
         updatedAt: true,
+        roles: {
+          select: {
+            id: true,
+            name: true,
+            bookable: true,
+            assistable: true,
+            permissions: true,
+          },
+        },
       },
     });
     if (!user) throw new UnauthorizedException("未登录或登录已失效");
-    return user;
+    const roles = user.roles.map((r) => ({
+      id: r.id,
+      name: r.name,
+      bookable: r.bookable,
+      assistable: r.assistable,
+    }));
+    const permissions = [...new Set(user.roles.flatMap((r) => r.permissions))];
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      roles,
+      permissions,
+      bookable: roles.some((r) => r.bookable),
+      assistable: roles.some((r) => r.assistable),
+    };
   }
 
   async wechatLogin(code: string) {
