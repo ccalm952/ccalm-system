@@ -40,4 +40,7 @@ export const ROUTES = {
   salary: {
     root: "/salary",
   },
+  roles: {
+    root: "/roles",
+  },
 } as const;

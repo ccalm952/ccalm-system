@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   LayoutDashboard,
   Package,
+  ShieldCheck,
   Smile,
   Sprout,
   Users,
@@ -41,6 +42,7 @@ import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 
 function subPathActive(pathname: string, url: string) {
@@ -239,6 +241,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               activePath={activePath}
               onNavClick={onNavClick}
             />
+            {can(me, "staff.manage") ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className="font-medium"
+                  isActive={subPathActive(activePath, ROUTES.roles.root)}
+                  render={
+                    <Link
+                      to={ROUTES.roles.root}
+                      onClick={() => onNavClick(ROUTES.roles.root)}
+                    />
+                  }
+                  tooltip="人员与角色"
+                >
+                  <ShieldCheck className="shrink-0" />
+                  <span>人员与角色</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
             {me?.role === "admin" ? (
               <SidebarMenuItem>
                 <SidebarMenuButton

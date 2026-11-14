@@ -27,6 +27,7 @@ import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 
 export function MainLayout() {
@@ -113,6 +114,15 @@ export function MainLayout() {
                     ))}
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+                {can(me, "staff.manage") ? (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      render={<Link to={ROUTES.roles.root} />}
+                    >
+                      人员与角色
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                ) : null}
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink
