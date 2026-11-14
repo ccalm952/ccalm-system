@@ -69,12 +69,13 @@ export function PatientNameCombobox({
       itemToStringLabel={(p: PatientMatch) => p.name}
       inputValue={value}
       onInputValueChange={(v, details) => {
-        if (
-          details.reason === "input-change" ||
-          details.reason === "input-clear"
-        ) {
+        if (details.reason === "input-change") {
           onValueChange(v);
+          return;
         }
+        // 关闭弹层/失焦时 base-ui 会把输入值清成空（input-clear），
+        // 但这里允许「库里没有的名字」作为新患者，取消掉这次清空，保留已输入姓名
+        if (details.reason === "input-clear") details.cancel();
       }}
       onValueChange={(p: PatientMatch | null) => {
         if (p) onSelect(p);
