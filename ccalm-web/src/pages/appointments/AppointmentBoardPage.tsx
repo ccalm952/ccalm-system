@@ -34,6 +34,7 @@ import type {
   AppointmentCard,
   AppointmentMeta,
   BoardResponse,
+  PendingRow,
 } from "@/lib/appointments/types";
 import { errorMessage } from "@/lib/errorMessage";
 import { can } from "@/lib/permissions";
@@ -58,6 +59,29 @@ function plusMinutes(time: string, minutes: number): string {
   const m = String(total % 60).padStart(2, "0");
   return `${h}:${m}`;
 }
+function pendingToCard(p: PendingRow): AppointmentCard {
+  return {
+    id: p.id,
+    patientId: p.patientId,
+    patientName: p.patientName,
+    chartNo: p.chartNo,
+    gender: "",
+    age: null,
+    phone: p.phone,
+    visitDate: p.visitDate,
+    startTime: "",
+    endTime: "",
+    doctor: p.doctor,
+    kind: "return",
+    status: "booked",
+    arrived: false,
+    items: p.items,
+    isPending: true,
+    pendingReason: p.pendingReason,
+    remark: p.remark,
+    createdById: null,
+  };
+}
 function statusKey(card: AppointmentCard): string {
   return card.isPending ? "pending" : card.status;
 }
@@ -71,6 +95,7 @@ export function AppointmentBoardPage() {
   const { me } = useAuth();
   const [anchor, setAnchor] = React.useState(dayjs().format("YYYY-MM-DD"));
   const [board, setBoard] = React.useState<BoardResponse | null>(null);
+  const [pending, setPending] = React.useState<PendingRow[]>([]);
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [doctorFilter, setDoctorFilter] = React.useState<string>("all");
@@ -87,11 +112,12 @@ export function AppointmentBoardPage() {
 
   const load = React.useCallback(async () => {
     try {
-      const data = await api<BoardResponse>(
-        "GET",
-        `/appointments/board?from=${from}&to=${to}`,
-      );
+      const [data, pendingRows] = await Promise.all([
+        api<BoardResponse>("GET", `/appointments/board?from=${from}&to=${to}`),
+        api<PendingRow[]>("GET", "/appointments/pending"),
+      ]);
       setBoard(data);
+      setPending(pendingRows);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -138,7 +164,6 @@ export function AppointmentBoardPage() {
     return map;
   }, [appointments]);
 
-  const pendingOnBoard = visible.filter((a) => a.isPending);
   const byDate = React.useMemo(() => {
     const map = new Map<string, AppointmentCard[]>();
     for (const a of visible) {
@@ -310,153 +335,174 @@ export function AppointmentBoardPage() {
         </div>
       </div>
 
-      {pendingOnBoard.length ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-pink-200 bg-pink-50/60 px-3 py-2">
-          <span className="text-xs font-medium text-pink-700">
-            待定 {pendingOnBoard.length}
-          </span>
-          {pendingOnBoard.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => setSelected(a)}
-              className="rounded-md border border-pink-300 bg-white px-2 py-0.5 text-xs hover:bg-pink-50"
-            >
-              {a.patientName}
-              {a.items.length ? ` · ${a.items.join("/")}` : ""}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {/* 网格 */}
-      <div className="flex min-h-0 flex-1 overflow-auto rounded-xl border bg-card">
-        {loading ? (
-          <div className="flex h-64 w-full items-center justify-center">
-            <Spinner className="size-8 opacity-60" />
+      {/* 待定池 + 网格 */}
+      <div className="flex min-h-0 flex-1 gap-3">
+        <aside className="hidden w-52 shrink-0 flex-col rounded-xl border bg-card md:flex">
+          <div className="flex items-center justify-between border-b px-3 py-2 text-xs font-medium">
+            <span>待定预约</span>
+            <Badge variant="secondary">{pending.length}</Badge>
           </div>
-        ) : (
-          <div className="flex min-w-[900px] flex-1 flex-col">
-            <div className="sticky top-0 z-10 flex border-b bg-card">
-              <div className="w-14 shrink-0" />
-              {dates.map((date, i) => {
-                const isToday = date === today;
-                return (
-                  <div
-                    key={date}
-                    className={`flex flex-1 flex-col items-center border-l py-1.5 text-xs ${
-                      isToday ? "bg-primary/5 font-medium text-primary" : ""
-                    }`}
-                  >
-                    <span>
-                      {WEEKDAYS[i]} {dayjs(date).format("MM/DD")}
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
+            {pending.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setEditing(pendingToCard(p));
+                  setDrawerOpen(true);
+                }}
+                className="rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs hover:bg-pink-50"
+              >
+                <span className="flex items-center justify-between gap-1">
+                  <span className="font-medium">{p.patientName}</span>
+                  {p.expired ? (
+                    <span className="rounded bg-red-100 px-1 text-[10px] text-red-600">
+                      已过期
                     </span>
-                    <span className="text-[10px] opacity-70">
-                      {board?.days.find((d) => d.date === date)?.counts
-                        .booked ?? 0}
-                      {" 预约"}
-                    </span>
-                  </div>
-                );
-              })}
+                  ) : null}
+                </span>
+                <span className="block truncate text-muted-foreground">
+                  {p.visitDate}
+                  {p.items.length ? ` · ${p.items.join("/")}` : ""}
+                </span>
+              </button>
+            ))}
+            {!pending.length ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                暂无待定
+              </p>
+            ) : null}
+          </div>
+        </aside>
+        <div className="flex min-h-0 flex-1 overflow-auto rounded-xl border bg-card">
+          {loading ? (
+            <div className="flex h-64 w-full items-center justify-center">
+              <Spinner className="size-8 opacity-60" />
             </div>
-
-            <div className="flex">
-              <div className="w-14 shrink-0">
-                <div className="relative" style={{ height: gridHeight }}>
-                  {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
+          ) : (
+            <div className="flex min-w-[900px] flex-1 flex-col">
+              <div className="sticky top-0 z-10 flex border-b bg-card">
+                <div className="w-14 shrink-0" />
+                {dates.map((date, i) => {
+                  const isToday = date === today;
+                  return (
                     <div
-                      key={h}
-                      className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
-                      style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
+                      key={date}
+                      className={`flex flex-1 flex-col items-center border-l py-1.5 text-xs ${
+                        isToday ? "bg-primary/5 font-medium text-primary" : ""
+                      }`}
                     >
-                      {String(h).padStart(2, "0")}:00
+                      <span>
+                        {WEEKDAYS[i]} {dayjs(date).format("MM/DD")}
+                      </span>
+                      <span className="text-[10px] opacity-70">
+                        {board?.days.find((d) => d.date === date)?.counts
+                          .booked ?? 0}
+                        {" 预约"}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
 
-              {dates.map((date) => {
-                const dayCards = byDate.get(date) ?? [];
-                const laidOut = assignLanes(dayCards);
-                return (
-                  <div
-                    key={date}
-                    className={`relative flex-1 border-l ${
-                      date === today ? "bg-primary/[0.03]" : ""
-                    }`}
-                    style={{ height: gridHeight }}
-                  >
+              <div className="flex">
+                <div className="w-14 shrink-0">
+                  <div className="relative" style={{ height: gridHeight }}>
                     {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
                       <div
                         key={h}
-                        className="absolute inset-x-0 border-t border-dashed border-border/70"
+                        className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
                         style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
-                      />
+                      >
+                        {String(h).padStart(2, "0")}:00
+                      </div>
                     ))}
+                  </div>
+                </div>
 
-                    {laidOut.map((card) => {
-                      const tone = toneOf(card);
-                      const top =
-                        (minutesOf(card.startTime) - DAY_START) * PX_PER_MIN;
-                      const height = Math.max(
-                        26,
-                        (minutesOf(card.endTime) - minutesOf(card.startTime)) *
-                          PX_PER_MIN -
-                          2,
-                      );
-                      const width = 100 / card.lanes;
-                      return (
-                        <button
-                          key={card.id}
-                          type="button"
-                          onClick={() => setSelected(card)}
-                          className="absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md"
-                          style={{
-                            top,
-                            height,
-                            left: `calc(${card.lane * width}% + 2px)`,
-                            width: `calc(${width}% - 4px)`,
-                            backgroundColor: tone.bg,
-                            borderLeftColor: tone.bar,
-                          }}
-                        >
-                          <span className="flex items-center gap-1">
-                            <span className="truncate font-semibold">
-                              {card.patientName}
+                {dates.map((date) => {
+                  const dayCards = byDate.get(date) ?? [];
+                  const laidOut = assignLanes(dayCards);
+                  return (
+                    <div
+                      key={date}
+                      className={`relative flex-1 border-l ${
+                        date === today ? "bg-primary/[0.03]" : ""
+                      }`}
+                      style={{ height: gridHeight }}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
+                        <div
+                          key={h}
+                          className="absolute inset-x-0 border-t border-dashed border-border/70"
+                          style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
+                        />
+                      ))}
+
+                      {laidOut.map((card) => {
+                        const tone = toneOf(card);
+                        const top =
+                          (minutesOf(card.startTime) - DAY_START) * PX_PER_MIN;
+                        const height = Math.max(
+                          26,
+                          (minutesOf(card.endTime) -
+                            minutesOf(card.startTime)) *
+                            PX_PER_MIN -
+                            2,
+                        );
+                        const width = 100 / card.lanes;
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            onClick={() => setSelected(card)}
+                            className="absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md"
+                            style={{
+                              top,
+                              height,
+                              left: `calc(${card.lane * width}% + 2px)`,
+                              width: `calc(${width}% - 4px)`,
+                              backgroundColor: tone.bg,
+                              borderLeftColor: tone.bar,
+                            }}
+                          >
+                            <span className="flex items-center gap-1">
+                              <span className="truncate font-semibold">
+                                {card.patientName}
+                              </span>
+                              {card.doctor ? (
+                                <span className="truncate opacity-70">
+                                  [{card.doctor}]
+                                </span>
+                              ) : null}
+                              {card.arrived ? (
+                                <span
+                                  className="ml-auto size-1.5 shrink-0 rounded-full"
+                                  style={{ backgroundColor: ARRIVED_DOT }}
+                                  title="已到店"
+                                />
+                              ) : null}
                             </span>
-                            {card.doctor ? (
-                              <span className="truncate opacity-70">
-                                [{card.doctor}]
+                            {height >= 36 && card.items.length ? (
+                              <span className="block truncate opacity-80">
+                                {card.items.join("/")}
                               </span>
                             ) : null}
-                            {card.arrived ? (
-                              <span
-                                className="ml-auto size-1.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: ARRIVED_DOT }}
-                                title="已到店"
-                              />
+                            {height >= 48 ? (
+                              <span className="block truncate tabular-nums opacity-70">
+                                {card.startTime} - {card.endTime}
+                              </span>
                             ) : null}
-                          </span>
-                          {height >= 36 && card.items.length ? (
-                            <span className="block truncate opacity-80">
-                              {card.items.join("/")}
-                            </span>
-                          ) : null}
-                          {height >= 48 ? (
-                            <span className="block truncate tabular-nums opacity-70">
-                              {card.startTime} - {card.endTime}
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 明细 */}
