@@ -1,6 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { assignLanes, minutesOf } from "@/lib/appointments/layout";
 import {
@@ -55,6 +57,12 @@ function mondayOf(date: string): string {
 
 function plusMinutes(time: string, minutes: number): string {
   const total = minutesOf(time) + minutes;
+  const h = String(Math.floor(total / 60) % 24).padStart(2, "0");
+  const m = String(total % 60).padStart(2, "0");
+  return `${h}:${m}`;
+}
+function timeAt(totalMinutes: number): string {
+  const total = Math.max(0, totalMinutes);
   const h = String(Math.floor(total / 60) % 24).padStart(2, "0");
   const m = String(total % 60).padStart(2, "0");
   return `${h}:${m}`;
@@ -94,6 +102,8 @@ type ReasonState = {
 export function AppointmentBoardPage() {
   const { me } = useAuth();
   const [anchor, setAnchor] = React.useState(dayjs().format("YYYY-MM-DD"));
+  const [view, setView] = React.useState<"week" | "day">("week");
+  const [dayDate, setDayDate] = React.useState(dayjs().format("YYYY-MM-DD"));
   const [board, setBoard] = React.useState<BoardResponse | null>(null);
   const [pending, setPending] = React.useState<PendingRow[]>([]);
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
@@ -109,11 +119,16 @@ export function AppointmentBoardPage() {
 
   const from = mondayOf(anchor);
   const to = dayjs(from).add(6, "day").format("YYYY-MM-DD");
+  const rangeFrom = view === "day" && dayDate < from ? dayDate : from;
+  const rangeTo = view === "day" && dayDate > to ? dayDate : to;
 
   const load = React.useCallback(async () => {
     try {
       const [data, pendingRows] = await Promise.all([
-        api<BoardResponse>("GET", `/appointments/board?from=${from}&to=${to}`),
+        api<BoardResponse>(
+          "GET",
+          `/appointments/board?from=${rangeFrom}&to=${rangeTo}`,
+        ),
         api<PendingRow[]>("GET", "/appointments/pending"),
       ]);
       setBoard(data);
@@ -123,7 +138,7 @@ export function AppointmentBoardPage() {
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [rangeFrom, rangeTo]);
 
   React.useEffect(() => {
     void load();
@@ -143,6 +158,22 @@ export function AppointmentBoardPage() {
     [from],
   );
 
+  const columns = React.useMemo(() => {
+    if (view === "week") {
+      return dates.map((date, i) => ({
+        key: date,
+        label: `${WEEKDAYS[i]} ${dayjs(date).format("MM/DD")}`,
+        date,
+        doctor: "",
+      }));
+    }
+    return (meta?.doctors ?? []).map((name) => ({
+      key: `doc-${name}`,
+      label: name,
+      date: dayDate,
+      doctor: name,
+    }));
+  }, [view, dates, meta, dayDate]);
   const appointments = React.useMemo(() => board?.appointments ?? [], [board]);
   const visible = React.useMemo(
     () =>
@@ -164,20 +195,27 @@ export function AppointmentBoardPage() {
     return map;
   }, [appointments]);
 
-  const byDate = React.useMemo(() => {
+  const byColumn = React.useMemo(() => {
     const map = new Map<string, AppointmentCard[]>();
+    for (const col of columns) map.set(col.key, []);
     for (const a of visible) {
       if (a.isPending || !a.startTime) continue;
       const start = minutesOf(a.startTime);
       if (start < DAY_START || start >= DAY_END) continue;
       const end = a.endTime || plusMinutes(a.startTime, 30);
-      const list = map.get(a.visitDate) ?? [];
+      const col =
+        view === "week"
+          ? columns.find((c) => c.date === a.visitDate)
+          : columns.find(
+              (c) => c.doctor === a.doctor && a.visitDate === dayDate,
+            );
+      if (!col) continue;
+      const list = map.get(col.key) ?? [];
       list.push({ ...a, endTime: end });
-      map.set(a.visitDate, list);
+      map.set(col.key, list);
     }
     return map;
-  }, [visible]);
-
+  }, [visible, columns, view, dayDate]);
   function toggleLegend(key: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -226,6 +264,74 @@ export function AppointmentBoardPage() {
     setReasonText("");
   }
 
+  function startDrag(
+    e: React.DragEvent,
+    payload: { type: "card" | "pending"; id: number },
+  ) {
+    e.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  async function dropOnColumn(
+    e: React.DragEvent,
+    col: { date: string; doctor: string },
+  ) {
+    const date = col.date;
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("text/plain");
+    if (!raw) return;
+    let payload: { type: "card" | "pending"; id: number };
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const rawMinutes = DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
+    const snapped = Math.min(
+      DAY_END - 15,
+      Math.max(DAY_START, Math.round(rawMinutes / 15) * 15),
+    );
+    const startTime = timeAt(snapped);
+
+    if (payload.type === "card") {
+      const card = appointments.find((a) => a.id === payload.id);
+      if (!card) return;
+      const duration = Math.max(
+        15,
+        minutesOf(card.endTime || timeAt(minutesOf(card.startTime) + 30)) -
+          minutesOf(card.startTime),
+      );
+      try {
+        await api("PUT", `/appointments/${card.id}`, {
+          visitDate: date,
+          startTime,
+          endTime: timeAt(snapped + duration),
+          ...(col.doctor ? { doctor: col.doctor } : {}),
+        });
+        toast.success("已改约");
+        await load();
+      } catch (err) {
+        toast.error(errorMessage(err));
+      }
+      return;
+    }
+
+    const p = pending.find((x) => x.id === payload.id);
+    if (!p) return;
+    setEditing({
+      ...pendingToCard(p),
+      visitDate: date,
+      startTime,
+      endTime: timeAt(snapped + 30),
+      doctor: col.doctor,
+    });
+    setDrawerOpen(true);
+  }
+  const unscheduled = React.useMemo(
+    () => visible.filter((a) => !a.isPending && !a.startTime),
+    [visible],
+  );
   const gridHeight = (DAY_END - DAY_START) * PX_PER_MIN;
   const today = dayjs().format("YYYY-MM-DD");
 
@@ -238,7 +344,11 @@ export function AppointmentBoardPage() {
           variant="outline"
           size="icon"
           onClick={() =>
-            setAnchor(dayjs(anchor).subtract(7, "day").format("YYYY-MM-DD"))
+            view === "week"
+              ? setAnchor(dayjs(anchor).subtract(7, "day").format("YYYY-MM-DD"))
+              : setDayDate(
+                  dayjs(dayDate).subtract(1, "day").format("YYYY-MM-DD"),
+                )
           }
         >
           <ChevronLeft className="size-4" />
@@ -248,7 +358,9 @@ export function AppointmentBoardPage() {
           variant="outline"
           size="icon"
           onClick={() =>
-            setAnchor(dayjs(anchor).add(7, "day").format("YYYY-MM-DD"))
+            view === "week"
+              ? setAnchor(dayjs(anchor).add(7, "day").format("YYYY-MM-DD"))
+              : setDayDate(dayjs(dayDate).add(1, "day").format("YYYY-MM-DD"))
           }
         >
           <ChevronRight className="size-4" />
@@ -256,12 +368,39 @@ export function AppointmentBoardPage() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => setAnchor(dayjs().format("YYYY-MM-DD"))}
+          onClick={() => {
+            setAnchor(dayjs().format("YYYY-MM-DD"));
+            setDayDate(dayjs().format("YYYY-MM-DD"));
+          }}
         >
           今天
         </Button>
+        <div className="flex overflow-hidden rounded-md border text-xs">
+          <button
+            type="button"
+            onClick={() => setView("week")}
+            className={`px-2.5 py-1.5 ${
+              view === "week" ? "bg-primary text-primary-foreground" : ""
+            }`}
+          >
+            周
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("day")}
+            className={`px-2.5 py-1.5 ${
+              view === "day" ? "bg-primary text-primary-foreground" : ""
+            }`}
+          >
+            日
+          </button>
+        </div>
         <span className="text-sm font-medium">
-          {dayjs(from).format("M月D日")} - {dayjs(to).format("M月D日")}
+          {view === "week"
+            ? `${dayjs(from).format("M月D日")} - ${dayjs(to).format("M月D日")}`
+            : `${dayjs(dayDate).format("YYYY年M月D日")} ${
+                WEEKDAYS[(dayjs(dayDate).day() + 6) % 7]
+              }`}
         </span>
 
         <Select
@@ -320,6 +459,13 @@ export function AppointmentBoardPage() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            render={<Link to={ROUTES.appointments.list} />}
+          >
+            列表
+          </Button>
           {can(me, "appointment.create") ? (
             <Button
               type="button"
@@ -335,6 +481,26 @@ export function AppointmentBoardPage() {
         </div>
       </div>
 
+      {unscheduled.length ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            未排时间 {unscheduled.length}
+          </span>
+          {unscheduled.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                setEditing(a);
+                setDrawerOpen(true);
+              }}
+              className="rounded-md border bg-card px-2 py-0.5 text-xs hover:bg-accent"
+            >
+              {a.visitDate.slice(5)} {a.patientName}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {/* 待定池 + 网格 */}
       <div className="flex min-h-0 flex-1 gap-3">
         <aside className="hidden w-52 shrink-0 flex-col rounded-xl border bg-card md:flex">
@@ -347,11 +513,13 @@ export function AppointmentBoardPage() {
               <button
                 key={p.id}
                 type="button"
+                draggable
+                onDragStart={(e) => startDrag(e, { type: "pending", id: p.id })}
                 onClick={() => {
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
                 }}
-                className="rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs hover:bg-pink-50"
+                className="cursor-grab rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs hover:bg-pink-50 active:cursor-grabbing"
               >
                 <span className="flex items-center justify-between gap-1">
                   <span className="font-medium">{p.patientName}</span>
@@ -383,22 +551,23 @@ export function AppointmentBoardPage() {
             <div className="flex min-w-[900px] flex-1 flex-col">
               <div className="sticky top-0 z-10 flex border-b bg-card">
                 <div className="w-14 shrink-0" />
-                {dates.map((date, i) => {
-                  const isToday = date === today;
+                {columns.map((col) => {
+                  const isToday = col.date === today;
+                  const count =
+                    view === "week"
+                      ? (board?.days.find((d) => d.date === col.date)?.counts
+                          .booked ?? 0)
+                      : (byColumn.get(col.key) ?? []).length;
                   return (
                     <div
-                      key={date}
+                      key={col.key}
                       className={`flex flex-1 flex-col items-center border-l py-1.5 text-xs ${
                         isToday ? "bg-primary/5 font-medium text-primary" : ""
                       }`}
                     >
-                      <span>
-                        {WEEKDAYS[i]} {dayjs(date).format("MM/DD")}
-                      </span>
+                      <span>{col.label}</span>
                       <span className="text-[10px] opacity-70">
-                        {board?.days.find((d) => d.date === date)?.counts
-                          .booked ?? 0}
-                        {" 预约"}
+                        {count} 预约
                       </span>
                     </div>
                   );
@@ -412,7 +581,11 @@ export function AppointmentBoardPage() {
                       <div
                         key={h}
                         className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
-                        style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
+                        style={{
+                          top:
+                            (h * 60 - DAY_START) * PX_PER_MIN +
+                            (h === 8 ? 8 : 0),
+                        }}
                       >
                         {String(h).padStart(2, "0")}:00
                       </div>
@@ -420,16 +593,18 @@ export function AppointmentBoardPage() {
                   </div>
                 </div>
 
-                {dates.map((date) => {
-                  const dayCards = byDate.get(date) ?? [];
+                {columns.map((col) => {
+                  const dayCards = byColumn.get(col.key) ?? [];
                   const laidOut = assignLanes(dayCards);
                   return (
                     <div
-                      key={date}
+                      key={col.key}
                       className={`relative flex-1 border-l ${
-                        date === today ? "bg-primary/[0.03]" : ""
+                        col.date === today ? "bg-primary/[0.03]" : ""
                       }`}
                       style={{ height: gridHeight }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => void dropOnColumn(e, col)}
                     >
                       {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
                         <div
@@ -455,6 +630,10 @@ export function AppointmentBoardPage() {
                           <button
                             key={card.id}
                             type="button"
+                            draggable
+                            onDragStart={(e) =>
+                              startDrag(e, { type: "card", id: card.id })
+                            }
                             onClick={() => setSelected(card)}
                             className="absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md"
                             style={{

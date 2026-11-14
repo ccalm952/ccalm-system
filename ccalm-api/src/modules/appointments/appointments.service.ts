@@ -174,6 +174,75 @@ export class AppointmentsService {
     return { range: { from, to }, days, doctors, appointments };
   }
 
+  /** 列表页：按日期区间 + 状态 + 医生 + 关键字筛，最多 1000 条 */
+  async list(query: {
+    from?: string;
+    to?: string;
+    status?: string;
+    doctor?: string;
+    q?: string;
+  }) {
+    const from = query.from || dayjs().format("YYYY-MM-DD");
+    const to = query.to || dayjs(from).add(30, "day").format("YYYY-MM-DD");
+    if (to < from) throw new BadRequestException("结束日期不能早于开始日期");
+    const statuses = query.status?.split(",").filter(Boolean) ?? [];
+    const keyword = query.q?.trim();
+
+    const rows = await this.prisma.patientVisit.findMany({
+      where: {
+        visitDate: { gte: from, lte: to },
+        ...(statuses.length ? { status: { in: statuses } } : {}),
+        ...(query.doctor ? { doctor: query.doctor } : {}),
+        ...(keyword
+          ? {
+              patient: {
+                OR: [
+                  { name: { contains: keyword } },
+                  { phone: { contains: keyword } },
+                  { chartNo: { contains: keyword } },
+                ],
+              },
+            }
+          : {}),
+      },
+      include: {
+        patient: {
+          select: {
+            name: true,
+            chartNo: true,
+            gender: true,
+            age: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: [{ visitDate: "desc" }, { startTime: "desc" }, { id: "desc" }],
+      take: 1000,
+    });
+
+    return rows.map((v) => ({
+      id: v.id,
+      patientId: v.patientId,
+      patientName: v.patient.name,
+      chartNo: v.patient.chartNo,
+      gender: v.patient.gender,
+      age: v.patient.age,
+      phone: v.patient.phone,
+      visitDate: v.visitDate,
+      startTime: v.startTime,
+      endTime: v.endTime,
+      doctor: v.doctor,
+      kind: v.kind,
+      status: v.status,
+      arrived: v.arrivedAt != null,
+      items: v.items,
+      isPending: v.isPending,
+      pendingReason: v.pendingReason,
+      remark: v.remark,
+      createdById: v.createdById,
+    }));
+  }
+
   async pending() {
     const rows = await this.prisma.patientVisit.findMany({
       where: { isPending: true, status: OPEN_STATUS },

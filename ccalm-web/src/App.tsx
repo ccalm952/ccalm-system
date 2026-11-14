@@ -93,6 +93,11 @@ const AppointmentBoardPage = lazy(() =>
     default: m.AppointmentBoardPage,
   })),
 );
+const AppointmentListPage = lazy(() =>
+  import("./pages/appointments/AppointmentListPage").then((m) => ({
+    default: m.AppointmentListPage,
+  })),
+);
 const WarehouseSection = lazy(() =>
   import("./pages/warehouse/WarehouseSection").then((m) => ({
     default: m.WarehouseSection,
@@ -264,6 +269,10 @@ function App() {
             <Route
               path={ROUTES.appointments.root}
               element={<AppointmentBoardPage />}
+            />
+            <Route
+              path={ROUTES.appointments.list}
+              element={<AppointmentListPage />}
             />
 
             <Route path="warehouse/*" element={<WarehouseSection />} />
