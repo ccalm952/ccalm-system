@@ -52,6 +52,11 @@ export class AppointmentsController {
     return this.appointments.list({ from, to, status, doctor, q });
   }
 
+  @Get("upcoming")
+  @RequirePermissions("appointment.view")
+  upcoming(@Query("patientId", ParseIntPipe) patientId: number) {
+    return this.appointments.upcoming(patientId);
+  }
   @Get("pending")
   @RequirePermissions("appointment.view")
   pending() {

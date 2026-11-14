@@ -64,6 +64,16 @@ export function AppointmentDrawer({
   const [remark, setRemark] = React.useState("");
   const [force, setForce] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [upcoming, setUpcoming] = React.useState<
+    {
+      id: number;
+      visitDate: string;
+      startTime: string;
+      doctor: string;
+      items: string[];
+      isPending: boolean;
+    }[]
+  >([]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -92,6 +102,34 @@ export function AppointmentDrawer({
     setForce(false);
   }, [open, initial, defaultDate, defaultStart, meta?.defaultDuration]);
 
+  const patientId = initial?.patientId ?? patient?.id;
+
+  React.useEffect(() => {
+    if (!open || !patientId) {
+      setUpcoming([]);
+      return;
+    }
+    let cancelled = false;
+    api<
+      {
+        id: number;
+        visitDate: string;
+        startTime: string;
+        doctor: string;
+        items: string[];
+        isPending: boolean;
+      }[]
+    >("GET", `/appointments/upcoming?patientId=${patientId}`)
+      .then((rows) => {
+        if (!cancelled) {
+          setUpcoming(rows.filter((r) => r.id !== initial?.id));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [open, patientId, initial?.id]);
   function toggleItem(name: string, checked: boolean) {
     setItems((list) =>
       checked ? [...new Set([...list, name])] : list.filter((i) => i !== name),
@@ -186,6 +224,18 @@ export function AppointmentDrawer({
             )}
           </div>
 
+          {upcoming.length ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">
+              <p className="font-medium">该患者已有预约</p>
+              {upcoming.map((u) => (
+                <p key={u.id} className="truncate">
+                  {u.visitDate} {u.startTime || "待定"}
+                  {u.items.length ? ` · ${u.items.join("/")}` : ""}
+                  {u.doctor ? ` · ${u.doctor}` : ""}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <div className="flex flex-col gap-1.5">
             <Label>预约日期</Label>
             <DatePickerField value={visitDate} onValueChange={setVisitDate} />

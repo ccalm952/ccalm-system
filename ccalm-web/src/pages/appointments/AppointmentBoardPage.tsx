@@ -121,6 +121,18 @@ export function AppointmentBoardPage() {
   const [reason, setReason] = React.useState<ReasonState>(null);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [dragTip, setDragTip] = React.useState<{
+    x: number;
+    y: number;
+    text: string;
+  } | null>(null);
+  const [resize, setResize] = React.useState<{
+    card: AppointmentCard;
+    startY: number;
+    origEnd: string;
+  } | null>(null);
+  const [resizeEnd, setResizeEnd] = React.useState<string | null>(null);
+  const lastResizeAt = React.useRef(0);
 
   const from = mondayOf(anchor);
   const to = dayjs(from).add(6, "day").format("YYYY-MM-DD");
@@ -274,6 +286,56 @@ export function AppointmentBoardPage() {
     setReasonText("");
   }
 
+  function updateDragTip(e: React.DragEvent) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const col = el?.closest<HTMLElement>("[data-col-date]");
+    if (!col) {
+      setDragTip(null);
+      return;
+    }
+    const date = col.dataset.colDate ?? "";
+    const rect = col.getBoundingClientRect();
+    const raw = DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
+    const snapped = Math.min(
+      DAY_END - 15,
+      Math.max(DAY_START, Math.round(raw / 15) * 15),
+    );
+    setDragTip({
+      x: e.clientX + 14,
+      y: e.clientY + 14,
+      text: `${dayjs(date).format("MM/DD")} ${timeAt(snapped)}`,
+    });
+  }
+
+  React.useEffect(() => {
+    if (!resize) return;
+    const move = (ev: MouseEvent) => {
+      const delta =
+        Math.round((ev.clientY - resize.startY) / PX_PER_MIN / 15) * 15;
+      const startMin = minutesOf(resize.card.startTime);
+      const endMin = Math.min(
+        DAY_END,
+        Math.max(startMin + 15, minutesOf(resize.origEnd) + delta),
+      );
+      setResizeEnd(timeAt(endMin));
+    };
+    const up = () => {
+      const end = resizeEnd;
+      lastResizeAt.current = Date.now();
+      setResize(null);
+      setResizeEnd(null);
+      if (end) {
+        setEditing({ ...resize.card, endTime: end });
+        setDrawerOpen(true);
+      }
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, [resize, resizeEnd]);
   function startDrag(
     e: React.DragEvent,
     payload: { type: "card" | "pending"; id: number },
@@ -615,6 +677,7 @@ export function AppointmentBoardPage() {
                         col.date === today ? "bg-primary/[0.03]" : ""
                       }`}
                       style={{ height: gridHeight }}
+                      data-col-date={col.date}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => void dropOnColumn(e, col)}
                       onDoubleClick={(e) => {
@@ -653,10 +716,13 @@ export function AppointmentBoardPage() {
                         const tone = toneOf(card);
                         const top =
                           (minutesOf(card.startTime) - DAY_START) * PX_PER_MIN;
+                        const previewEnd =
+                          resize?.card.id === card.id && resizeEnd
+                            ? resizeEnd
+                            : card.endTime;
                         const height = Math.max(
                           26,
-                          (minutesOf(card.endTime) -
-                            minutesOf(card.startTime)) *
+                          (minutesOf(previewEnd) - minutesOf(card.startTime)) *
                             PX_PER_MIN -
                             2,
                         );
@@ -669,7 +735,14 @@ export function AppointmentBoardPage() {
                             onDragStart={(e) =>
                               startDrag(e, { type: "card", id: card.id })
                             }
-                            onClick={() => setSelected(card)}
+                            onDrag={(e) => updateDragTip(e)}
+                            onDragEnd={() => setDragTip(null)}
+                            onClick={() => {
+                              if (Date.now() - lastResizeAt.current < 400) {
+                                return;
+                              }
+                              setSelected(card);
+                            }}
                             className="absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md"
                             style={{
                               top,
@@ -704,9 +777,26 @@ export function AppointmentBoardPage() {
                             ) : null}
                             {height >= 48 ? (
                               <span className="block truncate tabular-nums opacity-70">
-                                {card.startTime} - {card.endTime}
+                                {card.startTime} - {previewEnd}
                               </span>
                             ) : null}
+                            <span
+                              className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                lastResizeAt.current = Date.now();
+                                const end =
+                                  card.endTime ||
+                                  plusMinutes(card.startTime, 30);
+                                setResize({
+                                  card,
+                                  startY: e.clientY,
+                                  origEnd: end,
+                                });
+                                setResizeEnd(end);
+                              }}
+                            />
                           </button>
                         );
                       })}
@@ -878,6 +968,14 @@ export function AppointmentBoardPage() {
         </DialogContent>
       </Dialog>
 
+      {dragTip ? (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-lg"
+          style={{ left: dragTip.x, top: dragTip.y }}
+        >
+          {dragTip.text}
+        </div>
+      ) : null}
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}

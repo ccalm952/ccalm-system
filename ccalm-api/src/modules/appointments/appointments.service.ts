@@ -243,6 +243,28 @@ export class AppointmentsService {
     }));
   }
 
+  /** 患者未来 90 天的预约（新建/修改预约时提示"已有预约"，避免重复排） */
+  async upcoming(patientId: number) {
+    const today = dayjs().format("YYYY-MM-DD");
+    const to = dayjs().add(90, "day").format("YYYY-MM-DD");
+    const rows = await this.prisma.patientVisit.findMany({
+      where: {
+        patientId,
+        visitDate: { gte: today, lte: to },
+        status: OPEN_STATUS,
+      },
+      orderBy: [{ visitDate: "asc" }, { startTime: "asc" }],
+      take: 5,
+    });
+    return rows.map((v) => ({
+      id: v.id,
+      visitDate: v.visitDate,
+      startTime: v.startTime,
+      doctor: v.doctor,
+      items: v.items,
+      isPending: v.isPending,
+    }));
+  }
   async pending() {
     const rows = await this.prisma.patientVisit.findMany({
       where: { isPending: true, status: OPEN_STATUS },
