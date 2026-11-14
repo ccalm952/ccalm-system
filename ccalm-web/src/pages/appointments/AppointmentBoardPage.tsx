@@ -150,6 +150,10 @@ export function AppointmentBoardPage() {
   const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
     undefined,
   );
+  const [draftResize, setDraftResize] = React.useState<{
+    startY: number;
+    origDuration: number;
+  } | null>(null);
   const [pendingMove, setPendingMove] = React.useState<{
     id: number;
     visitDate: string;
@@ -374,6 +378,23 @@ export function AppointmentBoardPage() {
     };
   }, [resize, resizeEnd]);
 
+  React.useEffect(() => {
+    if (!draftResize) return;
+    const move = (ev: MouseEvent) => {
+      const delta =
+        Math.round((ev.clientY - draftResize.startY) / PX_PER_MIN / 15) * 15;
+      setDraftDuration(
+        Math.min(8 * 60, Math.max(15, draftResize.origDuration + delta)),
+      );
+    };
+    const up = () => setDraftResize(null);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, [draftResize]);
   function targetAt(x: number, y: number, d: DragState) {
     const el = document.elementFromPoint(x, y);
     const col = el?.closest<HTMLElement>("[data-col-date]");
@@ -942,7 +963,10 @@ export function AppointmentBoardPage() {
                           drag.moved &&
                           drag.date === col.date;
                         const placed =
-                          drawerOpen && !editing && draftDate === col.date;
+                          drawerOpen &&
+                          !editing &&
+                          draftDate === col.date &&
+                          !(drag?.kind === "new" && drag.moved);
                         if (!active && !placed) return null;
                         const start = active ? drag.start : draftStart;
                         const top = Math.max(
@@ -968,6 +992,18 @@ export function AppointmentBoardPage() {
                                 {start} - {timeAt(minutesOf(start) + dur)}
                               </span>
                             ) : null}
+                            <span
+                              className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setDraftResize({
+                                  startY: e.clientY,
+                                  origDuration: dur,
+                                });
+                              }}
+                            />
                           </div>
                         );
                       })()}
@@ -1274,6 +1310,12 @@ export function AppointmentBoardPage() {
         defaultStart={draftStart}
         defaultDuration={draftDuration}
         timeSync={timeSync}
+        onScheduleChange={(v) => {
+          if (editing) return;
+          setDraftDate(v.visitDate);
+          setDraftStart(v.startTime);
+          setDraftDuration(v.durationMinutes);
+        }}
         onSaved={() => {
           setPendingMove(null);
           return load();

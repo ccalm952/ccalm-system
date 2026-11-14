@@ -43,6 +43,11 @@ type Props = {
   defaultDate: string;
   defaultStart?: string;
   defaultDuration?: number;
+  onScheduleChange?: (v: {
+    visitDate: string;
+    startTime: string;
+    durationMinutes: number;
+  }) => void;
   timeSync?: {
     visitDate: string;
     startTime: string;
@@ -60,6 +65,8 @@ type Upcoming = {
   items: string[];
   isPending: boolean;
 };
+
+const DURATION_OPTIONS = Array.from({ length: 32 }, (_, i) => (i + 1) * 15);
 
 function ageOf(birthday: string | null | undefined): number | null {
   if (!birthday) return null;
@@ -95,9 +102,24 @@ export function AppointmentDrawer({
   defaultDate,
   defaultStart = "09:00",
   defaultDuration,
+  onScheduleChange,
   timeSync,
   onSaved,
 }: Props) {
+  const onScheduleRef = React.useRef(onScheduleChange);
+  onScheduleRef.current = onScheduleChange;
+  const defaultsRef = React.useRef({
+    defaultDate,
+    defaultStart,
+    defaultDuration,
+    fallbackDuration: meta?.defaultDuration,
+  });
+  defaultsRef.current = {
+    defaultDate,
+    defaultStart,
+    defaultDuration,
+    fallbackDuration: meta?.defaultDuration,
+  };
   const [patient, setPatient] = React.useState<PatientMatch | null>(null);
   const [patientName, setPatientName] = React.useState("");
   const [patientSearchOpen, setPatientSearchOpen] = React.useState(true);
@@ -118,8 +140,9 @@ export function AppointmentDrawer({
     setPatient(null);
     setPatientName(initial?.patientName ?? "");
     setPatientSearchOpen(!initial);
-    setVisitDate(initial?.visitDate ?? defaultDate);
-    setStartTime(initial?.startTime || defaultStart);
+    const d = defaultsRef.current;
+    setVisitDate(initial?.visitDate ?? d.defaultDate);
+    setStartTime(initial?.startTime || d.defaultStart);
     setDuration(
       initial?.startTime && initial?.endTime
         ? Math.max(
@@ -132,7 +155,7 @@ export function AppointmentDrawer({
               ),
             ),
           )
-        : (defaultDuration ?? meta?.defaultDuration ?? 30),
+        : (d.defaultDuration ?? d.fallbackDuration ?? 30),
     );
     setDoctor(initial?.doctor ?? "");
     setKind(initial?.kind === "first" ? "first" : "return");
@@ -381,14 +404,28 @@ export function AppointmentDrawer({
                   <div className="min-w-0 flex-1">
                     <DatePickerField
                       value={visitDate}
-                      onValueChange={setVisitDate}
+                      onValueChange={(v) => {
+                        setVisitDate(v);
+                        onScheduleChange?.({
+                          visitDate: v,
+                          startTime,
+                          durationMinutes: duration,
+                        });
+                      }}
                     />
                   </div>
                   <Input
                     type="time"
                     step={900}
                     value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
+                    onChange={(e) => {
+                      setStartTime(e.target.value);
+                      onScheduleChange?.({
+                        visitDate,
+                        startTime: e.target.value,
+                        durationMinutes: duration,
+                      });
+                    }}
                     className="h-8 w-24"
                   />
                 </div>
@@ -396,19 +433,26 @@ export function AppointmentDrawer({
 
               <Row label="持续时间" required>
                 <Select
-                  items={(meta?.durations ?? [15, 30, 45, 60, 90, 120]).map(
-                    (d) => ({ value: String(d), label: `${d} 分钟` }),
-                  )}
+                  items={DURATION_OPTIONS.map((d) => ({
+                    value: String(d),
+                    label: `${d} 分钟`,
+                  }))}
                   value={String(duration)}
                   onValueChange={(v) => {
-                    if (v) setDuration(Number(v));
+                    if (!v) return;
+                    setDuration(Number(v));
+                    onScheduleChange?.({
+                      visitDate,
+                      startTime,
+                      durationMinutes: Number(v),
+                    });
                   }}
                 >
                   <SelectTrigger className="h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(meta?.durations ?? [15, 30, 45, 60, 90, 120]).map((d) => (
+                    {DURATION_OPTIONS.map((d) => (
                       <SelectItem key={d} value={String(d)}>
                         {d} 分钟
                       </SelectItem>
