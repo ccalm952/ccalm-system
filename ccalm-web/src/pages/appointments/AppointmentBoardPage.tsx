@@ -415,6 +415,7 @@ export function AppointmentBoardPage() {
 
   function beginCardDrag(e: React.PointerEvent, card: AppointmentCard) {
     if (e.button !== 0) return;
+    if (!canOperate(card.id)) return;
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setDrag({
@@ -443,6 +444,7 @@ export function AppointmentBoardPage() {
 
   function beginPendingDrag(e: React.PointerEvent, p: PendingRow) {
     if (e.button !== 0) return;
+    if (drawerOpen) return;
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setDrag({
@@ -470,6 +472,7 @@ export function AppointmentBoardPage() {
     col: { date: string; doctor: string },
   ) {
     if (e.button !== 0) return;
+    if (drawerOpen) return;
     if (e.target !== e.currentTarget) return;
     setDrag({
       kind: "new",
@@ -518,6 +521,13 @@ export function AppointmentBoardPage() {
   drawerOpenRef.current = drawerOpen;
   editingRef.current = editing;
   const dragActive = drag != null;
+  const createMode = drawerOpen && !editing;
+  const editModeId = drawerOpen && editing ? editing.id : null;
+  const canOperate = (id: number) => {
+    if (!drawerOpen) return true;
+    if (createMode) return false;
+    return editModeId === id;
+  };
 
   React.useEffect(() => {
     if (!dragActive) return;
@@ -751,6 +761,7 @@ export function AppointmentBoardPage() {
             <Button
               type="button"
               onClick={() => {
+                if (drawerOpen) return;
                 setEditing(null);
                 setDraftDate(view === "day" ? dayDate : from);
                 setDraftStart("08:00");
@@ -797,6 +808,7 @@ export function AppointmentBoardPage() {
                 type="button"
                 onPointerDown={(e) => beginPendingDrag(e, p)}
                 onClick={() => {
+                  if (drawerOpen) return;
                   if (Date.now() - lastDragAt.current < 300) return;
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
@@ -912,6 +924,7 @@ export function AppointmentBoardPage() {
                       onPointerDown={(e) => beginNewDrag(e, col)}
                       onDoubleClick={(e) => {
                         if (!can(me, "appointment.create")) return;
+                        if (drawerOpen) return;
                         const rect = e.currentTarget.getBoundingClientRect();
                         const raw =
                           DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
@@ -1028,6 +1041,7 @@ export function AppointmentBoardPage() {
                             type="button"
                             onPointerDown={(e) => beginCardDrag(e, card)}
                             onClick={() => {
+                              if (!canOperate(card.id)) return;
                               if (Date.now() - lastResizeAt.current < 400) {
                                 return;
                               }
