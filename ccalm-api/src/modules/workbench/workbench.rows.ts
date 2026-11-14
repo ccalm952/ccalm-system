@@ -13,6 +13,7 @@ export type TodayVisitSource = {
   status: string;
   doctor: string;
   remark: string;
+  arrivedAt: Date | null;
   patient: { name: string; phone: string; chartNo: string };
   /** 该次就诊挂的病历（id 倒序，第一条最新） */
   medicalRecords: { type: string; doctor: string }[];
@@ -29,6 +30,8 @@ export type TodayVisitRow = {
   startTime: string;
   endTime: string;
   status: string;
+  /** 已到店（状态仍是 booked） */
+  arrived: boolean;
   staff: string;
 };
 
@@ -61,6 +64,7 @@ export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
     startTime: row.startTime,
     endTime: row.endTime,
     status: row.status,
+    arrived: row.arrivedAt != null,
     staff: staffSource?.doctor || row.doctor,
   };
   return ortho

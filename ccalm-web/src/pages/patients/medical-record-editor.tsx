@@ -52,7 +52,6 @@ type FormState = Record<MedicalRecordTextField, string> &
     visitDate: string;
     visitTime: string;
     doctor: string;
-    assistant: string;
     nurse: string;
     planLinks: { planItemId: number; completes: boolean }[];
   };
@@ -89,7 +88,6 @@ function toForm(
     visitDate: record?.visitDate ?? dayjs().format("YYYY-MM-DD"),
     visitTime: record?.visitTime ?? dayjs().format("HH:mm"),
     doctor: record?.doctor ?? plan?.doctor ?? "",
-    assistant: record?.assistant ?? "",
     nurse: record?.nurse ?? "",
     chiefComplaint: record?.chiefComplaint ?? "",
     presentIllness: record?.presentIllness ?? "",
@@ -198,7 +196,6 @@ export function MedicalRecordEditor({
         visitDate: linkedVisit?.visitDate ?? form.visitDate,
         visitTime: linkedVisit?.startTime ?? form.visitTime,
         doctor: form.doctor.trim(),
-        assistant: form.assistant.trim(),
         nurse: form.nurse.trim(),
         chiefComplaint: form.chiefComplaint.trim(),
         presentIllness: form.presentIllness.trim(),
@@ -274,14 +271,7 @@ export function MedicalRecordEditor({
               />
             </Field>
             <Field>
-              <FieldLabel>助理</FieldLabel>
-              <StaffCombobox
-                value={form.assistant}
-                onValueChange={(v) => set("assistant", v)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>护士</FieldLabel>
+              <FieldLabel>配台护士</FieldLabel>
               <StaffCombobox
                 value={form.nurse}
                 onValueChange={(v) => set("nurse", v)}

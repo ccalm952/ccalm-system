@@ -14,6 +14,7 @@ function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
     status: "completed",
     doctor: "吴介尘",
     remark: "",
+    arrivedAt: null,
     patient,
     medicalRecords: [],
     ...overrides,
@@ -63,12 +64,19 @@ describe("todayVisitRow", () => {
   });
 
   it("正畸名单点「就诊」建的就诊即使还没写病历也算正畸", () => {
-    const row = todayVisitRow(visit({ status: "arrived", remark: "正畸就诊" }));
+    const row = todayVisitRow(
+      visit({
+        status: "booked",
+        arrivedAt: new Date(),
+        remark: "正畸就诊",
+      }),
+    );
     expect(row).toMatchObject({
       key: "orthodontics-1",
       kind: "orthodontics",
       detail: "visited",
-      status: "arrived",
+      status: "booked",
+      arrived: true,
     });
   });
 

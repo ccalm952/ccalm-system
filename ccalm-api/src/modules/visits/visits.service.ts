@@ -38,6 +38,11 @@ export class VisitsService {
       status: v.status,
       doctor: v.doctor,
       remark: v.remark,
+      items: v.items,
+      source: v.source,
+      isPending: v.isPending,
+      arrivedAt: v.arrivedAt?.toISOString() ?? null,
+      completedAt: v.completedAt?.toISOString() ?? null,
       medicalRecordIds: v.medicalRecords.map((r) => r.id),
       chargeOrderIds: v.chargeOrders.map((c) => c.id),
     }));
@@ -48,8 +53,15 @@ export class VisitsService {
       where: { id: dto.patientId },
     });
     if (!patient) throw new NotFoundException("患者不存在");
+    // 患者详情页「新建就诊」= 已到店，补到店时间；已完成的状态同时记完成时间
+    const now = new Date();
     const v = await this.prisma.patientVisit.create({
-      data: { patientId: dto.patientId, ...this.toData(dto) },
+      data: {
+        patientId: dto.patientId,
+        ...this.toData(dto),
+        arrivedAt: now,
+        completedAt: dto.status === "completed" ? now : null,
+      },
     });
     return { id: v.id };
   }
@@ -59,9 +71,19 @@ export class VisitsService {
       where: { id },
     });
     if (!existing) throw new NotFoundException("就诊记录不存在");
+    const now = new Date();
     await this.prisma.patientVisit.update({
       where: { id },
-      data: this.toData(dto),
+      data: {
+        ...this.toData(dto),
+        arrivedAt: existing.arrivedAt ?? now,
+        completedAt:
+          dto.status === "completed"
+            ? (existing.completedAt ?? now)
+            : dto.status === "booked"
+              ? null
+              : existing.completedAt,
+      },
     });
     return { ok: true };
   }

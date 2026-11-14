@@ -8,7 +8,8 @@ export function parsePatientGroup(raw?: string): PatientGroup {
   return PATIENT_GROUPS.find((g) => g === raw) ?? "all";
 }
 
-export const ATTENDED_VISIT_STATUSES = ["arrived", "completed"];
+/** 真实到诊口径：治疗完成才算来过（预约/失约/取消都不算） */
+export const ATTENDED_VISIT_STATUSES = ["completed"];
 
 /** duplicateNames：重名患者的姓名，只有 duplicate 分组用到 */
 export function patientGroupWhere(

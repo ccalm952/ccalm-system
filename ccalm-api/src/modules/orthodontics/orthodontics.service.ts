@@ -16,7 +16,10 @@ import {
   UpdateOrthodonticsPatientDto,
 } from "./dto/orthodontics-patient.dto";
 import { daysSinceVisit } from "./follow-up";
-import { ORTHO_VISIT_REMARK } from "../visits/visit-options";
+import {
+  OPEN_VISIT_STATUSES,
+  ORTHO_VISIT_REMARK,
+} from "../visits/visit-options";
 
 const CATEGORY_SET = new Set<string>(Object.values(OrthodonticsCategory));
 
@@ -163,28 +166,29 @@ export class OrthodonticsService {
     return this.mapRow(row);
   }
 
-  /** 点「就诊」：今天已有未完成就诊就复用，否则建一条「已到店」的就诊，并把上次就诊推到今天 */
+  /** 点「就诊」：今天已有未完成就诊就复用（补到店时间），否则建一条已到店的就诊，并把上次就诊推到今天 */
   async markVisited(id: number) {
     const existing = await this.prisma.orthodonticsPatient.findUnique({
       where: { id },
     });
     if (!existing) throw new NotFoundException("记录不存在");
     const today = dayjs().format("YYYY-MM-DD");
+    const now = new Date();
 
     const visitId = await this.prisma.$transaction(async (tx) => {
       const open = await tx.patientVisit.findFirst({
         where: {
           patientId: existing.patientId,
           visitDate: today,
-          status: { in: ["booked", "arrived"] },
+          status: { in: OPEN_VISIT_STATUSES },
         },
         orderBy: { id: "desc" },
       });
       if (open) {
-        if (open.status !== "arrived") {
+        if (!open.arrivedAt) {
           await tx.patientVisit.update({
             where: { id: open.id },
-            data: { status: "arrived" },
+            data: { arrivedAt: now },
           });
         }
         return open.id;
@@ -195,7 +199,8 @@ export class OrthodonticsService {
           visitDate: today,
           startTime: dayjs().format("HH:mm"),
           kind: "return",
-          status: "arrived",
+          status: "booked",
+          arrivedAt: now,
           doctor: existing.doctor,
           remark: ORTHO_VISIT_REMARK,
         },

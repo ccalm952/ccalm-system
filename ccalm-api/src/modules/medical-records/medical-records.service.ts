@@ -7,7 +7,10 @@ import type { MedicalRecord, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
 import { PrismaService } from "../../prisma/prisma.service";
-import { visitKindForRecordType } from "../visits/visit-options";
+import {
+  OPEN_VISIT_STATUSES,
+  visitKindForRecordType,
+} from "../visits/visit-options";
 import { SaveMedicalRecordDto } from "./dto/save-medical-record.dto";
 import {
   hasTreatment,
@@ -51,7 +54,6 @@ function mapRecord(r: RecordWithPlan) {
     visitDate: r.visitDate,
     visitTime: r.visitTime,
     doctor: r.doctor,
-    assistant: r.assistant,
     nurse: r.nurse,
     chiefComplaint: r.chiefComplaint,
     presentIllness: r.presentIllness,
@@ -112,7 +114,7 @@ export class MedicalRecordsService {
         where: {
           patientId: dto.patientId,
           visitDate: dto.visitDate,
-          status: { in: ["booked", "arrived"] },
+          status: { in: OPEN_VISIT_STATUSES },
           medicalRecords: { none: {} },
         },
         orderBy: { id: "desc" },
@@ -153,8 +155,8 @@ export class MedicalRecordsService {
   ) {
     if (visitId == null) return;
     await tx.patientVisit.updateMany({
-      where: { id: visitId, status: { in: ["booked", "arrived"] } },
-      data: { status: "completed" },
+      where: { id: visitId, status: { in: OPEN_VISIT_STATUSES } },
+      data: { status: "completed", completedAt: new Date() },
     });
     if (doctor) {
       await tx.patientVisit.update({
@@ -251,7 +253,6 @@ export class MedicalRecordsService {
         visitDate: dto.visitDate,
         visitTime: dto.visitTime ?? "",
         doctor: dto.doctor?.trim() ?? "",
-        assistant: dto.assistant?.trim() ?? "",
         nurse: dto.nurse?.trim() ?? "",
         ...content,
       },

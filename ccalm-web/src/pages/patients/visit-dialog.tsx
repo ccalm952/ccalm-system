@@ -47,7 +47,7 @@ function toForm(visit: PatientVisit | null): FormState {
     startTime: visit?.startTime ?? "",
     endTime: visit?.endTime ?? "",
     kind: visit?.kind ?? "return",
-    status: visit?.status ?? "arrived",
+    status: visit?.status ?? "booked",
     doctor: visit?.doctor ?? "",
     remark: visit?.remark ?? "",
   };

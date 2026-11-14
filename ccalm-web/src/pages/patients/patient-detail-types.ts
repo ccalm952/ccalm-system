@@ -64,7 +64,6 @@ export type MedicalRecord = {
   visitDate: string;
   visitTime: string;
   doctor: string;
-  assistant: string;
   nurse: string;
   chiefComplaint: string;
   presentIllness: string;
