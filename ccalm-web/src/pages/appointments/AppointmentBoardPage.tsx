@@ -835,32 +835,32 @@ export function AppointmentBoardPage() {
                 })}
               </div>
 
-              <div className="flex">
+              <div className="flex pt-2">
                 <div className="w-16 shrink-0">
                   <div className="relative" style={{ height: gridHeight }}>
                     {Array.from(
                       { length: (DAY_END - DAY_START) / 15 },
                       (_, i) => i,
-                    ).map((i) => (
-                      <div
-                        key={`axis-${i}`}
-                        className={
-                          i % 4 === 0
-                            ? "absolute inset-x-0 border-t border-dashed border-border/70"
-                            : "absolute inset-x-0 border-t border-border/30"
-                        }
-                        style={{ top: i * SLOT_PX }}
-                      />
-                    ))}
+                    )
+                      .filter((i) => i !== 0)
+                      .map((i) => (
+                        <div
+                          key={`axis-${i}`}
+                          className={
+                            i % 4 === 0
+                              ? "absolute inset-x-0 border-t border-dashed border-border/70"
+                              : "absolute inset-x-0 border-t border-border/30"
+                          }
+                          style={{ top: i * SLOT_PX }}
+                        />
+                      ))}
                     <div className="absolute inset-y-0 left-7 w-px bg-border/70" />
                     {HOURS.map((h) => (
                       <div key={h}>
                         <div
-                          className="absolute left-0.5 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground tabular-nums"
+                          className="absolute left-0 w-7 -translate-y-1/2 text-center text-[10px] font-semibold text-muted-foreground tabular-nums"
                           style={{
-                            top:
-                              (h * 60 - DAY_START) * PX_PER_MIN +
-                              (h === 8 ? 8 : 0),
+                            top: (h * 60 - DAY_START) * PX_PER_MIN,
                           }}
                         >
                           {String(h).padStart(2, "0")}
@@ -868,11 +868,9 @@ export function AppointmentBoardPage() {
                         {[0, 15, 30, 45].map((m) => (
                           <div
                             key={m}
-                            className="absolute right-1 -translate-y-1/2 text-[9px] text-muted-foreground/80 tabular-nums"
+                            className="absolute right-1 left-7 -translate-y-1/2 text-center text-[10px] text-muted-foreground tabular-nums"
                             style={{
-                              top:
-                                (h * 60 + m - DAY_START) * PX_PER_MIN +
-                                (h === 8 && m === 0 ? 8 : 0),
+                              top: (h * 60 + m - DAY_START) * PX_PER_MIN,
                             }}
                           >
                             {String(m).padStart(2, "0")}
@@ -911,7 +909,7 @@ export function AppointmentBoardPage() {
                         setDrawerOpen(true);
                       }}
                     >
-                      {HOURS.map((h) => (
+                      {HOURS.filter((h) => h !== 8).map((h) => (
                         <div
                           key={h}
                           className="absolute inset-x-0 border-t border-dashed border-border/70"
@@ -958,7 +956,7 @@ export function AppointmentBoardPage() {
                         return (
                           <div
                             onPointerDown={beginFloatDrag}
-                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
+                            className="absolute inset-x-0 z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
                             style={{
                               top,
                               height: Math.max(16, dur * PX_PER_MIN - 2),
