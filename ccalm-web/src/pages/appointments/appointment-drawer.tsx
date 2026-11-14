@@ -40,6 +40,7 @@ type Props = {
   meta: AppointmentMeta | null;
   initial: AppointmentCard | null;
   defaultDate: string;
+  defaultStart?: string;
   onSaved: () => void | Promise<void>;
 };
 
@@ -49,6 +50,7 @@ export function AppointmentDrawer({
   meta,
   initial,
   defaultDate,
+  defaultStart = "09:00",
   onSaved,
 }: Props) {
   const [patient, setPatient] = React.useState<PatientMatch | null>(null);
@@ -68,7 +70,7 @@ export function AppointmentDrawer({
     setPatient(null);
     setPatientName(initial?.patientName ?? "");
     setVisitDate(initial?.visitDate ?? defaultDate);
-    setStartTime(initial?.startTime || "09:00");
+    setStartTime(initial?.startTime || defaultStart);
     setDuration(
       initial?.startTime && initial?.endTime
         ? Math.max(
@@ -88,7 +90,7 @@ export function AppointmentDrawer({
     setItems(initial?.items ?? []);
     setRemark(initial?.remark ?? "");
     setForce(false);
-  }, [open, initial, defaultDate, meta?.defaultDuration]);
+  }, [open, initial, defaultDate, defaultStart, meta?.defaultDuration]);
 
   function toggleItem(name: string, checked: boolean) {
     setItems((list) =>
@@ -202,6 +204,9 @@ export function AppointmentDrawer({
             <div className="flex flex-col gap-1.5">
               <Label>持续时间</Label>
               <Select
+                items={(meta?.durations ?? [15, 30, 45, 60, 90, 120]).map(
+                  (d) => ({ value: String(d), label: `${d} 分钟` }),
+                )}
                 value={String(duration)}
                 onValueChange={(v) => {
                   if (v) setDuration(Number(v));
@@ -245,6 +250,10 @@ export function AppointmentDrawer({
             <div className="flex flex-col gap-1.5">
               <Label>就诊类型</Label>
               <Select
+                items={[
+                  { value: "first", label: "初诊" },
+                  { value: "return", label: "复诊" },
+                ]}
                 value={kind}
                 onValueChange={(v) => {
                   if (v === "first" || v === "return") setKind(v);

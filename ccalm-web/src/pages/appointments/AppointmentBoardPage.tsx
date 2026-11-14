@@ -111,6 +111,11 @@ export function AppointmentBoardPage() {
   const [doctorFilter, setDoctorFilter] = React.useState<string>("all");
   const [hidden, setHidden] = React.useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [draftDate, setDraftDate] = React.useState(
+    dayjs().format("YYYY-MM-DD"),
+  );
+  const [draftStart, setDraftStart] = React.useState("09:00");
+  const [now, setNow] = React.useState(() => dayjs());
   const [editing, setEditing] = React.useState<AppointmentCard | null>(null);
   const [selected, setSelected] = React.useState<AppointmentCard | null>(null);
   const [reason, setReason] = React.useState<ReasonState>(null);
@@ -148,6 +153,11 @@ export function AppointmentBoardPage() {
     api<AppointmentMeta>("GET", "/appointments/meta")
       .then(setMeta)
       .catch((e: unknown) => toast.error(errorMessage(e)));
+  }, []);
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(dayjs()), 60_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const dates = React.useMemo(
@@ -302,23 +312,21 @@ export function AppointmentBoardPage() {
         minutesOf(card.endTime || timeAt(minutesOf(card.startTime) + 30)) -
           minutesOf(card.startTime),
       );
-      try {
-        await api("PUT", `/appointments/${card.id}`, {
-          visitDate: date,
-          startTime,
-          endTime: timeAt(snapped + duration),
-          ...(col.doctor ? { doctor: col.doctor } : {}),
-        });
-        toast.success("已改约");
-        await load();
-      } catch (err) {
-        toast.error(errorMessage(err));
-      }
+      setEditing({
+        ...card,
+        visitDate: date,
+        startTime,
+        endTime: timeAt(snapped + duration),
+        doctor: col.doctor || card.doctor,
+      });
+      setDrawerOpen(true);
       return;
     }
 
     const p = pending.find((x) => x.id === payload.id);
     if (!p) return;
+    setDraftDate(date);
+    setDraftStart(startTime);
     setEditing({
       ...pendingToCard(p),
       visitDate: date,
@@ -333,6 +341,8 @@ export function AppointmentBoardPage() {
     [visible],
   );
   const gridHeight = (DAY_END - DAY_START) * PX_PER_MIN;
+  const nowMinutes = minutesOf(now.format("HH:mm"));
+  const nowTop = (nowMinutes - DAY_START) * PX_PER_MIN;
   const today = dayjs().format("YYYY-MM-DD");
 
   return (
@@ -471,6 +481,8 @@ export function AppointmentBoardPage() {
               type="button"
               onClick={() => {
                 setEditing(null);
+                setDraftDate(view === "day" ? dayDate : anchor);
+                setDraftStart("09:00");
                 setDrawerOpen(true);
               }}
             >
@@ -605,6 +617,20 @@ export function AppointmentBoardPage() {
                       style={{ height: gridHeight }}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => void dropOnColumn(e, col)}
+                      onDoubleClick={(e) => {
+                        if (!can(me, "appointment.create")) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const raw =
+                          DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
+                        const snapped = Math.min(
+                          DAY_END - 15,
+                          Math.max(DAY_START, Math.round(raw / 15) * 15),
+                        );
+                        setDraftDate(col.date);
+                        setDraftStart(timeAt(snapped));
+                        setEditing(null);
+                        setDrawerOpen(true);
+                      }}
                     >
                       {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
                         <div
@@ -613,6 +639,15 @@ export function AppointmentBoardPage() {
                           style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
                         />
                       ))}
+
+                      {col.date === today &&
+                      nowMinutes > DAY_START &&
+                      nowMinutes < DAY_END ? (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-destructive/60"
+                          style={{ top: nowTop }}
+                        />
+                      ) : null}
 
                       {laidOut.map((card) => {
                         const tone = toneOf(card);
@@ -848,7 +883,8 @@ export function AppointmentBoardPage() {
         onOpenChange={setDrawerOpen}
         meta={meta}
         initial={editing}
-        defaultDate={anchor}
+        defaultDate={draftDate}
+        defaultStart={draftStart}
         onSaved={load}
       />
     </div>
