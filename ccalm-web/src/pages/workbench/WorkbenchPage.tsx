@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompleteFollowUpDialog } from "@/components/follow-ups/complete-follow-up-dialog";
 import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -18,6 +19,8 @@ import {
 import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { followUpTypeLabel, type FollowUpType } from "@/lib/follow-ups/options";
+import type { FollowUp as FollowUpTask } from "@/lib/follow-ups/types";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
 import {
   orthodonticsCategoryLabel,
@@ -117,9 +120,12 @@ type Overview = {
   todayVisits: TodayVisit[];
   followUps: FollowUp[];
   pendingCourses: PendingCourse[];
+  followUpTasks: FollowUpTask[];
 };
 
-type ListTab = "today" | "followUp" | "pendingCourse";
+type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
+
+type VisitStatusFilter = "booked" | "arrived";
 
 function StatItem({
   label,
@@ -172,29 +178,39 @@ export function WorkbenchPage() {
   const [data, setData] = React.useState<Overview | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [tab, setTab] = React.useState<ListTab>("today");
+  const [statusFilter, setStatusFilter] =
+    React.useState<VisitStatusFilter | null>(null);
+  const [completing, setCompleting] = React.useState<FollowUpTask | null>(null);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await api<Overview>("GET", "/workbench");
+      setData(res);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await api<Overview>("GET", "/workbench");
-        if (!cancelled) setData(res);
-      } catch (e) {
-        toast.error(errorMessage(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   const todayVisits = data?.todayVisits ?? [];
   const followUps = data?.followUps ?? [];
   const pendingCourses = data?.pendingCourses ?? [];
-  const countKind = (kind: TodayVisit["kind"]) =>
-    todayVisits.filter((v) => v.kind === kind).length;
+  const followUpTasks = data?.followUpTasks ?? [];
+  const countVisitStatus = (status: VisitStatusFilter) =>
+    todayVisits.filter((v) => v.status === status).length;
+  const visibleVisits = statusFilter
+    ? todayVisits.filter((v) => v.status === statusFilter)
+    : todayVisits;
+
+  function showVisits(filter: VisitStatusFilter | null) {
+    setStatusFilter(filter);
+    setTab("today");
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 md:p-6">
@@ -205,14 +221,14 @@ export function WorkbenchPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <StatItem
-              label="今日门诊"
-              value={countKind("clinic")}
-              onClick={() => setTab("today")}
+              label="待接诊"
+              value={countVisitStatus("booked")}
+              onClick={() => showVisits("booked")}
             />
             <StatItem
-              label="今日种植"
-              value={countKind("implant")}
-              onClick={() => setTab("today")}
+              label="待治疗完成"
+              value={countVisitStatus("arrived")}
+              onClick={() => showVisits("arrived")}
             />
           </CardContent>
         </Card>
@@ -221,6 +237,11 @@ export function WorkbenchPage() {
             <CardTitle>今日任务</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
+            <StatItem
+              label="待随访"
+              value={followUpTasks.length}
+              onClick={() => setTab("followUpTask")}
+            />
             <StatItem
               label="正畸待随访"
               value={followUps.length}
@@ -242,16 +263,23 @@ export function WorkbenchPage() {
               <Button
                 type="button"
                 variant={tab === "today" ? "default" : "outline"}
-                onClick={() => setTab("today")}
+                onClick={() => showVisits(null)}
               >
                 今日就诊
+              </Button>
+              <Button
+                type="button"
+                variant={tab === "followUpTask" ? "default" : "outline"}
+                onClick={() => setTab("followUpTask")}
+              >
+                待随访
               </Button>
               <Button
                 type="button"
                 variant={tab === "followUp" ? "default" : "outline"}
                 onClick={() => setTab("followUp")}
               >
-                待随访
+                正畸待随访
               </Button>
               <Button
                 type="button"
@@ -261,9 +289,22 @@ export function WorkbenchPage() {
                 待完成疗程
               </Button>
             </div>
-            <span className="text-muted-foreground">
-              {dayjs(data?.date).format("YYYY-MM-DD")}
-            </span>
+            <div className="flex items-center gap-2">
+              {tab === "today" && statusFilter ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setStatusFilter(null)}
+                >
+                  {statusFilter === "booked" ? "待接诊" : "待治疗完成"} ·
+                  清除筛选
+                </Button>
+              ) : null}
+              <span className="text-muted-foreground">
+                {dayjs(data?.date).format("YYYY-MM-DD")}
+              </span>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -281,14 +322,18 @@ export function WorkbenchPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
-                  {todayVisits.length === 0 ? (
+                  {visibleVisits.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
-                        今日暂无就诊
+                        {statusFilter === "booked"
+                          ? "今日暂无待接诊患者"
+                          : statusFilter === "arrived"
+                            ? "今日暂无待治疗完成患者"
+                            : "今日暂无就诊"}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    todayVisits.map((v) => (
+                    visibleVisits.map((v) => (
                       <TableRow key={v.key}>
                         <TableCell>
                           <PatientLink id={v.patientId} name={v.name} />
@@ -298,6 +343,57 @@ export function WorkbenchPage() {
                         <TableCell>{TODAY_KIND_LABELS[v.kind]}</TableCell>
                         <TableCell>{todayVisitDetail(v)}</TableCell>
                         <TableCell>{v.staff}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            ) : tab === "followUpTask" ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>手机</TableHead>
+                    <TableHead>病历号</TableHead>
+                    <TableHead>类型</TableHead>
+                    <TableHead>计划日期</TableHead>
+                    <TableHead>内容</TableHead>
+                    <TableHead>医生 / 经办</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
+                  {followUpTasks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-muted-foreground">
+                        暂无待随访
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    followUpTasks.map((f) => (
+                      <TableRow key={f.id}>
+                        <TableCell>
+                          <PatientLink id={f.patientId} name={f.name} />
+                        </TableCell>
+                        <TableCell>{f.phone}</TableCell>
+                        <TableCell>{f.chartNo}</TableCell>
+                        <TableCell>
+                          {followUpTypeLabel(f.type as FollowUpType)}
+                        </TableCell>
+                        <TableCell>{f.planDate}</TableCell>
+                        <TableCell className="max-w-72 truncate">
+                          {f.content}
+                        </TableCell>
+                        <TableCell>{f.doctor}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setCompleting(f)}
+                          >
+                            执行
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -389,7 +485,7 @@ export function WorkbenchPage() {
                   {followUps.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-muted-foreground">
-                        暂无待随访
+                        暂无正畸待随访
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -423,6 +519,15 @@ export function WorkbenchPage() {
           </div>
         </CardContent>
       </Card>
+
+      <CompleteFollowUpDialog
+        open={completing != null}
+        onOpenChange={(open) => {
+          if (!open) setCompleting(null);
+        }}
+        followUp={completing}
+        onDone={load}
+      />
     </div>
   );
 }

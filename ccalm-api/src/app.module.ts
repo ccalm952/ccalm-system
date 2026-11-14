@@ -8,6 +8,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { ChargesModule } from "./modules/charges/charges.module";
 import { FeeCatalogModule } from "./modules/fee-catalog/fee-catalog.module";
+import { FollowUpsModule } from "./modules/follow-ups/follow-ups.module";
 import { ImplantModule } from "./modules/implant/implant.module";
 import { MedicalRecordsModule } from "./modules/medical-records/medical-records.module";
 import { OrthodonticsModule } from "./modules/orthodontics/orthodontics.module";
@@ -25,6 +26,7 @@ import { WorkbenchModule } from "./modules/workbench/workbench.module";
     AttendanceModule,
     ChargesModule,
     FeeCatalogModule,
+    FollowUpsModule,
     ImplantModule,
     MedicalRecordsModule,
     OrthodonticsModule,

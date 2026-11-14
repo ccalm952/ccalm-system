@@ -210,6 +210,7 @@ model Patient {
   clinicVisits   PatientVisit[]
   medicalRecords MedicalRecord[]
   chargeOrders   ChargeOrder[]
+  followUps      FollowUp[]
 
   @@index([name])
   @@index([phone])
@@ -539,4 +540,29 @@ model WarehouseTxn {
 
   @@index([itemId, occurDate])
   @@index([type, occurDate])
+}
+
+/// 随访任务：诊疗/术后离店后按计划跟进的待办
+model FollowUp {
+  id           Int      @id @default(autoincrement())
+  patientId    Int
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  /// ortho 正畸复诊 | postop 术后随访 | suture 拆线 | review 复查 | other 其他
+  type         String   @default("postop")
+  /// 计划随访日期 YYYY-MM-DD
+  planDate     String
+  content      String   @default("")
+  /// 随访医生 / 执行人
+  doctor       String   @default("")
+  /// pending 待随访 | done 已随访 | cancelled 已取消
+  status       String   @default("pending")
+  result       String   @default("")
+  /// satisfied 满意 | neutral 一般 | unsatisfied 不满意
+  satisfaction String   @default("")
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([patientId, planDate])
+  @@index([status, planDate])
 }
