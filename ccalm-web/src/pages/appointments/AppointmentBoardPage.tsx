@@ -858,9 +858,10 @@ export function AppointmentBoardPage() {
                     {HOURS.map((h) => (
                       <div key={h}>
                         <div
-                          className="absolute left-0 w-7 -translate-y-1/2 text-center text-[10px] font-semibold text-muted-foreground tabular-nums"
+                          className="absolute left-0 w-7 text-center text-[10px] font-semibold text-muted-foreground tabular-nums"
                           style={{
-                            top: (h * 60 - DAY_START) * PX_PER_MIN,
+                            top:
+                              (h * 60 - DAY_START) * PX_PER_MIN + SLOT_PX / 2,
                           }}
                         >
                           {String(h).padStart(2, "0")}
@@ -868,9 +869,11 @@ export function AppointmentBoardPage() {
                         {[0, 15, 30, 45].map((m) => (
                           <div
                             key={m}
-                            className="absolute right-1 left-7 -translate-y-1/2 text-center text-[10px] text-muted-foreground tabular-nums"
+                            className="absolute right-1 left-7 text-center text-[10px] text-muted-foreground tabular-nums"
                             style={{
-                              top: (h * 60 + m - DAY_START) * PX_PER_MIN,
+                              top:
+                                (h * 60 + m - DAY_START) * PX_PER_MIN +
+                                SLOT_PX / 2,
                             }}
                           >
                             {String(m).padStart(2, "0")}
