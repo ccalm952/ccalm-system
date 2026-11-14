@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>预约看板 线框图</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        font-size: 12px;
+        color: #1d222a;
+        background: #fff;
+        -webkit-font-smoothing: antialiased;
+      }
+      .app { display: flex; height: 100vh; overflow: hidden; }
+      /* sidebar */
+      .side {
+        width: 188px; flex: none; border-right: 1px solid #ebecef;
+        background: #fbfbfc; display: flex; flex-direction: column; padding: 10px 8px;
+      }
+      .brand { display: flex; align-items: center; gap: 8px; padding: 6px 8px 14px; font-weight: 600; font-size: 13px; }
+      .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(140deg,#6d5efc,#4c1d95); }
+      .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px; color: #4a5160; margin-bottom: 2px; }
+      .nav-item .ic { width: 15px; height: 15px; border: 1.5px solid #9aa1ae; border-radius: 4px; }
+      .nav-item.active { background: #efeafe; color: #4c1d95; font-weight: 600; }
+      .nav-item.active .ic { border-color: #6d28d9; }
+      .nav-item.sub { padding-left: 32px; font-size: 11.5px; }
+      .nav-item.sub.active { background: #e7e0fd; }
+      /* main */
+      .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .topbar { height: 46px; border-bottom: 1px solid #ebecef; display: flex; align-items: center; gap: 14px; padding: 0 16px; }
+      .crumb { font-size: 13px; font-weight: 600; }
+      .top-tabs { display: flex; gap: 4px; margin-left: 6px; color: #6b7280; }
+      .top-tab { padding: 5px 10px; border-radius: 6px; }
+      .top-tab.on { background: #f3f2fb; color: #4c1d95; font-weight: 600; }
+      .spacer { flex: 1; }
+      .btn { border: 1px solid #e3e4e8; background: #fff; border-radius: 6px; padding: 5px 10px; font-size: 11.5px; color: #374151; }
+      .btn.primary { background: #5b21b6; border-color: #5b21b6; color: #fff; font-weight: 600; }
+      /* toolbar */
+      .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid #eff0f2; flex-wrap: wrap; }
+      .pill { border: 1px solid #e5e6ea; border-radius: 6px; padding: 4px 8px; color: #4b5563; background: #fff; display: flex; align-items: center; gap: 5px; }
+      .pill.ghost { border-style: dashed; color: #9ca3af; }
+      .chips { display: flex; gap: 5px; align-items: center; }
+      .chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 2px 8px; font-size: 10.5px; font-weight: 600; border: 1px solid transparent; }
+      .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+      .seg { display: flex; border: 1px solid #e5e6ea; border-radius: 6px; overflow: hidden; }
+      .seg > div { padding: 4px 10px; color: #6b7280; }
+      .seg > div.on { background: #5b21b6; color: #fff; font-weight: 600; }
+      /* content */
+      .content { flex: 1; min-height: 0; display: flex; }
+      .left { width: 250px; flex: none; border-right: 1px solid #eff0f2; display: flex; flex-direction: column; }
+      .left-tabs { display: flex; gap: 14px; padding: 9px 12px; border-bottom: 1px solid #f1f2f4; color: #6b7280; }
+      .left-tabs .on { color: #111827; font-weight: 600; position: relative; }
+      .left-tabs .on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 2px; background: #5b21b6; }
+      .left-filters { display: flex; gap: 6px; padding: 10px 12px; color: #6b7280; font-size: 11px; }
+      .pending { flex: 1; overflow: hidden; padding: 9px; display: flex; flex-direction: column; gap: 7px; }
+      .pcard { border: 1px solid #e8e9ed; border-left: 3px solid #f0b429; border-radius: 7px; padding: 7px 8px; background: #fffdf5; }
+      .pcard .n { font-weight: 600; font-size: 12px; }
+      .pcard .m { color: #6b7280; font-size: 10.5px; margin-top: 3px; }
+      .left-foot { border-top: 1px solid #f1f2f4; padding: 8px 12px; color: #6b7280; display: flex; align-items: center; justify-content: space-between; }
+      /* board */
+      .board { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .board-head { display: flex; border-bottom: 1px solid #e9eaee; padding-left: 54px; }
+      .bh-day { flex: 1; padding: 7px 8px; font-weight: 600; font-size: 11.5px; color: #374151; border-left: 1px solid #f1f2f4; display: flex; align-items: center; gap: 6px; }
+      .bh-day.today { background: #faf7ff; color: #5b21b6; }
+      .badge { font-size: 9.5px; background: #ede9fe; color: #5b21b6; border-radius: 4px; padding: 1px 4px; font-weight: 600; }
+      .grid-wrap { position: relative; flex: 1; overflow: hidden; display: flex; padding-top: 10px; }
+      .axis { width: 54px; flex: none; border-right: 1px solid #f1f2f4; position: relative; }
+      .axis div { position: absolute; right: 7px; font-size: 10px; color: #9aa1ae; transform: translateY(-50%); }
+      .cols { flex: 1; display: flex; position: relative; }
+      .col { flex: 1; border-left: 1px solid #f1f2f4; position: relative; }
+      .col.today { background: #fcfbff; }
+      .col .h { position: absolute; left: 0; right: 0; border-top: 1px dashed #f0f1f3; }
+      .col .h.solid { border-top: 1px solid #eceef1; }
+      .now { position: absolute; left: 0; right: 0; height: 1.5px; background: #ef4444; z-index: 1; opacity: .75; }
+      .now::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; }
+      .card {
+        position: absolute; left: 3px; right: 3px; border-radius: 6px; padding: 3px 6px 3px; z-index: 2;
+        border-left: 3px solid; overflow: hidden; box-shadow: 0 1px 1px rgba(16,24,40,.05);
+      }
+      .card .r1 { display: flex; align-items: center; gap: 5px; }
+      .card .name { font-weight: 700; font-size: 11.5px; }
+      .card .doc { font-size: 10px; opacity: .75; }
+      .card .item { font-size: 10px; margin-top: 1px; opacity: .9; line-height: 1.25; }
+      .card .time { font-size: 9.5px; margin-top: 0; font-variant-numeric: tabular-nums; opacity: .8; line-height: 1.3; }
+      .card .no { display: none; }
+      /* status styles */
+      .s-booked { background: #fff8e1; border-color: #f2b705; }
+      .s-confirmed { background: #e9f9ee; border-color: #17a34a; }
+      .s-arrived { background: #e3f8fb; border-color: #0891b2; }
+      .s-treating { background: #fff1e6; border-color: #f97316; }
+      .s-done { background: #eef0ff; border-color: #6366f1; }
+      .s-paid { background: #e8f7f6; border-color: #0d9488; }
+      .s-missed { background: #f1f3f7; border-color: #94a3b8; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side">
+        <div class="brand"><div class="logo"></div>CCALM</div>
+        <div class="nav-item"><span class="ic"></span>工作台</div>
+        <div class="nav-item active"><span class="ic"></span>预约</div>
+        <div class="nav-item sub active">预约看板</div>
+        <div class="nav-item sub">预约列表</div>
+        <div class="nav-item"><span class="ic"></span>患者</div>
+        <div class="nav-item"><span class="ic"></span>考勤</div>
+        <div class="nav-item"><span class="ic"></span>种植</div>
+        <div class="nav-item"><span class="ic"></span>正畸</div>
+        <div class="nav-item"><span class="ic"></span>库房</div>
+        <div class="nav-item"><span class="ic"></span>资料</div>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <div class="crumb">预约看板</div>
+          <div class="top-tabs">
+            <div class="top-tab on">看板</div>
+            <div class="top-tab">列表</div>
+            <div class="top-tab">待定</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn">新建日程</div>
+          <div class="btn primary">+ 新建预约</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="pill">‹</div>
+          <div class="pill" style="font-weight:600">11月9日 - 11月15日</div>
+          <div class="pill">›</div>
+          <div class="pill">今天</div>
+          <div class="pill">医生：全部（6） ▾</div>
+          <div class="chips">
+            <span class="chip s-booked" style="background:#fff8e1"><span class="dot" style="background:#f2b705"></span>待确认 3</span>
+            <span class="chip" style="background:#e9f9ee"><span class="dot" style="background:#17a34a"></span>已确认 8</span>
+            <span class="chip" style="background:#e3f8fb"><span class="dot" style="background:#0891b2"></span>已到店 2</span>
+            <span class="chip" style="background:#fff1e6"><span class="dot" style="background:#f97316"></span>治疗中 1</span>
+            <span class="chip" style="background:#eef0ff"><span class="dot" style="background:#6366f1"></span>已完成 5</span>
+            <span class="chip" style="background:#f1f3f7"><span class="dot" style="background:#94a3b8"></span>已失约 1</span>
+          </div>
+          <div class="spacer"></div>
+          <div class="seg"><div class="on">周</div><div>日</div></div>
+        </div>
+
+        <div class="content">
+          <div class="left">
+            <div class="left-tabs"><span class="on">待定预约 4</span><span>网络预约 0</span></div>
+            <div class="left-filters"><span>筛选</span><span>·</span><span>按日期</span></div>
+            <div class="pending">
+              <div class="pcard">
+                <div class="n">庄宝连 <span style="font-weight:400;color:#9aa1ae">女 · 60岁</span></div>
+                <div class="m">种植二期 · 待定时间 · 骆群鸿</div>
+              </div>
+              <div class="pcard" style="border-left-color:#94a3b8;background:#fafbfc">
+                <div class="n">郑伟聪 <span style="font-weight:400;color:#9aa1ae">男 · 45岁</span></div>
+                <div class="m">初诊 · 昨天 15:30 · 未排期</div>
+              </div>
+              <div class="pcard">
+                <div class="n">许澎湃 <span style="font-weight:400;color:#9aa1ae">男 · 38岁</span></div>
+                <div class="m">正畸复诊 · 待定时间 · 吴彤</div>
+              </div>
+            </div>
+            <div class="left-foot"><span>已过期 0 条</span><span class="btn">批量操作</span></div>
+          </div>
+
+          <div class="board">
+            <div class="board-head">
+              <div class="bh-day">星期一 <span style="color:#9aa1ae">11/09</span></div>
+              <div class="bh-day">星期二 <span style="color:#9aa1ae">11/10</span></div>
+              <div class="bh-day">星期三 <span style="color:#9aa1ae">11/11</span></div>
+              <div class="bh-day">星期四 <span style="color:#9aa1ae">11/12</span></div>
+              <div class="bh-day">星期五 <span style="color:#9aa1ae">11/13</span></div>
+              <div class="bh-day today">星期六 <span>11/14</span><span class="badge">今天</span></div>
+              <div class="bh-day">星期日 <span style="color:#9aa1ae">11/15</span></div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="axis">
+                <div style="top:0%">08:00</div>
+                <div style="top:10%">09:00</div>
+                <div style="top:20%">10:00</div>
+                <div style="top:30%">11:00</div>
+                <div style="top:40%">12:00</div>
+                <div style="top:50%">13:00</div>
+                <div style="top:60%">14:00</div>
+                <div style="top:70%">15:00</div>
+                <div style="top:80%">16:00</div>
+                <div style="top:90%">17:00</div>
+              </div>
+              <div class="cols" id="cols"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const cols = document.getElementById("cols");
+      const days = 7;
+      const startMin = 8 * 60, endMin = 18 * 60;
+      const span = endMin - startMin;
+      const pct = (min) => ((min - startMin) / span) * 100;
+
+      for (let d = 0; d < days; d++) {
+        const col = document.createElement("div");
+        col.className = "col" + (d === 5 ? " today" : "");
+        for (let h = 8; h <= 18; h++) {
+          const line = document.createElement("div");
+          line.className = "h" + (h % 2 === 0 ? " solid" : "");
+          line.style.top = pct(h * 60) + "%";
+          col.appendChild(line);
+          if (h < 18) {
+            for (let m = 15; m < 60; m += 15) {
+              const l2 = document.createElement("div");
+              l2.className = "h";
+              l2.style.top = pct(h * 60 + m) + "%";
+              l2.style.borderTopColor = "#f7f7f9";
+              col.appendChild(l2);
+            }
+          }
+        }
+        cols.appendChild(col);
+      }
+      const now = document.createElement("div");
+      now.className = "now";
+      now.style.top = pct(10 * 60 + 24) + "%";
+      document.querySelector(".cols").appendChild(now);
+
+      const appts = [
+        { d: 0, s: 9 * 60 + 30, e: 10 * 60, n: "姚政委", doc: "吴介尘", it: "种植二期", no: "260114", st: "done" },
+        { d: 0, s: 11 * 60, e: 11 * 60 + 30, n: "张冰心", doc: "胡芊芊", it: "复诊", no: "260331", st: "arrived" },
+        { d: 1, s: 10 * 60 + 15, e: 10 * 60 + 45, n: "陈长秋", doc: "胡芊芊", it: "复诊", no: "261019", st: "confirmed" },
+        { d: 1, s: 15 * 60, e: 15 * 60 + 45, n: "苏瑞吉", doc: "骆群鸿", it: "初诊", no: "261108", st: "booked" },
+        { d: 2, s: 8 * 60 + 30, e: 9 * 60, n: "曾加敬", doc: "吴介尘", it: "种植二期", no: "260508", st: "done" },
+        { d: 2, s: 14 * 60, e: 15 * 60, n: "庄宝连", doc: "胡芊芊", it: "种植一期", no: "221210", st: "treating" },
+        { d: 3, s: 9 * 60 + 30, e: 10 * 60, n: "邓志钢", doc: "骆群鸿", it: "复诊", no: "261027", st: "arrived" },
+        { d: 3, s: 13 * 60 + 15, e: 14 * 60, n: "陈清彬", doc: "余煌", it: "根管治疗", no: "260412", st: "confirmed" },
+        { d: 4, s: 11 * 60 + 15, e: 11 * 60 + 45, n: "王声明", doc: "骆群鸿", it: "复诊", no: "a1036", st: "done" },
+        { d: 4, s: 15 * 60, e: 16 * 60, n: "吴惠虹", doc: "吴介尘", it: "种植一期", no: "a1065", st: "confirmed" },
+        { d: 4, s: 16 * 60 + 30, e: 17 * 60, n: "小谢", doc: "骆群鸿", it: "正畸复诊", no: "260715", st: "missed" },
+        { d: 5, s: 9 * 60, e: 9 * 60 + 30, n: "柯文雄", doc: "吴介尘", it: "种植一期", no: "260328", st: "paid" },
+        { d: 5, s: 10 * 60 + 30, e: 11 * 60, n: "林天来", doc: "胡芊芊", it: "复诊", no: "261111", st: "booked" },
+        { d: 5, s: 14 * 60, e: 15 * 60 + 30, n: "李婉瑜", doc: "余煌", it: "戴牙, 拔牙", no: "260715", st: "confirmed" },
+        { d: 5, s: 16 * 60, e: 16 * 60 + 30, n: "吴馨妍", doc: "吴彤", it: "复诊", no: "250816", st: "booked" },
+        { d: 6, s: 11 * 60 + 30, e: 12 * 60, n: "李春来", doc: "胡芊芊", it: "种植一期", no: "260541", st: "confirmed" },
+        { d: 6, s: 13 * 60 + 30, e: 14 * 60 + 30, n: "李进武", doc: "骆群鸿", it: "复诊", no: "261115", st: "done" },
+      ];
+
+      const colsEls = [...document.querySelectorAll(".col")];
+      for (const a of appts) {
+        const card = document.createElement("div");
+        card.className = "card s-" + a.st;
+        card.style.top = pct(a.s) + "%";
+        card.style.height = ((a.e - a.s) / span) * 100 + "%";
+        const hh = (m) => String(Math.floor(m / 60)).padStart(2, "0");
+        const mm = (m) => String(m % 60).padStart(2, "0");
+        card.innerHTML =
+          '<div class="r1"><span class="name">' + a.n + '</span><span class="doc">[' + a.doc + ']</span></div>' +
+          '<div class="item">' + a.it + "</div>" +
+          '<div class="time">' + hh(a.s) + ":" + mm(a.s) + " - " + hh(a.e) + ":" + mm(a.e) + "</div>" +
+          '<div class="no">' + a.no + "</div>";
+        colsEls[a.d].appendChild(card);
+      }
+    </script>
+  </body>
+</html>
