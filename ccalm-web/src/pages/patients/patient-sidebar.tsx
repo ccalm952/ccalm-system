@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -18,13 +18,14 @@ import {
   RECENT_PATIENTS_EVENT,
   type RecentPatient,
 } from "@/lib/patients/recent-patients";
+import { refreshPatientTags, usePatientTags } from "@/lib/patients/tags";
+import { PatientTagDialog } from "./patient-tag-dialog";
 
 export type PatientSidebarTab = "groups" | "recent";
 export type PatientFilter = { group: PatientGroup; tag: string | null };
 
 type GroupsResponse = {
   groups: { group: PatientGroup; count: number }[];
-  tags: { tag: string; count: number }[];
 };
 
 const COLLAPSED_KEY = "patients:sidebar-collapsed";
@@ -42,11 +43,13 @@ function GroupLink({
   count,
   active,
   filter,
+  dotColor,
 }: {
   label: string;
   count: number;
   active: boolean;
   filter: PatientFilter;
+  dotColor?: string;
 }) {
   return (
     <Button
@@ -55,7 +58,15 @@ function GroupLink({
       nativeButton={false}
       render={<Link to={patientsListUrl(filter)} />}
     >
-      <span className="truncate">{label}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        {dotColor ? (
+          <span
+            className="size-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: dotColor }}
+          />
+        ) : null}
+        <span className="truncate">{label}</span>
+      </span>
       <span className="text-muted-foreground">{count}</span>
     </Button>
   );
@@ -104,11 +115,13 @@ export function PatientSidebar({
   currentId = null,
   activeFilter = null,
   refreshKey = 0,
+  onTagsChanged,
 }: {
   defaultTab: PatientSidebarTab;
   currentId?: number | null;
   activeFilter?: PatientFilter | null;
   refreshKey?: number;
+  onTagsChanged?: () => void;
 }) {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
@@ -121,10 +134,12 @@ export function PatientSidebar({
   );
   const [groups, setGroups] = React.useState<GroupsResponse>({
     groups: [],
-    tags: [],
   });
+  const [tagDialogOpen, setTagDialogOpen] = React.useState(false);
+  const tags = usePatientTags();
   const [recent, setRecent] = React.useState(loadRecentPatients);
   React.useEffect(() => {
+    refreshPatientTags();
     api<GroupsResponse>("GET", "/patients/groups")
       .then(setGroups)
       .catch((e: unknown) => toast.error(errorMessage(e)));
@@ -198,18 +213,37 @@ export function PatientSidebar({
                       />
                     ))}
                     <Separator className="my-2" />
-                    <CardTitle className="px-2.5 py-1 text-muted-foreground">
-                      标签
-                    </CardTitle>
-                    {groups.tags.map((t) => (
-                      <GroupLink
-                        key={t.tag}
-                        label={t.tag}
-                        count={t.count}
-                        active={isActive({ group: "all", tag: t.tag })}
-                        filter={{ group: "all", tag: t.tag }}
-                      />
-                    ))}
+                    <div className="flex items-center justify-between px-2.5 py-1">
+                      <CardTitle className="text-muted-foreground">
+                        标签
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6"
+                        onClick={() => setTagDialogOpen(true)}
+                      >
+                        <Settings2 className="size-3.5" />
+                      </Button>
+                    </div>
+                    {tags
+                      .filter((tag) => tag.enabled)
+                      .map((tag) => (
+                        <GroupLink
+                          key={tag.name}
+                          label={tag.name}
+                          count={tag.count}
+                          dotColor={tag.color}
+                          active={isActive({ group: "all", tag: tag.name })}
+                          filter={{ group: "all", tag: tag.name }}
+                        />
+                      ))}
+                    {tags.some((tag) => tag.enabled) ? null : (
+                      <p className="px-2.5 py-1 text-xs text-muted-foreground">
+                        暂无标签，点上方设置添加
+                      </p>
+                    )}
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -237,6 +271,11 @@ export function PatientSidebar({
           {collapsed ? <ChevronRight /> : <ChevronLeft />}
         </Button>
       </div>
+      <PatientTagDialog
+        open={tagDialogOpen}
+        onOpenChange={setTagDialogOpen}
+        onChanged={onTagsChanged}
+      />
     </aside>
   );
 }

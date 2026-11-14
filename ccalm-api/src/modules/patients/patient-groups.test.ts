@@ -1,8 +1,6 @@
-import dayjs from "dayjs";
 import { describe, expect, it } from "vitest";
 
 import {
-  dormantCutoff,
   latestVisitDate,
   normalizeTags,
   parsePatientGroup,
@@ -15,23 +13,21 @@ describe("patientGroupWhere", () => {
       name: { in: ["曾锦治", "柯金棍"] },
     });
   });
+
+  it("全部患者不附加条件", () => {
+    expect(patientGroupWhere("all")).toEqual({});
+  });
 });
 
 describe("parsePatientGroup", () => {
   it("识别已知分组", () => {
-    expect(parsePatientGroup("implant")).toBe("implant");
-    expect(parsePatientGroup("dormant")).toBe("dormant");
+    expect(parsePatientGroup("duplicate")).toBe("duplicate");
   });
 
   it("未知或为空时回到全部", () => {
     expect(parsePatientGroup(undefined)).toBe("all");
+    expect(parsePatientGroup("implant")).toBe("all");
     expect(parsePatientGroup("xxx")).toBe("all");
-  });
-});
-
-describe("dormantCutoff", () => {
-  it("往前推一年", () => {
-    expect(dormantCutoff(dayjs("2026-11-12"))).toBe("2025-11-12");
   });
 });
 

@@ -24,7 +24,8 @@ import {
 import { api } from "@/lib/api";
 import { ROUTES } from "@/config/routes";
 import { errorMessage } from "@/lib/errorMessage";
-import { parseTagsInput } from "@/lib/patients/groups";
+import { refreshPatientTags } from "@/lib/patients/tags";
+import { PatientTagPicker } from "./patient-tag-picker";
 
 export type PatientFormValue = {
   name: string;
@@ -42,7 +43,7 @@ type FormState = {
   chartNo: string;
   gender: string;
   birthday: string;
-  tags: string;
+  tags: string[];
   remark: string;
 };
 
@@ -55,7 +56,7 @@ function toForm(value?: PatientFormValue | null): FormState {
     chartNo: value?.chartNo ?? "",
     gender: value?.gender ?? "",
     birthday: value?.birthday ?? "",
-    tags: value?.tags.join("，") ?? "",
+    tags: value?.tags ?? [],
     remark: value?.remark ?? "",
   };
 }
@@ -95,7 +96,7 @@ export function PatientFormDialog({
         chartNo: form.chartNo.trim(),
         gender: form.gender,
         birthday: form.birthday.trim() || null,
-        tags: parseTagsInput(form.tags),
+        tags: form.tags,
         remark: form.remark.trim(),
       };
       if (patientId == null) {
@@ -106,6 +107,7 @@ export function PatientFormDialog({
         toast.success("已保存");
       }
       onOpenChange(false);
+      refreshPatientTags();
       await onSaved();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -173,10 +175,9 @@ export function PatientFormDialog({
             onValueChange={(v) => setForm((f) => ({ ...f, birthday: v }))}
             placeholder="生日"
           />
-          <Input
-            placeholder="标签，多个用逗号分隔"
+          <PatientTagPicker
             value={form.tags}
-            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+            onChange={(tags) => setForm((f) => ({ ...f, tags }))}
           />
           <Input
             placeholder="备注"

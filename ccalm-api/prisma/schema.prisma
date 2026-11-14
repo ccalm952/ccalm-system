@@ -217,6 +217,18 @@ model Patient {
   @@index([chartNo])
 }
 
+/// 患者标签库；Patient.tags 里保存标签名称
+model Tag {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  color        String   @default("#64748b")
+  abbreviation String   @default("")
+  enabled      Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 /// 就诊（挂号/到店）；电子病历、收费单可挂在某次就诊上
 model PatientVisit {
   id             Int             @id @default(autoincrement())

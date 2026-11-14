@@ -12,6 +12,7 @@ import {
 
 import { MergePatientsDto } from "./dto/merge-patients.dto";
 import { SavePatientDto } from "./dto/save-patient.dto";
+import { CreateTagDto, UpdateTagDto } from "./dto/save-tag.dto";
 import { PatientsService } from "./patients.service";
 
 @Controller("patients")
@@ -41,6 +42,27 @@ export class PatientsController {
   @Get("groups")
   groups() {
     return this.patients.groups();
+  }
+
+  /** 标签库（含每个标签的患者数），同样要写在 :id 之前 */
+  @Get("tags")
+  tags() {
+    return this.patients.tags();
+  }
+
+  @Post("tags")
+  createTag(@Body() dto: CreateTagDto) {
+    return this.patients.createTag(dto);
+  }
+
+  @Put("tags/:id")
+  updateTag(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateTagDto) {
+    return this.patients.updateTag(id, dto);
+  }
+
+  @Delete("tags/:id")
+  removeTag(@Param("id", ParseIntPipe) id: number) {
+    return this.patients.removeTag(id);
   }
 
   /** 病历、收费里医生/助理/护士的下拉选项 */

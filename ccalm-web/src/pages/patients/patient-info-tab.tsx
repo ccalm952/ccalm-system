@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -11,8 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { orthodonticsCategoryLabel } from "@/lib/orthodontics/categories";
+import { usePatientTags } from "@/lib/patients/tags";
 import { cn } from "cn";
 import type { PatientDetail } from "./patient-detail-types";
+import { PatientTagBadge } from "./patient-tag-badge";
 
 const OVERDUE_DAYS = 30;
 
@@ -58,6 +59,7 @@ function SectionTable({
 }
 
 export function PatientInfoTab({ patient }: { patient: PatientDetail }) {
+  const tags = usePatientTags();
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -75,9 +77,7 @@ export function PatientInfoTab({ patient }: { patient: PatientDetail }) {
             value={
               <span className="flex flex-wrap gap-1">
                 {patient.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    {tag}
-                  </Badge>
+                  <PatientTagBadge key={tag} name={tag} tags={tags} />
                 ))}
               </span>
             }
