@@ -428,6 +428,14 @@ export class AppointmentsService {
 
     const duration = this.normalizeDuration(dto.durationMinutes);
     const visitDate = dto.visitDate ?? existing.visitDate;
+    const patientId = dto.patientId ?? existing.patientId;
+    if (dto.patientId && dto.patientId !== existing.patientId) {
+      const patient = await this.prisma.patient.findUnique({
+        where: { id: dto.patientId },
+        select: { id: true },
+      });
+      if (!patient) throw new NotFoundException("患者不存在");
+    }
     const isPending = dto.isPending ?? existing.isPending;
     const doctor = dto.doctor ?? existing.doctor;
     let startTime = dto.startTime ?? existing.startTime;
@@ -445,7 +453,7 @@ export class AppointmentsService {
         throw new BadRequestException("结束时间必须晚于开始时间");
       }
       await this.assertTimeFree({
-        patientId: existing.patientId,
+        patientId,
         visitDate,
         startTime,
         endTime,
@@ -461,6 +469,7 @@ export class AppointmentsService {
     await this.prisma.patientVisit.update({
       where: { id },
       data: {
+        patientId,
         visitDate,
         startTime,
         endTime,

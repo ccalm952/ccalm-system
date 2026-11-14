@@ -21,6 +21,10 @@ const SOURCES = ["manual", "network", "record", "system"] as const;
 
 export class UpdateAppointmentDto {
   @IsOptional()
+  @IsInt()
+  patientId?: number;
+
+  @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "预约日期格式无效" })
   visitDate?: string;
