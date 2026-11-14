@@ -113,13 +113,17 @@ export class UsersController {
   ) {
     const a = actor(req);
     const canManage = await this.permissions.has(a.userId, "staff.manage");
+    const roleIds = dto.roleIds;
+    // 旧前端只传 role 时，仅增删「管理员」角色，不动医生/护士等其它角色
+    const legacyRole = roleIds ? undefined : dto.role;
     return await this.users.update({
       actorUserId: a.userId,
       canManage,
       targetUserId: id,
       displayName: dto.displayName,
       password: dto.password,
-      roleIds: roleIdsFromDto(dto),
+      roleIds,
+      legacyRole,
       leaveInitialBalance: dto.leaveInitialBalance,
     });
   }

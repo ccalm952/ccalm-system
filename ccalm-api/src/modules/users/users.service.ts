@@ -124,6 +124,8 @@ export class UsersService {
     displayName?: string;
     password?: string;
     roleIds?: string[];
+    /** @deprecated 旧前端只传 user/admin：仅增删管理员角色 */
+    legacyRole?: "user" | "admin";
     leaveInitialBalance?: number;
   }) {
     const { actorUserId, canManage, targetUserId } = params;
@@ -157,6 +159,18 @@ export class UsersService {
       }
       data.roles = { set: roleIds.map((id) => ({ id })) };
       data.role = legacyRoleFor(roleIds);
+    } else if (params.legacyRole) {
+      // 旧前端：只在现有角色基础上增删「管理员」，不动其它角色
+      const current = existing.roles.map((r) => r.id);
+      const next = new Set(current);
+      if (params.legacyRole === "admin") next.add(BUILTIN_ROLE_IDS.admin);
+      else next.delete(BUILTIN_ROLE_IDS.admin);
+      const ids = [...next];
+      if (!(await this.rolesGrantStaffManage(ids))) {
+        await this.assertStaffManageRemains(targetUserId);
+      }
+      data.roles = { set: ids.map((id) => ({ id })) };
+      data.role = legacyRoleFor(ids);
     }
     if (typeof params.leaveInitialBalance === "number" && canManage) {
       data.leaveInitialBalance = params.leaveInitialBalance;
