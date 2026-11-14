@@ -15,6 +15,7 @@ import { errorMessage } from "@/lib/errorMessage";
 import { rememberRecentPatient } from "@/lib/patients/recent-patients";
 import { PatientChargesTab } from "./patient-charges-tab";
 import type { PatientDetail, PatientTab } from "./patient-detail-types";
+import { PatientFollowUpsTab } from "./patient-followups-tab";
 import { PatientFormDialog } from "./patient-form-dialog";
 import { PatientInfoTab } from "./patient-info-tab";
 import { PatientRecordsTab } from "./patient-records-tab";
@@ -25,6 +26,7 @@ const TABS: { value: PatientTab; label: string }[] = [
   { value: "info", label: "患者信息" },
   { value: "visits", label: "就诊记录" },
   { value: "records", label: "电子病历" },
+  { value: "followUp", label: "随访" },
   { value: "charges", label: "收费" },
 ];
 
@@ -151,6 +153,9 @@ export function PatientDetailPage() {
                 focusRecordId={focusRecord > 0 ? focusRecord : null}
                 onEditingChange={setEditingRecord}
               />
+            ) : null}
+            {tab === "followUp" ? (
+              <PatientFollowUpsTab patientId={patient.id} />
             ) : null}
             {tab === "charges" ? (
               <PatientChargesTab patientId={patient.id} />

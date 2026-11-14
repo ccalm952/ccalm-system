@@ -112,4 +112,4 @@ export type ChargesResponse = {
   orders: ChargeOrder[];
 };
 
-export type PatientTab = "info" | "visits" | "records" | "charges";
+export type PatientTab = "info" | "visits" | "records" | "followUp" | "charges";

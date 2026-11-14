@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import dayjs from "dayjs";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { FollowUpsService } from "../follow-ups/follow-ups.service";
 import {
   planCourseStatus,
   planItemDoneDate,
@@ -14,58 +15,67 @@ import { todayVisitRow } from "./workbench.rows";
 
 @Injectable()
 export class WorkbenchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly followUps: FollowUpsService,
+  ) {}
 
   async overview() {
     const today = dayjs().format("YYYY-MM-DD");
 
-    const [visits, implantVisits, orthodonticsOpen, openCourses] =
-      await Promise.all([
-        this.prisma.patientVisit.findMany({
-          where: { visitDate: today, status: { not: "cancelled" } },
-          include: {
-            patient: true,
-            medicalRecords: {
-              orderBy: { id: "desc" },
-              select: { type: true, doctor: true },
-            },
+    const [
+      visits,
+      implantVisits,
+      orthodonticsOpen,
+      openCourses,
+      followUpTasks,
+    ] = await Promise.all([
+      this.prisma.patientVisit.findMany({
+        where: { visitDate: today, status: { not: "cancelled" } },
+        include: {
+          patient: true,
+          medicalRecords: {
+            orderBy: { id: "desc" },
+            select: { type: true, doctor: true },
           },
-          orderBy: [{ startTime: "asc" }, { id: "asc" }],
-        }),
-        this.prisma.implantVisit.findMany({
-          where: { visitDate: today },
-          include: { patient: true, teeth: { orderBy: { id: "asc" } } },
-          orderBy: { id: "asc" },
-        }),
-        this.prisma.orthodonticsPatient.findMany({
-          where: {
-            category: { not: "completed" },
-            lastVisitDate: { not: null },
-          },
-          include: { patient: true },
-        }),
-        this.prisma.medicalRecord.findMany({
-          where: {
-            type: "first",
-            planStoppedAt: null,
-            planItems: { some: { followUps: { none: { completes: true } } } },
-          },
-          include: {
-            patient: true,
-            planItems: {
-              orderBy: { sort: "asc" },
-              include: {
-                followUps: {
-                  select: {
-                    completes: true,
-                    record: { select: { visitDate: true } },
-                  },
+        },
+        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+      }),
+      this.prisma.implantVisit.findMany({
+        where: { visitDate: today },
+        include: { patient: true, teeth: { orderBy: { id: "asc" } } },
+        orderBy: { id: "asc" },
+      }),
+      this.prisma.orthodonticsPatient.findMany({
+        where: {
+          category: { not: "completed" },
+          lastVisitDate: { not: null },
+        },
+        include: { patient: true },
+      }),
+      this.prisma.medicalRecord.findMany({
+        where: {
+          type: "first",
+          planStoppedAt: null,
+          planItems: { some: { followUps: { none: { completes: true } } } },
+        },
+        include: {
+          patient: true,
+          planItems: {
+            orderBy: { sort: "asc" },
+            include: {
+              followUps: {
+                select: {
+                  completes: true,
+                  record: { select: { visitDate: true } },
                 },
               },
             },
           },
-        }),
-      ]);
+        },
+      }),
+      this.followUps.list({ due: true }),
+    ]);
 
     const todayVisits = [
       // 一次就诊一行；挂了正畸病历的就按正畸展示，不再另出正畸档案行
@@ -146,6 +156,12 @@ export class WorkbenchService {
         (a, b) => (b.daysSinceLastVisit ?? 0) - (a.daysSinceLastVisit ?? 0),
       );
 
-    return { date: today, todayVisits, followUps, pendingCourses };
+    return {
+      date: today,
+      todayVisits,
+      followUps,
+      pendingCourses,
+      followUpTasks,
+    };
   }
 }
