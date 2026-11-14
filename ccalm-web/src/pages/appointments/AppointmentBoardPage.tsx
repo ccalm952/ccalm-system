@@ -45,9 +45,13 @@ import { useAuth } from "@/lib/use-auth";
 import { AppointmentDrawer } from "./appointment-drawer";
 
 const DAY_START = 8 * 60;
-const DAY_END = 19 * 60;
+const DAY_END = 22 * 60;
 const PX_PER_MIN = 0.8;
 const WEEKDAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const HOURS = Array.from(
+  { length: (DAY_END - DAY_START) / 60 },
+  (_, i) => DAY_START / 60 + i,
+);
 
 function mondayOf(date: string): string {
   const d = dayjs(date);
@@ -651,7 +655,7 @@ export function AppointmentBoardPage() {
               <div className="flex">
                 <div className="w-14 shrink-0">
                   <div className="relative" style={{ height: gridHeight }}>
-                    {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
+                    {HOURS.map((h) => (
                       <div
                         key={h}
                         className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
@@ -695,7 +699,7 @@ export function AppointmentBoardPage() {
                         setDrawerOpen(true);
                       }}
                     >
-                      {Array.from({ length: 12 }, (_, i) => 8 + i).map((h) => (
+                      {HOURS.map((h) => (
                         <div
                           key={h}
                           className="absolute inset-x-0 border-t border-dashed border-border/70"
