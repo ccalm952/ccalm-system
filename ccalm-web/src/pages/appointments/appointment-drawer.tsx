@@ -42,6 +42,7 @@ type Props = {
   initial: AppointmentCard | null;
   defaultDate: string;
   defaultStart?: string;
+  defaultDuration?: number;
   onSaved: () => void | Promise<void>;
 };
 
@@ -87,6 +88,7 @@ export function AppointmentDrawer({
   initial,
   defaultDate,
   defaultStart = "09:00",
+  defaultDuration,
   onSaved,
 }: Props) {
   const [patient, setPatient] = React.useState<PatientMatch | null>(null);
@@ -123,7 +125,7 @@ export function AppointmentDrawer({
               ),
             ),
           )
-        : (meta?.defaultDuration ?? 30),
+        : (defaultDuration ?? meta?.defaultDuration ?? 30),
     );
     setDoctor(initial?.doctor ?? "");
     setKind(initial?.kind === "first" ? "first" : "return");
@@ -131,7 +133,14 @@ export function AppointmentDrawer({
     setRemark(initial?.remark ?? "");
     setForce(false);
     setItemQuery("");
-  }, [open, initial, defaultDate, defaultStart, meta?.defaultDuration]);
+  }, [
+    open,
+    initial,
+    defaultDate,
+    defaultStart,
+    defaultDuration,
+    meta?.defaultDuration,
+  ]);
 
   const patientId = patient?.id ?? initial?.patientId;
 
@@ -215,8 +224,14 @@ export function AppointmentDrawer({
   }, [meta, itemQuery]);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={false}
+      disablePointerDismissal
+    >
       <SheetContent
+        showOverlay={false}
         className="flex flex-col p-0"
         style={{ width: "min(96vw, 860px)", maxWidth: "none" }}
       >

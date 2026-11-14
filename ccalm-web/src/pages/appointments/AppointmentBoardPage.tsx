@@ -103,6 +103,26 @@ type ReasonState = {
   action: "miss" | "cancel";
 } | null;
 
+type DragState = {
+  kind: "card" | "pending" | "new";
+  card?: AppointmentCard;
+  pending?: PendingRow;
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  moved: boolean;
+  duration: number;
+  date: string;
+  start: string;
+  end: string;
+  doctor: string;
+};
+
 export function AppointmentBoardPage() {
   const { me } = useAuth();
   const [anchor, setAnchor] = React.useState(dayjs().format("YYYY-MM-DD"));
@@ -125,11 +145,12 @@ export function AppointmentBoardPage() {
   const [reason, setReason] = React.useState<ReasonState>(null);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const [dragTip, setDragTip] = React.useState<{
-    x: number;
-    y: number;
-    text: string;
-  } | null>(null);
+  const [drag, setDrag] = React.useState<DragState | null>(null);
+  const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
+    undefined,
+  );
+  const dragRef = React.useRef<DragState | null>(null);
+  const lastDragAt = React.useRef(0);
   const [resize, setResize] = React.useState<{
     card: AppointmentCard;
     startY: number;
@@ -290,27 +311,6 @@ export function AppointmentBoardPage() {
     setReasonText("");
   }
 
-  function updateDragTip(e: React.DragEvent) {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const col = el?.closest<HTMLElement>("[data-col-date]");
-    if (!col) {
-      setDragTip(null);
-      return;
-    }
-    const date = col.dataset.colDate ?? "";
-    const rect = col.getBoundingClientRect();
-    const raw = DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
-    const snapped = Math.min(
-      DAY_END - 15,
-      Math.max(DAY_START, Math.round(raw / 15) * 15),
-    );
-    setDragTip({
-      x: e.clientX + 14,
-      y: e.clientY + 14,
-      text: `${dayjs(date).format("MM/DD")} ${timeAt(snapped)}`,
-    });
-  }
-
   React.useEffect(() => {
     if (!resize) return;
     const move = (ev: MouseEvent) => {
@@ -340,68 +340,168 @@ export function AppointmentBoardPage() {
       window.removeEventListener("mouseup", up);
     };
   }, [resize, resizeEnd]);
-  function startDrag(
-    e: React.DragEvent,
-    payload: { type: "card" | "pending"; id: number },
-  ) {
-    e.dataTransfer.setData("text/plain", JSON.stringify(payload));
-    e.dataTransfer.effectAllowed = "move";
-  }
 
-  async function dropOnColumn(
-    e: React.DragEvent,
-    col: { date: string; doctor: string },
-  ) {
-    const date = col.date;
-    e.preventDefault();
-    const raw = e.dataTransfer.getData("text/plain");
-    if (!raw) return;
-    let payload: { type: "card" | "pending"; id: number };
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      return;
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const rawMinutes = DAY_START + (e.clientY - rect.top) / PX_PER_MIN;
+  function targetAt(x: number, y: number, d: DragState) {
+    const el = document.elementFromPoint(x, y);
+    const col = el?.closest<HTMLElement>("[data-col-date]");
+    if (!col) return null;
+    const rect = col.getBoundingClientRect();
+    const raw = DAY_START + (y - rect.top) / PX_PER_MIN;
     const snapped = Math.min(
       DAY_END - 15,
-      Math.max(DAY_START, Math.round(rawMinutes / 15) * 15),
+      Math.max(DAY_START, Math.round(raw / 15) * 15),
     );
-    const startTime = timeAt(snapped);
+    return {
+      date: col.dataset.colDate ?? d.date,
+      start: timeAt(snapped),
+      end: timeAt(snapped + d.duration),
+      doctor: col.dataset.colDoctor ?? "",
+    };
+  }
 
-    if (payload.type === "card") {
-      const card = appointments.find((a) => a.id === payload.id);
-      if (!card) return;
-      const duration = Math.max(
+  function beginCardDrag(e: React.PointerEvent, card: AppointmentCard) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDrag({
+      kind: "card",
+      card,
+      width: rect.width,
+      height: rect.height,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      duration: Math.max(
         15,
-        minutesOf(card.endTime || timeAt(minutesOf(card.startTime) + 30)) -
+        minutesOf(card.endTime || plusMinutes(card.startTime, 30)) -
           minutesOf(card.startTime),
-      );
-      setEditing({
-        ...card,
-        visitDate: date,
-        startTime,
-        endTime: timeAt(snapped + duration),
-        doctor: col.doctor || card.doctor,
-      });
-      setDrawerOpen(true);
-      return;
-    }
+      ),
+      date: card.visitDate,
+      start: card.startTime,
+      end: card.endTime,
+      doctor: card.doctor,
+    });
+  }
 
-    const p = pending.find((x) => x.id === payload.id);
-    if (!p) return;
-    setDraftDate(date);
-    setDraftStart(startTime);
-    setEditing({
-      ...pendingToCard(p),
-      visitDate: date,
-      startTime,
-      endTime: timeAt(snapped + 30),
+  function beginPendingDrag(e: React.PointerEvent, p: PendingRow) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDrag({
+      kind: "pending",
+      pending: p,
+      width: rect.width,
+      height: rect.height,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      duration: 30,
+      date: p.visitDate,
+      start: "",
+      end: "",
+      doctor: p.doctor,
+    });
+  }
+
+  function beginNewDrag(
+    e: React.PointerEvent,
+    col: { date: string; doctor: string },
+  ) {
+    if (e.button !== 0) return;
+    if (e.target !== e.currentTarget) return;
+    setDrag({
+      kind: "new",
+      width: 150,
+      height: 46,
+      offsetX: 24,
+      offsetY: 22,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      duration: 15,
+      date: col.date,
+      start: "09:00",
+      end: "09:15",
       doctor: col.doctor,
     });
-    setDrawerOpen(true);
   }
+
+  dragRef.current = drag;
+  const dragActive = drag != null;
+
+  React.useEffect(() => {
+    if (!dragActive) return;
+    const onMove = (ev: PointerEvent) => {
+      setDrag((prev) => {
+        if (!prev) return prev;
+        const moved =
+          prev.moved ||
+          Math.hypot(ev.clientX - prev.startX, ev.clientY - prev.startY) > 4;
+        const target = targetAt(ev.clientX, ev.clientY, prev);
+        return {
+          ...prev,
+          x: ev.clientX,
+          y: ev.clientY,
+          moved,
+          ...(target ?? {}),
+        };
+      });
+    };
+    const onUp = () => {
+      const d = dragRef.current;
+      setDrag(null);
+      if (!d) return;
+      if (!d.moved) {
+        if (d.kind === "card" && d.card) setSelected(d.card);
+        return;
+      }
+      lastDragAt.current = Date.now();
+      if (d.kind === "card" && d.card) {
+        setEditing({
+          ...d.card,
+          visitDate: d.date,
+          startTime: d.start,
+          endTime: d.end,
+          doctor: d.doctor || d.card.doctor,
+        });
+        setDrawerOpen(true);
+      } else if (d.kind === "pending" && d.pending) {
+        setDraftDate(d.date);
+        setDraftStart(d.start || "09:00");
+        setDraftDuration(undefined);
+        setEditing({
+          ...pendingToCard(d.pending),
+          visitDate: d.date,
+          startTime: d.start || "09:00",
+          endTime: d.end || "09:30",
+          doctor: d.doctor,
+        });
+        setDrawerOpen(true);
+      } else {
+        setDraftDate(d.date);
+        setDraftStart(d.start);
+        setDraftDuration(15);
+        setEditing(null);
+        setDrawerOpen(true);
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragActive]);
   const unscheduled = React.useMemo(
     () => visible.filter((a) => !a.isPending && !a.startTime),
     [visible],
@@ -591,13 +691,13 @@ export function AppointmentBoardPage() {
               <button
                 key={p.id}
                 type="button"
-                draggable
-                onDragStart={(e) => startDrag(e, { type: "pending", id: p.id })}
+                onPointerDown={(e) => beginPendingDrag(e, p)}
                 onClick={() => {
+                  if (Date.now() - lastDragAt.current < 300) return;
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
                 }}
-                className="cursor-grab rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs hover:bg-pink-50 active:cursor-grabbing"
+                className="cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs select-none hover:bg-pink-50 active:cursor-grabbing"
               >
                 <span className="flex items-center justify-between gap-1">
                   <span className="font-medium">{p.patientName}</span>
@@ -682,8 +782,8 @@ export function AppointmentBoardPage() {
                       }`}
                       style={{ height: gridHeight }}
                       data-col-date={col.date}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => void dropOnColumn(e, col)}
+                      data-col-doctor={col.doctor}
+                      onPointerDown={(e) => beginNewDrag(e, col)}
                       onDoubleClick={(e) => {
                         if (!can(me, "appointment.create")) return;
                         const rect = e.currentTarget.getBoundingClientRect();
@@ -695,6 +795,7 @@ export function AppointmentBoardPage() {
                         );
                         setDraftDate(col.date);
                         setDraftStart(timeAt(snapped));
+                        setDraftDuration(15);
                         setEditing(null);
                         setDrawerOpen(true);
                       }}
@@ -735,19 +836,17 @@ export function AppointmentBoardPage() {
                           <button
                             key={card.id}
                             type="button"
-                            draggable
-                            onDragStart={(e) =>
-                              startDrag(e, { type: "card", id: card.id })
-                            }
-                            onDrag={(e) => updateDragTip(e)}
-                            onDragEnd={() => setDragTip(null)}
+                            onPointerDown={(e) => beginCardDrag(e, card)}
                             onClick={() => {
                               if (Date.now() - lastResizeAt.current < 400) {
                                 return;
                               }
+                              if (Date.now() - lastDragAt.current < 300) {
+                                return;
+                              }
                               setSelected(card);
                             }}
-                            className="absolute overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md"
+                            className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
                             style={{
                               top,
                               height,
@@ -755,6 +854,11 @@ export function AppointmentBoardPage() {
                               width: `calc(${width}% - 4px)`,
                               backgroundColor: tone.bg,
                               borderLeftColor: tone.bar,
+                              opacity:
+                                drag?.kind === "card" &&
+                                drag.card?.id === card.id
+                                  ? 0.25
+                                  : 1,
                             }}
                           >
                             <span className="flex items-center gap-1">
@@ -786,6 +890,7 @@ export function AppointmentBoardPage() {
                             ) : null}
                             <span
                               className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+                              onPointerDown={(e) => e.stopPropagation()}
                               onMouseDown={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
@@ -972,12 +1077,50 @@ export function AppointmentBoardPage() {
         </DialogContent>
       </Dialog>
 
-      {dragTip ? (
+      {drag && drag.moved ? (
         <div
-          className="pointer-events-none fixed z-50 rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-lg"
-          style={{ left: dragTip.x, top: dragTip.y }}
+          className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-xl"
+          style={{
+            left: drag.x - drag.offsetX,
+            top: drag.y - drag.offsetY,
+            width: drag.width,
+            height: drag.height,
+            backgroundColor:
+              drag.kind === "card" && drag.card
+                ? toneOf(drag.card).bg
+                : APPOINTMENT_TONES.booked.bg,
+            borderLeftColor:
+              drag.kind === "card" && drag.card
+                ? toneOf(drag.card).bar
+                : APPOINTMENT_TONES.booked.bar,
+          }}
         >
-          {dragTip.text}
+          <span className="flex items-center gap-1">
+            <span className="truncate font-semibold">
+              {drag.kind === "card"
+                ? drag.card?.patientName
+                : drag.kind === "pending"
+                  ? drag.pending?.patientName
+                  : "新预约"}
+            </span>
+            {drag.doctor ? (
+              <span className="truncate opacity-70">[{drag.doctor}]</span>
+            ) : null}
+          </span>
+          {drag.height >= 36 ? (
+            <span className="block truncate opacity-80">
+              {drag.kind === "card"
+                ? drag.card?.items.join("/")
+                : drag.kind === "pending"
+                  ? drag.pending?.items.join("/")
+                  : "拖到时间后松开"}
+            </span>
+          ) : null}
+          {drag.height >= 48 && drag.start ? (
+            <span className="block truncate tabular-nums opacity-70">
+              {drag.start} - {drag.end}
+            </span>
+          ) : null}
         </div>
       ) : null}
       <AppointmentDrawer
@@ -987,6 +1130,7 @@ export function AppointmentBoardPage() {
         initial={editing}
         defaultDate={draftDate}
         defaultStart={draftStart}
+        defaultDuration={draftDuration}
         onSaved={load}
       />
     </div>
