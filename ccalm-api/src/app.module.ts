@@ -8,6 +8,7 @@ import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard";
 import { APP_GUARD } from "@nestjs/core";
 import { UsersModule } from "./modules/users/users.module";
 import { RolesModule } from "./modules/roles/roles.module";
+import { AppointmentsModule } from "./modules/appointments/appointments.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { ChargesModule } from "./modules/charges/charges.module";
 import { FeeCatalogModule } from "./modules/fee-catalog/fee-catalog.module";
@@ -28,6 +29,7 @@ import { WorkbenchModule } from "./modules/workbench/workbench.module";
     AuthModule,
     UsersModule,
     RolesModule,
+    AppointmentsModule,
     AttendanceModule,
     ChargesModule,
     FeeCatalogModule,
