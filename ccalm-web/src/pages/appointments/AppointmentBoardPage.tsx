@@ -149,6 +149,13 @@ export function AppointmentBoardPage() {
   const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
     undefined,
   );
+  const [pendingMove, setPendingMove] = React.useState<{
+    id: number;
+    visitDate: string;
+    startTime: string;
+    endTime: string;
+    doctor: string;
+  } | null>(null);
   const dragRef = React.useRef<DragState | null>(null);
   const lastDragAt = React.useRef(0);
   const [resize, setResize] = React.useState<{
@@ -245,7 +252,11 @@ export function AppointmentBoardPage() {
   const byColumn = React.useMemo(() => {
     const map = new Map<string, AppointmentCard[]>();
     for (const col of columns) map.set(col.key, []);
-    for (const a of visible) {
+    for (const source of visible) {
+      const a =
+        pendingMove && pendingMove.id === source.id
+          ? { ...source, ...pendingMove }
+          : source;
       if (a.isPending || !a.startTime) continue;
       const start = minutesOf(a.startTime);
       if (start < DAY_START || start >= DAY_END) continue;
@@ -262,7 +273,7 @@ export function AppointmentBoardPage() {
       map.set(col.key, list);
     }
     return map;
-  }, [visible, columns, view, dayDate]);
+  }, [visible, columns, view, dayDate, pendingMove]);
   function toggleLegend(key: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -467,6 +478,13 @@ export function AppointmentBoardPage() {
       }
       lastDragAt.current = Date.now();
       if (d.kind === "card" && d.card) {
+        setPendingMove({
+          id: d.card.id,
+          visitDate: d.date,
+          startTime: d.start,
+          endTime: d.end,
+          doctor: d.doctor || d.card.doctor,
+        });
         setEditing({
           ...d.card,
           visitDate: d.date,
@@ -1125,13 +1143,19 @@ export function AppointmentBoardPage() {
       ) : null}
       <AppointmentDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onOpenChange={(next) => {
+          if (!next) setPendingMove(null);
+          setDrawerOpen(next);
+        }}
         meta={meta}
         initial={editing}
         defaultDate={draftDate}
         defaultStart={draftStart}
         defaultDuration={draftDuration}
-        onSaved={load}
+        onSaved={() => {
+          setPendingMove(null);
+          return load();
+        }}
       />
     </div>
   );
