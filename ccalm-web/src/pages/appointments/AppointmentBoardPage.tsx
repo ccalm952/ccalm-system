@@ -810,7 +810,7 @@ export function AppointmentBoardPage() {
             </div>
           ) : (
             <div className="relative flex min-w-[900px] flex-1 flex-col">
-              <div className="sticky top-0 z-10 flex border-b bg-card">
+              <div className="sticky top-0 z-10 flex border-b border-border/60 bg-card">
                 <div className="w-16 shrink-0" />
                 {columns.map((col) => {
                   const isToday = col.date === today;
@@ -822,7 +822,7 @@ export function AppointmentBoardPage() {
                   return (
                     <div
                       key={col.key}
-                      className={`flex flex-1 flex-col items-center border-l py-1.5 text-xs ${
+                      className={`flex flex-1 flex-col items-center border-l border-border/30 py-1.5 text-xs ${
                         isToday ? "bg-primary/5 font-medium text-primary" : ""
                       }`}
                     >
@@ -882,7 +882,7 @@ export function AppointmentBoardPage() {
                   return (
                     <div
                       key={col.key}
-                      className={`relative flex-1 border-l ${
+                      className={`relative flex-1 border-l border-border/30 ${
                         col.date === today ? "bg-primary/[0.03]" : ""
                       }`}
                       style={{ height: gridHeight }}
