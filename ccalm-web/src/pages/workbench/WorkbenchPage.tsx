@@ -51,9 +51,21 @@ const TODAY_KIND_LABELS: Record<TodayVisit["kind"], string> = {
   orthodontics: "正畸",
 };
 
+/** 正畸就诊的「内容」取病历类型，而不是正畸档案的分类 */
+const ORTHO_RECORD_LABELS: Record<string, string> = {
+  orthoFirst: "正畸初诊",
+  orthoReturn: "正畸复诊",
+};
+
 function todayVisitDetail(v: TodayVisit): string {
   if (v.kind === "orthodontics") {
-    return orthodonticsCategoryLabel(v.detail as OrthodonticsCategory);
+    return [
+      visitTimeRange(v.startTime ?? "", v.endTime ?? ""),
+      ORTHO_RECORD_LABELS[v.detail] ?? v.detail,
+      v.status ? visitStatusLabel(v.status) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
   if (v.kind === "clinic") {
     return [
@@ -195,11 +207,6 @@ export function WorkbenchPage() {
             <StatItem
               label="今日种植"
               value={countKind("implant")}
-              onClick={() => setTab("today")}
-            />
-            <StatItem
-              label="今日正畸复诊"
-              value={countKind("orthodontics")}
               onClick={() => setTab("today")}
             />
           </CardContent>

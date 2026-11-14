@@ -10,6 +10,7 @@ import {
   daysSinceVisit,
   isOrthodonticsFollowUpDue,
 } from "../orthodontics/follow-up";
+import { TODAY_ORTHO_RECORD_TYPES, todayVisitRow } from "./workbench.rows";
 
 @Injectable()
 export class WorkbenchService {
@@ -18,72 +19,59 @@ export class WorkbenchService {
   async overview() {
     const today = dayjs().format("YYYY-MM-DD");
 
-    const [
-      clinicVisits,
-      implantVisits,
-      orthodonticsToday,
-      orthodonticsOpen,
-      openCourses,
-    ] = await Promise.all([
-      this.prisma.patientVisit.findMany({
-        where: { visitDate: today, status: { not: "cancelled" } },
-        include: { patient: true },
-        orderBy: [{ startTime: "asc" }, { id: "asc" }],
-      }),
-      this.prisma.implantVisit.findMany({
-        where: { visitDate: today },
-        include: { patient: true, teeth: { orderBy: { id: "asc" } } },
-        orderBy: { id: "asc" },
-      }),
-      this.prisma.orthodonticsPatient.findMany({
-        where: { lastVisitDate: today },
-        include: { patient: true },
-        orderBy: { id: "asc" },
-      }),
-      this.prisma.orthodonticsPatient.findMany({
-        where: {
-          category: { not: "completed" },
-          lastVisitDate: { not: null },
-        },
-        include: { patient: true },
-      }),
-      this.prisma.medicalRecord.findMany({
-        where: {
-          type: "first",
-          planStoppedAt: null,
-          planItems: { some: { followUps: { none: { completes: true } } } },
-        },
-        include: {
-          patient: true,
-          planItems: {
-            orderBy: { sort: "asc" },
-            include: {
-              followUps: {
-                select: {
-                  completes: true,
-                  record: { select: { visitDate: true } },
+    const [visits, implantVisits, orthodonticsOpen, openCourses] =
+      await Promise.all([
+        this.prisma.patientVisit.findMany({
+          where: { visitDate: today, status: { not: "cancelled" } },
+          include: {
+            patient: true,
+            medicalRecords: {
+              where: { type: { in: [...TODAY_ORTHO_RECORD_TYPES] } },
+              orderBy: { id: "desc" },
+              take: 1,
+              select: { type: true, doctor: true },
+            },
+          },
+          orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        }),
+        this.prisma.implantVisit.findMany({
+          where: { visitDate: today },
+          include: { patient: true, teeth: { orderBy: { id: "asc" } } },
+          orderBy: { id: "asc" },
+        }),
+        this.prisma.orthodonticsPatient.findMany({
+          where: {
+            category: { not: "completed" },
+            lastVisitDate: { not: null },
+          },
+          include: { patient: true },
+        }),
+        this.prisma.medicalRecord.findMany({
+          where: {
+            type: "first",
+            planStoppedAt: null,
+            planItems: { some: { followUps: { none: { completes: true } } } },
+          },
+          include: {
+            patient: true,
+            planItems: {
+              orderBy: { sort: "asc" },
+              include: {
+                followUps: {
+                  select: {
+                    completes: true,
+                    record: { select: { visitDate: true } },
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     const todayVisits = [
-      ...clinicVisits.map((v) => ({
-        key: `clinic-${v.id}`,
-        kind: "clinic" as const,
-        patientId: v.patientId,
-        name: v.patient.name,
-        phone: v.patient.phone,
-        chartNo: v.patient.chartNo,
-        detail: v.kind,
-        startTime: v.startTime,
-        endTime: v.endTime,
-        status: v.status,
-        staff: v.doctor,
-      })),
+      // 一次就诊一行；挂了正畸病历的就按正畸展示，不再另出正畸档案行
+      ...visits.map(todayVisitRow),
       ...implantVisits.map((v) => ({
         key: `implant-${v.id}`,
         kind: "implant" as const,
@@ -96,16 +84,6 @@ export class WorkbenchService {
           .filter(Boolean)
           .join("、"),
         staff: v.staff ?? "",
-      })),
-      ...orthodonticsToday.map((o) => ({
-        key: `orthodontics-${o.id}`,
-        kind: "orthodontics" as const,
-        patientId: o.patientId,
-        name: o.patient.name,
-        phone: o.patient.phone,
-        chartNo: o.patient.chartNo,
-        detail: o.category,
-        staff: o.doctor,
       })),
     ];
 
