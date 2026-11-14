@@ -1,5 +1,8 @@
-/** 正畸类病历的类型；挂在同一次就诊上时，这次就诊按正畸展示 */
-export const TODAY_ORTHO_RECORD_TYPES = ["orthoFirst", "orthoReturn"] as const;
+import {
+  isOrthoRecordType,
+  type MedicalRecordType,
+} from "../medical-records/record-rules";
+import { ORTHO_VISIT_REMARK } from "../visits/visit-options";
 
 export type TodayVisitSource = {
   id: number;
@@ -9,8 +12,9 @@ export type TodayVisitSource = {
   kind: string;
   status: string;
   doctor: string;
+  remark: string;
   patient: { name: string; phone: string; chartNo: string };
-  /** 该次就诊挂的正畸病历（没有则为空） */
+  /** 该次就诊挂的病历（id 倒序，第一条最新） */
   medicalRecords: { type: string; doctor: string }[];
 };
 
@@ -28,9 +32,27 @@ export type TodayVisitRow = {
   staff: string;
 };
 
-/** 一次就诊只出一行；挂了正畸病历就算正畸，避免和正畸档案的「上次就诊」重复列出 */
+export function isOrthoVisit(row: {
+  remark: string;
+  medicalRecords: { type: string }[];
+}): boolean {
+  if (row.remark === ORTHO_VISIT_REMARK) return true;
+  return row.medicalRecords.some((r) =>
+    isOrthoRecordType(r.type as MedicalRecordType),
+  );
+}
+
+/**
+ * 一次就诊只出一行：挂了正畸病历、或在正畸名单点过「就诊」的就算正畸，
+ * 避免和正畸档案的「上次就诊」重复列出。
+ */
 export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
-  const ortho = row.medicalRecords[0];
+  const orthoRecord = row.medicalRecords.find((r) =>
+    isOrthoRecordType(r.type as MedicalRecordType),
+  );
+  const latestRecord = row.medicalRecords[0];
+  const ortho = isOrthoVisit(row);
+  const staffSource = ortho ? (orthoRecord ?? latestRecord) : undefined;
   const common = {
     patientId: row.patientId,
     name: row.patient.name,
@@ -39,14 +61,14 @@ export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
     startTime: row.startTime,
     endTime: row.endTime,
     status: row.status,
-    staff: ortho?.doctor || row.doctor,
+    staff: staffSource?.doctor || row.doctor,
   };
   return ortho
     ? {
         ...common,
         key: `orthodontics-${row.id}`,
         kind: "orthodontics",
-        detail: ortho.type,
+        detail: orthoRecord?.type ?? latestRecord?.type ?? "visited",
       }
     : {
         ...common,

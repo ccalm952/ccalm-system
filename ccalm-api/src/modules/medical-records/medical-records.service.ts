@@ -107,6 +107,17 @@ export class MedicalRecordsService {
     doctor: string,
   ): Promise<number | null> {
     if (dto.createVisit) {
+      // 同一天已有「已预约 / 已到店、还没写病历」的就诊就复用它，避免正畸点过「就诊」后又多出一条
+      const openVisit = await tx.patientVisit.findFirst({
+        where: {
+          patientId: dto.patientId,
+          visitDate: dto.visitDate,
+          status: { in: ["booked", "arrived"] },
+          medicalRecords: { none: {} },
+        },
+        orderBy: { id: "desc" },
+      });
+      if (openVisit) return openVisit.id;
       const visit = await tx.patientVisit.create({
         data: {
           patientId: dto.patientId,

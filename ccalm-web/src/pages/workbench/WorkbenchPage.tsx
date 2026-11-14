@@ -51,18 +51,23 @@ const TODAY_KIND_LABELS: Record<TodayVisit["kind"], string> = {
   orthodontics: "正畸",
 };
 
-/** 正畸就诊的「内容」取病历类型，而不是正畸档案的分类 */
+/** 正畸就诊的「内容」取病历类型；visited 表示正畸名单点过「就诊」但还没写病历 */
 const ORTHO_RECORD_LABELS: Record<string, string> = {
+  first: "初诊",
+  return: "复诊",
   orthoFirst: "正畸初诊",
   orthoReturn: "正畸复诊",
+  visited: "已就诊",
 };
 
 function todayVisitDetail(v: TodayVisit): string {
   if (v.kind === "orthodontics") {
+    const label = ORTHO_RECORD_LABELS[v.detail] ?? v.detail;
     return [
       visitTimeRange(v.startTime ?? "", v.endTime ?? ""),
-      ORTHO_RECORD_LABELS[v.detail] ?? v.detail,
-      v.status ? visitStatusLabel(v.status) : "",
+      label,
+      // 「已就诊」本身就是状态，不再重复显示「已到店」
+      v.detail !== "visited" && v.status ? visitStatusLabel(v.status) : "",
     ]
       .filter(Boolean)
       .join(" ");

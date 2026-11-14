@@ -236,14 +236,7 @@ export function OrthodonticsPage() {
 
   async function markVisitedToday(row: OrthodonticsRow) {
     try {
-      await api(
-        "PUT",
-        `/orthodontics/patients/${row.id}`,
-        patientBody({
-          ...row,
-          lastVisitDate: dayjs().format("YYYY-MM-DD"),
-        }),
-      );
+      await api("POST", `/orthodontics/patients/${row.id}/visit`);
       toast.success("已更新就诊");
       await load();
     } catch (e) {

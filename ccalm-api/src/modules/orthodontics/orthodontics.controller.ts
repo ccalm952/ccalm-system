@@ -38,6 +38,11 @@ export class OrthodonticsController {
     return this.orthodontics.update(id, dto);
   }
 
+  @Post("patients/:id/visit")
+  markVisited(@Param("id", ParseIntPipe) id: number) {
+    return this.orthodontics.markVisited(id);
+  }
+
   @Delete("patients/:id")
   remove(@Param("id", ParseIntPipe) id: number) {
     return this.orthodontics.remove(id);

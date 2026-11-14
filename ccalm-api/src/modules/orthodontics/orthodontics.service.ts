@@ -16,6 +16,7 @@ import {
   UpdateOrthodonticsPatientDto,
 } from "./dto/orthodontics-patient.dto";
 import { daysSinceVisit } from "./follow-up";
+import { ORTHO_VISIT_REMARK } from "../visits/visit-options";
 
 const CATEGORY_SET = new Set<string>(Object.values(OrthodonticsCategory));
 
@@ -160,6 +161,58 @@ export class OrthodonticsService {
       });
     });
     return this.mapRow(row);
+  }
+
+  /** 点「就诊」：今天已有未完成就诊就复用，否则建一条「已到店」的就诊，并把上次就诊推到今天 */
+  async markVisited(id: number) {
+    const existing = await this.prisma.orthodonticsPatient.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException("记录不存在");
+    const today = dayjs().format("YYYY-MM-DD");
+
+    const visitId = await this.prisma.$transaction(async (tx) => {
+      const open = await tx.patientVisit.findFirst({
+        where: {
+          patientId: existing.patientId,
+          visitDate: today,
+          status: { in: ["booked", "arrived"] },
+        },
+        orderBy: { id: "desc" },
+      });
+      if (open) {
+        if (open.status !== "arrived") {
+          await tx.patientVisit.update({
+            where: { id: open.id },
+            data: { status: "arrived" },
+          });
+        }
+        return open.id;
+      }
+      const created = await tx.patientVisit.create({
+        data: {
+          patientId: existing.patientId,
+          visitDate: today,
+          startTime: dayjs().format("HH:mm"),
+          kind: "return",
+          status: "arrived",
+          doctor: existing.doctor,
+          remark: ORTHO_VISIT_REMARK,
+        },
+      });
+      return created.id;
+    });
+
+    const lastVisitDate =
+      existing.lastVisitDate && existing.lastVisitDate >= today
+        ? existing.lastVisitDate
+        : today;
+    const row = await this.prisma.orthodonticsPatient.update({
+      where: { id },
+      data: { lastVisitDate },
+      include: { patient: true },
+    });
+    return { ...this.mapRow(row), visitId };
   }
 
   async remove(id: number) {
