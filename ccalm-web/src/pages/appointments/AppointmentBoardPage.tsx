@@ -468,6 +468,30 @@ export function AppointmentBoardPage() {
     });
   }
 
+  function beginFloatDrag(e: React.PointerEvent) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const start = draftStart || "09:00";
+    const dur = draftDuration ?? meta?.defaultDuration ?? 30;
+    setDrag({
+      kind: "new",
+      width: rect.width,
+      height: rect.height,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      moved: false,
+      duration: dur,
+      date: draftDate,
+      start,
+      end: timeAt(minutesOf(start) + dur),
+      doctor: "",
+    });
+  }
   dragRef.current = drag;
   drawerOpenRef.current = drawerOpen;
   editingRef.current = editing;
@@ -537,6 +561,15 @@ export function AppointmentBoardPage() {
           doctor: d.doctor,
         });
         setDrawerOpen(true);
+      } else if (drawerOpenRef.current && !editingRef.current) {
+        setDraftDate(d.date);
+        setDraftStart(d.start);
+        setTimeSync({
+          visitDate: d.date,
+          startTime: d.start,
+          endTime: d.end,
+          nonce: Date.now(),
+        });
       } else {
         setDraftDate(d.date);
         setDraftStart(d.start);
@@ -775,7 +808,7 @@ export function AppointmentBoardPage() {
               <Spinner className="size-8 opacity-60" />
             </div>
           ) : (
-            <div className="flex min-w-[900px] flex-1 flex-col">
+            <div className="relative flex min-w-[900px] flex-1 flex-col">
               <div className="sticky top-0 z-10 flex border-b bg-card">
                 <div className="w-14 shrink-0" />
                 {columns.map((col) => {
@@ -801,25 +834,54 @@ export function AppointmentBoardPage() {
                 })}
               </div>
 
+              {drawerOpen && !editing ? (
+                <div
+                  onPointerDown={beginFloatDrag}
+                  className="absolute top-9 left-16 z-30 h-10 w-36 cursor-grab touch-none rounded-md bg-slate-600 px-2 py-1 text-[11px] leading-tight text-white shadow-lg select-none"
+                  style={{ opacity: drag?.kind === "new" ? 0 : 1 }}
+                >
+                  <span className="block font-semibold">新预约</span>
+                  <span className="block tabular-nums opacity-80">
+                    {draftStart} -{" "}
+                    {timeAt(
+                      minutesOf(draftStart) +
+                        (draftDuration ?? meta?.defaultDuration ?? 30),
+                    )}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex">
-                <div className="w-14 shrink-0">
+                <div className="w-16 shrink-0">
                   <div className="relative" style={{ height: gridHeight }}>
                     {HOURS.map((h) => (
-                      <div
-                        key={h}
-                        className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums"
-                        style={{
-                          top:
-                            (h * 60 - DAY_START) * PX_PER_MIN +
-                            (h === 8 ? 8 : 0),
-                        }}
-                      >
-                        {String(h).padStart(2, "0")}:00
+                      <div key={h}>
+                        <div
+                          className="absolute left-0.5 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground tabular-nums"
+                          style={{
+                            top:
+                              (h * 60 - DAY_START) * PX_PER_MIN +
+                              (h === 8 ? 8 : 0),
+                          }}
+                        >
+                          {String(h).padStart(2, "0")}
+                        </div>
+                        {[0, 15, 30, 45].map((m) => (
+                          <div
+                            key={m}
+                            className="absolute right-1 -translate-y-1/2 text-[9px] text-muted-foreground/80 tabular-nums"
+                            style={{
+                              top:
+                                (h * 60 + m - DAY_START) * PX_PER_MIN +
+                                (h === 8 && m === 0 ? 8 : 0),
+                            }}
+                          >
+                            {String(m).padStart(2, "0")}
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
                 </div>
-
                 {columns.map((col) => {
                   const dayCards = byColumn.get(col.key) ?? [];
                   const laidOut = assignLanes(dayCards);
@@ -856,6 +918,18 @@ export function AppointmentBoardPage() {
                           style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
                         />
                       ))}
+                      {Array.from(
+                        { length: (DAY_END - DAY_START) / 15 },
+                        (_, i) => i,
+                      )
+                        .filter((i) => i % 4 !== 0)
+                        .map((i) => (
+                          <div
+                            key={`q-${i}`}
+                            className="absolute inset-x-0 border-t border-border/30"
+                            style={{ top: i * 15 * PX_PER_MIN }}
+                          />
+                        ))}
 
                       {col.date === today &&
                       nowMinutes > DAY_START &&
