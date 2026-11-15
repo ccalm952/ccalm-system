@@ -1342,7 +1342,7 @@ export function AppointmentBoardPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     to={ROUTES.patients.detail(selected.patientId)}
-                    className="text-sm font-semibold hover:underline"
+                    className="text-sm font-semibold text-primary hover:underline"
                     onClick={() => setPopoverOpen(false)}
                   >
                     {selected.patientName}
