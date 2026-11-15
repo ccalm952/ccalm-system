@@ -178,7 +178,6 @@ export class AppointmentsService {
       doctor: v.doctor,
       kind: v.kind,
       status: v.status,
-      arrived: v.arrivedAt != null,
       items: v.items,
       isPending: v.isPending,
       pendingReason: v.pendingReason,

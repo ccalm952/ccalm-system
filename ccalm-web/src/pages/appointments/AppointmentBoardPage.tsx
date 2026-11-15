@@ -35,7 +35,6 @@ import {
 } from "@/lib/appointments/layout";
 import {
   APPOINTMENT_TONES,
-  ARRIVED_DOT,
   LEGEND_KEYS,
   toneOf,
 } from "@/lib/appointments/status";
@@ -87,7 +86,6 @@ function pendingToCard(p: PendingRow): AppointmentCard {
     doctor: p.doctor,
     kind: "return",
     status: "booked",
-    arrived: false,
     items: p.items,
     isPending: true,
     pendingReason: p.pendingReason,
@@ -1270,13 +1268,6 @@ export function AppointmentBoardPage() {
                                   · {card.doctor}
                                 </span>
                               ) : null}
-                              {card.arrived ? (
-                                <span
-                                  className="ml-auto size-1.5 shrink-0 rounded-full"
-                                  style={{ backgroundColor: ARRIVED_DOT }}
-                                  title="已到店"
-                                />
-                              ) : null}
                             </span>
                             {height >= 36 && card.items.length ? (
                               <span className="block truncate opacity-80">
@@ -1354,12 +1345,6 @@ export function AppointmentBoardPage() {
                     />
                     {toneOf(selected).label}
                   </span>
-                  {selected.arrived ? (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <span className="size-2 rounded-full bg-emerald-500" />
-                      已到店
-                    </span>
-                  ) : null}
                 </div>
                 <button
                   type="button"

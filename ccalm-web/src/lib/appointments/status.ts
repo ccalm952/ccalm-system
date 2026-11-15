@@ -26,8 +26,6 @@ export function toneOf(
   );
 }
 
-export const ARRIVED_DOT = "#0891B2";
-
 /** 图例顺序 */
 export const LEGEND_KEYS = [
   "pending",

@@ -14,7 +14,6 @@ export type AppointmentCard = {
   doctor: string;
   kind: string;
   status: AppointmentStatus;
-  arrived: boolean;
   items: string[];
   isPending: boolean;
   pendingReason: string;
