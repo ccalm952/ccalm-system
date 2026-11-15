@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
@@ -61,48 +62,6 @@ function padTime(t: string): string {
   return `${h.padStart(2, "0")}:${(m ?? "00").padStart(2, "0")}`;
 }
 
-const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
-  const total = i * 15;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(
-    total % 60,
-  ).padStart(2, "0")}`;
-});
-
-function TimeSelect({
-  value,
-  onValueChange,
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-}) {
-  const options = React.useMemo(
-    () =>
-      TIME_OPTIONS.includes(value)
-        ? TIME_OPTIONS
-        : [...TIME_OPTIONS, padTime(value)].sort(),
-    [value],
-  );
-  return (
-    <Select
-      items={options.map((v) => ({ value: v, label: v }))}
-      value={value}
-      onValueChange={(v) => {
-        if (v) onValueChange(v);
-      }}
-    >
-      <SelectTrigger className="w-36">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((v) => (
-          <SelectItem key={v} value={v}>
-            {v}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 function plusMinutes(time: string, minutes: number): string {
   const total = minutesOf(time) + minutes;
   const h = String(Math.floor(total / 60) % 24).padStart(2, "0");
@@ -1674,16 +1633,20 @@ export function AppointmentBoardPage() {
           <div className="grid gap-3 py-2">
             <label className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">上班时间</span>
-              <TimeSelect
+              <Input
+                type="time"
+                className="h-8 w-36 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 value={workStartInput}
-                onValueChange={setWorkStartInput}
+                onChange={(e) => setWorkStartInput(e.target.value)}
               />
             </label>
             <label className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">下班时间</span>
-              <TimeSelect
+              <Input
+                type="time"
+                className="h-8 w-36 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 value={workEndInput}
-                onValueChange={setWorkEndInput}
+                onChange={(e) => setWorkEndInput(e.target.value)}
               />
             </label>
             <p className="text-sm text-muted-foreground">
