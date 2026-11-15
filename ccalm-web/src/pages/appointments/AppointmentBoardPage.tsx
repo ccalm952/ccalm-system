@@ -1397,16 +1397,6 @@ export function AppointmentBoardPage() {
                 </div>
                 <Separator />
                 <div className="flex flex-wrap justify-end gap-2 pt-1">
-                  {selected.status === "booked" && !selected.arrived ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => void act(selected, "arrive")}
-                    >
-                      到店
-                    </Button>
-                  ) : null}
                   {selected.status === "booked" ? (
                     <>
                       <Button
