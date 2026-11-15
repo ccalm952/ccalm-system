@@ -90,7 +90,7 @@ function SelectContent({
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List className="p-1">
+          <SelectPrimitive.List className="p-1.5">
             {children}
           </SelectPrimitive.List>
           <SelectScrollDownButton />
