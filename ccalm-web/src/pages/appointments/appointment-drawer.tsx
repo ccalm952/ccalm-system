@@ -32,6 +32,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { TimePicker } from "@/components/time-picker";
 import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import type {
@@ -420,19 +421,17 @@ export function AppointmentDrawer({
                       }}
                     />
                   </div>
-                  <Input
-                    type="time"
-                    step={900}
+                  <TimePicker
                     value={startTime}
-                    onChange={(e) => {
-                      setStartTime(e.target.value);
+                    onChange={(v) => {
+                      setStartTime(v);
                       onScheduleChange?.({
                         visitDate,
-                        startTime: e.target.value,
+                        startTime: v,
                         durationMinutes: duration,
                       });
                     }}
-                    className="h-8 w-24"
+                    className="w-28"
                   />
                 </div>
               </Row>
