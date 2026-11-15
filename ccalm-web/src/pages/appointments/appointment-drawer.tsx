@@ -13,6 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -133,6 +138,7 @@ export function AppointmentDrawer({
   const [force, setForce] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [itemQuery, setItemQuery] = React.useState("");
+  const [itemsOpen, setItemsOpen] = React.useState(false);
   const [upcoming, setUpcoming] = React.useState<Upcoming[]>([]);
 
   React.useEffect(() => {
@@ -273,7 +279,7 @@ export function AppointmentDrawer({
       <SheetContent
         showOverlay={false}
         className="flex flex-col p-0"
-        style={{ width: "min(96vw, 860px)", maxWidth: "none" }}
+        style={{ width: "min(96vw, 440px)", maxWidth: "none" }}
       >
         <SheetHeader className="border-b px-4 py-2.5">
           <SheetTitle>{initial ? "修改预约" : "新建预约"}</SheetTitle>
@@ -474,6 +480,69 @@ export function AppointmentDrawer({
                 </Select>
               </Row>
 
+              <Row label="预约项目">
+                <Popover open={itemsOpen} onOpenChange={setItemsOpen}>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 w-full justify-between font-normal"
+                      />
+                    }
+                  >
+                    <span className="truncate">
+                      {items.length ? items.join("、") : "选择项目"}
+                    </span>
+                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                      {items.length ? `${items.length} 项` : ""}
+                    </span>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 gap-0 p-0">
+                    <div className="border-b p-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
+                        <Input
+                          value={itemQuery}
+                          onChange={(e) => setItemQuery(e.target.value)}
+                          placeholder="搜索预约项目"
+                          className="h-8 pl-7"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex max-h-72 flex-col gap-2 overflow-y-auto p-3">
+                      {filteredCategories.map((cat) => (
+                        <div key={cat.id} className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {cat.name}
+                          </span>
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                            {cat.items.map((item) => (
+                              <label
+                                key={item.id}
+                                className="flex items-center gap-1.5 text-xs"
+                              >
+                                <Checkbox
+                                  checked={items.includes(item.name)}
+                                  onCheckedChange={(v) =>
+                                    toggleItem(item.name, v === true)
+                                  }
+                                />
+                                <span className="truncate">{item.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {!filteredCategories.length ? (
+                        <p className="py-4 text-center text-xs text-muted-foreground">
+                          没有匹配的项目
+                        </p>
+                      ) : null}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </Row>
               <Row label="备注">
                 <Textarea
                   value={remark}
@@ -492,53 +561,6 @@ export function AppointmentDrawer({
               </label>
             </section>
           </div>
-
-          <aside className="flex w-60 shrink-0 flex-col border-l">
-            <div className="border-b px-3 py-2">
-              <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">
-                预约项目
-              </h4>
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
-                <Input
-                  value={itemQuery}
-                  onChange={(e) => setItemQuery(e.target.value)}
-                  placeholder="搜索预约项目"
-                  className="h-8 pl-7"
-                />
-              </div>
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-2">
-              {filteredCategories.map((cat) => (
-                <div key={cat.id} className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {cat.name}
-                  </span>
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                    {cat.items.map((item) => (
-                      <label
-                        key={item.id}
-                        className="flex items-center gap-1.5 text-xs"
-                      >
-                        <Checkbox
-                          checked={items.includes(item.name)}
-                          onCheckedChange={(v) =>
-                            toggleItem(item.name, v === true)
-                          }
-                        />
-                        <span className="truncate">{item.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {!filteredCategories.length ? (
-                <p className="py-4 text-center text-xs text-muted-foreground">
-                  没有匹配的项目
-                </p>
-              ) : null}
-            </div>
-          </aside>
         </div>
 
         <SheetFooter className="flex-row items-center justify-between border-t px-4 py-2.5">
