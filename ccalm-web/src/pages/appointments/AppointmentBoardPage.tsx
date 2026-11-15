@@ -886,17 +886,13 @@ export function AppointmentBoardPage() {
       ) : null}
       {/* 待定池 + 网格 */}
       <div className="flex min-h-0 flex-1 gap-3">
-        <aside className="hidden w-52 shrink-0 flex-col rounded-xl border bg-card md:flex">
-          <div className="flex items-center justify-between border-b px-3 py-2 text-sm font-medium">
+        <aside className="hidden w-52 shrink-0 flex-col md:flex">
+          <div className="flex items-center justify-between px-3 py-2 text-sm font-medium">
             <span>待定预约</span>
             <Badge variant="secondary">{pending.length}</Badge>
           </div>
-          {pending.length ? (
-            <p className="border-b px-3 pb-1.5 text-sm text-muted-foreground">
-              点击卡片确认预约，或拖到看板快速排期
-            </p>
-          ) : null}
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 py-2">
+
+          <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto py-1">
             {pending.map((p) => (
               <button
                 key={p.id}
@@ -908,7 +904,7 @@ export function AppointmentBoardPage() {
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
                 }}
-                className={`cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-sm select-none hover:bg-pink-50 active:cursor-grabbing ${
+                className={`cursor-grab touch-none rounded-lg px-3 py-2 text-left text-sm select-none hover:bg-muted/60 active:cursor-grabbing ${
                   drag?.kind === "pending" && drag.pending?.id === p.id
                     ? "opacity-40"
                     : ""
