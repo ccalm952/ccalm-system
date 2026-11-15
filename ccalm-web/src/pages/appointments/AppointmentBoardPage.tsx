@@ -45,16 +45,9 @@ import { useAuth } from "@/lib/use-auth";
 
 import { AppointmentDrawer } from "./appointment-drawer";
 
-const DAY_START = 8 * 60;
-const DAY_END = 22 * 60;
 const SLOT_PX = 28;
 const PX_PER_MIN = SLOT_PX / 15;
 const WEEKDAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-const HOURS = Array.from(
-  { length: (DAY_END - DAY_START) / 60 },
-  (_, i) => DAY_START / 60 + i,
-);
-
 function mondayOf(date: string): string {
   const d = dayjs(date);
   const offset = d.day() === 0 ? 6 : d.day() - 1;
@@ -141,6 +134,15 @@ export function AppointmentBoardPage() {
   const [board, setBoard] = React.useState<BoardResponse | null>(null);
   const [pending, setPending] = React.useState<PendingRow[]>([]);
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
+  const DAY_START = minutesOf(meta?.workStart ?? "08:30");
+  const DAY_END = Math.max(minutesOf(meta?.workEnd ?? "18:00"), DAY_START + 60);
+  const HOUR_LINES = React.useMemo(() => {
+    const lines: number[] = [];
+    for (let m = Math.ceil(DAY_START / 60) * 60; m < DAY_END; m += 60) {
+      lines.push(m);
+    }
+    return lines;
+  }, [DAY_START, DAY_END]);
   const [loading, setLoading] = React.useState(true);
   const [doctorFilter, setDoctorFilter] = React.useState<string>("all");
   const [hidden, setHidden] = React.useState<Set<string>>(new Set());
@@ -148,7 +150,7 @@ export function AppointmentBoardPage() {
   const [draftDate, setDraftDate] = React.useState(
     dayjs().format("YYYY-MM-DD"),
   );
-  const [draftStart, setDraftStart] = React.useState("09:00");
+  const [draftStart, setDraftStart] = React.useState("08:30");
   const [now, setNow] = React.useState(() => dayjs());
   const [editing, setEditing] = React.useState<AppointmentCard | null>(null);
   const [selected, setSelected] = React.useState<AppointmentCard | null>(null);
@@ -324,7 +326,7 @@ export function AppointmentBoardPage() {
       map.set(col.key, list);
     }
     return map;
-  }, [visible, columns, view, dayDate, pendingMove, drag]);
+  }, [visible, columns, view, dayDate, pendingMove, drag, DAY_START, DAY_END]);
   function toggleLegend(key: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -460,7 +462,7 @@ export function AppointmentBoardPage() {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [resize, resizeEnd]);
+  }, [resize, resizeEnd, DAY_START, DAY_END]);
 
   React.useEffect(() => {
     if (!draftResize) return;
@@ -585,7 +587,7 @@ export function AppointmentBoardPage() {
     if (e.button !== 0) return;
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    const start = draftStart || "09:00";
+    const start = draftStart || meta?.workStart || "08:30";
     const dur = draftDuration ?? meta?.defaultDuration ?? 30;
     setDrag({
       kind: "new",
@@ -853,7 +855,7 @@ export function AppointmentBoardPage() {
                 if (drawerOpen) return;
                 setEditing(null);
                 setDraftDate(view === "day" ? dayDate : from);
-                setDraftStart("08:00");
+                setDraftStart(meta?.workStart ?? "08:30");
                 setDrawerOpen(true);
               }}
             >
@@ -969,12 +971,12 @@ export function AppointmentBoardPage() {
                         style={{ top: i * SLOT_PX }}
                       >
                         <span className="w-7 text-center text-[10px] font-semibold text-muted-foreground tabular-nums">
-                          {i % 4 === 0
-                            ? String(DAY_START / 60 + i / 4).padStart(2, "0")
+                          {(DAY_START + i * 15) % 60 === 0
+                            ? String((DAY_START + i * 15) / 60).padStart(2, "0")
                             : ""}
                         </span>
                         <span className="flex-1 text-center text-[10px] text-muted-foreground tabular-nums">
-                          {String((i % 4) * 15).padStart(2, "0")}
+                          {String((DAY_START + i * 15) % 60).padStart(2, "0")}
                         </span>
                       </div>
                     ))}
@@ -1032,11 +1034,11 @@ export function AppointmentBoardPage() {
                         setDrawerOpen(true);
                       }}
                     >
-                      {HOURS.filter((h) => h !== 8).map((h) => (
+                      {HOUR_LINES.map((m) => (
                         <div
-                          key={h}
+                          key={m}
                           className="absolute inset-x-0 border-t border-dashed border-border"
-                          style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
+                          style={{ top: (m - DAY_START) * PX_PER_MIN }}
                         />
                       ))}
                       {Array.from(

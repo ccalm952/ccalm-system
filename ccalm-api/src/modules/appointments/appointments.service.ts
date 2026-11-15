@@ -70,7 +70,13 @@ export class AppointmentsService {
         },
       },
     });
+    const shift = await this.prisma.shiftConfig.findUnique({
+      where: { id: "global" },
+      select: { morningRangeStart: true, afternoonRangeEnd: true },
+    });
     return {
+      workStart: fromMinutes(toMinutes(shift?.morningRangeStart ?? "08:30")),
+      workEnd: fromMinutes(toMinutes(shift?.afternoonRangeEnd ?? "18:00")),
       doctors,
       nurses,
       items: categories.map((c) => ({

@@ -36,6 +36,8 @@ export type AppointmentItemCategory = {
 };
 
 export type AppointmentMeta = {
+  workStart: string;
+  workEnd: string;
   doctors: string[];
   nurses: string[];
   items: AppointmentItemCategory[];
