@@ -1135,8 +1135,8 @@ export function AppointmentBoardPage() {
                                 {card.patientName}
                               </span>
                               {card.doctor ? (
-                                <span className="shrink-0 truncate rounded-full bg-foreground/5 px-1.5 py-0.5 text-sm leading-none text-muted-foreground">
-                                  {card.doctor}
+                                <span className="shrink-0 truncate text-sm text-muted-foreground">
+                                  · {card.doctor}
                                 </span>
                               ) : null}
                               {card.arrived ? (
@@ -1209,13 +1209,18 @@ export function AppointmentBoardPage() {
                   <span className="text-lg font-semibold">
                     {selected.patientName}
                   </span>
-                  <Badge variant="secondary" className="text-sm">
+                  <span className="inline-flex items-center gap-1.5 text-sm">
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: toneOf(selected).bar }}
+                    />
                     {toneOf(selected).label}
-                  </Badge>
+                  </span>
                   {selected.arrived ? (
-                    <Badge variant="secondary" className="text-sm">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <span className="size-2 rounded-full bg-emerald-500" />
                       已到店
-                    </Badge>
+                    </span>
                   ) : null}
                 </div>
                 <button
