@@ -897,14 +897,14 @@ export function AppointmentBoardPage() {
             ) : null}
           </div>
         </aside>
-        <div className="flex min-h-0 flex-1 overflow-auto rounded-xl border bg-card">
+        <div className="flex min-h-0 flex-1 overflow-auto rounded-xl border bg-card shadow-sm">
           {loading ? (
             <div className="flex h-64 w-full items-center justify-center">
               <Spinner className="size-8 opacity-60" />
             </div>
           ) : (
             <div className="relative flex min-w-[900px] flex-1 flex-col">
-              <div className="sticky top-0 z-10 flex border-b border-border/60 bg-card">
+              <div className="sticky top-0 z-10 flex border-b border-border bg-card/95 backdrop-blur">
                 <div className="w-16 shrink-0" />
                 {columns.map((col) => {
                   const isToday = col.date === today;
@@ -916,8 +916,8 @@ export function AppointmentBoardPage() {
                   return (
                     <div
                       key={col.key}
-                      className={`flex flex-1 flex-col items-center border-l border-border/30 py-1.5 text-sm ${
-                        isToday ? "bg-primary/5 font-medium text-primary" : ""
+                      className={`flex flex-1 flex-col items-center border-l border-border/50 py-2 text-sm ${
+                        isToday ? "bg-primary/10 font-medium text-primary" : ""
                       }`}
                     >
                       <span>{col.label}</span>
@@ -959,13 +959,13 @@ export function AppointmentBoardPage() {
                           key={`axis-${i}`}
                           className={
                             i % 4 === 0
-                              ? "absolute inset-x-0 border-t border-dashed border-border/70"
-                              : "absolute inset-x-0 border-t border-border/30"
+                              ? "absolute inset-x-0 border-t border-dashed border-border"
+                              : "absolute inset-x-0 border-t border-border/60"
                           }
                           style={{ top: i * SLOT_PX }}
                         />
                       ))}
-                    <div className="absolute inset-y-0 left-7 w-px bg-border/70" />
+                    <div className="absolute inset-y-0 left-7 w-px bg-border" />
                   </div>
                 </div>
                 {columns.map((col) => {
@@ -974,8 +974,13 @@ export function AppointmentBoardPage() {
                   return (
                     <div
                       key={col.key}
-                      className={`relative flex-1 border-l border-border/30 ${
-                        col.date === today ? "bg-primary/[0.03]" : ""
+                      className={`relative flex-1 border-l border-border/50 ${
+                        col.date === today
+                          ? "bg-primary/[0.05]"
+                          : view === "week" &&
+                              [0, 6].includes(dayjs(col.date).day())
+                            ? "bg-muted/40"
+                            : ""
                       }`}
                       style={{ height: gridHeight }}
                       data-col-date={col.date}
@@ -1001,7 +1006,7 @@ export function AppointmentBoardPage() {
                       {HOURS.filter((h) => h !== 8).map((h) => (
                         <div
                           key={h}
-                          className="absolute inset-x-0 border-t border-dashed border-border/70"
+                          className="absolute inset-x-0 border-t border-dashed border-border"
                           style={{ top: (h * 60 - DAY_START) * PX_PER_MIN }}
                         />
                       ))}
@@ -1013,7 +1018,7 @@ export function AppointmentBoardPage() {
                         .map((i) => (
                           <div
                             key={`q-${i}`}
-                            className="absolute inset-x-0 border-t border-border/30"
+                            className="absolute inset-x-0 border-t border-border/60"
                             style={{ top: i * 15 * PX_PER_MIN }}
                           />
                         ))}
@@ -1022,7 +1027,7 @@ export function AppointmentBoardPage() {
                       nowMinutes > DAY_START &&
                       nowMinutes < DAY_END ? (
                         <div
-                          className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-destructive/60"
+                          className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-destructive/70"
                           style={{ top: nowTop }}
                         />
                       ) : null}
@@ -1048,7 +1053,7 @@ export function AppointmentBoardPage() {
                         return (
                           <div
                             onPointerDown={beginFloatDrag}
-                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-sm leading-tight text-white shadow-md select-none"
+                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-lg border-l-[3px] border-slate-500 bg-slate-600 px-2 py-0.5 text-left text-sm leading-tight text-white shadow-md select-none"
                             style={{
                               top,
                               height: Math.max(16, dur * PX_PER_MIN - 2),
@@ -1110,7 +1115,7 @@ export function AppointmentBoardPage() {
                               setPopoverAnchor(e.currentTarget);
                               setSelected(card);
                             }}
-                            className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
+                            className="absolute touch-none overflow-hidden rounded-lg border-l-[3px] px-2 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
                             style={{
                               top,
                               height,
@@ -1206,7 +1211,7 @@ export function AppointmentBoardPage() {
             <>
               <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-semibold">
+                  <span className="text-sm font-semibold">
                     {selected.patientName}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-sm">
