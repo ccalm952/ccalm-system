@@ -12,6 +12,7 @@ export const PERMISSION_GROUPS = [
       { key: "appointment.create", label: "新建/编辑预约" },
       { key: "appointment.edit_any", label: "修改他人预约" },
       { key: "appointment.delete", label: "删除预约" },
+      { key: "appointment.delete_past", label: "删除历史预约" },
       { key: "appointment.export", label: "导出预约列表" },
       { key: "appointment.pending", label: "待定预约与批量顺延" },
       { key: "appointment.settings", label: "预约设置（项目/时长/底色）" },

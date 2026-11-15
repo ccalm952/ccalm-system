@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
+import { PermissionsService } from "../../common/permissions/permissions.service";
 import { RequirePermissions } from "../../common/permissions/require-permissions.decorator";
 import { actor } from "../../common/request-auth";
 import { AppointmentsService } from "./appointments.service";
@@ -21,7 +22,10 @@ import { UpdateAppointmentDto } from "./dto/update-appointment.dto";
 
 @Controller("appointments")
 export class AppointmentsController {
-  constructor(private readonly appointments: AppointmentsService) {}
+  constructor(
+    private readonly appointments: AppointmentsService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Get("meta")
   @RequirePermissions("appointment.view")
@@ -117,7 +121,11 @@ export class AppointmentsController {
 
   @Delete(":id")
   @RequirePermissions("appointment.delete")
-  remove(@Param("id", ParseIntPipe) id: number) {
-    return this.appointments.remove(id);
+  async remove(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
+    const allowPast = await this.permissions.has(
+      actor(req).userId,
+      "appointment.delete_past",
+    );
+    return this.appointments.remove(id, { allowPast });
   }
 }

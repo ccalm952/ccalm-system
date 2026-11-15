@@ -546,14 +546,14 @@ export class AppointmentsService {
     return { ok: true };
   }
 
-  async remove(id: number) {
+  async remove(id: number, opts?: { allowPast?: boolean }) {
     const visit = await this.prisma.patientVisit.findUnique({ where: { id } });
     if (!visit) throw new NotFoundException("预约不存在");
     if (visit.status === "completed") {
       throw new BadRequestException("已完成的记录不能删除");
     }
     const today = dayjs().format("YYYY-MM-DD");
-    if (!visit.isPending && visit.visitDate < today) {
+    if (!visit.isPending && visit.visitDate < today && !opts?.allowPast) {
       throw new BadRequestException("过去的预约不能删除，请改为取消/失约");
     }
     await this.prisma.patientVisit.delete({ where: { id } });
