@@ -70,13 +70,13 @@ export class AppointmentsService {
         },
       },
     });
-    const shift = await this.prisma.shiftConfig.findUnique({
+    const settings = await this.prisma.appointmentSettings.findUnique({
       where: { id: "global" },
-      select: { morningRangeStart: true, afternoonRangeEnd: true },
+      select: { workStart: true, workEnd: true },
     });
     return {
-      workStart: fromMinutes(toMinutes(shift?.morningRangeStart ?? "08:30")),
-      workEnd: fromMinutes(toMinutes(shift?.afternoonRangeEnd ?? "18:00")),
+      workStart: fromMinutes(toMinutes(settings?.workStart ?? "08:30")),
+      workEnd: fromMinutes(toMinutes(settings?.workEnd ?? "18:00")),
       doctors,
       nurses,
       items: categories.map((c) => ({
@@ -96,6 +96,32 @@ export class AppointmentsService {
     };
   }
 
+  async settings() {
+    const row = await this.prisma.appointmentSettings.findUnique({
+      where: { id: "global" },
+    });
+    return {
+      workStart: fromMinutes(toMinutes(row?.workStart ?? "08:30")),
+      workEnd: fromMinutes(toMinutes(row?.workEnd ?? "18:00")),
+    };
+  }
+
+  async updateSettings(input: { workStart?: string; workEnd?: string }) {
+    const workStart = input.workStart ?? "08:30";
+    const workEnd = input.workEnd ?? "18:00";
+    if (!TIME_PATTERN.test(workStart) || !TIME_PATTERN.test(workEnd)) {
+      throw new BadRequestException("时间格式应为 HH:mm");
+    }
+    if (toMinutes(workStart) >= toMinutes(workEnd)) {
+      throw new BadRequestException("上班时间必须早于下班时间");
+    }
+    await this.prisma.appointmentSettings.upsert({
+      where: { id: "global" },
+      create: { id: "global", workStart, workEnd },
+      update: { workStart, workEnd },
+    });
+    return this.settings();
+  }
   // ---------- 看板 ----------
 
   async board(query: {

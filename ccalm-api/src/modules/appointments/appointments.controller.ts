@@ -33,6 +33,17 @@ export class AppointmentsController {
     return this.appointments.meta();
   }
 
+  @Get("settings")
+  @RequirePermissions("appointment.view")
+  settings() {
+    return this.appointments.settings();
+  }
+
+  @Put("settings")
+  @RequirePermissions("appointment.settings")
+  updateSettings(@Body() body: { workStart?: string; workEnd?: string }) {
+    return this.appointments.updateSettings(body);
+  }
   @Get("board")
   @RequirePermissions("appointment.view")
   board(

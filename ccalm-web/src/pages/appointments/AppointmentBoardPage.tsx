@@ -57,11 +57,6 @@ function mondayOf(date: string): string {
   return d.subtract(offset, "day").format("YYYY-MM-DD");
 }
 
-function padTime(t: string): string {
-  const [h, m] = t.split(":");
-  return `${h.padStart(2, "0")}:${(m ?? "00").padStart(2, "0")}`;
-}
-
 function plusMinutes(time: string, minutes: number): string {
   const total = minutesOf(time) + minutes;
   const h = String(Math.floor(total / 60) % 24).padStart(2, "0");
@@ -191,10 +186,6 @@ export function AppointmentBoardPage() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [workStartInput, setWorkStartInput] = React.useState("08:30");
   const [workEndInput, setWorkEndInput] = React.useState("18:00");
-  const [shiftPayload, setShiftPayload] = React.useState<Record<
-    string,
-    string
-  > | null>(null);
   const [drag, setDrag] = React.useState<DragState | null>(null);
   const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
     undefined,
@@ -432,21 +423,18 @@ export function AppointmentBoardPage() {
   }
   async function openSettings() {
     try {
-      const shift = await api<Record<string, string>>(
+      const settings = await api<{ workStart: string; workEnd: string }>(
         "GET",
-        "/attendance/shift",
+        "/appointments/settings",
       );
-      setWorkStartInput(padTime(shift.morningRangeStart ?? "08:30"));
-      setWorkEndInput(padTime(shift.afternoonRangeEnd ?? "18:00"));
-      setShiftPayload(shift);
+      setWorkStartInput(settings.workStart);
+      setWorkEndInput(settings.workEnd);
       setSettingsOpen(true);
     } catch (e) {
       toast.error(errorMessage(e));
     }
   }
-
   async function saveSettings() {
-    if (!shiftPayload) return;
     if (!workStartInput || !workEndInput) {
       toast.error("请填写上下班时间");
       return;
@@ -456,14 +444,9 @@ export function AppointmentBoardPage() {
       return;
     }
     try {
-      const payload = { ...shiftPayload };
-      delete payload.id;
-      delete payload.createdAt;
-      delete payload.updatedAt;
-      await api("PUT", "/attendance/shift", {
-        ...payload,
-        morningRangeStart: workStartInput,
-        afternoonRangeEnd: workEndInput,
+      await api("PUT", "/appointments/settings", {
+        workStart: workStartInput,
+        workEnd: workEndInput,
       });
       toast.success("已保存预约设置");
       setSettingsOpen(false);
@@ -932,7 +915,7 @@ export function AppointmentBoardPage() {
           })}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {me?.role === "admin" ? (
+          {can(me, "appointment.settings") ? (
             <Button type="button" variant="outline" onClick={openSettings}>
               <Settings className="size-4" />
               预约设置
