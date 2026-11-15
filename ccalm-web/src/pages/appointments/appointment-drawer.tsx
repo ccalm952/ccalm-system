@@ -316,9 +316,11 @@ export function AppointmentDrawer({
           height: "calc(100svh - 3.5rem)",
         }}
       >
-        <SheetHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
-          <SheetTitle>{initial ? "修改预约" : "新建预约"}</SheetTitle>
-          <SheetClose className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+        <SheetHeader className="flex flex-row items-center justify-between border-b px-4 py-2">
+          <SheetTitle className="flex h-8 items-center">
+            {initial ? "修改预约" : "新建预约"}
+          </SheetTitle>
+          <SheetClose className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
             <X className="size-4" />
             <span className="sr-only">关闭</span>
           </SheetClose>
@@ -615,7 +617,7 @@ export function AppointmentDrawer({
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="default"
             disabled={saving}
             onClick={() => void save(true)}
           >
