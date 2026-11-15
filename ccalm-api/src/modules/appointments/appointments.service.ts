@@ -473,7 +473,7 @@ export class AppointmentsService {
         visitDate,
         startTime,
         endTime,
-        doctor: isPending ? "" : doctor,
+        doctor,
         kind: dto.kind ?? existing.kind,
         items: dto.items ?? existing.items,
         remark: dto.remark ?? existing.remark,

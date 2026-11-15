@@ -244,7 +244,7 @@ export function AppointmentDrawer({
         visitDate,
         startTime: asPending ? undefined : startTime,
         durationMinutes: duration,
-        doctor: asPending ? undefined : doctor,
+        doctor: doctor || undefined,
         kind,
         items,
         remark,

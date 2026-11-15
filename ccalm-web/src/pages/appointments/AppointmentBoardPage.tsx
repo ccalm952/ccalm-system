@@ -908,7 +908,11 @@ export function AppointmentBoardPage() {
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
                 }}
-                className="cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-sm select-none hover:bg-pink-50 active:cursor-grabbing"
+                className={`cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-sm select-none hover:bg-pink-50 active:cursor-grabbing ${
+                  drag?.kind === "pending" && drag.pending?.id === p.id
+                    ? "opacity-40"
+                    : ""
+                }`}
               >
                 <span className="flex items-center justify-between gap-1">
                   <span className="font-medium">{p.patientName}</span>
@@ -920,6 +924,7 @@ export function AppointmentBoardPage() {
                 </span>
                 <span className="block truncate text-muted-foreground">
                   {p.visitDate}
+                  {p.doctor ? ` · ${p.doctor}` : ""}
                   {p.items.length ? ` · ${p.items.join("/")}` : ""}
                 </span>
               </button>
@@ -1056,7 +1061,6 @@ export function AppointmentBoardPage() {
                             style={{ top: i * 15 * PX_PER_MIN }}
                           />
                         ))}
-
                       {col.date === today &&
                       nowMinutes > DAY_START &&
                       nowMinutes < DAY_END ? (
@@ -1065,7 +1069,6 @@ export function AppointmentBoardPage() {
                           style={{ top: nowTop }}
                         />
                       ) : null}
-
                       {(() => {
                         const dur =
                           draftDuration ?? meta?.defaultDuration ?? 30;
@@ -1118,6 +1121,28 @@ export function AppointmentBoardPage() {
                           </div>
                         );
                       })()}
+                      {drag &&
+                      drag.moved &&
+                      drag.kind === "pending" &&
+                      drag.date === col.date ? (
+                        <div
+                          className="pointer-events-none absolute right-[2px] left-[2px] z-20 overflow-hidden rounded-lg border-l-[3px] px-2 py-0.5 text-left text-sm leading-tight shadow-md"
+                          style={{
+                            top:
+                              (minutesOf(drag.start) - DAY_START) * PX_PER_MIN,
+                            height: Math.max(16, 30 * PX_PER_MIN - 2),
+                            backgroundColor: APPOINTMENT_TONES.pending.bg,
+                            borderLeftColor: APPOINTMENT_TONES.pending.bar,
+                          }}
+                        >
+                          <span className="block truncate font-semibold">
+                            {drag.pending?.patientName}
+                          </span>
+                          <span className="block truncate tabular-nums opacity-80">
+                            {drag.start} - {drag.end}
+                          </span>
+                        </div>
+                      ) : null}{" "}
                       {laidOut.map((card) => {
                         const tone = toneOf(card);
                         const top =
@@ -1397,27 +1422,31 @@ export function AppointmentBoardPage() {
               </p>
               <div className="grid grid-cols-[72px_1fr] items-center gap-2">
                 <span className="text-right text-muted-foreground">医生</span>
-                <Select
-                  items={(meta?.doctors ?? []).map((n) => ({
-                    value: n,
-                    label: n,
-                  }))}
-                  value={pendingDoctor || null}
-                  onValueChange={(v) => {
-                    if (v) setPendingDoctor(v);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-full">
-                    <SelectValue placeholder="选择医生" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(meta?.doctors ?? []).map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {pendingBook.doctor ? (
+                  <span>{pendingBook.doctor}</span>
+                ) : (
+                  <Select
+                    items={(meta?.doctors ?? []).map((n) => ({
+                      value: n,
+                      label: n,
+                    }))}
+                    value={pendingDoctor || null}
+                    onValueChange={(v) => {
+                      if (v) setPendingDoctor(v);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-full">
+                      <SelectValue placeholder="选择医生" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(meta?.doctors ?? []).map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
           ) : null}
@@ -1526,33 +1555,6 @@ export function AppointmentBoardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {drag && drag.moved && drag.kind === "pending" ? (
-        <div
-          className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-xl"
-          style={{
-            left: drag.x - drag.offsetX,
-            top: drag.y - drag.offsetY,
-            width: drag.width,
-            height: drag.height,
-            backgroundColor: APPOINTMENT_TONES.pending.bg,
-            borderLeftColor: APPOINTMENT_TONES.pending.bar,
-          }}
-        >
-          <span className="block truncate font-semibold">
-            {drag.pending?.patientName}
-          </span>
-          {drag.height >= 36 ? (
-            <span className="block truncate opacity-80">
-              {drag.pending?.items.join("/")}
-            </span>
-          ) : null}
-          {drag.height >= 48 && drag.start ? (
-            <span className="block truncate tabular-nums opacity-70">
-              {drag.start} - {drag.end}
-            </span>
-          ) : null}
-        </div>
-      ) : null}{" "}
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={(next) => {
