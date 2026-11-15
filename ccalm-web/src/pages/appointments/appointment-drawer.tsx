@@ -307,7 +307,12 @@ export function AppointmentDrawer({
       <SheetContent
         showOverlay={false}
         className="flex flex-col p-0"
-        style={{ width: "min(96vw, 440px)", maxWidth: "none" }}
+        style={{
+          width: "min(96vw, 440px)",
+          maxWidth: "none",
+          top: "3.5rem",
+          height: "calc(100svh - 3.5rem)",
+        }}
       >
         <SheetHeader className="border-b px-4 py-2.5">
           <SheetTitle>{initial ? "修改预约" : "新建预约"}</SheetTitle>
