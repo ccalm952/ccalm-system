@@ -233,8 +233,12 @@ export function AppointmentDrawer({
       toast.error("请选择预约日期");
       return;
     }
-    if (!asPending && (!startTime || !doctor)) {
-      toast.error("请选择预约时间和医生（或保存为待定）");
+    if (!doctor) {
+      toast.error("请选择医生（待定预约也需要选择医生）");
+      return;
+    }
+    if (!asPending && !startTime) {
+      toast.error("请选择预约时间");
       return;
     }
     setSaving(true);
