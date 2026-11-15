@@ -145,3 +145,24 @@
 [data-slot="scroll-area-thumb"]:hover {
   background: color-mix(in oklch, var(--muted-foreground) 42%, transparent);
 }
+/* 细滚动条（与 shadcn ScrollArea 视觉一致） */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklch, var(--border), var(--foreground) 20%);
+}

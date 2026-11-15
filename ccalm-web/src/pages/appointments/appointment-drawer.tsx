@@ -31,6 +31,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/time-picker";
 import { ROUTES } from "@/config/routes";
@@ -91,7 +92,7 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[82px_1fr] items-center gap-2">
+    <div className="grid grid-cols-[88px_1fr] items-center gap-2.5">
       <span className="text-right text-sm text-muted-foreground">
         {required ? <span className="text-destructive">*</span> : null}
         {label}
@@ -138,7 +139,6 @@ export function AppointmentDrawer({
   const [kind, setKind] = React.useState<"first" | "return">("return");
   const [items, setItems] = React.useState<string[]>([]);
   const [remark, setRemark] = React.useState("");
-  const [force, setForce] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [itemQuery, setItemQuery] = React.useState("");
   const [itemsOpen, setItemsOpen] = React.useState(false);
@@ -170,7 +170,6 @@ export function AppointmentDrawer({
     setKind(initial?.kind === "first" ? "first" : "return");
     setItems(initial?.items ?? []);
     setRemark(initial?.remark ?? "");
-    setForce(false);
     setItemQuery("");
   }, [open, initial]);
 
@@ -253,7 +252,6 @@ export function AppointmentDrawer({
         items,
         remark,
         isPending: asPending,
-        force,
       };
       if (initial) await api("PUT", `/appointments/${initial.id}`, body);
       else await api("POST", "/appointments", body);
@@ -300,281 +298,291 @@ export function AppointmentDrawer({
           <SheetTitle>{initial ? "修改预约" : "新建预约"}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-            <section className="flex flex-col gap-1.5">
-              <h4 className="text-sm font-medium text-muted-foreground">
-                患者信息
-              </h4>
-              {patientSearchOpen || !patientId ? (
-                <div className="flex items-center gap-1.5">
-                  <div className="min-w-0 flex-1">
-                    <PatientNameCombobox
-                      value={patientName}
-                      onValueChange={(v) => {
-                        setPatientName(v);
-                        setPatient(null);
-                      }}
-                      onSelect={(p) => {
-                        setPatient(p);
-                        setPatientName(p.name);
-                        setPatientSearchOpen(false);
-                      }}
-                      placeholder="搜索患者"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    title="新增患者"
-                    nativeButton={false}
-                    render={<Link to={ROUTES.patients.root} target="_blank" />}
-                  >
-                    <Plus className="size-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <Row label="患者">
-                    <span className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">
-                        {selectedPatient?.name ?? initial?.patientName}
-                      </span>
-                      {(() => {
-                        const age = displayAge ?? initial?.age ?? null;
-                        return age ? (
-                          <span className="text-muted-foreground">{age}岁</span>
-                        ) : null;
-                      })()}
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-sm text-primary"
-                        onClick={() => {
-                          setPatientName(
-                            selectedPatient?.name ?? initial?.patientName ?? "",
-                          );
-                          setPatientSearchOpen(true);
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ScrollArea className="size-full" viewportClassName="px-4 py-3">
+            <div className="flex flex-col gap-4">
+              <section className="flex flex-col gap-1.5">
+                <h4 className="text-sm font-medium text-muted-foreground">
+                  患者信息
+                </h4>
+                {patientSearchOpen || !patientId ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <PatientNameCombobox
+                        value={patientName}
+                        onValueChange={(v) => {
+                          setPatientName(v);
+                          setPatient(null);
                         }}
-                      >
-                        <Pencil className="size-3" />
-                        编辑
-                      </button>
-                    </span>
-                  </Row>
-                  <Row label="手机">
-                    <span className="text-sm">
-                      {selectedPatient?.phone || initial?.phone || "—"}
-                    </span>
-                  </Row>
-                  <Row label="病历号">
-                    <span className="text-sm">
-                      {selectedPatient?.chartNo || initial?.chartNo || "—"}
-                    </span>
-                  </Row>
-                </div>
-              )}
+                        onSelect={(p) => {
+                          setPatient(p);
+                          setPatientName(p.name);
+                          setPatientSearchOpen(false);
+                        }}
+                        placeholder="搜索患者"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      title="新增患者"
+                      nativeButton={false}
+                      render={
+                        <Link to={ROUTES.patients.root} target="_blank" />
+                      }
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Row label="患者">
+                      <span className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">
+                          {selectedPatient?.name ?? initial?.patientName}
+                        </span>
+                        {(() => {
+                          const age = displayAge ?? initial?.age ?? null;
+                          return age ? (
+                            <span className="text-muted-foreground">
+                              {age}岁
+                            </span>
+                          ) : null;
+                        })()}
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-sm text-primary"
+                          onClick={() => {
+                            setPatientName(
+                              selectedPatient?.name ??
+                                initial?.patientName ??
+                                "",
+                            );
+                            setPatientSearchOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-3" />
+                          编辑
+                        </button>
+                      </span>
+                    </Row>
+                    <Row label="手机">
+                      <span className="text-sm">
+                        {selectedPatient?.phone || initial?.phone || "—"}
+                      </span>
+                    </Row>
+                    <Row label="病历号">
+                      <span className="text-sm">
+                        {selectedPatient?.chartNo || initial?.chartNo || "—"}
+                      </span>
+                    </Row>
+                  </div>
+                )}
 
-              {upcoming.length ? (
-                <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900">
-                  <p className="font-medium">该患者已有预约</p>
-                  {upcoming.map((u) => (
-                    <p key={u.id} className="truncate">
-                      {u.visitDate} {u.startTime || "待定"}
-                      {u.items.length ? ` · ${u.items.join("/")}` : ""}
-                      {u.doctor ? ` · ${u.doctor}` : ""}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-            </section>
+                {upcoming.length ? (
+                  <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900">
+                    <p className="font-medium">该患者已有预约</p>
+                    {upcoming.map((u) => (
+                      <p key={u.id} className="truncate">
+                        {u.visitDate} {u.startTime || "待定"}
+                        {u.items.length ? ` · ${u.items.join("/")}` : ""}
+                        {u.doctor ? ` · ${u.doctor}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
 
-            <section className="flex flex-col gap-1.5">
-              <h4 className="text-sm font-medium text-muted-foreground">
-                预约信息
-              </h4>
-              {confirming ? (
-                <div className="rounded-lg border border-pink-200 bg-pink-50/60 px-2.5 py-1.5 text-sm text-pink-900">
-                  待定预约：选好时间和医生后点「确认预约」即可排入看板。
-                </div>
-              ) : null}{" "}
-              <Row label="就诊类型">
-                <Select
-                  items={[
-                    { value: "first", label: "初诊" },
-                    { value: "return", label: "复诊" },
-                  ]}
-                  value={kind}
-                  onValueChange={(v) => {
-                    if (v === "first" || v === "return") setKind(v);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="first">初诊</SelectItem>
-                    <SelectItem value="return">复诊</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Row>
-              <Row label="预约时间" required>
-                <div className="flex items-center gap-1.5">
-                  <div className="min-w-0 flex-1">
-                    <DatePickerField
-                      value={visitDate}
-                      onValueChange={(v) => {
-                        setVisitDate(v);
+              <section className="flex flex-col gap-1.5">
+                <h4 className="text-sm font-medium text-muted-foreground">
+                  预约信息
+                </h4>
+                {confirming ? (
+                  <div className="rounded-lg border border-pink-200 bg-pink-50/60 px-2.5 py-1.5 text-sm text-pink-900">
+                    待定预约：选好时间和医生后点「确认预约」即可排入看板。
+                  </div>
+                ) : null}{" "}
+                <Row label="就诊类型">
+                  <Select
+                    items={[
+                      { value: "first", label: "初诊" },
+                      { value: "return", label: "复诊" },
+                    ]}
+                    value={kind}
+                    onValueChange={(v) => {
+                      if (v === "first" || v === "return") setKind(v);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="first">初诊</SelectItem>
+                      <SelectItem value="return">复诊</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Row>
+                <Row label="预约时间" required>
+                  <div className="flex items-center gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <DatePickerField
+                        value={visitDate}
+                        onValueChange={(v) => {
+                          setVisitDate(v);
+                          onScheduleChange?.({
+                            visitDate: v,
+                            startTime,
+                            durationMinutes: duration,
+                          });
+                        }}
+                      />
+                    </div>
+                    <TimePicker
+                      value={startTime}
+                      onChange={(v) => {
+                        setStartTime(v);
                         onScheduleChange?.({
-                          visitDate: v,
-                          startTime,
+                          visitDate,
+                          startTime: v,
                           durationMinutes: duration,
                         });
                       }}
+                      className="w-28 border-border bg-background"
                     />
                   </div>
-                  <TimePicker
-                    value={startTime}
-                    onChange={(v) => {
-                      setStartTime(v);
+                </Row>
+                <Row label="持续时间" required>
+                  <Select
+                    items={DURATION_OPTIONS.map((d) => ({
+                      value: String(d),
+                      label: `${d} 分钟`,
+                    }))}
+                    value={String(duration)}
+                    onValueChange={(v) => {
+                      if (!v) return;
+                      setDuration(Number(v));
                       onScheduleChange?.({
                         visitDate,
-                        startTime: v,
-                        durationMinutes: duration,
+                        startTime,
+                        durationMinutes: Number(v),
                       });
                     }}
-                    className="w-28 border-border bg-background"
-                  />
-                </div>
-              </Row>
-              <Row label="持续时间" required>
-                <Select
-                  items={DURATION_OPTIONS.map((d) => ({
-                    value: String(d),
-                    label: `${d} 分钟`,
-                  }))}
-                  value={String(duration)}
-                  onValueChange={(v) => {
-                    if (!v) return;
-                    setDuration(Number(v));
-                    onScheduleChange?.({
-                      visitDate,
-                      startTime,
-                      durationMinutes: Number(v),
-                    });
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATION_OPTIONS.map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {d} 分钟
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Row>
-              <Row label="医生" required>
-                <Select
-                  value={doctor || null}
-                  onValueChange={(v) => {
-                    if (v) setDoctor(v);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-full">
-                    <SelectValue placeholder="选择医生" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(meta?.doctors ?? []).map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Row>
-              <Row label="预约项目">
-                <Popover open={itemsOpen} onOpenChange={setItemsOpen}>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-8 w-full justify-between font-normal"
-                      />
-                    }
                   >
-                    <span className="truncate">
-                      {items.length ? items.join("、") : "选择项目"}
-                    </span>
-                    <span className="ml-2 shrink-0 text-sm text-muted-foreground">
-                      {items.length ? `${items.length} 项` : ""}
-                    </span>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 gap-0 p-0">
-                    <div className="border-b p-2">
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
-                        <Input
-                          value={itemQuery}
-                          onChange={(e) => setItemQuery(e.target.value)}
-                          placeholder="搜索预约项目"
-                          className="h-8 pl-7"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex max-h-72 flex-col gap-2 overflow-y-auto p-3">
-                      {filteredCategories.map((cat) => (
-                        <div key={cat.id} className="flex flex-col gap-1">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {cat.name}
-                          </span>
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            {cat.items.map((item) => (
-                              <label
-                                key={item.id}
-                                className="flex items-center gap-1.5 text-sm"
-                              >
-                                <Checkbox
-                                  checked={items.includes(item.name)}
-                                  onCheckedChange={(v) =>
-                                    toggleItem(item.name, v === true)
-                                  }
-                                />
-                                <span className="truncate">{item.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
+                    <SelectTrigger className="h-8 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map((d) => (
+                        <SelectItem key={d} value={String(d)}>
+                          {d} 分钟
+                        </SelectItem>
                       ))}
-                      {!filteredCategories.length ? (
-                        <p className="py-4 text-center text-sm text-muted-foreground">
-                          没有匹配的项目
-                        </p>
-                      ) : null}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </Row>
-              <Row label="备注">
-                <Textarea
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value)}
-                  placeholder="请输入预约备注"
-                  rows={2}
-                />
-              </Row>
-              <label className="flex items-center gap-2 pl-[90px] text-sm text-muted-foreground">
-                <Checkbox
-                  checked={force}
-                  onCheckedChange={(v) => setForce(v === true)}
-                />
-                医生该时段已有预约时也强制保存
-              </label>
-            </section>
-          </div>
+                    </SelectContent>
+                  </Select>
+                </Row>
+                <Row label="医生" required>
+                  <Select
+                    value={doctor || null}
+                    onValueChange={(v) => {
+                      if (v) setDoctor(v);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-full">
+                      <SelectValue placeholder="选择医生" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(meta?.doctors ?? []).map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+                <Row label="预约项目">
+                  <Popover open={itemsOpen} onOpenChange={setItemsOpen}>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-8 w-full justify-between font-normal"
+                        />
+                      }
+                    >
+                      <span className="truncate">
+                        {items.length ? items.join("、") : "选择项目"}
+                      </span>
+                      <span className="ml-2 shrink-0 text-sm text-muted-foreground">
+                        {items.length ? `${items.length} 项` : ""}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-80 gap-0 p-0">
+                      <div className="border-b p-2">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
+                          <Input
+                            value={itemQuery}
+                            onChange={(e) => setItemQuery(e.target.value)}
+                            placeholder="搜索预约项目"
+                            className="h-8 pl-7"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-72 overflow-hidden">
+                        <ScrollArea
+                          className="size-full"
+                          viewportClassName="p-3"
+                        >
+                          <div className="flex flex-col gap-2">
+                            {filteredCategories.map((cat) => (
+                              <div key={cat.id} className="flex flex-col gap-1">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {cat.name}
+                                </span>
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                  {cat.items.map((item) => (
+                                    <label
+                                      key={item.id}
+                                      className="flex items-center gap-1.5 text-sm"
+                                    >
+                                      <Checkbox
+                                        checked={items.includes(item.name)}
+                                        onCheckedChange={(v) =>
+                                          toggleItem(item.name, v === true)
+                                        }
+                                      />
+                                      <span className="truncate">
+                                        {item.name}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {!filteredCategories.length ? (
+                              <p className="py-4 text-center text-sm text-muted-foreground">
+                                没有匹配的项目
+                              </p>
+                            ) : null}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </Row>
+                <Row label="备注">
+                  <Textarea
+                    value={remark}
+                    onChange={(e) => setRemark(e.target.value)}
+                    placeholder="请输入预约备注"
+                    rows={2}
+                  />
+                </Row>
+              </section>
+            </div>
+          </ScrollArea>
         </div>
 
         <SheetFooter className="flex-row items-center justify-between border-t px-4 py-2.5">
