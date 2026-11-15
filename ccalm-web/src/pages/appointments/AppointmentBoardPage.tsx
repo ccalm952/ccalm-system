@@ -175,7 +175,6 @@ export function AppointmentBoardPage() {
     startTime: string;
     doctor: string;
   } | null>(null);
-  const [pendingDoctor, setPendingDoctor] = React.useState("");
   const [pendingMove, setPendingMove] = React.useState<{
     id: number;
     visitDate: string;
@@ -367,8 +366,8 @@ export function AppointmentBoardPage() {
   }
   async function confirmPendingBook() {
     if (!pendingBook) return;
-    if (!pendingDoctor) {
-      toast.error("请选择医生");
+    if (!pendingBook.doctor) {
+      toast.error("该待定预约缺少医生，请先点卡片补充医生");
       return;
     }
     setBusy(true);
@@ -377,12 +376,11 @@ export function AppointmentBoardPage() {
         visitDate: pendingBook.visitDate,
         startTime: pendingBook.startTime,
         durationMinutes: 30,
-        doctor: pendingDoctor,
+        doctor: pendingBook.doctor,
         isPending: false,
       });
       toast.success("已确认预约");
       setPendingBook(null);
-      setPendingDoctor("");
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -666,7 +664,6 @@ export function AppointmentBoardPage() {
           doctor: d.doctor || d.card.doctor,
         });
       } else if (d.kind === "pending" && d.pending) {
-        setPendingDoctor(d.doctor || d.pending.doctor);
         setPendingBook({
           row: d.pending,
           visitDate: d.date,
@@ -1403,7 +1400,6 @@ export function AppointmentBoardPage() {
         onOpenChange={(open) => {
           if (!open) {
             setPendingBook(null);
-            setPendingDoctor("");
           }
         }}
       >
@@ -1418,35 +1414,11 @@ export function AppointmentBoardPage() {
                 <span className="font-medium text-foreground">
                   {pendingBook.visitDate} {pendingBook.startTime}
                 </span>
-                ，请确认医生。
+                ，确认排期？
               </p>
               <div className="grid grid-cols-[72px_1fr] items-center gap-2">
                 <span className="text-right text-muted-foreground">医生</span>
-                {pendingBook.doctor ? (
-                  <span>{pendingBook.doctor}</span>
-                ) : (
-                  <Select
-                    items={(meta?.doctors ?? []).map((n) => ({
-                      value: n,
-                      label: n,
-                    }))}
-                    value={pendingDoctor || null}
-                    onValueChange={(v) => {
-                      if (v) setPendingDoctor(v);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-full">
-                      <SelectValue placeholder="选择医生" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(meta?.doctors ?? []).map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <span>{pendingBook.doctor || "未指定"}</span>
               </div>
             </div>
           ) : null}
@@ -1456,7 +1428,6 @@ export function AppointmentBoardPage() {
               variant="secondary"
               onClick={() => {
                 setPendingBook(null);
-                setPendingDoctor("");
               }}
             >
               取消
