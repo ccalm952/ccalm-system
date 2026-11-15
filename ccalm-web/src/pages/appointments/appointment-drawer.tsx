@@ -92,11 +92,26 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[88px_1fr] items-center gap-2.5">
-      <span className="text-right text-sm text-muted-foreground">
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm text-muted-foreground">
         {required ? <span className="text-destructive">*</span> : null}
         {label}
       </span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+function InlineRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[56px_1fr] items-center gap-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -301,7 +316,7 @@ export function AppointmentDrawer({
         <div className="min-h-0 flex-1 overflow-hidden">
           <ScrollArea className="size-full" viewportClassName="px-4 py-3">
             <div className="flex flex-col gap-4">
-              <section className="flex flex-col gap-1.5">
+              <section className="flex flex-col gap-3">
                 <h4 className="text-sm font-medium text-muted-foreground">
                   患者信息
                 </h4>
@@ -337,7 +352,7 @@ export function AppointmentDrawer({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-1">
-                    <Row label="患者">
+                    <InlineRow label="患者">
                       <span className="flex items-center gap-2 text-sm">
                         <span className="font-medium">
                           {selectedPatient?.name ?? initial?.patientName}
@@ -366,17 +381,17 @@ export function AppointmentDrawer({
                           编辑
                         </button>
                       </span>
-                    </Row>
-                    <Row label="手机">
+                    </InlineRow>
+                    <InlineRow label="手机">
                       <span className="text-sm">
                         {selectedPatient?.phone || initial?.phone || "—"}
                       </span>
-                    </Row>
-                    <Row label="病历号">
+                    </InlineRow>
+                    <InlineRow label="病历号">
                       <span className="text-sm">
                         {selectedPatient?.chartNo || initial?.chartNo || "—"}
                       </span>
-                    </Row>
+                    </InlineRow>
                   </div>
                 )}
 
@@ -394,7 +409,7 @@ export function AppointmentDrawer({
                 ) : null}
               </section>
 
-              <section className="flex flex-col gap-1.5">
+              <section className="flex flex-col gap-3">
                 <h4 className="text-sm font-medium text-muted-foreground">
                   预约信息
                 </h4>
