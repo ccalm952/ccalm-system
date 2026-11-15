@@ -447,6 +447,14 @@ export function AppointmentBoardPage() {
 
   async function saveSettings() {
     if (!shiftPayload) return;
+    if (!workStartInput || !workEndInput) {
+      toast.error("请填写上下班时间");
+      return;
+    }
+    if (workStartInput >= workEndInput) {
+      toast.error("上班时间必须早于下班时间");
+      return;
+    }
     try {
       const payload = { ...shiftPayload };
       delete payload.id;
