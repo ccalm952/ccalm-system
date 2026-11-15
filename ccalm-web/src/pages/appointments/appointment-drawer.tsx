@@ -247,7 +247,7 @@ export function AppointmentDrawer({
       return;
     }
     if (!doctor) {
-      toast.error("请选择医生（待定预约也需要选择医生）");
+      toast.error("请选择医生");
       return;
     }
     if (!asPending && !startTime) {

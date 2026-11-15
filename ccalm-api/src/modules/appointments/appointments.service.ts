@@ -241,19 +241,10 @@ export class AppointmentsService {
     return duration;
   }
 
-  private assertSlotValid(
-    startTime: string,
-    endTime: string,
-    strictAlignment = true,
-  ) {
-    const start = toMinutes(startTime);
-    const end = toMinutes(endTime);
-    if (strictAlignment && (start % 15 !== 0 || end % 15 !== 0)) {
-      throw new BadRequestException("预约时间需为 15 分钟的整数倍");
-    }
-    const duration = end - start;
-    if (duration < 15 || duration > 120) {
-      throw new BadRequestException("预约时长需在 15–120 分钟之间");
+  private assertSlotValid(startTime: string, endTime: string) {
+    const duration = toMinutes(endTime) - toMinutes(startTime);
+    if (duration < 15 || duration > 120 || duration % 15 !== 0) {
+      throw new BadRequestException("预约时长需为 15 分钟的整数倍，且在 15–120 分钟之间");
     }
   }
 
@@ -406,7 +397,7 @@ export class AppointmentsService {
       if (!endTime || endTime <= startTime) {
         throw new BadRequestException("结束时间必须晚于开始时间");
       }
-      this.assertSlotValid(startTime, endTime, false);
+      this.assertSlotValid(startTime, endTime);
       await this.assertTimeFree({
         patientId,
         visitDate,
