@@ -879,7 +879,7 @@ export function AppointmentBoardPage() {
                 <span className="flex items-center justify-between gap-1">
                   <span className="font-medium">{p.patientName}</span>
                   {p.expired ? (
-                    <span className="rounded bg-red-100 px-1 text-[10px] text-red-600">
+                    <span className="rounded bg-red-100 px-1 text-sm text-red-600">
                       已过期
                     </span>
                   ) : null}
@@ -1060,7 +1060,7 @@ export function AppointmentBoardPage() {
                               </span>
                             </span>
                             {dur * PX_PER_MIN >= 36 ? (
-                              <span className="block truncate text-[10px] tabular-nums opacity-80">
+                              <span className="block truncate text-sm tabular-nums opacity-80">
                                 {start} - {timeAt(minutesOf(start) + dur)}
                               </span>
                             ) : null}
@@ -1153,7 +1153,7 @@ export function AppointmentBoardPage() {
                               </span>
                             ) : null}
                             {height >= 48 ? (
-                              <span className="block truncate text-[10px] tabular-nums opacity-70">
+                              <span className="block truncate text-sm tabular-nums opacity-70">
                                 {card.startTime} - {previewEnd}
                               </span>
                             ) : null}
@@ -1209,9 +1209,13 @@ export function AppointmentBoardPage() {
                   <span className="text-lg font-semibold">
                     {selected.patientName}
                   </span>
-                  <Badge variant="secondary">{toneOf(selected).label}</Badge>
+                  <Badge variant="secondary" className="text-sm">
+                    \n {toneOf(selected).label}\n{" "}
+                  </Badge>
                   {selected.arrived ? (
-                    <Badge variant="secondary">已到店</Badge>
+                    <Badge variant="secondary" className="text-sm">
+                      \n 已到店\n{" "}
+                    </Badge>
                   ) : null}
                 </div>
                 <button

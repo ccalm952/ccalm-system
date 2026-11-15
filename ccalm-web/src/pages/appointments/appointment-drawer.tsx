@@ -91,7 +91,7 @@ function Row({
 }) {
   return (
     <div className="grid grid-cols-[82px_1fr] items-center gap-2">
-      <span className="text-right text-xs text-muted-foreground">
+      <span className="text-right text-sm text-muted-foreground">
         {required ? <span className="text-destructive">*</span> : null}
         {label}
       </span>
@@ -295,7 +295,7 @@ export function AppointmentDrawer({
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
             <section className="flex flex-col gap-1.5">
-              <h4 className="text-xs font-medium text-muted-foreground">
+              <h4 className="text-sm font-medium text-muted-foreground">
                 患者信息
               </h4>
               {patientSearchOpen || !patientId ? (
@@ -340,7 +340,7 @@ export function AppointmentDrawer({
                       })()}
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-xs text-primary"
+                        className="inline-flex items-center gap-1 text-sm text-primary"
                         onClick={() => {
                           setPatientName(
                             selectedPatient?.name ?? initial?.patientName ?? "",
@@ -367,7 +367,7 @@ export function AppointmentDrawer({
               )}
 
               {upcoming.length ? (
-                <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">
+                <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900">
                   <p className="font-medium">该患者已有预约</p>
                   {upcoming.map((u) => (
                     <p key={u.id} className="truncate">
@@ -381,7 +381,7 @@ export function AppointmentDrawer({
             </section>
 
             <section className="flex flex-col gap-1.5">
-              <h4 className="text-xs font-medium text-muted-foreground">
+              <h4 className="text-sm font-medium text-muted-foreground">
                 预约信息
               </h4>
               <Row label="就诊类型">
@@ -501,7 +501,7 @@ export function AppointmentDrawer({
                     <span className="truncate">
                       {items.length ? items.join("、") : "选择项目"}
                     </span>
-                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                    <span className="ml-2 shrink-0 text-sm text-muted-foreground">
                       {items.length ? `${items.length} 项` : ""}
                     </span>
                   </PopoverTrigger>
@@ -520,14 +520,14 @@ export function AppointmentDrawer({
                     <div className="flex max-h-72 flex-col gap-2 overflow-y-auto p-3">
                       {filteredCategories.map((cat) => (
                         <div key={cat.id} className="flex flex-col gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
+                          <span className="text-sm font-medium text-muted-foreground">
                             {cat.name}
                           </span>
                           <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                             {cat.items.map((item) => (
                               <label
                                 key={item.id}
-                                className="flex items-center gap-1.5 text-xs"
+                                className="flex items-center gap-1.5 text-sm"
                               >
                                 <Checkbox
                                   checked={items.includes(item.name)}
@@ -542,7 +542,7 @@ export function AppointmentDrawer({
                         </div>
                       ))}
                       {!filteredCategories.length ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">
+                        <p className="py-4 text-center text-sm text-muted-foreground">
                           没有匹配的项目
                         </p>
                       ) : null}
@@ -559,7 +559,7 @@ export function AppointmentDrawer({
                 />
               </Row>
 
-              <label className="flex items-center gap-2 pl-[90px] text-xs text-muted-foreground">
+              <label className="flex items-center gap-2 pl-[90px] text-sm text-muted-foreground">
                 <Checkbox
                   checked={force}
                   onCheckedChange={(v) => setForce(v === true)}

@@ -190,7 +190,7 @@ export function AppointmentListPage() {
                     key={key}
                     type="button"
                     onClick={() => toggleStatus(key)}
-                    className={`rounded-full border px-2 py-0.5 text-xs ${
+                    className={`rounded-full border px-2 py-0.5 text-sm ${
                       active ? "" : "opacity-40"
                     }`}
                     style={{
@@ -284,7 +284,7 @@ export function AppointmentListPage() {
               </TableBody>
             </Table>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             共 {rows.length} 条（最多显示 1000 条）
           </p>
         </CardContent>
