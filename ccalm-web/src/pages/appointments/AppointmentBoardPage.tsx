@@ -763,11 +763,17 @@ export function AppointmentBoardPage() {
           }}
           className="flex-none"
         >
-          <TabsList className="h-8 rounded-full">
-            <TabsTrigger value="week" className="rounded-full px-3">
+          <TabsList className="h-8 gap-1 rounded-none bg-transparent p-0">
+            <TabsTrigger
+              value="week"
+              className="h-8 rounded-full bg-background px-3 text-foreground/60 data-active:bg-muted data-active:text-foreground"
+            >
               周
             </TabsTrigger>
-            <TabsTrigger value="day" className="rounded-full px-3">
+            <TabsTrigger
+              value="day"
+              className="h-8 rounded-full bg-background px-3 text-foreground/60 data-active:bg-muted data-active:text-foreground"
+            >
               日
             </TabsTrigger>
           </TabsList>
