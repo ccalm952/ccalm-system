@@ -1,7 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { Pencil, Plus, Search, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Pencil, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -35,7 +34,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { TimePicker } from "@/components/time-picker";
-import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import type {
   AppointmentCard,
@@ -350,18 +348,6 @@ export function AppointmentDrawer({
                         placeholder="搜索患者"
                       />
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      title="新增患者"
-                      nativeButton={false}
-                      render={
-                        <Link to={ROUTES.patients.root} target="_blank" />
-                      }
-                    >
-                      <Plus className="size-4" />
-                    </Button>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-1">
