@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -151,12 +152,9 @@ export function AppointmentBoardPage() {
   const [now, setNow] = React.useState(() => dayjs());
   const [editing, setEditing] = React.useState<AppointmentCard | null>(null);
   const [selected, setSelected] = React.useState<AppointmentCard | null>(null);
-  const [cardAnchor, setCardAnchor] = React.useState<{
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-  } | null>(null);
+  const [popoverAnchor, setPopoverAnchor] = React.useState<HTMLElement | null>(
+    null,
+  );
   const [reason, setReason] = React.useState<ReasonState>(null);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -1095,13 +1093,7 @@ export function AppointmentBoardPage() {
                               if (Date.now() - lastDragAt.current < 300) {
                                 return;
                               }
-                              const r = e.currentTarget.getBoundingClientRect();
-                              setCardAnchor({
-                                x: r.x,
-                                y: r.y,
-                                w: r.width,
-                                h: r.height,
-                              });
+                              setPopoverAnchor(e.currentTarget);
                               setSelected(card);
                             }}
                             className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
@@ -1180,144 +1172,145 @@ export function AppointmentBoardPage() {
           )}
         </div>
       </div>
-      {selected && cardAnchor ? (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setSelected(null)}
-          />
-          <div
-            className="fixed z-50 w-95 max-w-[calc(100vw-16px)] overflow-y-auto rounded-xl border bg-popover text-popover-foreground shadow-xl"
-            style={{
-              left: Math.min(
-                cardAnchor.x + cardAnchor.w + 12,
-                window.innerWidth - 392,
-              ),
-              top: Math.min(
-                Math.max(8, cardAnchor.y - 12),
-                Math.max(8, window.innerHeight - 460),
-              ),
-              maxHeight: "calc(100vh - 32px)",
-            }}
-          >
-            <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-lg font-semibold">
-                  {selected.patientName}
-                </span>
-                <Badge variant="secondary">{toneOf(selected).label}</Badge>
-                {selected.arrived ? (
-                  <Badge variant="secondary">已到店</Badge>
-                ) : null}
+      <Popover
+        open={selected != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelected(null);
+            setPopoverAnchor(null);
+          }
+        }}
+      >
+        <PopoverContent
+          anchor={popoverAnchor ?? undefined}
+          side="right"
+          align="start"
+          sideOffset={8}
+          className="w-[380px] gap-0 overflow-hidden rounded-xl p-0"
+        >
+          {selected ? (
+            <>
+              <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-lg font-semibold">
+                    {selected.patientName}
+                  </span>
+                  <Badge variant="secondary">{toneOf(selected).label}</Badge>
+                  {selected.arrived ? (
+                    <Badge variant="secondary">已到店</Badge>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  aria-label="关闭"
+                  className="rounded p-1 text-muted-foreground hover:bg-accent"
+                  onClick={() => setSelected(null)}
+                >
+                  <X className="size-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label="关闭"
-                className="rounded p-1 text-muted-foreground hover:bg-accent"
-                onClick={() => setSelected(null)}
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <div className="flex flex-col gap-2 px-4 py-3 text-sm">
-              <p className="text-muted-foreground">
-                {selected.chartNo}
-                {selected.age ? ` · ${selected.age}岁` : ""}
-                {selected.gender ? ` · ${selected.gender}` : ""}
-              </p>
-              <p className="text-muted-foreground">{selected.phone || "—"}</p>
-              <Separator />
-              <div className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1.5">
-                <span className="text-muted-foreground">预约时间</span>
-                <span>
-                  {selected.visitDate}
-                  {selected.startTime
-                    ? ` ${selected.startTime} ~ ${selected.endTime}`
-                    : "（待定）"}
-                </span>
-                <span className="text-muted-foreground">医生</span>
-                <span>{selected.doctor || "未指定"}</span>
-                <span className="text-muted-foreground">预约项目</span>
-                <span>
-                  {selected.items.length ? selected.items.join("、") : "—"}
-                </span>
-                <span className="text-muted-foreground">预约备注</span>
-                <span>{selected.remark || "—"}</span>
-              </div>
-              <Separator />
-              <div className="flex flex-wrap justify-end gap-2 pt-1">
-                {selected.status === "booked" && !selected.arrived ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => void act(selected, "arrive")}
-                  >
-                    到店
-                  </Button>
-                ) : null}
-                {selected.status === "booked" ? (
-                  <>
+              <div className="flex flex-col gap-2 px-4 py-3 text-sm">
+                <p className="text-muted-foreground">
+                  {selected.chartNo}
+                  {selected.age ? ` · ${selected.age}岁` : ""}
+                  {selected.gender ? ` · ${selected.gender}` : ""}
+                </p>
+                <p className="text-muted-foreground">{selected.phone || "—"}</p>
+                <Separator />
+                <div className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1.5">
+                  <span className="text-muted-foreground">预约时间</span>
+                  <span>
+                    {selected.visitDate}
+                    {selected.startTime
+                      ? ` ${selected.startTime} ~ ${selected.endTime}`
+                      : "（待定）"}
+                  </span>
+                  <span className="text-muted-foreground">医生</span>
+                  <span>{selected.doctor || "未指定"}</span>
+                  <span className="text-muted-foreground">预约项目</span>
+                  <span>
+                    {selected.items.length ? selected.items.join("、") : "—"}
+                  </span>
+                  <span className="text-muted-foreground">预约备注</span>
+                  <span>{selected.remark || "—"}</span>
+                </div>
+                <Separator />
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
+                  {selected.status === "booked" && !selected.arrived ? (
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setEditing(selected);
-                        setSelected(null);
-                        setDrawerOpen(true);
-                      }}
+                      disabled={busy}
+                      onClick={() => void act(selected, "arrive")}
                     >
-                      改约
+                      到店
                     </Button>
+                  ) : null}
+                  {selected.status === "booked" ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setEditing(selected);
+                          setSelected(null);
+                          setDrawerOpen(true);
+                        }}
+                      >
+                        改约
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setReason({ card: selected, action: "miss" });
+                          setReasonText("");
+                          setSelected(null);
+                        }}
+                      >
+                        失约
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setReason({ card: selected, action: "cancel" });
+                          setReasonText("");
+                          setSelected(null);
+                        }}
+                      >
+                        取消
+                      </Button>
+                    </>
+                  ) : null}
+                  {selected.status === "missed" ||
+                  selected.status === "cancelled" ? (
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setReason({ card: selected, action: "miss" });
-                        setReasonText("");
-                      }}
+                      disabled={busy}
+                      onClick={() => void act(selected, "revert")}
                     >
-                      失约
+                      撤销
                     </Button>
+                  ) : null}
+                  {can(me, "appointment.delete") &&
+                  selected.status !== "completed" ? (
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setReason({ card: selected, action: "cancel" });
-                        setReasonText("");
-                      }}
+                      disabled={busy}
+                      onClick={() => void remove(selected)}
                     >
-                      取消
+                      删除
                     </Button>
-                  </>
-                ) : null}
-                {selected.status === "missed" ||
-                selected.status === "cancelled" ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => void act(selected, "revert")}
-                  >
-                    撤销
-                  </Button>
-                ) : null}
-                {can(me, "appointment.delete") &&
-                selected.status !== "completed" ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => void remove(selected)}
-                  >
-                    删除
-                  </Button>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </div>
-        </>
-      ) : null}{" "}
+            </>
+          ) : null}
+        </PopoverContent>
+      </Popover>{" "}
       <Dialog
         open={confirmMove != null}
         onOpenChange={(open) => {
