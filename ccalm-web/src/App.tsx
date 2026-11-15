@@ -139,9 +139,10 @@ function RouteFallback() {
 }
 
 function ProtectedRoute() {
-  const [state, setState] = React.useState<"checking" | "authed" | "unauth">(
-    "checking",
-  );
+  const [state, setState] = React.useState<
+    "checking" | "authed" | "unauth" | "error"
+  >("checking");
+  const [retryKey, setRetryKey] = React.useState(0);
   const [me, setMe] = React.useState<AuthMe | null>(null);
 
   React.useEffect(() => {
@@ -169,11 +170,14 @@ function ProtectedRoute() {
         }
       } catch (e) {
         const err = e as ApiError;
-        if (err.status === 401) {
-          setToken(null);
-        }
         if (!cancelled) {
-          setState("unauth");
+          if (err.status === 401) {
+            setToken(null);
+            setState("unauth");
+          } else {
+            // 网络/服务暂不可用（例如后端重启）时不要踢回登录页
+            setState("error");
+          }
         }
       }
     })();
@@ -181,10 +185,31 @@ function ProtectedRoute() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryKey]);
 
   if (state === "checking") {
     return <RouteFallback />;
+  }
+
+  if (state === "error") {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm font-medium">暂时连不上服务器</p>
+        <p className="text-xs text-muted-foreground">
+          可能是服务正在重启，稍等几秒再试；不需要重新登录。
+        </p>
+        <button
+          type="button"
+          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+          onClick={() => {
+            setState("checking");
+            setRetryKey((k) => k + 1);
+          }}
+        >
+          重试
+        </button>
+      </div>
+    );
   }
 
   if (state === "unauth") {
