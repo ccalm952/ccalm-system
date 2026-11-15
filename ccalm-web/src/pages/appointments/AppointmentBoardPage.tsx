@@ -902,7 +902,12 @@ export function AppointmentBoardPage() {
       ) : null}
       {/* 待定池 + 网格 */}
       <div className="flex min-h-0 flex-1 gap-3">
-        <aside className="hidden w-52 shrink-0 flex-col md:flex">
+        <aside
+          className="hidden shrink-0 flex-col md:flex"
+          style={{
+            width: `calc((100% - 76px) / ${columns.length + 1})`,
+          }}
+        >
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-2">
             {pending.map((p) => (
               <button
