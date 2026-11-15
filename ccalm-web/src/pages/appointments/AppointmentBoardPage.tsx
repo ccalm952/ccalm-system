@@ -705,12 +705,14 @@ export function AppointmentBoardPage() {
         >
           今天
         </Button>
-        <div className="flex overflow-hidden rounded-md border text-xs">
+        <div className="flex rounded-full border p-0.5 text-sm">
           <button
             type="button"
             onClick={() => setView("week")}
-            className={`px-2.5 py-1.5 ${
-              view === "week" ? "bg-primary text-primary-foreground" : ""
+            className={`rounded-full px-3 py-1 transition-colors ${
+              view === "week"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
             }`}
           >
             周
@@ -718,8 +720,10 @@ export function AppointmentBoardPage() {
           <button
             type="button"
             onClick={() => setView("day")}
-            className={`px-2.5 py-1.5 ${
-              view === "day" ? "bg-primary text-primary-foreground" : ""
+            className={`rounded-full px-3 py-1 transition-colors ${
+              view === "day"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
             }`}
           >
             日
@@ -765,7 +769,7 @@ export function AppointmentBoardPage() {
                 key={key}
                 type="button"
                 onClick={() => toggleLegend(key)}
-                className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-opacity ${
+                className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-sm transition-opacity ${
                   off ? "opacity-35" : ""
                 }`}
                 style={{
@@ -815,7 +819,7 @@ export function AppointmentBoardPage() {
       </div>
       {unscheduled.length ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground">
             未排时间 {unscheduled.length}
           </span>
           {unscheduled.map((a) => (
@@ -826,7 +830,7 @@ export function AppointmentBoardPage() {
                 setEditing(a);
                 setDrawerOpen(true);
               }}
-              className="rounded-md border bg-card px-2 py-0.5 text-xs hover:bg-accent"
+              className="rounded-md border bg-card px-2 py-0.5 text-sm hover:bg-accent"
             >
               {a.visitDate.slice(5)} {a.patientName}
             </button>
@@ -836,7 +840,7 @@ export function AppointmentBoardPage() {
       {/* 待定池 + 网格 */}
       <div className="flex min-h-0 flex-1 gap-3">
         <aside className="hidden w-52 shrink-0 flex-col rounded-xl border bg-card md:flex">
-          <div className="flex items-center justify-between border-b px-3 py-2 text-xs font-medium">
+          <div className="flex items-center justify-between border-b px-3 py-2 text-sm font-medium">
             <span>待定预约</span>
             <Badge variant="secondary">{pending.length}</Badge>
           </div>
@@ -852,7 +856,7 @@ export function AppointmentBoardPage() {
                   setEditing(pendingToCard(p));
                   setDrawerOpen(true);
                 }}
-                className="cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-xs select-none hover:bg-pink-50 active:cursor-grabbing"
+                className="cursor-grab touch-none rounded-lg border border-pink-200 bg-pink-50/50 px-2 py-1.5 text-left text-sm select-none hover:bg-pink-50 active:cursor-grabbing"
               >
                 <span className="flex items-center justify-between gap-1">
                   <span className="font-medium">{p.patientName}</span>
@@ -869,7 +873,7 @@ export function AppointmentBoardPage() {
               </button>
             ))}
             {!pending.length ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 暂无待定
               </p>
             ) : null}
@@ -894,14 +898,12 @@ export function AppointmentBoardPage() {
                   return (
                     <div
                       key={col.key}
-                      className={`flex flex-1 flex-col items-center border-l border-border/30 py-1.5 text-xs ${
+                      className={`flex flex-1 flex-col items-center border-l border-border/30 py-1.5 text-sm ${
                         isToday ? "bg-primary/5 font-medium text-primary" : ""
                       }`}
                     >
                       <span>{col.label}</span>
-                      <span className="text-[10px] opacity-70">
-                        {count} 预约
-                      </span>
+                      <span className="text-sm opacity-70">{count} 预约</span>
                     </div>
                   );
                 })}
@@ -1028,7 +1030,7 @@ export function AppointmentBoardPage() {
                         return (
                           <div
                             onPointerDown={beginFloatDrag}
-                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-[11px] leading-tight text-white shadow-md select-none"
+                            className="absolute right-[2px] left-[2px] z-20 cursor-grab touch-none overflow-hidden rounded-md border-l-[3px] border-slate-500 bg-slate-600 px-1.5 py-0.5 text-left text-sm leading-tight text-white shadow-md select-none"
                             style={{
                               top,
                               height: Math.max(16, dur * PX_PER_MIN - 2),
@@ -1040,7 +1042,7 @@ export function AppointmentBoardPage() {
                               </span>
                             </span>
                             {dur * PX_PER_MIN >= 36 ? (
-                              <span className="block truncate tabular-nums opacity-80">
+                              <span className="block truncate text-[10px] tabular-nums opacity-80">
                                 {start} - {timeAt(minutesOf(start) + dur)}
                               </span>
                             ) : null}
@@ -1089,7 +1091,7 @@ export function AppointmentBoardPage() {
                               }
                               setSelected(card);
                             }}
-                            className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
+                            className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
                             style={{
                               top,
                               height,
@@ -1132,7 +1134,7 @@ export function AppointmentBoardPage() {
                               </span>
                             ) : null}
                             {height >= 48 ? (
-                              <span className="block truncate tabular-nums opacity-70">
+                              <span className="block truncate text-[10px] tabular-nums opacity-70">
                                 {card.startTime} - {previewEnd}
                               </span>
                             ) : null}
@@ -1371,7 +1373,7 @@ export function AppointmentBoardPage() {
       </Dialog>
       {drag && drag.moved && drag.kind === "pending" ? (
         <div
-          className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-xl"
+          className="pointer-events-none fixed z-[60] overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-xl"
           style={{
             left: drag.x - drag.offsetX,
             top: drag.y - drag.offsetY,
