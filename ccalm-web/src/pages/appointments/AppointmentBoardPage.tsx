@@ -169,6 +169,13 @@ export function AppointmentBoardPage() {
   const [confirmMove, setConfirmMove] = React.useState<ConfirmMove | null>(
     null,
   );
+  const [pendingBook, setPendingBook] = React.useState<{
+    row: PendingRow;
+    visitDate: string;
+    startTime: string;
+    doctor: string;
+  } | null>(null);
+  const [pendingDoctor, setPendingDoctor] = React.useState("");
   const [pendingMove, setPendingMove] = React.useState<{
     id: number;
     visitDate: string;
@@ -351,6 +358,31 @@ export function AppointmentBoardPage() {
       toast.success("预约时间已修改");
       setConfirmMove(null);
       setPendingMove(null);
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirmPendingBook() {
+    if (!pendingBook) return;
+    if (!pendingDoctor) {
+      toast.error("请选择医生");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api("PUT", `/appointments/${pendingBook.row.id}`, {
+        visitDate: pendingBook.visitDate,
+        startTime: pendingBook.startTime,
+        durationMinutes: 30,
+        doctor: pendingDoctor,
+        isPending: false,
+      });
+      toast.success("已确认预约");
+      setPendingBook(null);
+      setPendingDoctor("");
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -634,17 +666,13 @@ export function AppointmentBoardPage() {
           doctor: d.doctor || d.card.doctor,
         });
       } else if (d.kind === "pending" && d.pending) {
-        setDraftDate(d.date);
-        setDraftStart(d.start || "09:00");
-        setDraftDuration(undefined);
-        setEditing({
-          ...pendingToCard(d.pending),
+        setPendingDoctor(d.doctor || d.pending.doctor);
+        setPendingBook({
+          row: d.pending,
           visitDate: d.date,
           startTime: d.start || "09:00",
-          endTime: d.end || "09:30",
-          doctor: d.doctor,
+          doctor: d.doctor || d.pending.doctor,
         });
-        setDrawerOpen(true);
       } else if (drawerOpenRef.current && !editingRef.current) {
         setDraftDate(d.date);
         setDraftStart(d.start);
@@ -865,7 +893,7 @@ export function AppointmentBoardPage() {
           </div>
           {pending.length ? (
             <p className="border-b px-3 pb-1.5 text-sm text-muted-foreground">
-              点击卡片选择时间后「确认预约」
+              点击卡片确认预约，或拖到看板快速排期
             </p>
           ) : null}
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
@@ -1345,6 +1373,75 @@ export function AppointmentBoardPage() {
           ) : null}
         </PopoverContent>
       </Popover>{" "}
+      <Dialog
+        open={pendingBook != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingBook(null);
+            setPendingDoctor("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认预约</DialogTitle>
+          </DialogHeader>
+          {pendingBook ? (
+            <div className="flex flex-col gap-3 text-sm">
+              <p className="text-muted-foreground">
+                将「{pendingBook.row.patientName}」排到{" "}
+                <span className="font-medium text-foreground">
+                  {pendingBook.visitDate} {pendingBook.startTime}
+                </span>
+                ，请确认医生。
+              </p>
+              <div className="grid grid-cols-[72px_1fr] items-center gap-2">
+                <span className="text-right text-muted-foreground">医生</span>
+                <Select
+                  items={(meta?.doctors ?? []).map((n) => ({
+                    value: n,
+                    label: n,
+                  }))}
+                  value={pendingDoctor || null}
+                  onValueChange={(v) => {
+                    if (v) setPendingDoctor(v);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="选择医生" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(meta?.doctors ?? []).map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setPendingBook(null);
+                setPendingDoctor("");
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => void confirmPendingBook()}
+            >
+              确认预约
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={confirmMove != null}
         onOpenChange={(open) => {
