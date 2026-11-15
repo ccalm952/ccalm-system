@@ -1635,7 +1635,7 @@ export function AppointmentBoardPage() {
               <span className="text-muted-foreground">上班时间</span>
               <Input
                 type="time"
-                className="h-8 w-36 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                className="h-8 w-36 appearance-none rounded-full border border-input bg-background px-2.5 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 value={workStartInput}
                 onChange={(e) => setWorkStartInput(e.target.value)}
               />
@@ -1644,7 +1644,7 @@ export function AppointmentBoardPage() {
               <span className="text-muted-foreground">下班时间</span>
               <Input
                 type="time"
-                className="h-8 w-36 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                className="h-8 w-36 appearance-none rounded-full border border-input bg-background px-2.5 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 value={workEndInput}
                 onChange={(e) => setWorkEndInput(e.target.value)}
               />
