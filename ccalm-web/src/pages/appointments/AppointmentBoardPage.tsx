@@ -135,7 +135,22 @@ export function AppointmentBoardPage() {
   const [pending, setPending] = React.useState<PendingRow[]>([]);
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
   const DAY_START = minutesOf(meta?.workStart ?? "08:30");
-  const DAY_END = Math.max(minutesOf(meta?.workEnd ?? "18:00"), DAY_START + 60);
+  const workEndMinutes = minutesOf(meta?.workEnd ?? "18:00");
+  const DAY_END = React.useMemo(() => {
+    const from = view === "week" ? mondayOf(anchor) : dayDate;
+    const to =
+      view === "week" ? dayjs(from).add(6, "day").format("YYYY-MM-DD") : from;
+    let latest = 0;
+    for (const a of board?.appointments ?? []) {
+      if (a.isPending || !a.startTime) continue;
+      if (a.visitDate < from || a.visitDate > to) continue;
+      const start = minutesOf(a.startTime);
+      const end = a.endTime ? minutesOf(a.endTime) : start + 30;
+      if (end > latest) latest = end;
+    }
+    if (!latest) return Math.max(workEndMinutes, DAY_START + 60);
+    return Math.max(Math.ceil(latest / 15) * 15, DAY_START + 60);
+  }, [board, workEndMinutes, DAY_START, view, anchor, dayDate]);
   const HOUR_LINES = React.useMemo(() => {
     const lines: number[] = [];
     for (let m = Math.ceil(DAY_START / 60) * 60; m < DAY_END; m += 60) {

@@ -139,9 +139,9 @@ function RouteFallback() {
 }
 
 function ProtectedRoute() {
-  const [state, setState] = React.useState<
-    "checking" | "authed" | "unauth"
-  >("checking");
+  const [state, setState] = React.useState<"checking" | "authed" | "unauth">(
+    "checking",
+  );
   const [retryKey, setRetryKey] = React.useState(0);
   const [me, setMe] = React.useState<AuthMe | null>(null);
 
