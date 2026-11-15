@@ -1,6 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight, Plus, Settings, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { computeBoardBounds } from "@/lib/appointments/bounds";
 import {
@@ -1338,9 +1340,13 @@ export function AppointmentBoardPage() {
             <>
               <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold">
+                  <Link
+                    to={ROUTES.patients.detail(selected.patientId)}
+                    className="text-sm font-semibold hover:underline"
+                    onClick={() => setPopoverOpen(false)}
+                  >
                     {selected.patientName}
-                  </span>
+                  </Link>
                   <span className="inline-flex items-center gap-1.5 text-sm">
                     <span
                       className="size-2 rounded-full"
