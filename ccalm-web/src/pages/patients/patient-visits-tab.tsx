@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Timeline,
@@ -33,7 +32,6 @@ import {
   visitTimeRange,
 } from "@/lib/visits/visit-options";
 import type { PatientTab, PatientVisit } from "./patient-detail-types";
-import { VisitDialog } from "./visit-dialog";
 
 export function PatientVisitsTab({
   patientId,
@@ -44,8 +42,6 @@ export function PatientVisitsTab({
 }) {
   const [visits, setVisits] = React.useState<PatientVisit[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<PatientVisit | null>(null);
   const [deleting, setDeleting] = React.useState<PatientVisit | null>(null);
 
   const load = React.useCallback(async () => {
@@ -80,21 +76,6 @@ export function PatientVisitsTab({
 
   return (
     <Card>
-      <CardHeader className="space-y-0">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="size-3.5" />
-            新建就诊
-          </Button>
-        </div>
-      </CardHeader>
       <CardContent className="relative">
         {!loading && !visits.length ? (
           <div className="py-8 text-center text-muted-foreground">
@@ -140,16 +121,7 @@ export function PatientVisitsTab({
                         收费
                       </Button>
                     ) : null}
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setEditing(v);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      编辑
-                    </Button>
+
                     <Button
                       type="button"
                       variant="secondary"
@@ -173,14 +145,6 @@ export function PatientVisitsTab({
           </div>
         ) : null}
       </CardContent>
-
-      <VisitDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        patientId={patientId}
-        visit={editing}
-        onSaved={load}
-      />
 
       <AlertDialog
         open={deleting != null}
