@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -151,6 +151,12 @@ export function AppointmentBoardPage() {
   const [now, setNow] = React.useState(() => dayjs());
   const [editing, setEditing] = React.useState<AppointmentCard | null>(null);
   const [selected, setSelected] = React.useState<AppointmentCard | null>(null);
+  const [cardAnchor, setCardAnchor] = React.useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
   const [reason, setReason] = React.useState<ReasonState>(null);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -1081,7 +1087,7 @@ export function AppointmentBoardPage() {
                             key={card.id}
                             type="button"
                             onPointerDown={(e) => beginCardDrag(e, card)}
-                            onClick={() => {
+                            onClick={(e) => {
                               if (!canOperate(card.id)) return;
                               if (Date.now() - lastResizeAt.current < 400) {
                                 return;
@@ -1089,6 +1095,13 @@ export function AppointmentBoardPage() {
                               if (Date.now() - lastDragAt.current < 300) {
                                 return;
                               }
+                              const r = e.currentTarget.getBoundingClientRect();
+                              setCardAnchor({
+                                x: r.x,
+                                y: r.y,
+                                w: r.width,
+                                h: r.height,
+                              });
                               setSelected(card);
                             }}
                             className="absolute touch-none overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
@@ -1167,54 +1180,72 @@ export function AppointmentBoardPage() {
           )}
         </div>
       </div>
-      {/* 明细 */}
-      <Dialog
-        open={selected != null}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
-      >
-        <DialogContent>
-          {selected ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+      {selected && cardAnchor ? (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setSelected(null)}
+          />
+          <div
+            className="fixed z-50 w-95 max-w-[calc(100vw-16px)] overflow-y-auto rounded-xl border bg-popover text-popover-foreground shadow-xl"
+            style={{
+              left: Math.min(
+                cardAnchor.x + cardAnchor.w + 12,
+                window.innerWidth - 392,
+              ),
+              top: Math.min(
+                Math.max(8, cardAnchor.y - 12),
+                Math.max(8, window.innerHeight - 460),
+              ),
+              maxHeight: "calc(100vh - 32px)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-lg font-semibold">
                   {selected.patientName}
-                  <Badge variant="secondary">{toneOf(selected).label}</Badge>
-                  {selected.arrived ? (
-                    <Badge variant="secondary">已到店</Badge>
-                  ) : null}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-1.5 text-sm">
-                <p className="text-muted-foreground">
-                  {selected.chartNo}
-                  {selected.age ? ` · ${selected.age}岁` : ""}
-                  {selected.gender ? ` · ${selected.gender}` : ""}
-                  {selected.phone ? ` · ${selected.phone}` : ""}
-                </p>
-                <Separator />
-                <p>
-                  <span className="text-muted-foreground">预约时间：</span>
+                </span>
+                <Badge variant="secondary">{toneOf(selected).label}</Badge>
+                {selected.arrived ? (
+                  <Badge variant="secondary">已到店</Badge>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                aria-label="关闭"
+                className="rounded p-1 text-muted-foreground hover:bg-accent"
+                onClick={() => setSelected(null)}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 px-4 py-3 text-sm">
+              <p className="text-muted-foreground">
+                {selected.chartNo}
+                {selected.age ? ` · ${selected.age}岁` : ""}
+                {selected.gender ? ` · ${selected.gender}` : ""}
+              </p>
+              <p className="text-muted-foreground">{selected.phone || "—"}</p>
+              <Separator />
+              <div className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1.5">
+                <span className="text-muted-foreground">预约时间</span>
+                <span>
                   {selected.visitDate}
                   {selected.startTime
-                    ? ` ${selected.startTime} - ${selected.endTime}`
+                    ? ` ${selected.startTime} ~ ${selected.endTime}`
                     : "（待定）"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">医生：</span>
-                  {selected.doctor || "未指定"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">项目：</span>
+                </span>
+                <span className="text-muted-foreground">医生</span>
+                <span>{selected.doctor || "未指定"}</span>
+                <span className="text-muted-foreground">预约项目</span>
+                <span>
                   {selected.items.length ? selected.items.join("、") : "—"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">备注：</span>
-                  {selected.remark || "—"}
-                </p>
+                </span>
+                <span className="text-muted-foreground">预约备注</span>
+                <span>{selected.remark || "—"}</span>
               </div>
-              <DialogFooter className="flex-wrap justify-end gap-2">
+              <Separator />
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
                 {selected.status === "booked" && !selected.arrived ? (
                   <Button
                     type="button"
@@ -1282,11 +1313,11 @@ export function AppointmentBoardPage() {
                     删除
                   </Button>
                 ) : null}
-              </DialogFooter>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}{" "}
       <Dialog
         open={confirmMove != null}
         onOpenChange={(open) => {
