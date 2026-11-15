@@ -814,6 +814,7 @@ export function AppointmentBoardPage() {
           <Button
             type="button"
             variant="outline"
+            nativeButton={false}
             render={<Link to={ROUTES.appointments.list} />}
           >
             列表

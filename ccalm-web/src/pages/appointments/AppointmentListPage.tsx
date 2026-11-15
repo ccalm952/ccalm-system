@@ -137,6 +137,7 @@ export function AppointmentListPage() {
         <h1 className="text-lg font-semibold">预约列表</h1>
         <Button
           variant="outline"
+          nativeButton={false}
           render={<Link to={ROUTES.appointments.root} />}
         >
           返回看板

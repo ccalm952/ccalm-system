@@ -321,6 +321,7 @@ export function AppointmentDrawer({
                     variant="outline"
                     size="icon"
                     title="新增患者"
+                    nativeButton={false}
                     render={<Link to={ROUTES.patients.root} target="_blank" />}
                   >
                     <Plus className="size-4" />
