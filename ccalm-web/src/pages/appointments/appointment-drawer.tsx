@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetFooter,
   SheetHeader,
@@ -306,6 +307,7 @@ export function AppointmentDrawer({
     >
       <SheetContent
         showOverlay={false}
+        showCloseButton={false}
         className="flex flex-col p-0"
         style={{
           width: "min(96vw, 440px)",
@@ -314,12 +316,16 @@ export function AppointmentDrawer({
           height: "calc(100svh - 3.5rem)",
         }}
       >
-        <SheetHeader className="border-b px-4 py-2.5">
+        <SheetHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
           <SheetTitle>{initial ? "修改预约" : "新建预约"}</SheetTitle>
+          <SheetClose className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <X className="size-4" />
+            <span className="sr-only">关闭</span>
+          </SheetClose>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-hidden">
-          <ScrollArea className="size-full" viewportClassName="px-4 py-3">
+          <ScrollArea className="size-full" viewportClassName="px-4 py-4">
             <div className="flex flex-col gap-4">
               <section className="flex flex-col gap-3">
                 <h4 className="text-sm font-medium text-muted-foreground">
@@ -605,7 +611,7 @@ export function AppointmentDrawer({
           </ScrollArea>
         </div>
 
-        <SheetFooter className="flex-row items-center justify-between border-t px-4 py-2.5">
+        <SheetFooter className="flex-row items-center justify-between border-t px-4 py-3">
           <Button
             type="button"
             variant="ghost"

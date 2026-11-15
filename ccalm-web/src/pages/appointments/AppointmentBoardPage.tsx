@@ -900,7 +900,7 @@ export function AppointmentBoardPage() {
               点击卡片确认预约，或拖到看板快速排期
             </p>
           ) : null}
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 py-2">
             {pending.map((p) => (
               <button
                 key={p.id}
