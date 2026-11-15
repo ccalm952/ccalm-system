@@ -863,6 +863,11 @@ export function AppointmentBoardPage() {
             <span>待定预约</span>
             <Badge variant="secondary">{pending.length}</Badge>
           </div>
+          {pending.length ? (
+            <p className="border-b px-3 pb-1.5 text-sm text-muted-foreground">
+              点击卡片选择时间后「确认预约」
+            </p>
+          ) : null}
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
             {pending.map((p) => (
               <button

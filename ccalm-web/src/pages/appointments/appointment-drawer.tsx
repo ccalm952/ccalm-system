@@ -196,6 +196,7 @@ export function AppointmentDrawer({
     setDuration(durationSync);
   }, [open, initial, durationSync]);
 
+  const confirming = Boolean(initial?.isPending);
   const patientId = patient?.id ?? initial?.patientId;
 
   React.useEffect(() => {
@@ -252,7 +253,9 @@ export function AppointmentDrawer({
       };
       if (initial) await api("PUT", `/appointments/${initial.id}`, body);
       else await api("POST", "/appointments", body);
-      toast.success(asPending ? "已保存为待定预约" : "已保存");
+      toast.success(
+        asPending ? "已保存为待定预约" : confirming ? "已确认预约" : "已保存",
+      );
       onOpenChange(false);
       await onSaved();
     } catch (e) {
@@ -386,6 +389,11 @@ export function AppointmentDrawer({
               <h4 className="text-sm font-medium text-muted-foreground">
                 预约信息
               </h4>
+              {confirming ? (
+                <div className="rounded-lg border border-pink-200 bg-pink-50/60 px-2.5 py-1.5 text-sm text-pink-900">
+                  待定预约：选好时间和医生后点「确认预约」即可排入看板。
+                </div>
+              ) : null}{" "}
               <Row label="就诊类型">
                 <Select
                   items={[
@@ -406,7 +414,6 @@ export function AppointmentDrawer({
                   </SelectContent>
                 </Select>
               </Row>
-
               <Row label="预约时间" required>
                 <div className="flex items-center gap-1.5">
                   <div className="min-w-0 flex-1">
@@ -436,7 +443,6 @@ export function AppointmentDrawer({
                   />
                 </div>
               </Row>
-
               <Row label="持续时间" required>
                 <Select
                   items={DURATION_OPTIONS.map((d) => ({
@@ -466,7 +472,6 @@ export function AppointmentDrawer({
                   </SelectContent>
                 </Select>
               </Row>
-
               <Row label="医生" required>
                 <Select
                   value={doctor || null}
@@ -486,7 +491,6 @@ export function AppointmentDrawer({
                   </SelectContent>
                 </Select>
               </Row>
-
               <Row label="预约项目">
                 <Popover open={itemsOpen} onOpenChange={setItemsOpen}>
                   <PopoverTrigger
@@ -558,7 +562,6 @@ export function AppointmentDrawer({
                   rows={2}
                 />
               </Row>
-
               <label className="flex items-center gap-2 pl-[90px] text-sm text-muted-foreground">
                 <Checkbox
                   checked={force}
@@ -578,7 +581,7 @@ export function AppointmentDrawer({
             disabled={saving}
             onClick={() => void save(true)}
           >
-            保存为待定
+            {confirming ? "保持待定" : "保存为待定"}
           </Button>
           <div className="flex items-center gap-2">
             <Button
@@ -593,7 +596,7 @@ export function AppointmentDrawer({
               disabled={saving}
               onClick={() => void save(false)}
             >
-              保存预约
+              {confirming ? "确认预约" : "保存预约"}
             </Button>
           </div>
         </SheetFooter>
