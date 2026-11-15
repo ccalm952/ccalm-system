@@ -73,8 +73,4 @@ export class UpdateAppointmentDto {
   @IsOptional()
   @IsIn(SOURCES)
   source?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  force?: boolean;
 }

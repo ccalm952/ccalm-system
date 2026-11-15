@@ -66,9 +66,4 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsIn(APPOINTMENT_SOURCES)
   source?: string;
-
-  /** 医生时段冲突时是否强制保存 */
-  @IsOptional()
-  @IsBoolean()
-  force?: boolean;
 }

@@ -1,7 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { assignLanes, minutesOf } from "@/lib/appointments/layout";
 import {
@@ -855,14 +853,6 @@ export function AppointmentBoardPage() {
           })}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            nativeButton={false}
-            render={<Link to={ROUTES.appointments.list} />}
-          >
-            列表
-          </Button>
           {can(me, "appointment.create") ? (
             <Button
               type="button"

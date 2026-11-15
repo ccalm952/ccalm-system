@@ -45,6 +45,5 @@ export const ROUTES = {
   },
   appointments: {
     root: "/appointments",
-    list: "/appointments/list",
   },
 } as const;

@@ -181,73 +181,6 @@ export class AppointmentsService {
   }
 
   /** 列表页：按日期区间 + 状态 + 医生 + 关键字筛，最多 1000 条 */
-  async list(query: {
-    from?: string;
-    to?: string;
-    status?: string;
-    doctor?: string;
-    q?: string;
-  }) {
-    const from = query.from || dayjs().format("YYYY-MM-DD");
-    const to = query.to || dayjs(from).add(30, "day").format("YYYY-MM-DD");
-    if (to < from) throw new BadRequestException("结束日期不能早于开始日期");
-    const statuses = query.status?.split(",").filter(Boolean) ?? [];
-    const keyword = query.q?.trim();
-
-    const rows = await this.prisma.patientVisit.findMany({
-      where: {
-        visitDate: { gte: from, lte: to },
-        ...(statuses.length ? { status: { in: statuses } } : {}),
-        ...(query.doctor ? { doctor: query.doctor } : {}),
-        ...(keyword
-          ? {
-              patient: {
-                OR: [
-                  { name: { contains: keyword } },
-                  { phone: { contains: keyword } },
-                  { chartNo: { contains: keyword } },
-                ],
-              },
-            }
-          : {}),
-      },
-      include: {
-        patient: {
-          select: {
-            name: true,
-            chartNo: true,
-            gender: true,
-            age: true,
-            phone: true,
-          },
-        },
-      },
-      orderBy: [{ visitDate: "desc" }, { startTime: "desc" }, { id: "desc" }],
-      take: 1000,
-    });
-
-    return rows.map((v) => ({
-      id: v.id,
-      patientId: v.patientId,
-      patientName: v.patient.name,
-      chartNo: v.patient.chartNo,
-      gender: v.patient.gender,
-      age: v.patient.age,
-      phone: v.patient.phone,
-      visitDate: v.visitDate,
-      startTime: v.startTime,
-      endTime: v.endTime,
-      doctor: v.doctor,
-      kind: v.kind,
-      status: v.status,
-      arrived: v.arrivedAt != null,
-      items: v.items,
-      isPending: v.isPending,
-      pendingReason: v.pendingReason,
-      remark: v.remark,
-      createdById: v.createdById,
-    }));
-  }
 
   /** 患者未来 90 天的预约（新建/修改预约时提示"已有预约"，避免重复排） */
   async upcoming(patientId: number) {
@@ -315,7 +248,6 @@ export class AppointmentsService {
     endTime: string;
     doctor: string;
     excludeId?: number;
-    force?: boolean;
   }) {
     const { patientId, visitDate, startTime, endTime, doctor, excludeId } =
       params;
@@ -349,7 +281,7 @@ export class AppointmentsService {
         v.doctor === doctor &&
         hasOverlap(startTime, endTime, v.startTime, v.endTime),
     );
-    if (doctorConflict && !params.force) {
+    if (doctorConflict) {
       throw new BadRequestException(
         `医生「${doctor}」该时段已有预约，确认要同时安排吗？`,
       );
@@ -393,7 +325,6 @@ export class AppointmentsService {
         startTime,
         endTime,
         doctor: dto.doctor,
-        force: dto.force,
       });
     } else {
       startTime = "";
@@ -465,7 +396,6 @@ export class AppointmentsService {
         endTime,
         doctor,
         excludeId: id,
-        force: dto.force,
       });
     } else {
       startTime = "";

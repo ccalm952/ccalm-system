@@ -44,18 +44,6 @@ export class AppointmentsController {
     return this.appointments.board({ from, to, doctorIds, statuses });
   }
 
-  @Get("list")
-  @RequirePermissions("appointment.view")
-  list(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-    @Query("status") status?: string,
-    @Query("doctor") doctor?: string,
-    @Query("q") q?: string,
-  ) {
-    return this.appointments.list({ from, to, status, doctor, q });
-  }
-
   @Get("upcoming")
   @RequirePermissions("appointment.view")
   upcoming(@Query("patientId", ParseIntPipe) patientId: number) {
