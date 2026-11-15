@@ -1,4 +1,5 @@
 import * as React from "react";
+import { toast } from "sonner";
 import { lazy, Suspense } from "react";
 import {
   BrowserRouter,
@@ -85,6 +86,14 @@ const UsersPage = lazy(() =>
 const SalaryPage = lazy(() =>
   import("./pages/salary/SalaryPage").then((m) => ({ default: m.SalaryPage })),
 );
+const RolesPage = lazy(() =>
+  import("./pages/roles/RolesPage").then((m) => ({ default: m.RolesPage })),
+);
+const AppointmentBoardPage = lazy(() =>
+  import("./pages/appointments/AppointmentBoardPage").then((m) => ({
+    default: m.AppointmentBoardPage,
+  })),
+);
 const WarehouseSection = lazy(() =>
   import("./pages/warehouse/WarehouseSection").then((m) => ({
     default: m.WarehouseSection,
@@ -129,6 +138,8 @@ function ProtectedRoute() {
   const [state, setState] = React.useState<"checking" | "authed" | "unauth">(
     "checking",
   );
+  const [retryKey, setRetryKey] = React.useState(0);
+  const attemptsRef = React.useRef(0);
   const [me, setMe] = React.useState<AuthMe | null>(null);
 
   React.useEffect(() => {
@@ -147,28 +158,42 @@ function ProtectedRoute() {
     }
 
     let cancelled = false;
+    let timer: number | undefined;
     (async () => {
       try {
         const data = await api<AuthMe>("GET", "/auth/me");
         if (!cancelled) {
+          attemptsRef.current = 0;
           setMe(data);
           setState("authed");
         }
       } catch (e) {
         const err = e as ApiError;
-        if (err.status === 401) {
-          setToken(null);
-        }
         if (!cancelled) {
-          setState("unauth");
+          if (err.status === 401) {
+            setToken(null);
+            setState("unauth");
+          } else {
+            // 网络/服务暂不可用（例如后端重启）时自动重试，最多 8 次
+            attemptsRef.current += 1;
+            if (attemptsRef.current <= 8) {
+              timer = window.setTimeout(() => {
+                if (!cancelled) setRetryKey((k) => k + 1);
+              }, 1500);
+            } else if (!cancelled) {
+              toast.error("服务暂时不可用，请稍后重试");
+              setState("unauth");
+            }
+          }
         }
       }
     })();
 
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
     };
-  }, []);
+  }, [retryKey]);
 
   if (state === "checking") {
     return <RouteFallback />;
@@ -250,6 +275,17 @@ function App() {
             />
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
+
+            <Route path={ROUTES.roles.root} element={<RolesPage />} />
+
+            <Route
+              path={ROUTES.appointments.root}
+              element={<AppointmentBoardPage />}
+            />
+            <Route
+              path="/appointments/list"
+              element={<Navigate to={ROUTES.appointments.root} replace />}
+            />
 
             <Route path="warehouse/*" element={<WarehouseSection />} />
 

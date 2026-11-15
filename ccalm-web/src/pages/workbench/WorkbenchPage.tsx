@@ -28,7 +28,7 @@ import {
 } from "@/lib/orthodontics/categories";
 import {
   visitKindLabel,
-  visitStatusLabel,
+  visitDisplayStatusLabel,
   visitTimeRange,
   type VisitKind,
   type VisitStatus,
@@ -45,6 +45,8 @@ type TodayVisit = {
   startTime?: string;
   endTime?: string;
   status?: VisitStatus;
+  /** 已到店（状态仍是预约） */
+  arrived?: boolean;
   staff: string;
 };
 
@@ -70,7 +72,9 @@ function todayVisitDetail(v: TodayVisit): string {
       visitTimeRange(v.startTime ?? "", v.endTime ?? ""),
       label,
       // 「已就诊」本身就是状态，不再重复显示「已到店」
-      v.detail !== "visited" && v.status ? visitStatusLabel(v.status) : "",
+      v.detail !== "visited" && v.status
+        ? visitDisplayStatusLabel(v.status, !!v.arrived)
+        : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -79,7 +83,7 @@ function todayVisitDetail(v: TodayVisit): string {
     return [
       visitTimeRange(v.startTime ?? "", v.endTime ?? ""),
       visitKindLabel(v.detail as VisitKind),
-      v.status ? visitStatusLabel(v.status) : "",
+      v.status ? visitDisplayStatusLabel(v.status, !!v.arrived) : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -125,7 +129,8 @@ type Overview = {
 
 type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
 
-type VisitStatusFilter = "booked" | "arrived";
+/** 今日就诊两档：待接诊（未到店）/ 待治疗完成（已到店未写病历） */
+type VisitStatusFilter = "waiting" | "treating";
 
 function StatItem({
   label,
@@ -201,10 +206,18 @@ export function WorkbenchPage() {
   const followUps = data?.followUps ?? [];
   const pendingCourses = data?.pendingCourses ?? [];
   const followUpTasks = data?.followUpTasks ?? [];
-  const countVisitStatus = (status: VisitStatusFilter) =>
-    todayVisits.filter((v) => v.status === status).length;
+  const countVisitStatus = (filter: VisitStatusFilter) =>
+    todayVisits.filter((v) =>
+      filter === "waiting"
+        ? v.status === "booked" && !v.arrived
+        : v.status === "booked" && v.arrived,
+    ).length;
+  const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) =>
+    filter === "waiting"
+      ? v.status === "booked" && !v.arrived
+      : v.status === "booked" && v.arrived;
   const visibleVisits = statusFilter
-    ? todayVisits.filter((v) => v.status === statusFilter)
+    ? todayVisits.filter((v) => matchesVisitFilter(v, statusFilter))
     : todayVisits;
 
   function showVisits(filter: VisitStatusFilter | null) {
@@ -222,13 +235,13 @@ export function WorkbenchPage() {
           <CardContent className="flex flex-wrap gap-2">
             <StatItem
               label="待接诊"
-              value={countVisitStatus("booked")}
-              onClick={() => showVisits("booked")}
+              value={countVisitStatus("waiting")}
+              onClick={() => showVisits("waiting")}
             />
             <StatItem
               label="待治疗完成"
-              value={countVisitStatus("arrived")}
-              onClick={() => showVisits("arrived")}
+              value={countVisitStatus("treating")}
+              onClick={() => showVisits("treating")}
             />
           </CardContent>
         </Card>
@@ -297,7 +310,7 @@ export function WorkbenchPage() {
                   size="sm"
                   onClick={() => setStatusFilter(null)}
                 >
-                  {statusFilter === "booked" ? "待接诊" : "待治疗完成"} ·
+                  {statusFilter === "waiting" ? "待接诊" : "待治疗完成"} ·
                   清除筛选
                 </Button>
               ) : null}
@@ -325,9 +338,9 @@ export function WorkbenchPage() {
                   {visibleVisits.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
-                        {statusFilter === "booked"
+                        {statusFilter === "waiting"
                           ? "今日暂无待接诊患者"
-                          : statusFilter === "arrived"
+                          : statusFilter === "treating"
                             ? "今日暂无待治疗完成患者"
                             : "今日暂无就诊"}
                       </TableCell>

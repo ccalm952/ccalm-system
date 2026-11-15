@@ -544,14 +544,9 @@ export function PatientRecordsTab({
                             医生：{record.doctor}
                           </span>
                         ) : null}
-                        {record.assistant ? (
-                          <span className="text-muted-foreground">
-                            助理：{record.assistant}
-                          </span>
-                        ) : null}
                         {record.nurse ? (
                           <span className="text-muted-foreground">
-                            护士：{record.nurse}
+                            配台护士：{record.nurse}
                           </span>
                         ) : null}
                         {courseCharge(record) != null ? (

@@ -10,6 +10,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { daysSinceVisit } from "../orthodontics/follow-up";
 import { MergePatientsDto } from "./dto/merge-patients.dto";
 import { SavePatientDto } from "./dto/save-patient.dto";
+import { CreateTagDto, UpdateTagDto } from "./dto/save-tag.dto";
 import {
   ATTENDED_VISIT_STATUSES,
   latestVisitDate,
@@ -94,8 +95,7 @@ export class PatientsService {
             orderBy: { visitDate: "desc" },
             take: 1,
           },
-          pendings: { select: { id: true }, take: 1 },
-          orthodontics: { select: { category: true, lastVisitDate: true } },
+          orthodontics: { select: { lastVisitDate: true } },
         },
         orderBy:
           group === "duplicate"
@@ -124,11 +124,6 @@ export class PatientsService {
           p.clinicVisits[0]?.visitDate,
           ...p.orthodontics.map((o) => o.lastVisitDate),
         ]),
-        hasImplant: p.visits.length > 0,
-        hasPending: p.pendings.length > 0,
-        orthodonticsCategories: [
-          ...new Set(p.orthodontics.map((o) => o.category)),
-        ],
       })),
     };
   }
@@ -149,16 +144,105 @@ export class PatientsService {
         }),
       ),
     );
-    const tagRows = await this.prisma.$queryRaw<
-      Array<{ tag: string; count: bigint }>
-    >`SELECT t AS tag, COUNT(*)::bigint AS count FROM "Patient", unnest("tags") AS t GROUP BY t ORDER BY t`;
     return {
       groups: PATIENT_GROUPS.map((group, i) => ({
         group,
         count: groupCounts[i],
       })),
-      tags: tagRows.map((r) => ({ tag: r.tag, count: Number(r.count) })),
     };
+  }
+
+  /** 患者身上的标签统一进标签库，避免出现库里没有的标签 */
+  private async ensureTags(raw?: string[] | null) {
+    const names = normalizeTags(raw);
+    if (!names.length) return;
+    const existing = await this.prisma.tag.findMany({
+      where: { name: { in: names } },
+      select: { name: true },
+    });
+    const known = new Set(existing.map((t) => t.name));
+    const missing = names.filter((name) => !known.has(name));
+    if (!missing.length) return;
+    const max = await this.prisma.tag.aggregate({ _max: { sortOrder: true } });
+    const start = (max._max.sortOrder ?? 0) + 1;
+    await this.prisma.tag.createMany({
+      data: missing.map((name, i) => ({ name, sortOrder: start + i })),
+      skipDuplicates: true,
+    });
+  }
+
+  async tags() {
+    const [tags, tagRows] = await Promise.all([
+      this.prisma.tag.findMany({
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      }),
+      this.prisma.$queryRaw<
+        Array<{ tag: string; count: bigint }>
+      >`SELECT t AS tag, COUNT(*)::bigint AS count FROM "Patient", unnest("tags") AS t GROUP BY t`,
+    ]);
+    const counts = new Map(tagRows.map((r) => [r.tag, Number(r.count)]));
+    return tags.map((tag) => ({
+      ...tag,
+      count: counts.get(tag.name) ?? 0,
+    }));
+  }
+
+  async createTag(dto: CreateTagDto) {
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException("请填写标签名称");
+    if (await this.prisma.tag.findUnique({ where: { name } })) {
+      throw new BadRequestException("标签已存在");
+    }
+    const max = await this.prisma.tag.aggregate({ _max: { sortOrder: true } });
+    return this.prisma.tag.create({
+      data: {
+        name,
+        color: dto.color ?? "#64748b",
+        abbreviation: dto.abbreviation?.trim() ?? "",
+        sortOrder: (max._max.sortOrder ?? 0) + 1,
+      },
+    });
+  }
+
+  async updateTag(id: number, dto: UpdateTagDto) {
+    const tag = await this.prisma.tag.findUnique({ where: { id } });
+    if (!tag) throw new NotFoundException("标签不存在");
+
+    const name = dto.name?.trim();
+    if (dto.name !== undefined && !name) {
+      throw new BadRequestException("请填写标签名称");
+    }
+    if (name && name !== tag.name) {
+      if (await this.prisma.tag.findUnique({ where: { name } })) {
+        throw new BadRequestException("标签已存在");
+      }
+    }
+
+    const data: Prisma.TagUpdateInput = {};
+    if (name) data.name = name;
+    if (dto.color !== undefined) data.color = dto.color;
+    if (dto.abbreviation !== undefined)
+      data.abbreviation = dto.abbreviation.trim();
+    if (dto.enabled !== undefined) data.enabled = dto.enabled;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.tag.update({ where: { id }, data });
+      if (name && name !== tag.name) {
+        await tx.$executeRaw`UPDATE "Patient" SET "tags" = array_replace("tags", ${tag.name}, ${name}) WHERE ${tag.name} = ANY("tags")`;
+      }
+    });
+    return { ok: true };
+  }
+
+  async removeTag(id: number) {
+    const tag = await this.prisma.tag.findUnique({ where: { id } });
+    if (!tag) throw new NotFoundException("标签不存在");
+    await this.prisma.$transaction([
+      this.prisma
+        .$executeRaw`UPDATE "Patient" SET "tags" = array_remove("tags", ${tag.name}) WHERE ${tag.name} = ANY("tags")`,
+      this.prisma.tag.delete({ where: { id } }),
+    ]);
+    return { ok: true };
   }
 
   async staff() {
@@ -230,6 +314,7 @@ export class PatientsService {
     if (match && (await this.prisma.patient.findFirst({ where: match }))) {
       throw new BadRequestException("已有同名且病历号或手机号相同的患者");
     }
+    await this.ensureTags(data.tags);
     const p = await this.prisma.patient.create({ data });
     return { id: p.id };
   }
@@ -237,7 +322,9 @@ export class PatientsService {
   async update(id: number, dto: SavePatientDto) {
     const existing = await this.prisma.patient.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException("患者不存在");
-    await this.prisma.patient.update({ where: { id }, data: this.toData(dto) });
+    const data = this.toData(dto);
+    await this.ensureTags(data.tags);
+    await this.prisma.patient.update({ where: { id }, data });
     return { ok: true };
   }
 
@@ -293,6 +380,7 @@ export class PatientsService {
       throw new NotFoundException("患者不存在");
     }
     const data = this.toData(dto);
+    await this.ensureTags(data.tags);
     const age =
       [dto.targetId, ...sourceIds]
         .map((id) => patients.find((p) => p.id === id)?.age)

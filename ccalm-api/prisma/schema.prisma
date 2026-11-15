@@ -41,6 +41,7 @@ model User {
   passwordHash        String
   displayName         String
   avatarUrl           String   @default("")
+  /// @deprecated 旧登录权限；已由 Role 取代，保留一个版本周期用于兼容
   role                UserRole @default(user)
   leaveInitialBalance Float    @default(0)
   sortOrder           Int      @default(0)
@@ -57,6 +58,26 @@ model User {
   punchDeviceUnbindRequests         AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindApplicant")
   reviewedPunchDeviceUnbindRequests AttendancePunchDeviceUnbindRequest[] @relation("PunchDeviceUnbindReviewer")
   warehouseTxnsOperated             WarehouseTxn[]                       @relation("WarehouseTxnOperator")
+  roles                             Role[]
+}
+
+/// 角色 = 岗位身份（可被预约 / 可配台）+ 权限点；一个用户可挂多个角色，权限取并集
+model Role {
+  id          String   @id @default(uuid())
+  /// 显示名：管理员 / 医生 / 护士 / 自定义
+  name        String   @unique
+  /// 可作为「预约医生」：预约下拉、看板医生列
+  bookable    Boolean  @default(false)
+  /// 可作为「配台护士」：病历配台护士选人
+  assistable  Boolean  @default(false)
+  /// 权限点，见 common/permissions/permissions.ts
+  permissions String[] @default([])
+  /// 内置角色：不可删除、不可改名
+  builtin     Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
 }
 
 model GeofenceConfig {
@@ -217,7 +238,19 @@ model Patient {
   @@index([chartNo])
 }
 
-/// 就诊（挂号/到店）；电子病历、收费单可挂在某次就诊上
+/// 患者标签库；Patient.tags 里保存标签名称
+model Tag {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  color        String   @default("#64748b")
+  abbreviation String   @default("")
+  enabled      Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// 就诊（预约/到店）；电子病历、收费单可挂在某次就诊上
 model PatientVisit {
   id             Int             @id @default(autoincrement())
   patientId      Int
@@ -227,10 +260,26 @@ model PatientVisit {
   endTime        String          @default("")
   /// first 初诊 | return 复诊
   kind           String          @default("return")
-  /// booked 已预约 | arrived 已到店 | completed 治疗完成 | cancelled 已取消 | missed 失约
-  status         String          @default("arrived")
+  /// booked 预约 | completed 治疗完成 | cancelled 已取消 | missed 已失约
+  status         String          @default("booked")
   doctor         String          @default("")
   remark         String          @default("")
+  /// 预约项目名称（来自独立的预约项目字典，多选）
+  items          String[]        @default([])
+  /// manual 手工录入 | network 网络 | record 病历/疗程 | system 系统生成
+  source         String          @default("manual")
+  /// 创建人 User.id
+  createdById    String?
+  /// 到店时间（"到店"不是状态，有这个时间即已到店）
+  arrivedAt      DateTime?
+  /// 治疗完成时间
+  completedAt    DateTime?
+  /// 待定：无医生或无确定时段
+  isPending      Boolean         @default(false)
+  /// patient_time 患者时间 | doctor_schedule 医生排班 | lab 加工件 | consult 多医生会诊
+  pendingReason  String          @default("")
+  /// 取消/失约原因
+  cancelReason   String          @default("")
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   medicalRecords MedicalRecord[]
@@ -238,6 +287,44 @@ model PatientVisit {
 
   @@index([patientId, visitDate])
   @@index([visitDate])
+  @@index([visitDate, status])
+  @@index([visitDate, doctor])
+  @@index([isPending, visitDate])
+}
+
+/// 预约项目分类（独立维护，不复用收费项目）
+model AppointmentSettings {
+  id        String   @id @default("global")
+  workStart String   @default("08:30")
+  workEnd   String   @default("18:00")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model AppointmentCategory {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  sort      Int               @default(0)
+  enabled   Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  items     AppointmentItem[]
+}
+
+/// 预约项目；PatientVisit.items 里保存名称
+model AppointmentItem {
+  id         Int                 @id @default(autoincrement())
+  categoryId Int
+  category   AppointmentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name       String
+  /// 卡片配色（可选）
+  color      String              @default("")
+  enabled    Boolean             @default(true)
+  sort       Int                 @default(0)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@unique([categoryId, name])
+  @@index([categoryId, sort])
 }
 
 /// 电子病历；口腔检查/诊断/治疗计划/处置为 [{ teeth, text }] 牙位条目
@@ -252,7 +339,7 @@ model MedicalRecord {
   visitDate      String
   visitTime      String              @default("")
   doctor         String              @default("")
-  assistant      String              @default("")
+  /// 配台护士（可选，仅用于追溯）
   nurse          String              @default("")
   chiefComplaint String              @default("")
   presentIllness String              @default("")

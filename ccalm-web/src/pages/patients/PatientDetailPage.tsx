@@ -5,7 +5,6 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { cn } from "cn";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -13,6 +12,7 @@ import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { rememberRecentPatient } from "@/lib/patients/recent-patients";
+import { usePatientTags } from "@/lib/patients/tags";
 import { PatientChargesTab } from "./patient-charges-tab";
 import type { PatientDetail, PatientTab } from "./patient-detail-types";
 import { PatientFollowUpsTab } from "./patient-followups-tab";
@@ -20,6 +20,7 @@ import { PatientFormDialog } from "./patient-form-dialog";
 import { PatientInfoTab } from "./patient-info-tab";
 import { PatientRecordsTab } from "./patient-records-tab";
 import { PatientSidebar } from "./patient-sidebar";
+import { PatientTagBadge } from "./patient-tag-badge";
 import { PatientVisitsTab } from "./patient-visits-tab";
 
 const TABS: { value: PatientTab; label: string }[] = [
@@ -49,6 +50,7 @@ export function PatientDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingRecord, setEditingRecord] = React.useState(false);
+  const tags = usePatientTags();
   const load = React.useCallback(async () => {
     setLoading(true);
     setPatient((prev) => (prev?.id === patientId ? prev : null));
@@ -79,7 +81,11 @@ export function PatientDetailPage() {
 
   return (
     <div className="flex gap-4 p-4 md:p-6">
-      <PatientSidebar defaultTab="recent" currentId={patientId} />
+      <PatientSidebar
+        defaultTab="recent"
+        currentId={patientId}
+        onTagsChanged={() => void load()}
+      />
       <div
         key={patientId}
         className={cn(
@@ -115,9 +121,7 @@ export function PatientDetailPage() {
                   {age != null ? <span>{age} 岁</span> : null}
                   {patient.phone ? <span>{patient.phone}</span> : null}
                   {patient.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
+                    <PatientTagBadge key={tag} name={tag} tags={tags} />
                   ))}
                 </div>
                 <Button

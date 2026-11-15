@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { appointmentsNavItem } from "@/config/appointments-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
@@ -27,6 +28,7 @@ import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 
 export function MainLayout() {
@@ -48,6 +50,13 @@ export function MainLayout() {
                     render={<Link to={workbenchNavItem.url} />}
                   >
                     {workbenchNavItem.title}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    render={<Link to={appointmentsNavItem.url} />}
+                  >
+                    {appointmentsNavItem.title}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
@@ -113,6 +122,15 @@ export function MainLayout() {
                     ))}
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+                {can(me, "staff.manage") ? (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      render={<Link to={ROUTES.roles.root} />}
+                    >
+                      人员与角色
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                ) : null}
                 {me?.role === "admin" ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink

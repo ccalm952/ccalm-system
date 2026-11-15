@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,11 +37,13 @@ import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
 import { PATIENT_AUTO_GROUPS, type PatientGroup } from "@/lib/patients/groups";
+import { usePatientTags } from "@/lib/patients/tags";
 import {
   PatientFormDialog,
   type PatientFormValue,
 } from "./patient-form-dialog";
 import { MergePatientsDialog } from "./merge-patients-dialog";
+import { PatientTagBadge } from "./patient-tag-badge";
 import { type PatientFilter, PatientSidebar } from "./patient-sidebar";
 
 type PatientRow = PatientFormValue & {
@@ -50,9 +51,6 @@ type PatientRow = PatientFormValue & {
   age: number | null;
   createdAt: string;
   lastVisitDate: string | null;
-  hasImplant: boolean;
-  hasPending: boolean;
-  orthodonticsCategories: string[];
 };
 
 const PATIENT_COLS = [
@@ -78,6 +76,7 @@ function parseGroup(raw: string | null): PatientGroup {
 export function PatientsPage() {
   const [searchParams] = useSearchParams();
   const tag = searchParams.get("tag");
+  const tags = usePatientTags();
   const group = tag ? "all" : parseGroup(searchParams.get("group"));
   const filter = React.useMemo<PatientFilter>(
     () => ({ group, tag }),
@@ -188,6 +187,7 @@ export function PatientsPage() {
         defaultTab="groups"
         activeFilter={filter}
         refreshKey={refreshKey}
+        onTagsChanged={() => void reload()}
       />
 
       <Card className="min-w-0 flex-1">
@@ -300,9 +300,12 @@ export function PatientsPage() {
                       <TableCell className="max-w-0 min-w-0 truncate">
                         <div className="flex justify-center gap-1">
                           {row.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary">
-                              {tag}
-                            </Badge>
+                            <PatientTagBadge
+                              key={tag}
+                              name={tag}
+                              tags={tags}
+                              compact
+                            />
                           ))}
                         </div>
                       </TableCell>

@@ -3,9 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import {
   BookOpen,
   CalendarCheck2,
+  CalendarDays,
   ChevronRightIcon,
   LayoutDashboard,
   Package,
+  ShieldCheck,
   Smile,
   Sprout,
   Users,
@@ -32,6 +34,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { appointmentsNavItem } from "@/config/appointments-nav";
 import { attendanceNavItemsForRole } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
@@ -41,6 +44,7 @@ import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
 import { ROUTES } from "@/config/routes";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 
 function subPathActive(pathname: string, url: string) {
@@ -174,6 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {[
               { link: workbenchNavItem, icon: LayoutDashboard },
+              { link: appointmentsNavItem, icon: CalendarDays },
               { link: patientsNavItem, icon: Users },
             ].map(({ link, icon: Icon }) => (
               <SidebarMenuItem key={link.url}>
@@ -239,6 +244,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               activePath={activePath}
               onNavClick={onNavClick}
             />
+            {can(me, "staff.manage") ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className="font-medium"
+                  isActive={subPathActive(activePath, ROUTES.roles.root)}
+                  render={
+                    <Link
+                      to={ROUTES.roles.root}
+                      onClick={() => onNavClick(ROUTES.roles.root)}
+                    />
+                  }
+                  tooltip="人员与角色"
+                >
+                  <ShieldCheck className="shrink-0" />
+                  <span>人员与角色</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
             {me?.role === "admin" ? (
               <SidebarMenuItem>
                 <SidebarMenuButton

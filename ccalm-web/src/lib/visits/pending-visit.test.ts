@@ -10,7 +10,7 @@ function visit(
   return {
     id: 1,
     visitDate: TODAY,
-    status: "arrived",
+    status: "booked",
     medicalRecordIds: [],
     ...overrides,
   };

@@ -82,10 +82,6 @@ export class SaveMedicalRecordDto {
 
   @IsOptional()
   @IsString()
-  assistant?: string;
-
-  @IsOptional()
-  @IsString()
   nurse?: string;
 
   @IsOptional()
