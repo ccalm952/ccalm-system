@@ -755,11 +755,11 @@ export function AppointmentBoardPage() {
         >
           今天
         </Button>
-        <div className="flex rounded-full border p-0.5 text-sm">
+        <div className="flex h-8 items-center rounded-full border text-sm">
           <button
             type="button"
             onClick={() => setView("week")}
-            className={`rounded-full px-3 py-1 transition-colors ${
+            className={`flex h-full items-center rounded-full px-3 transition-colors ${
               view === "week"
                 ? "bg-primary text-primary-foreground"
                 : "hover:bg-accent"
@@ -770,7 +770,7 @@ export function AppointmentBoardPage() {
           <button
             type="button"
             onClick={() => setView("day")}
-            className={`rounded-full px-3 py-1 transition-colors ${
+            className={`flex h-full items-center rounded-full px-3 transition-colors ${
               view === "day"
                 ? "bg-primary text-primary-foreground"
                 : "hover:bg-accent"
@@ -819,7 +819,7 @@ export function AppointmentBoardPage() {
                 key={key}
                 type="button"
                 onClick={() => toggleLegend(key)}
-                className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-sm transition-opacity ${
+                className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-opacity ${
                   off ? "opacity-35" : ""
                 }`}
                 style={{
