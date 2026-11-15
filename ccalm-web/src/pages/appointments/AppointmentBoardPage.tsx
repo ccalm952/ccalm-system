@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
@@ -50,6 +51,11 @@ function mondayOf(date: string): string {
   const d = dayjs(date);
   const offset = d.day() === 0 ? 6 : d.day() - 1;
   return d.subtract(offset, "day").format("YYYY-MM-DD");
+}
+
+function padTime(t: string): string {
+  const [h, m] = t.split(":");
+  return `${h.padStart(2, "0")}:${(m ?? "00").padStart(2, "0")}`;
 }
 
 function plusMinutes(time: string, minutes: number): string {
@@ -132,23 +138,26 @@ export function AppointmentBoardPage() {
   const [board, setBoard] = React.useState<BoardResponse | null>(null);
   const [pending, setPending] = React.useState<PendingRow[]>([]);
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
-  const DAY_START = minutesOf(meta?.workStart ?? "08:30");
+  const workStartMinutes = minutesOf(meta?.workStart ?? "08:30");
   const workEndMinutes = minutesOf(meta?.workEnd ?? "18:00");
-  const DAY_END = React.useMemo(() => {
+  const { DAY_START, DAY_END } = React.useMemo(() => {
     const from = view === "week" ? mondayOf(anchor) : dayDate;
     const to =
       view === "week" ? dayjs(from).add(6, "day").format("YYYY-MM-DD") : from;
-    let latest = 0;
+    let earliest = Infinity;
+    let latest = -Infinity;
     for (const a of board?.appointments ?? []) {
       if (a.isPending || !a.startTime) continue;
       if (a.visitDate < from || a.visitDate > to) continue;
       const start = minutesOf(a.startTime);
       const end = a.endTime ? minutesOf(a.endTime) : start + 30;
-      if (end > latest) latest = end;
+      earliest = Math.min(earliest, start);
+      latest = Math.max(latest, end);
     }
-    if (!latest) return Math.max(workEndMinutes, DAY_START + 60);
-    return Math.max(Math.ceil(latest / 15) * 15, DAY_START + 60);
-  }, [board, workEndMinutes, DAY_START, view, anchor, dayDate]);
+    const start = Math.min(workStartMinutes, Math.floor(earliest / 15) * 15);
+    const end = Math.max(workEndMinutes, Math.ceil(latest / 15) * 15);
+    return { DAY_START: start, DAY_END: Math.max(end, start + 60) };
+  }, [board, workStartMinutes, workEndMinutes, view, anchor, dayDate]);
   const HOUR_LINES = React.useMemo(() => {
     const lines: number[] = [];
     for (let m = Math.ceil(DAY_START / 60) * 60; m < DAY_END; m += 60) {
@@ -175,6 +184,13 @@ export function AppointmentBoardPage() {
   const [reasonOpen, setReasonOpen] = React.useState(false);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [workStartInput, setWorkStartInput] = React.useState("08:30");
+  const [workEndInput, setWorkEndInput] = React.useState("18:00");
+  const [shiftPayload, setShiftPayload] = React.useState<Record<
+    string,
+    string
+  > | null>(null);
   const [drag, setDrag] = React.useState<DragState | null>(null);
   const [draftDuration, setDraftDuration] = React.useState<number | undefined>(
     undefined,
@@ -385,10 +401,6 @@ export function AppointmentBoardPage() {
   }
   async function confirmPendingBook() {
     if (!pendingBook) return;
-    if (!pendingBook.doctor) {
-      toast.error("该待定预约缺少医生，请先点卡片补充医生");
-      return;
-    }
     setBusy(true);
     try {
       await api("PUT", `/appointments/${pendingBook.row.id}`, {
@@ -405,6 +417,40 @@ export function AppointmentBoardPage() {
       toast.error(errorMessage(e));
     } finally {
       setBusy(false);
+    }
+  }
+  async function openSettings() {
+    try {
+      const shift = await api<Record<string, string>>(
+        "GET",
+        "/attendance/shift",
+      );
+      setWorkStartInput(padTime(shift.morningRangeStart ?? "08:30"));
+      setWorkEndInput(padTime(shift.afternoonRangeEnd ?? "18:00"));
+      setShiftPayload(shift);
+      setSettingsOpen(true);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
+  async function saveSettings() {
+    if (!shiftPayload) return;
+    try {
+      const payload = { ...shiftPayload };
+      delete payload.id;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      await api("PUT", "/attendance/shift", {
+        ...payload,
+        morningRangeStart: workStartInput,
+        afternoonRangeEnd: workEndInput,
+      });
+      toast.success("已保存预约设置");
+      setSettingsOpen(false);
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
     }
   }
   async function remove(card: AppointmentCard) {
@@ -494,23 +540,26 @@ export function AppointmentBoardPage() {
       window.removeEventListener("mouseup", up);
     };
   }, [draftResize]);
-  function targetAt(x: number, y: number, d: DragState) {
-    const el = document.elementFromPoint(x, y);
-    const col = el?.closest<HTMLElement>("[data-col-date]");
-    if (!col) return null;
-    const rect = col.getBoundingClientRect();
-    const raw = DAY_START + (y - rect.top) / PX_PER_MIN;
-    const snapped = Math.min(
-      DAY_END - 15,
-      Math.max(DAY_START, Math.round(raw / 15) * 15),
-    );
-    return {
-      date: col.dataset.colDate ?? d.date,
-      start: timeAt(snapped),
-      end: timeAt(snapped + d.duration),
-      doctor: col.dataset.colDoctor ?? "",
-    };
-  }
+  const targetAt = React.useCallback(
+    (x: number, y: number, d: DragState) => {
+      const el = document.elementFromPoint(x, y);
+      const col = el?.closest<HTMLElement>("[data-col-date]");
+      if (!col) return null;
+      const rect = col.getBoundingClientRect();
+      const raw = DAY_START + (y - rect.top) / PX_PER_MIN;
+      const snapped = Math.min(
+        DAY_END - 15,
+        Math.max(DAY_START, Math.round(raw / 15) * 15),
+      );
+      return {
+        date: col.dataset.colDate ?? d.date,
+        start: timeAt(snapped),
+        end: timeAt(snapped + d.duration),
+        doctor: col.dataset.colDoctor ?? "",
+      };
+    },
+    [DAY_START, DAY_END],
+  );
 
   function beginCardDrag(e: React.PointerEvent, card: AppointmentCard) {
     if (e.button !== 0) return;
@@ -715,7 +764,7 @@ export function AppointmentBoardPage() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [dragActive]);
+  }, [dragActive, targetAt]);
   const unscheduled = React.useMemo(
     () => visible.filter((a) => !a.isPending && !a.startTime),
     [visible],
@@ -853,6 +902,12 @@ export function AppointmentBoardPage() {
           })}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {me?.role === "admin" ? (
+            <Button type="button" variant="outline" onClick={openSettings}>
+              <Settings className="size-4" />
+              预约设置
+            </Button>
+          ) : null}
           {can(me, "appointment.create") ? (
             <Button
               type="button"
@@ -1544,6 +1599,53 @@ export function AppointmentBoardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={settingsOpen}
+        onOpenChange={(open) => {
+          if (!open) setSettingsOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>预约设置</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">上班时间</span>
+              <Input
+                type="time"
+                className="w-36"
+                value={workStartInput}
+                onChange={(e) => setWorkStartInput(e.target.value)}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">下班时间</span>
+              <Input
+                type="time"
+                className="w-36"
+                value={workEndInput}
+                onChange={(e) => setWorkEndInput(e.target.value)}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground">
+              看板默认显示上下班时间；该范围外已有预约时会自动延长显示。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setSettingsOpen(false)}
+            >
+              取消
+            </Button>
+            <Button type="button" onClick={saveSettings}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>{" "}
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={(next) => {
