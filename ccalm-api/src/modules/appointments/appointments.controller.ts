@@ -82,6 +82,11 @@ export class AppointmentsController {
     return this.appointments.update(id, dto, { userId: actor(req).userId });
   }
 
+  @Post(":id/start")
+  @RequirePermissions("appointment.create")
+  start(@Param("id", ParseIntPipe) id: number) {
+    return this.appointments.start(id);
+  }
   @Post(":id/miss")
   @RequirePermissions("appointment.create")
   miss(
@@ -92,24 +97,6 @@ export class AppointmentsController {
     return this.appointments.miss(id, dto.reason, {
       userId: actor(req).userId,
     });
-  }
-
-  @Post(":id/cancel")
-  @RequirePermissions("appointment.create")
-  cancel(
-    @Req() req: Request,
-    @Param("id", ParseIntPipe) id: number,
-    @Body() dto: AppointmentReasonDto,
-  ) {
-    return this.appointments.cancel(id, dto.reason, {
-      userId: actor(req).userId,
-    });
-  }
-
-  @Post(":id/revert")
-  @RequirePermissions("appointment.create")
-  revert(@Req() req: Request, @Param("id", ParseIntPipe) id: number) {
-    return this.appointments.revert(id, { userId: actor(req).userId });
   }
 
   @Delete(":id")

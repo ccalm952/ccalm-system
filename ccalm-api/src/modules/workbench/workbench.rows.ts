@@ -13,10 +13,11 @@ export type TodayVisitSource = {
   status: string;
   doctor: string;
   remark: string;
-  arrivedAt: Date | null;
+  visitId: number | null;
+  source: string;
   patient: { name: string; phone: string; chartNo: string };
   /** 该次就诊挂的病历（id 倒序，第一条最新） */
-  medicalRecords: { type: string; doctor: string }[];
+  visit: { medicalRecords: { type: string; doctor: string }[] } | null;
 };
 
 export type TodayVisitRow = {
@@ -30,17 +31,17 @@ export type TodayVisitRow = {
   startTime: string;
   endTime: string;
   status: string;
-  /** 已到店（状态仍是 booked） */
-  arrived: boolean;
+  /** 已开始接诊（已生成 Visit，状态仍是 booked） */
+  started: boolean;
   staff: string;
 };
 
 export function isOrthoVisit(row: {
   remark: string;
-  medicalRecords: { type: string }[];
+  visit: { medicalRecords: { type: string }[] } | null;
 }): boolean {
   if (row.remark === ORTHO_VISIT_REMARK) return true;
-  return row.medicalRecords.some((r) =>
+  return (row.visit?.medicalRecords ?? []).some((r) =>
     isOrthoRecordType(r.type as MedicalRecordType),
   );
 }
@@ -50,10 +51,11 @@ export function isOrthoVisit(row: {
  * 避免和正畸档案的「上次就诊」重复列出。
  */
 export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
-  const orthoRecord = row.medicalRecords.find((r) =>
+  const medicalRecords = row.visit?.medicalRecords ?? [];
+  const orthoRecord = medicalRecords.find((r) =>
     isOrthoRecordType(r.type as MedicalRecordType),
   );
-  const latestRecord = row.medicalRecords[0];
+  const latestRecord = medicalRecords[0];
   const ortho = isOrthoVisit(row);
   const staffSource = ortho ? (orthoRecord ?? latestRecord) : undefined;
   const common = {
@@ -64,7 +66,7 @@ export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
     startTime: row.startTime,
     endTime: row.endTime,
     status: row.status,
-    arrived: row.arrivedAt != null,
+    started: row.visitId != null,
     staff: staffSource?.doctor || row.doctor,
   };
   return ortho

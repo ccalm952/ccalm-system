@@ -1,4 +1,4 @@
-export type AppointmentStatus = "booked" | "completed" | "missed" | "cancelled";
+export type AppointmentStatus = "booked" | "completed" | "missed";
 
 export type AppointmentCard = {
   id: number;
@@ -14,12 +14,13 @@ export type AppointmentCard = {
   doctor: string;
   kind: string;
   status: AppointmentStatus;
-  arrived: boolean;
   items: string[];
   isPending: boolean;
   pendingReason: string;
   remark: string;
   createdById: string | null;
+  visitId: number | null;
+  source: string;
 };
 
 export type BoardResponse = {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { todayVisitRow, type TodayVisitSource } from "./workbench.rows";
 
-const patient = { name: "林雯馨", phone: "15359575597", chartNo: "260837" };
+const patient = { name: "林鑫棣", phone: "15359575597", chartNo: "260837" };
 
 function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
   return {
@@ -12,14 +12,20 @@ function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
     endTime: "",
     kind: "return",
     status: "completed",
-    doctor: "吴介尘",
+    doctor: "吴仲浩",
     remark: "",
-    arrivedAt: null,
+    visitId: null,
+    source: "booking",
     patient,
-    medicalRecords: [],
+    visit: { medicalRecords: [] },
     ...overrides,
   };
 }
+
+const withRecords = (
+  records: { type: string; doctor: string }[],
+  overrides: Partial<TodayVisitSource> = {},
+) => visit({ ...overrides, visit: { medicalRecords: records } });
 
 describe("todayVisitRow", () => {
   it("普通门诊就诊出一行门诊", () => {
@@ -28,13 +34,13 @@ describe("todayVisitRow", () => {
       key: "clinic-1",
       kind: "clinic",
       detail: "return",
-      staff: "吴介尘",
+      staff: "吴仲浩",
     });
   });
 
   it("同一次就诊挂了正畸复诊病历时只出一行正畸，不再重复门诊行", () => {
     const row = todayVisitRow(
-      visit({ medicalRecords: [{ type: "orthoReturn", doctor: "胡" }] }),
+      withRecords([{ type: "orthoReturn", doctor: "能" }]),
     );
     expect(row).toMatchObject({
       key: "orthodontics-1",
@@ -45,29 +51,27 @@ describe("todayVisitRow", () => {
 
   it("正畸行的医生以病历为准", () => {
     const row = todayVisitRow(
-      visit({
-        doctor: "吴介尘",
-        medicalRecords: [{ type: "orthoReturn", doctor: "胡" }],
+      withRecords([{ type: "orthoReturn", doctor: "能" }], {
+        doctor: "吴仲浩",
       }),
     );
-    expect(row.staff).toBe("胡");
+    expect(row.staff).toBe("能");
   });
 
   it("病历没填医生时退回就诊医生", () => {
     const row = todayVisitRow(
-      visit({
-        doctor: "吴介尘",
-        medicalRecords: [{ type: "orthoFirst", doctor: "" }],
+      withRecords([{ type: "orthoFirst", doctor: "" }], {
+        doctor: "吴仲浩",
       }),
     );
-    expect(row.staff).toBe("吴介尘");
+    expect(row.staff).toBe("吴仲浩");
   });
 
-  it("正畸名单点「就诊」建的就诊即使还没写病历也算正畸", () => {
+  it("正畸名单点「就诊」建的即使还没写病历也算正畸", () => {
     const row = todayVisitRow(
       visit({
         status: "booked",
-        arrivedAt: new Date(),
+        visitId: 99,
         remark: "正畸就诊",
       }),
     );
@@ -76,15 +80,14 @@ describe("todayVisitRow", () => {
       kind: "orthodontics",
       detail: "visited",
       status: "booked",
-      arrived: true,
+      started: true,
     });
   });
 
   it("写完病历后仍是一行，内容换成病历类型", () => {
     const row = todayVisitRow(
-      visit({
+      withRecords([{ type: "orthoReturn", doctor: "能" }], {
         remark: "正畸就诊",
-        medicalRecords: [{ type: "orthoReturn", doctor: "胡" }],
       }),
     );
     expect(row).toMatchObject({
@@ -96,21 +99,20 @@ describe("todayVisitRow", () => {
 
   it("正畸就诊后写的是普通复诊病历时，内容按普通复诊显示", () => {
     const row = todayVisitRow(
-      visit({
+      withRecords([{ type: "return", doctor: "吴仲浩" }], {
         remark: "正畸就诊",
-        medicalRecords: [{ type: "return", doctor: "吴介尘" }],
       }),
     );
     expect(row).toMatchObject({
       kind: "orthodontics",
       detail: "return",
-      staff: "吴介尘",
+      staff: "吴仲浩",
     });
   });
 
   it("普通门诊就诊挂了普通病历仍算门诊", () => {
     const row = todayVisitRow(
-      visit({ medicalRecords: [{ type: "return", doctor: "吴介尘" }] }),
+      withRecords([{ type: "return", doctor: "吴仲浩" }]),
     );
     expect(row.kind).toBe("clinic");
   });

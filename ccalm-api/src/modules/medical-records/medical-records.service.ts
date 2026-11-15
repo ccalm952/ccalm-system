@@ -7,6 +7,7 @@ import type { MedicalRecord, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { fromMinutes, toMinutes } from "../appointments/appointment-options";
 import {
   OPEN_VISIT_STATUSES,
   visitKindForRecordType,
@@ -125,10 +126,29 @@ export class MedicalRecordsService {
           patientId: dto.patientId,
           visitDate: dto.visitDate,
           startTime: dto.visitTime ?? "",
+          endTime: dto.visitTime
+            ? fromMinutes(toMinutes(dto.visitTime) + 30)
+            : "",
           kind: visitKindForRecordType(dto.type),
           status: "completed",
           doctor,
+          completedAt: new Date(),
           remark: "由病历创建",
+        },
+      });
+      await tx.appointment.create({
+        data: {
+          patientId: dto.patientId,
+          visitId: visit.id,
+          visitDate: visit.visitDate,
+          startTime: visit.startTime,
+          endTime: visit.endTime,
+          kind: visit.kind,
+          status: "completed",
+          doctor,
+          remark: visit.remark,
+          source: "walk_in",
+          completedAt: new Date(),
         },
       });
       return visit.id;
@@ -156,6 +176,10 @@ export class MedicalRecordsService {
     if (visitId == null) return;
     await tx.patientVisit.updateMany({
       where: { id: visitId, status: { in: OPEN_VISIT_STATUSES } },
+      data: { status: "completed", completedAt: new Date() },
+    });
+    await tx.appointment.updateMany({
+      where: { visitId },
       data: { status: "completed", completedAt: new Date() },
     });
     if (doctor) {

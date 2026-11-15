@@ -173,7 +173,6 @@ export class OrthodonticsService {
     });
     if (!existing) throw new NotFoundException("记录不存在");
     const today = dayjs().format("YYYY-MM-DD");
-    const now = new Date();
 
     const visitId = await this.prisma.$transaction(async (tx) => {
       const open = await tx.patientVisit.findFirst({
@@ -185,10 +184,25 @@ export class OrthodonticsService {
         orderBy: { id: "desc" },
       });
       if (open) {
-        if (!open.arrivedAt) {
-          await tx.patientVisit.update({
-            where: { id: open.id },
-            data: { arrivedAt: now },
+        const linked = await tx.appointment.findUnique({
+          where: { visitId: open.id },
+        });
+        if (!linked) {
+          await tx.appointment.create({
+            data: {
+              patientId: existing.patientId,
+              visitId: open.id,
+              visitDate: open.visitDate,
+              startTime: open.startTime,
+              endTime: open.endTime,
+              kind: open.kind,
+              status: "booked",
+              doctor: open.doctor,
+              remark: open.remark,
+              items: open.items,
+              source: "orthodontics",
+              createdById: open.createdById,
+            },
           });
         }
         return open.id;
@@ -198,11 +212,27 @@ export class OrthodonticsService {
           patientId: existing.patientId,
           visitDate: today,
           startTime: dayjs().format("HH:mm"),
+          endTime: dayjs().add(30, "minute").format("HH:mm"),
           kind: "return",
           status: "booked",
-          arrivedAt: now,
           doctor: existing.doctor,
           remark: ORTHO_VISIT_REMARK,
+        },
+      });
+      await tx.appointment.create({
+        data: {
+          patientId: existing.patientId,
+          visitId: created.id,
+          visitDate: created.visitDate,
+          startTime: created.startTime,
+          endTime: created.endTime,
+          kind: created.kind,
+          status: "booked",
+          doctor: created.doctor,
+          remark: created.remark,
+          items: created.items,
+          source: "orthodontics",
+          createdById: created.createdById,
         },
       });
       return created.id;
