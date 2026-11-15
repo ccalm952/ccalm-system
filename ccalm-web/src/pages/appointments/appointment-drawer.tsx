@@ -66,7 +66,7 @@ type Upcoming = {
   isPending: boolean;
 };
 
-const DURATION_OPTIONS = Array.from({ length: 32 }, (_, i) => (i + 1) * 15);
+const DURATION_OPTIONS = [15, 30, 45, 60, 75, 90];
 
 function ageOf(birthday: string | null | undefined): number | null {
   if (!birthday) return null;
@@ -163,14 +163,7 @@ export function AppointmentDrawer({
     setRemark(initial?.remark ?? "");
     setForce(false);
     setItemQuery("");
-  }, [
-    open,
-    initial,
-    defaultDate,
-    defaultStart,
-    defaultDuration,
-    meta?.defaultDuration,
-  ]);
+  }, [open, initial]);
 
   React.useEffect(() => {
     if (!open || !timeSync) return;
@@ -234,9 +227,9 @@ export function AppointmentDrawer({
       const body: Record<string, unknown> = {
         patientId: pid,
         visitDate,
-        startTime: asPending ? "" : startTime,
+        startTime: asPending ? undefined : startTime,
         durationMinutes: duration,
-        doctor: asPending ? "" : doctor,
+        doctor: asPending ? undefined : doctor,
         kind,
         items,
         remark,
