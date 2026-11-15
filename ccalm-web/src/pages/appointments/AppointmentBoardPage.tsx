@@ -1245,7 +1245,7 @@ export function AppointmentBoardPage() {
                   <span>
                     {selected.visitDate}
                     {selected.startTime
-                      ? ` ${selected.startTime} ~ ${selected.endTime}`
+                      ? ` ${selected.startTime} - ${selected.endTime}`
                       : "（待定）"}
                   </span>
                   <span className="text-muted-foreground">医生</span>
