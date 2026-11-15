@@ -1204,9 +1204,9 @@ export function AppointmentBoardPage() {
         >
           {selected ? (
             <>
-              <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+              <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold">
+                  <span className="text-base font-semibold">
                     {selected.patientName}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-sm">
