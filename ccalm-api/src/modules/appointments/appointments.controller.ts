@@ -82,12 +82,6 @@ export class AppointmentsController {
     return this.appointments.update(id, dto, { userId: actor(req).userId });
   }
 
-  @Post(":id/arrive")
-  @RequirePermissions("appointment.create")
-  arrive(@Param("id", ParseIntPipe) id: number) {
-    return this.appointments.arrive(id);
-  }
-
   @Post(":id/miss")
   @RequirePermissions("appointment.create")
   miss(

@@ -457,20 +457,6 @@ export class AppointmentsService {
     return { ok: true };
   }
 
-  async arrive(id: number) {
-    const visit = await this.prisma.patientVisit.findUnique({ where: { id } });
-    if (!visit) throw new NotFoundException("预约不存在");
-    if (visit.status !== OPEN_STATUS) {
-      throw new BadRequestException("只有预约中的记录可以登记到店");
-    }
-    if (visit.arrivedAt) return { ok: true };
-    await this.prisma.patientVisit.update({
-      where: { id },
-      data: { arrivedAt: new Date() },
-    });
-    return { ok: true };
-  }
-
   async miss(id: number, reason: string, actor: Actor) {
     return await this.close(id, "missed", reason, actor);
   }
