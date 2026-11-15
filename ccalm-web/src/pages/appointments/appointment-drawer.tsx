@@ -431,7 +431,7 @@ export function AppointmentDrawer({
                         durationMinutes: duration,
                       });
                     }}
-                    className="w-28"
+                    className="w-28 border-border bg-background"
                   />
                 </div>
               </Row>
