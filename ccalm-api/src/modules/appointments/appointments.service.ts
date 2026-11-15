@@ -17,6 +17,7 @@ import {
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_LABELS,
   hasOverlap,
+  slotDurationError,
   fromMinutes,
   TIME_PATTERN,
   toMinutes,
@@ -268,10 +269,8 @@ export class AppointmentsService {
   }
 
   private assertSlotValid(startTime: string, endTime: string) {
-    const duration = toMinutes(endTime) - toMinutes(startTime);
-    if (duration < 15 || duration > 120 || duration % 15 !== 0) {
-      throw new BadRequestException("预约时长需为 15 分钟的整数倍，且在 15–120 分钟之间");
-    }
+    const error = slotDurationError(startTime, endTime);
+    if (error) throw new BadRequestException(error);
   }
 
   private async assertTimeFree(params: {

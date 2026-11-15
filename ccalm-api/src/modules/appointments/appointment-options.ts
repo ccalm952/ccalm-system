@@ -63,3 +63,19 @@ export function hasOverlap(
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
   return aStart < bEnd && aEnd > bStart;
 }
+
+
+/** 预约时长校验：15 的倍数，且在 15–120 分钟之间 */
+export function slotDurationError(
+  startTime: string,
+  endTime: string,
+): string | null {
+  const duration = toMinutes(endTime) - toMinutes(startTime);
+  if (!Number.isFinite(duration) || duration < 15 || duration > 120) {
+    return "预约时长需为 15 分钟的整数倍，且在 15–120 分钟之间";
+  }
+  if (duration % 15 !== 0) {
+    return "预约时长需为 15 分钟的整数倍，且在 15–120 分钟之间";
+  }
+  return null;
+}

@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { computeBoardBounds } from "@/lib/appointments/bounds";
 import {
   assignLanes,
   minutesOf,
@@ -139,23 +140,17 @@ export function AppointmentBoardPage() {
   const [meta, setMeta] = React.useState<AppointmentMeta | null>(null);
   const workStartMinutes = minutesOf(meta?.workStart ?? "08:30");
   const workEndMinutes = minutesOf(meta?.workEnd ?? "18:00");
-  const { DAY_START, DAY_END } = React.useMemo(() => {
+  const { start: DAY_START, end: DAY_END } = React.useMemo(() => {
     const from = view === "week" ? mondayOf(anchor) : dayDate;
     const to =
       view === "week" ? dayjs(from).add(6, "day").format("YYYY-MM-DD") : from;
-    let earliest = Infinity;
-    let latest = -Infinity;
-    for (const a of board?.appointments ?? []) {
-      if (a.isPending || !a.startTime) continue;
-      if (a.visitDate < from || a.visitDate > to) continue;
-      const start = minutesOf(a.startTime);
-      const end = a.endTime ? minutesOf(a.endTime) : start + 30;
-      earliest = Math.min(earliest, start);
-      latest = Math.max(latest, end);
-    }
-    const start = Math.min(workStartMinutes, Math.floor(earliest / 15) * 15);
-    const end = Math.max(workEndMinutes, Math.ceil(latest / 15) * 15);
-    return { DAY_START: start, DAY_END: Math.max(end, start + 60) };
+    return computeBoardBounds({
+      appointments: board?.appointments ?? [],
+      workStart: workStartMinutes,
+      workEnd: workEndMinutes,
+      from,
+      to,
+    });
   }, [board, workStartMinutes, workEndMinutes, view, anchor, dayDate]);
   const HOUR_LINES = React.useMemo(() => {
     const lines: number[] = [];
