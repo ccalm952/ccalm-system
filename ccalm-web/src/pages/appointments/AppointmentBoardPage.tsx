@@ -391,6 +391,7 @@ export function AppointmentBoardPage() {
       const startMin = minutesOf(resize.card.startTime);
       const endMin = Math.min(
         DAY_END,
+        startMin + 90,
         Math.max(startMin + 15, minutesOf(resize.origEnd) + delta),
       );
       setResizeEnd(timeAt(endMin));
@@ -432,7 +433,7 @@ export function AppointmentBoardPage() {
       const delta =
         Math.round((ev.clientY - draftResize.startY) / PX_PER_MIN / 15) * 15;
       setDraftDuration(
-        Math.min(8 * 60, Math.max(15, draftResize.origDuration + delta)),
+        Math.min(90, Math.max(15, draftResize.origDuration + delta)),
       );
     };
     const up = () => setDraftResize(null);
@@ -681,7 +682,7 @@ export function AppointmentBoardPage() {
     <div
       className="flex min-h-0 flex-1 flex-col gap-3 p-4 transition-[padding]"
       style={{
-        paddingRight: drawerOpen ? "min(96vw, 440px)" : undefined,
+        paddingRight: drawerOpen ? "calc(min(96vw, 440px) + 12px)" : undefined,
       }}
     >
       {/* 工具条 */}
@@ -1448,6 +1449,7 @@ export function AppointmentBoardPage() {
         defaultDate={draftDate}
         defaultStart={draftStart}
         defaultDuration={draftDuration}
+        durationSync={editing ? undefined : draftDuration}
         timeSync={timeSync}
         onScheduleChange={(v) => {
           if (editing) return;

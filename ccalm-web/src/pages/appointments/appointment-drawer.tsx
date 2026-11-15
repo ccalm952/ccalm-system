@@ -48,6 +48,7 @@ type Props = {
   defaultDate: string;
   defaultStart?: string;
   defaultDuration?: number;
+  durationSync?: number | null;
   onScheduleChange?: (v: {
     visitDate: string;
     startTime: string;
@@ -107,6 +108,7 @@ export function AppointmentDrawer({
   defaultDate,
   defaultStart = "09:00",
   defaultDuration,
+  durationSync,
   onScheduleChange,
   timeSync,
   onSaved,
@@ -188,6 +190,11 @@ export function AppointmentDrawer({
       ),
     );
   }, [open, timeSync]);
+  React.useEffect(() => {
+    if (!open || initial || durationSync == null) return;
+    setDuration(durationSync);
+  }, [open, initial, durationSync]);
+
   const patientId = patient?.id ?? initial?.patientId;
 
   React.useEffect(() => {
