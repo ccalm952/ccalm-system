@@ -104,6 +104,14 @@ type ReasonState = {
   action: "miss" | "cancel";
 } | null;
 
+type ConfirmMove = {
+  card: AppointmentCard;
+  visitDate: string;
+  startTime: string;
+  endTime: string;
+  doctor: string;
+};
+
 type DragState = {
   kind: "card" | "pending" | "new";
   card?: AppointmentCard;
@@ -154,6 +162,9 @@ export function AppointmentBoardPage() {
     startY: number;
     origDuration: number;
   } | null>(null);
+  const [confirmMove, setConfirmMove] = React.useState<ConfirmMove | null>(
+    null,
+  );
   const [pendingMove, setPendingMove] = React.useState<{
     id: number;
     visitDate: string;
@@ -323,6 +334,26 @@ export function AppointmentBoardPage() {
     }
   }
 
+  async function confirmMoveNow() {
+    if (!confirmMove) return;
+    setBusy(true);
+    try {
+      await api("PUT", `/appointments/${confirmMove.card.id}`, {
+        visitDate: confirmMove.visitDate,
+        startTime: confirmMove.startTime,
+        endTime: confirmMove.endTime,
+        doctor: confirmMove.doctor,
+      });
+      toast.success("预约时间已修改");
+      setConfirmMove(null);
+      setPendingMove(null);
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function remove(card: AppointmentCard) {
     setBusy(true);
     try {
@@ -416,6 +447,10 @@ export function AppointmentBoardPage() {
   function beginCardDrag(e: React.PointerEvent, card: AppointmentCard) {
     if (e.button !== 0) return;
     if (!canOperate(card.id)) return;
+    if (card.status !== "booked") {
+      toast.message("仅「预约」状态的预约可以拖动调整时间");
+      return;
+    }
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setDrag({
@@ -564,23 +599,14 @@ export function AppointmentBoardPage() {
           endTime: d.end,
           doctor: d.doctor || d.card.doctor,
         });
-        if (drawerOpenRef.current && editingRef.current?.id === d.card.id) {
-          setTimeSync({
-            visitDate: d.date,
-            startTime: d.start,
-            endTime: d.end,
-            nonce: Date.now(),
-          });
-        } else {
-          setEditing({
-            ...d.card,
-            visitDate: d.date,
-            startTime: d.start,
-            endTime: d.end,
-            doctor: d.doctor || d.card.doctor,
-          });
-          setDrawerOpen(true);
-        }
+        if (drawerOpenRef.current) setDrawerOpen(false);
+        setConfirmMove({
+          card: d.card,
+          visitDate: d.date,
+          startTime: d.start,
+          endTime: d.end,
+          doctor: d.doctor || d.card.doctor,
+        });
       } else if (d.kind === "pending" && d.pending) {
         setDraftDate(d.date);
         setDraftStart(d.start || "09:00");
@@ -1246,6 +1272,53 @@ export function AppointmentBoardPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={confirmMove != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmMove(null);
+            setPendingMove(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认修改预约时间</DialogTitle>
+          </DialogHeader>
+          {confirmMove ? (
+            <p className="text-sm text-muted-foreground">
+              将「{confirmMove.card.patientName}」的预约从{" "}
+              <span className="font-medium text-foreground">
+                {confirmMove.card.startTime} - {confirmMove.card.endTime}
+              </span>{" "}
+              调整为{" "}
+              <span className="font-medium text-foreground">
+                {confirmMove.startTime} - {confirmMove.endTime}
+              </span>
+              ？
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setConfirmMove(null);
+                setPendingMove(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => void confirmMoveNow()}
+            >
+              确认修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>{" "}
       {/* 失约/取消原因 */}
       <Dialog
         open={reason != null}
