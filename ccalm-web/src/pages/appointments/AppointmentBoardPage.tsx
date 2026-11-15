@@ -897,7 +897,7 @@ export function AppointmentBoardPage() {
             ) : null}
           </div>
         </aside>
-        <div className="flex min-h-0 flex-1 overflow-auto rounded-xl border bg-card shadow-sm">
+        <div className="flex min-h-0 flex-1 overflow-auto rounded-xl bg-card">
           {loading ? (
             <div className="flex h-64 w-full items-center justify-center">
               <Spinner className="size-8 opacity-60" />
