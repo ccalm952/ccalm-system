@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
@@ -755,30 +756,22 @@ export function AppointmentBoardPage() {
         >
           今天
         </Button>
-        <div className="flex h-8 items-center rounded-full border text-sm">
-          <button
-            type="button"
-            onClick={() => setView("week")}
-            className={`flex h-full items-center rounded-full px-3 transition-colors ${
-              view === "week"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-accent"
-            }`}
-          >
-            周
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("day")}
-            className={`flex h-full items-center rounded-full px-3 transition-colors ${
-              view === "day"
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-accent"
-            }`}
-          >
-            日
-          </button>
-        </div>
+        <Tabs
+          value={view}
+          onValueChange={(v) => {
+            if (v === "week" || v === "day") setView(v);
+          }}
+          className="flex-none"
+        >
+          <TabsList className="h-8 rounded-full">
+            <TabsTrigger value="week" className="rounded-full px-3">
+              周
+            </TabsTrigger>
+            <TabsTrigger value="day" className="rounded-full px-3">
+              日
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>{" "}
         <span className="text-sm font-medium">
           {view === "week"
             ? `${dayjs(from).format("M月D日")} - ${dayjs(to).format("M月D日")}`
@@ -786,7 +779,6 @@ export function AppointmentBoardPage() {
                 WEEKDAYS[(dayjs(dayDate).day() + 6) % 7]
               }`}
         </span>
-
         <Select
           items={[
             { value: "all", label: "全部医生" },
@@ -809,7 +801,6 @@ export function AppointmentBoardPage() {
             ))}
           </SelectContent>
         </Select>
-
         <div className="flex flex-wrap items-center gap-1.5">
           {LEGEND_KEYS.map((key) => {
             const tone = APPOINTMENT_TONES[key];
@@ -841,7 +832,6 @@ export function AppointmentBoardPage() {
             );
           })}
         </div>
-
         <div className="ml-auto flex items-center gap-2">
           <Button
             type="button"
