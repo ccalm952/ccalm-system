@@ -1135,8 +1135,8 @@ export function AppointmentBoardPage() {
                                 {card.patientName}
                               </span>
                               {card.doctor ? (
-                                <span className="truncate opacity-70">
-                                  [{card.doctor}]
+                                <span className="shrink-0 truncate rounded-full bg-foreground/5 px-1.5 py-0.5 text-sm leading-none text-muted-foreground">
+                                  {card.doctor}
                                 </span>
                               ) : null}
                               {card.arrived ? (
