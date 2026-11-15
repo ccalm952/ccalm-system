@@ -616,6 +616,14 @@ export function AppointmentBoardPage() {
           endTime: d.end,
           doctor: d.doctor || d.card.doctor,
         });
+        const unchanged =
+          d.date === d.card.visitDate &&
+          d.start === d.card.startTime &&
+          d.end === (d.card.endTime || plusMinutes(d.card.startTime, 30));
+        if (unchanged) {
+          setPendingMove(null);
+          return;
+        }
         if (drawerOpenRef.current) setDrawerOpen(false);
         setConfirmMove({
           card: d.card,
