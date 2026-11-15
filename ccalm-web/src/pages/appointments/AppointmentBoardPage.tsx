@@ -396,9 +396,22 @@ export function AppointmentBoardPage() {
       lastResizeAt.current = Date.now();
       setResize(null);
       setResizeEnd(null);
-      if (end) {
-        setEditing({ ...resize.card, endTime: end });
-        setDrawerOpen(true);
+      if (end && end !== resize.card.endTime) {
+        setPendingMove({
+          id: resize.card.id,
+          visitDate: resize.card.visitDate,
+          startTime: resize.card.startTime,
+          endTime: end,
+          doctor: resize.card.doctor,
+        });
+        if (drawerOpenRef.current) setDrawerOpen(false);
+        setConfirmMove({
+          card: resize.card,
+          visitDate: resize.card.visitDate,
+          startTime: resize.card.startTime,
+          endTime: end,
+          doctor: resize.card.doctor,
+        });
       }
     };
     window.addEventListener("mousemove", move);
