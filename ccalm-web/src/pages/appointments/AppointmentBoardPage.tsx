@@ -152,10 +152,12 @@ export function AppointmentBoardPage() {
   const [now, setNow] = React.useState(() => dayjs());
   const [editing, setEditing] = React.useState<AppointmentCard | null>(null);
   const [selected, setSelected] = React.useState<AppointmentCard | null>(null);
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
   const [popoverAnchor, setPopoverAnchor] = React.useState<HTMLElement | null>(
     null,
   );
   const [reason, setReason] = React.useState<ReasonState>(null);
+  const [reasonOpen, setReasonOpen] = React.useState(false);
   const [reasonText, setReasonText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [drag, setDrag] = React.useState<DragState | null>(null);
@@ -169,6 +171,8 @@ export function AppointmentBoardPage() {
   const [confirmMove, setConfirmMove] = React.useState<ConfirmMove | null>(
     null,
   );
+  const [confirmMoveOpen, setConfirmMoveOpen] = React.useState(false);
+  const [pendingBookOpen, setPendingBookOpen] = React.useState(false);
   const [pendingBook, setPendingBook] = React.useState<{
     row: PendingRow;
     visitDate: string;
@@ -335,7 +339,7 @@ export function AppointmentBoardPage() {
     try {
       await api("POST", `/appointments/${card.id}/${path}`, body);
       toast.success("已更新");
-      setSelected(null);
+      setPopoverOpen(false);
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -355,7 +359,7 @@ export function AppointmentBoardPage() {
         doctor: confirmMove.doctor,
       });
       toast.success("预约时间已修改");
-      setConfirmMove(null);
+      setConfirmMoveOpen(false);
       setPendingMove(null);
       await load();
     } catch (e) {
@@ -380,7 +384,7 @@ export function AppointmentBoardPage() {
         isPending: false,
       });
       toast.success("已确认预约");
-      setPendingBook(null);
+      setPendingBookOpen(false);
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -393,7 +397,7 @@ export function AppointmentBoardPage() {
     try {
       await api("DELETE", `/appointments/${card.id}`);
       toast.success("已删除");
-      setSelected(null);
+      setPopoverOpen(false);
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -409,7 +413,7 @@ export function AppointmentBoardPage() {
       return;
     }
     await act(reason.card, reason.action, { reason: reasonText.trim() });
-    setReason(null);
+    setReasonOpen(false);
     setReasonText("");
   }
 
@@ -440,6 +444,7 @@ export function AppointmentBoardPage() {
           doctor: resize.card.doctor,
         });
         if (drawerOpenRef.current) setDrawerOpen(false);
+        setConfirmMoveOpen(true);
         setConfirmMove({
           card: resize.card,
           visitDate: resize.card.visitDate,
@@ -656,6 +661,7 @@ export function AppointmentBoardPage() {
           return;
         }
         if (drawerOpenRef.current) setDrawerOpen(false);
+        setConfirmMoveOpen(true);
         setConfirmMove({
           card: d.card,
           visitDate: d.date,
@@ -664,6 +670,7 @@ export function AppointmentBoardPage() {
           doctor: d.doctor || d.card.doctor,
         });
       } else if (d.kind === "pending" && d.pending) {
+        setPendingBookOpen(true);
         setPendingBook({
           row: d.pending,
           visitDate: d.date,
@@ -1170,6 +1177,7 @@ export function AppointmentBoardPage() {
                               }
                               setPopoverAnchor(e.currentTarget);
                               setSelected(card);
+                              setPopoverOpen(true);
                             }}
                             className="absolute touch-none overflow-hidden rounded-lg border-l-[3px] px-2 py-0.5 text-left text-sm leading-tight shadow-sm transition-shadow select-none hover:shadow-md"
                             style={{
@@ -1248,8 +1256,11 @@ export function AppointmentBoardPage() {
         </div>
       </div>
       <Popover
-        open={selected != null}
+        open={popoverOpen}
         onOpenChange={(open) => {
+          if (!open) setPopoverOpen(false);
+        }}
+        onOpenChangeComplete={(open) => {
           if (!open) {
             setSelected(null);
             setPopoverAnchor(null);
@@ -1337,7 +1348,7 @@ export function AppointmentBoardPage() {
                         variant="secondary"
                         onClick={() => {
                           setEditing(selected);
-                          setSelected(null);
+                          setPopoverOpen(false);
                           setDrawerOpen(true);
                         }}
                       >
@@ -1347,9 +1358,10 @@ export function AppointmentBoardPage() {
                         type="button"
                         variant="secondary"
                         onClick={() => {
+                          setReasonOpen(true);
                           setReason({ card: selected, action: "miss" });
                           setReasonText("");
-                          setSelected(null);
+                          setPopoverOpen(false);
                         }}
                       >
                         失约
@@ -1358,9 +1370,10 @@ export function AppointmentBoardPage() {
                         type="button"
                         variant="secondary"
                         onClick={() => {
+                          setReasonOpen(true);
                           setReason({ card: selected, action: "cancel" });
                           setReasonText("");
-                          setSelected(null);
+                          setPopoverOpen(false);
                         }}
                       >
                         取消
@@ -1396,11 +1409,12 @@ export function AppointmentBoardPage() {
         </PopoverContent>
       </Popover>{" "}
       <Dialog
-        open={pendingBook != null}
+        open={pendingBookOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            setPendingBook(null);
-          }
+          if (!open) setPendingBookOpen(false);
+        }}
+        onOpenChangeComplete={(open) => {
+          if (!open) setPendingBook(null);
         }}
       >
         <DialogContent>
@@ -1427,7 +1441,7 @@ export function AppointmentBoardPage() {
               type="button"
               variant="secondary"
               onClick={() => {
-                setPendingBook(null);
+                setPendingBookOpen(false);
               }}
             >
               取消
@@ -1443,8 +1457,11 @@ export function AppointmentBoardPage() {
         </DialogContent>
       </Dialog>
       <Dialog
-        open={confirmMove != null}
+        open={confirmMoveOpen}
         onOpenChange={(open) => {
+          if (!open) setConfirmMoveOpen(false);
+        }}
+        onOpenChangeComplete={(open) => {
           if (!open) {
             setConfirmMove(null);
             setPendingMove(null);
@@ -1473,7 +1490,7 @@ export function AppointmentBoardPage() {
               type="button"
               variant="secondary"
               onClick={() => {
-                setConfirmMove(null);
+                setConfirmMoveOpen(false);
                 setPendingMove(null);
               }}
             >
@@ -1491,8 +1508,11 @@ export function AppointmentBoardPage() {
       </Dialog>{" "}
       {/* 失约/取消原因 */}
       <Dialog
-        open={reason != null}
+        open={reasonOpen}
         onOpenChange={(open) => {
+          if (!open) setReasonOpen(false);
+        }}
+        onOpenChangeComplete={(open) => {
           if (!open) setReason(null);
         }}
       >
