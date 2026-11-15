@@ -1,16 +1,10 @@
 /** 预约（就诊）状态：只有 4 个，见 visits/visit-options.ts */
-export const APPOINTMENT_STATUSES = [
-  "booked",
-  "completed",
-  "missed",
-  "cancelled",
-] as const;
+export const APPOINTMENT_STATUSES = ["booked", "completed", "missed"] as const;
 
 export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   booked: "预约",
   completed: "治疗完成",
   missed: "已失约",
-  cancelled: "已取消",
 };
 
 /** 持续时间（分钟） */

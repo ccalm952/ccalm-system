@@ -1,7 +1,7 @@
 import * as React from "react";
 import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight, Plus, Settings, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -88,6 +88,8 @@ function pendingToCard(p: PendingRow): AppointmentCard {
     status: "booked",
     items: p.items,
     isPending: true,
+    visitId: null,
+    source: "pending",
     pendingReason: p.pendingReason,
     remark: p.remark,
     createdById: null,
@@ -99,7 +101,7 @@ function statusKey(card: AppointmentCard): string {
 
 type ReasonState = {
   card: AppointmentCard;
-  action: "miss" | "cancel";
+  action: "miss";
 } | null;
 
 type ConfirmMove = {
@@ -132,6 +134,7 @@ type DragState = {
 
 export function AppointmentBoardPage() {
   const { me } = useAuth();
+  const navigate = useNavigate();
   const [anchor, setAnchor] = React.useState(dayjs().format("YYYY-MM-DD"));
   const [view, setView] = React.useState<"week" | "day">("week");
   const [dayDate, setDayDate] = React.useState(dayjs().format("YYYY-MM-DD"));
@@ -450,6 +453,19 @@ export function AppointmentBoardPage() {
       toast.error(errorMessage(e));
     }
   }
+  async function startVisit(card: AppointmentCard) {
+    setBusy(true);
+    try {
+      await api("POST", `/appointments/${card.id}/start`);
+      toast.success("已开始接诊");
+      setPopoverOpen(false);
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function remove(card: AppointmentCard) {
     setBusy(true);
     try {
@@ -470,7 +486,7 @@ export function AppointmentBoardPage() {
       toast.error("请填写原因（至少 2 个字）");
       return;
     }
-    await act(reason.card, reason.action, { reason: reasonText.trim() });
+    await act(reason.card, "miss", { reason: reasonText.trim() });
     setReasonOpen(false);
     setReasonText("");
   }
@@ -563,6 +579,10 @@ export function AppointmentBoardPage() {
     if (!canOperate(card.id)) return;
     if (card.status !== "booked") {
       toast.message("仅「预约」状态的预约可以拖动调整时间");
+      return;
+    }
+    if (card.visitId != null) {
+      toast.message("已开始接诊的预约不能改约");
       return;
     }
     e.stopPropagation();
@@ -1283,6 +1303,7 @@ export function AppointmentBoardPage() {
                               className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
                               onPointerDown={(e) => e.stopPropagation()}
                               onMouseDown={(e) => {
+                                if (card.visitId != null) return;
                                 e.stopPropagation();
                                 e.preventDefault();
                                 lastResizeAt.current = Date.now();
@@ -1384,6 +1405,29 @@ export function AppointmentBoardPage() {
                 <div className="flex flex-wrap justify-end gap-2 pt-1">
                   {selected.status === "booked" ? (
                     <>
+                      {selected.visitId == null ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={busy}
+                          onClick={() => void startVisit(selected)}
+                        >
+                          开始接诊
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setPopoverOpen(false);
+                            navigate(
+                              `/patients/${selected.patientId}?tab=records`,
+                            );
+                          }}
+                        >
+                          写病历
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="secondary"
@@ -1407,33 +1451,22 @@ export function AppointmentBoardPage() {
                       >
                         失约
                       </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => {
-                          setReasonOpen(true);
-                          setReason({ card: selected, action: "cancel" });
-                          setReasonText("");
-                          setPopoverOpen(false);
-                        }}
-                      >
-                        取消
-                      </Button>
                     </>
                   ) : null}
-                  {selected.status === "missed" ||
-                  selected.status === "cancelled" ? (
+                  {selected.status === "missed" ? (
                     <Button
                       type="button"
                       variant="secondary"
-                      disabled={busy}
-                      onClick={() => void act(selected, "revert")}
+                      onClick={() => {
+                        setEditing(selected);
+                        setPopoverOpen(false);
+                        setDrawerOpen(true);
+                      }}
                     >
-                      撤销
+                      重新预约
                     </Button>
                   ) : null}
-                  {can(me, "appointment.delete") &&
-                  selected.status !== "completed" ? (
+                  {can(me, "appointment.delete") && selected.visitId == null ? (
                     <Button
                       type="button"
                       variant="secondary"
@@ -1559,9 +1592,7 @@ export function AppointmentBoardPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {reason?.action === "miss" ? "登记失约" : "取消预约"}
-            </DialogTitle>
+            <DialogTitle>登记失约</DialogTitle>
           </DialogHeader>
           <Textarea
             value={reasonText}

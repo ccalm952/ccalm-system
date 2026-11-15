@@ -144,7 +144,7 @@ export class AppointmentsService {
       ? query.doctorIds.split(",").filter(Boolean)
       : [];
 
-    const rows = await this.prisma.patientVisit.findMany({
+    const rows = await this.prisma.appointment.findMany({
       where: {
         visitDate: { gte: from, lte: to },
         status: { in: statuses },
@@ -183,6 +183,8 @@ export class AppointmentsService {
       pendingReason: v.pendingReason,
       remark: v.remark,
       createdById: v.createdById,
+      visitId: v.visitId,
+      source: v.source,
     }));
 
     const days: {
@@ -212,7 +214,7 @@ export class AppointmentsService {
   async upcoming(patientId: number) {
     const today = dayjs().format("YYYY-MM-DD");
     const to = dayjs().add(90, "day").format("YYYY-MM-DD");
-    const rows = await this.prisma.patientVisit.findMany({
+    const rows = await this.prisma.appointment.findMany({
       where: {
         patientId,
         visitDate: { gte: today, lte: to },
@@ -231,7 +233,7 @@ export class AppointmentsService {
     }));
   }
   async pending() {
-    const rows = await this.prisma.patientVisit.findMany({
+    const rows = await this.prisma.appointment.findMany({
       where: { isPending: true, status: OPEN_STATUS },
       include: {
         patient: { select: { name: true, chartNo: true, phone: true } },
@@ -282,7 +284,7 @@ export class AppointmentsService {
   }) {
     const { patientId, visitDate, startTime, endTime, doctor, excludeId } =
       params;
-    const sameDay = await this.prisma.patientVisit.findMany({
+    const sameDay = await this.prisma.appointment.findMany({
       where: {
         visitDate,
         status: OPEN_STATUS,
@@ -363,7 +365,7 @@ export class AppointmentsService {
       endTime = "";
     }
 
-    const created = await this.prisma.patientVisit.create({
+    const created = await this.prisma.appointment.create({
       data: {
         patientId: dto.patientId,
         visitDate: dto.visitDate,
@@ -384,15 +386,15 @@ export class AppointmentsService {
   }
 
   async update(id: number, dto: UpdateAppointmentDto, actor: Actor) {
-    const existing = await this.prisma.patientVisit.findUnique({
+    const existing = await this.prisma.appointment.findUnique({
       where: { id },
     });
     if (!existing) throw new NotFoundException("预约不存在");
     if (!(await this.canEdit(actor, existing))) {
       throw new ForbiddenException("只能修改自己创建的预约");
     }
-    if (existing.status !== OPEN_STATUS) {
-      throw new BadRequestException("已完成/失约/取消的预约不能再改");
+    if (existing.status !== OPEN_STATUS && existing.status !== "missed") {
+      throw new BadRequestException("已完成的预约不能再修改");
     }
 
     const duration = this.normalizeDuration(dto.durationMinutes);
@@ -435,9 +437,14 @@ export class AppointmentsService {
       endTime = "";
     }
 
-    await this.prisma.patientVisit.update({
+    await this.prisma.appointment.update({
       where: { id },
       data: {
+        status:
+          existing.status === "missed" && !isPending
+            ? OPEN_STATUS
+            : existing.status,
+        missedReason: "",
         patientId,
         visitDate,
         startTime,
@@ -457,61 +464,75 @@ export class AppointmentsService {
   }
 
   async miss(id: number, reason: string, actor: Actor) {
-    return await this.close(id, "missed", reason, actor);
-  }
-
-  async cancel(id: number, reason: string, actor: Actor) {
-    return await this.close(id, "cancelled", reason, actor);
-  }
-
-  private async close(
-    id: number,
-    status: "missed" | "cancelled",
-    reason: string,
-    actor: Actor,
-  ) {
-    const visit = await this.prisma.patientVisit.findUnique({ where: { id } });
-    if (!visit) throw new NotFoundException("预约不存在");
-    if (!(await this.canEdit(actor, visit))) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+    });
+    if (!appointment) throw new NotFoundException("预约不存在");
+    if (!(await this.canEdit(actor, appointment))) {
       throw new ForbiddenException("只能操作自己创建的预约");
     }
-    if (visit.status !== OPEN_STATUS) {
-      throw new BadRequestException("只有预约中的记录可以失约/取消");
+    if (appointment.status !== OPEN_STATUS) {
+      throw new BadRequestException("只有预约中的记录可以标记失约");
     }
-    await this.prisma.patientVisit.update({
+    if (appointment.visitId) {
+      throw new BadRequestException("已开始接诊的预约不能标记失约");
+    }
+    await this.prisma.appointment.update({
       where: { id },
-      data: { status, cancelReason: reason.trim() },
+      data: { status: "missed", missedReason: reason.trim() },
     });
     return { ok: true };
   }
 
-  async revert(id: number, actor: Actor) {
-    const visit = await this.prisma.patientVisit.findUnique({ where: { id } });
-    if (!visit) throw new NotFoundException("预约不存在");
-    if (!(await this.canEdit(actor, visit))) {
-      throw new ForbiddenException("只能操作自己创建的预约");
-    }
-    if (visit.status !== "missed" && visit.status !== "cancelled") {
-      throw new BadRequestException("只有失约/取消的预约可以撤销");
-    }
-    await this.prisma.patientVisit.update({
+  /** 开始接诊：把预约落成一条 Visit（就诊记录） */
+  async start(id: number) {
+    const appointment = await this.prisma.appointment.findUnique({
       where: { id },
-      data: { status: OPEN_STATUS, cancelReason: "" },
     });
-    return { ok: true };
+    if (!appointment) throw new NotFoundException("预约不存在");
+    if (appointment.status !== OPEN_STATUS) {
+      throw new BadRequestException("只有预约中的记录可以开始接诊");
+    }
+    if (appointment.visitId) return { visitId: appointment.visitId };
+    const visit = await this.prisma.patientVisit.create({
+      data: {
+        patientId: appointment.patientId,
+        visitDate: appointment.visitDate,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        kind: appointment.kind,
+        status: "booked",
+        doctor: appointment.doctor,
+        remark: appointment.remark,
+        items: appointment.items,
+        source: "manual",
+        createdById: appointment.createdById,
+      },
+    });
+    await this.prisma.appointment.update({
+      where: { id },
+      data: { visitId: visit.id },
+    });
+    return { visitId: visit.id };
   }
 
   async remove(id: number, opts?: { allowPast?: boolean }) {
-    const visit = await this.prisma.patientVisit.findUnique({ where: { id } });
-    if (!visit) throw new NotFoundException("预约不存在");
-    if (visit.status === "completed") {
-      throw new BadRequestException("已完成的记录不能删除");
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+    });
+    if (!appointment) throw new NotFoundException("预约不存在");
+    if (appointment.visitId) {
+      throw new BadRequestException("已生成就诊记录的预约不能删除");
     }
     const today = dayjs().format("YYYY-MM-DD");
-    if (!visit.isPending && visit.visitDate < today && !opts?.allowPast) {
-      throw new BadRequestException("过去的预约不能删除，请改为取消/失约");
+    if (
+      !appointment.isPending &&
+      appointment.visitDate < today &&
+      !opts?.allowPast
+    ) {
+      throw new BadRequestException("过去的预约不能删除，请标记为失约");
     }
-    await this.prisma.patientVisit.delete({ where: { id } });
+    await this.prisma.appointment.delete({ where: { id } });
     return { ok: true };
   }
 }

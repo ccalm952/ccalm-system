@@ -45,8 +45,8 @@ type TodayVisit = {
   startTime?: string;
   endTime?: string;
   status?: VisitStatus;
-  /** 已到店（状态仍是预约） */
-  arrived?: boolean;
+  /** 已开始接诊（已生成就诊记录，状态仍是预约） */
+  started?: boolean;
   staff: string;
 };
 
@@ -73,7 +73,7 @@ function todayVisitDetail(v: TodayVisit): string {
       label,
       // 「已就诊」本身就是状态，不再重复显示「已到店」
       v.detail !== "visited" && v.status
-        ? visitDisplayStatusLabel(v.status, !!v.arrived)
+        ? visitDisplayStatusLabel(v.status)
         : "",
     ]
       .filter(Boolean)
@@ -83,7 +83,7 @@ function todayVisitDetail(v: TodayVisit): string {
     return [
       visitTimeRange(v.startTime ?? "", v.endTime ?? ""),
       visitKindLabel(v.detail as VisitKind),
-      v.status ? visitDisplayStatusLabel(v.status, !!v.arrived) : "",
+      v.status ? visitDisplayStatusLabel(v.status) : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -130,7 +130,7 @@ type Overview = {
 type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
 
 /** 今日就诊两档：待接诊（未到店）/ 待治疗完成（已到店未写病历） */
-type VisitStatusFilter = "waiting" | "treating";
+type VisitStatusFilter = "waiting" | "treating" | "completed" | "missed";
 
 function StatItem({
   label,
@@ -207,15 +207,18 @@ export function WorkbenchPage() {
   const pendingCourses = data?.pendingCourses ?? [];
   const followUpTasks = data?.followUpTasks ?? [];
   const countVisitStatus = (filter: VisitStatusFilter) =>
-    todayVisits.filter((v) =>
-      filter === "waiting"
-        ? v.status === "booked" && !v.arrived
-        : v.status === "booked" && v.arrived,
-    ).length;
-  const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) =>
-    filter === "waiting"
-      ? v.status === "booked" && !v.arrived
-      : v.status === "booked" && v.arrived;
+    todayVisits.filter((v) => matchesVisitFilter(v, filter)).length;
+  const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) => {
+    if (filter === "waiting") return v.status === "booked" && !v.started;
+    if (filter === "treating") return v.status === "booked" && v.started;
+    return v.status === filter;
+  };
+  const FILTER_LABELS: Record<VisitStatusFilter, string> = {
+    waiting: "待接诊",
+    treating: "接诊中",
+    completed: "已完成",
+    missed: "已失约",
+  };
   const visibleVisits = statusFilter
     ? todayVisits.filter((v) => matchesVisitFilter(v, statusFilter))
     : todayVisits;
@@ -239,9 +242,19 @@ export function WorkbenchPage() {
               onClick={() => showVisits("waiting")}
             />
             <StatItem
-              label="待治疗完成"
+              label="接诊中"
               value={countVisitStatus("treating")}
               onClick={() => showVisits("treating")}
+            />
+            <StatItem
+              label="已完成"
+              value={countVisitStatus("completed")}
+              onClick={() => showVisits("completed")}
+            />
+            <StatItem
+              label="已失约"
+              value={countVisitStatus("missed")}
+              onClick={() => showVisits("missed")}
             />
           </CardContent>
         </Card>
@@ -310,8 +323,7 @@ export function WorkbenchPage() {
                   size="sm"
                   onClick={() => setStatusFilter(null)}
                 >
-                  {statusFilter === "waiting" ? "待接诊" : "待治疗完成"} ·
-                  清除筛选
+                  {FILTER_LABELS[statusFilter]} · 清除筛选
                 </Button>
               ) : null}
               <span className="text-muted-foreground">
@@ -338,11 +350,9 @@ export function WorkbenchPage() {
                   {visibleVisits.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-muted-foreground">
-                        {statusFilter === "waiting"
-                          ? "今日暂无待接诊患者"
-                          : statusFilter === "treating"
-                            ? "今日暂无待治疗完成患者"
-                            : "今日暂无就诊"}
+                        {statusFilter
+                          ? `今日暂无${FILTER_LABELS[statusFilter]}患者`
+                          : "今日暂无就诊"}
                       </TableCell>
                     </TableRow>
                   ) : (

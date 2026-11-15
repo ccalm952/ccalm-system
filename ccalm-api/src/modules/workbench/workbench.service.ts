@@ -30,13 +30,17 @@ export class WorkbenchService {
       openCourses,
       followUpTasks,
     ] = await Promise.all([
-      this.prisma.patientVisit.findMany({
-        where: { visitDate: today, status: { not: "cancelled" } },
+      this.prisma.appointment.findMany({
+        where: { visitDate: today },
         include: {
           patient: true,
-          medicalRecords: {
-            orderBy: { id: "desc" },
-            select: { type: true, doctor: true },
+          visit: {
+            include: {
+              medicalRecords: {
+                orderBy: { id: "desc" },
+                select: { type: true, doctor: true },
+              },
+            },
           },
         },
         orderBy: [{ startTime: "asc" }, { id: "asc" }],

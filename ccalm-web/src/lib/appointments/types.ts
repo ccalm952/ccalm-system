@@ -1,4 +1,4 @@
-export type AppointmentStatus = "booked" | "completed" | "missed" | "cancelled";
+export type AppointmentStatus = "booked" | "completed" | "missed";
 
 export type AppointmentCard = {
   id: number;
@@ -19,6 +19,8 @@ export type AppointmentCard = {
   pendingReason: string;
   remark: string;
   createdById: string | null;
+  visitId: number | null;
+  source: string;
 };
 
 export type BoardResponse = {

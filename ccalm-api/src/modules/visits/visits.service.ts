@@ -55,13 +55,32 @@ export class VisitsService {
     if (!patient) throw new NotFoundException("患者不存在");
     // 患者详情页「新建就诊」= 已到店，补到店时间；已完成的状态同时记完成时间
     const now = new Date();
-    const v = await this.prisma.patientVisit.create({
-      data: {
-        patientId: dto.patientId,
-        ...this.toData(dto),
-        arrivedAt: now,
-        completedAt: dto.status === "completed" ? now : null,
-      },
+    const v = await this.prisma.$transaction(async (tx) => {
+      const visit = await tx.patientVisit.create({
+        data: {
+          patientId: dto.patientId,
+          ...this.toData(dto),
+          completedAt: dto.status === "completed" ? now : null,
+        },
+      });
+      await tx.appointment.create({
+        data: {
+          patientId: dto.patientId,
+          visitId: visit.id,
+          visitDate: visit.visitDate,
+          startTime: visit.startTime,
+          endTime: visit.endTime,
+          kind: visit.kind,
+          status: visit.status === "completed" ? "completed" : "booked",
+          doctor: visit.doctor,
+          remark: visit.remark,
+          items: visit.items,
+          source: "walk_in",
+          createdById: visit.createdById,
+          completedAt: visit.completedAt,
+        },
+      });
+      return visit;
     });
     return { id: v.id };
   }
@@ -72,11 +91,10 @@ export class VisitsService {
     });
     if (!existing) throw new NotFoundException("就诊记录不存在");
     const now = new Date();
-    await this.prisma.patientVisit.update({
+    const visit = await this.prisma.patientVisit.update({
       where: { id },
       data: {
         ...this.toData(dto),
-        arrivedAt: existing.arrivedAt ?? now,
         completedAt:
           dto.status === "completed"
             ? (existing.completedAt ?? now)
@@ -85,6 +103,25 @@ export class VisitsService {
               : existing.completedAt,
       },
     });
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { visitId: id },
+    });
+    if (appointment) {
+      await this.prisma.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          visitDate: visit.visitDate,
+          startTime: visit.startTime,
+          endTime: visit.endTime,
+          kind: visit.kind,
+          doctor: visit.doctor,
+          remark: visit.remark,
+          items: visit.items,
+          status: visit.status === "completed" ? "completed" : "booked",
+          completedAt: visit.completedAt,
+        },
+      });
+    }
     return { ok: true };
   }
 
@@ -94,6 +131,7 @@ export class VisitsService {
       where: { id },
     });
     if (!existing) throw new NotFoundException("就诊记录不存在");
+    await this.prisma.appointment.deleteMany({ where: { visitId: id } });
     await this.prisma.patientVisit.delete({ where: { id } });
     return { ok: true };
   }

@@ -13,17 +13,16 @@ export const APPOINTMENT_TONES: Record<string, CardTone> = {
   booked: { label: "预约", bar: "#F2B705", bg: "#FFFBEB" },
   completed: { label: "治疗完成", bar: "#17A34A", bg: "#F0FDF4" },
   missed: { label: "已失约", bar: "#64748B", bg: "#F1F5F9" },
-  cancelled: { label: "已取消", bar: "#94A3B8", bg: "#F8FAFC" },
 };
 
 export function toneOf(
-  card: Pick<AppointmentCard, "status" | "isPending">,
+  card: Pick<AppointmentCard, "status" | "isPending" | "visitId">,
 ): CardTone {
-  return (
-    (card.isPending
-      ? APPOINTMENT_TONES.pending
-      : APPOINTMENT_TONES[card.status]) ?? APPOINTMENT_TONES.booked
-  );
+  if (card.isPending) return APPOINTMENT_TONES.pending;
+  if (card.status === "booked" && card.visitId != null) {
+    return { ...APPOINTMENT_TONES.booked, label: "接诊中" };
+  }
+  return APPOINTMENT_TONES[card.status] ?? APPOINTMENT_TONES.booked;
 }
 
 /** 图例顺序 */
@@ -32,5 +31,4 @@ export const LEGEND_KEYS = [
   "booked",
   "completed",
   "missed",
-  "cancelled",
 ] as const;
