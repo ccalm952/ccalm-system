@@ -1210,11 +1210,11 @@ export function AppointmentBoardPage() {
                     {selected.patientName}
                   </span>
                   <Badge variant="secondary" className="text-sm">
-                    \n {toneOf(selected).label}\n{" "}
+                    {toneOf(selected).label}
                   </Badge>
                   {selected.arrived ? (
                     <Badge variant="secondary" className="text-sm">
-                      \n 已到店\n{" "}
+                      已到店
                     </Badge>
                   ) : null}
                 </div>
