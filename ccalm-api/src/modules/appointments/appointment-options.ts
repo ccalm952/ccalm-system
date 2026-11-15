@@ -64,7 +64,6 @@ export function hasOverlap(
   return aStart < bEnd && aEnd > bStart;
 }
 
-
 /** 预约时长校验：15 的倍数，且在 15–120 分钟之间 */
 export function slotDurationError(
   startTime: string,

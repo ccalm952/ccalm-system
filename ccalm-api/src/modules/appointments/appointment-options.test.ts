@@ -35,7 +35,6 @@ describe("时间换算", () => {
   });
 });
 
-
 describe("slotDurationError", () => {
   it("30 分钟合法", () => {
     expect(slotDurationError("09:00", "09:30")).toBeNull();
