@@ -25,7 +25,11 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { assignLanes, minutesOf } from "@/lib/appointments/layout";
+import {
+  assignLanes,
+  minutesOf,
+  type LaidOut,
+} from "@/lib/appointments/layout";
 import {
   APPOINTMENT_TONES,
   ARRIVED_DOT,
@@ -356,6 +360,13 @@ export function AppointmentBoardPage() {
     }
     return map;
   }, [visible, columns, view, dayDate, pendingMove, drag, DAY_START, DAY_END]);
+  const laidOutByColumn = React.useMemo(() => {
+    const result = new Map<string, LaidOut<AppointmentCard>[]>();
+    for (const [key, cards] of byColumn) {
+      result.set(key, assignLanes(cards));
+    }
+    return result;
+  }, [byColumn]);
   function toggleLegend(key: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -683,7 +694,12 @@ export function AppointmentBoardPage() {
 
   React.useEffect(() => {
     if (!dragActive) return;
-    const onMove = (ev: PointerEvent) => {
+    let frame = 0;
+    let latest: PointerEvent | null = null;
+    const flush = () => {
+      frame = 0;
+      const ev = latest;
+      if (!ev) return;
       setDrag((prev) => {
         if (!prev) return prev;
         const moved =
@@ -698,6 +714,11 @@ export function AppointmentBoardPage() {
           ...(target ?? {}),
         };
       });
+    };
+    const onMove = (ev: PointerEvent) => {
+      latest = ev;
+      if (frame) return;
+      frame = window.requestAnimationFrame(flush);
     };
     const onUp = () => {
       const d = dragRef.current;
@@ -761,6 +782,7 @@ export function AppointmentBoardPage() {
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     return () => {
+      if (frame) window.cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
@@ -1065,8 +1087,7 @@ export function AppointmentBoardPage() {
                   </div>
                 </div>
                 {columns.map((col) => {
-                  const dayCards = byColumn.get(col.key) ?? [];
-                  const laidOut = assignLanes(dayCards);
+                  const laidOut = laidOutByColumn.get(col.key) ?? [];
                   return (
                     <div
                       key={col.key}

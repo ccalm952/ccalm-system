@@ -1,4 +1,5 @@
 import * as React from "react";
+import { toast } from "sonner";
 import { lazy, Suspense } from "react";
 import {
   BrowserRouter,
@@ -138,6 +139,7 @@ function ProtectedRoute() {
     "checking",
   );
   const [retryKey, setRetryKey] = React.useState(0);
+  const attemptsRef = React.useRef(0);
   const [me, setMe] = React.useState<AuthMe | null>(null);
 
   React.useEffect(() => {
@@ -161,6 +163,7 @@ function ProtectedRoute() {
       try {
         const data = await api<AuthMe>("GET", "/auth/me");
         if (!cancelled) {
+          attemptsRef.current = 0;
           setMe(data);
           setState("authed");
         }
@@ -171,10 +174,16 @@ function ProtectedRoute() {
             setToken(null);
             setState("unauth");
           } else {
-            // 网络/服务暂不可用（例如后端重启）时自动重试，不打断用户
-            timer = window.setTimeout(() => {
-              if (!cancelled) setRetryKey((k) => k + 1);
-            }, 1500);
+            // 网络/服务暂不可用（例如后端重启）时自动重试，最多 8 次
+            attemptsRef.current += 1;
+            if (attemptsRef.current <= 8) {
+              timer = window.setTimeout(() => {
+                if (!cancelled) setRetryKey((k) => k + 1);
+              }, 1500);
+            } else if (!cancelled) {
+              toast.error("服务暂时不可用，请稍后重试");
+              setState("unauth");
+            }
           }
         }
       }
