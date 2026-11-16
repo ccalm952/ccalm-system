@@ -76,6 +76,7 @@ import {
   hasSalaryUnlockToken,
   setSalaryUnlockToken,
 } from "@/lib/salary-unlock";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 import { DatePickerField } from "@/components/date-picker-field";
 import { SalaryUnlockDialog } from "@/components/salary-unlock-dialog";
@@ -185,7 +186,7 @@ export function SalaryPage() {
   const [salaryUnlocked, setSalaryUnlocked] =
     React.useState(hasSalaryUnlockToken);
 
-  if (me?.role !== "admin") {
+  if (!can(me, "salary.view")) {
     return <Navigate to={ROUTES.home} replace />;
   }
 

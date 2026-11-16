@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
-import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { attendanceNavItemsFor } from "@/config/attendance-nav";
 import { appointmentsNavItem } from "@/config/appointments-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
@@ -34,7 +34,7 @@ import { useAuth } from "@/lib/use-auth";
 export function MainLayout() {
   const { me } = useAuth();
   const location = useLocation();
-  const attendanceItems = attendanceNavItemsForRole(me?.role);
+  const attendanceItems = attendanceNavItemsFor(me);
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -125,13 +125,13 @@ export function MainLayout() {
                 {can(me, "staff.manage") ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink
-                      render={<Link to={ROUTES.roles.root} />}
+                      render={<Link to={ROUTES.staff.root} />}
                     >
-                      人员与角色
+                      人员管理
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 ) : null}
-                {me?.role === "admin" ? (
+                {can(me, "salary.view") ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink
                       render={<Link to={ROUTES.salary.root} />}

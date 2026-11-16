@@ -16,6 +16,7 @@ import type { GeofenceConfig } from "@/lib/attendance/types";
 import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
 import { ROUTES } from "@/config/routes";
 import { api, type ApiError } from "@/lib/api";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
@@ -62,7 +63,7 @@ export function CheckInRangePage() {
       try {
         if (!me) return;
         if (cancelled) return;
-        if (me.role !== "admin") {
+        if (!can(me, "attendance.manage")) {
           navigate(ROUTES.home, { replace: true });
           return;
         }

@@ -498,7 +498,7 @@ model PatientVisit {
 
 ### 4.13 权限模型：角色 = 岗位 + 权限（可编辑），一张角色表搞定
 
-**已定（2026-11-14 修订）：不再分 `role` / `staffRole` 两个字段，合并成一个「角色」。** 管理员可以在「人员与角色」页里改某个角色能做什么，不用改代码。
+**已定（2026-11-14 修订）：不再分 `role` / `staffRole` 两个字段，合并成一个「角色」。** 管理员可以在「人员管理」页里改某个角色能做什么，不用改代码。
 
 **数据模型**
 
@@ -558,13 +558,13 @@ model User {
 | 病历 | `record.view`、`record.edit` |
 | 收费 | `charge.view`、`charge.edit` |
 | 薪资 | `salary.view` |
-| 人员 | `staff.manage`（人员与角色管理） |
+| 人员 | `staff.manage`（人员管理） |
 | 考勤 | `attendance.manage` |
 | 报表/库房 | `report.view`、`warehouse.manage` |
 
 **界面**
 
-- 新页面「人员与角色」：左边员工列表（姓名 / 角色徽章 / 手机 / 状态），右边角色列表（名称 / 类型 / 可被预约 / 人数）→ 点角色弹出「权限勾选」面板（按模块分组，全选/反选）；
+- 新页面「人员管理」：左边员工列表（姓名 / 角色徽章 / 手机 / 状态），右边角色列表（名称 / 类型 / 可被预约 / 人数）→ 点角色弹出「权限勾选」面板（按模块分组，全选/反选）；
 - 员工编辑：角色多选（可勾多个）。
 
 **防呆（必须有，否则会把自己锁死）**
@@ -578,7 +578,7 @@ model User {
 
 - JWT 里只留 `userId`；守卫按请求加载"用户 + 角色 + 权限并集"（11 人，内存缓存 30 秒足够）；
 - 新增 `@RequirePermissions("appointment.delete")` 装饰器 + `PermissionsGuard`，替换现有 22 处 `role !== "admin"` 判断（`users`、`salary`、`attendance`）；
-- 前端 `usePermissions()` 返回权限集合，按钮级隐藏（删除/导出/设置），路由级拦截（人员与角色页）。
+- 前端 `usePermissions()` 返回权限集合，按钮级隐藏（删除/导出/设置），路由级拦截（人员管理页）。
 
 **代价**：比"两级权限"多约 **2 人日**（角色表 + 页面 + 守卫 + 迁移），换来的是以后调权限不用找开发。
 
@@ -590,7 +590,7 @@ model User {
 
 | 阶段 | 范围 | 产出 | 估时 |
 | --- | --- | --- | --- |
-| **P0 可用版** | 导航/路由、**角色与权限**（`Role` 表 + 人员与角色页 + `PermissionsGuard`）、`PatientVisit` 扩展 + 迁移、`appointments` 模块（board/create/update/status/meta）、周视图网格、状态色与图例筛选、新建/编辑抽屉、点卡片浮层、冲突提示、空/错/载态 | 能替代微信群排班 | 5–6 人日 |
+| **P0 可用版** | 导航/路由、**角色与权限**（`Role` 表 + 人员管理页 + `PermissionsGuard`）、`PatientVisit` 扩展 + 迁移、`appointments` 模块（board/create/update/status/meta）、周视图网格、状态色与图例筛选、新建/编辑抽屉、点卡片浮层、冲突提示、空/错/载态 | 能替代微信群排班 | 5–6 人日 |
 | **P1 好用版** | 预约列表（筛选/导出/批量改状态）、**待定预约 C 档**（原因/占位/过期批量/拖拽排期）、拖拽改约、医生看板（日视图）+ 排班/休息、日程占用、`AppointmentLog`、SSE 刷新、设置项（显示病历号/备注、默认时长、待定底色与占位时段） | 前台日常全流程 | 4–5 人日 |
 | **P2 增强** | 自动失约、短信/微信提醒（小程序订阅消息）、网络预约 tab、履约统计（到店率/失约率/医生产能）、收费完成自动结账、打印/交接单 | 运营闭环 | 3–5 人日 |
 
@@ -600,7 +600,7 @@ P0 文件清单（便于排期）：
 - `ccalm-api/src/modules/roles/*`（角色 CRUD、权限目录）；`common/permissions/*`（装饰器 + 守卫）
 - `ccalm-api/src/modules/appointments/{appointments.module,controller,service}.ts` + `dto/*` + `appointment-options.ts`
 - `ccalm-api/src/modules/visits/visit-options.ts` 扩充状态；`medical-records`/`orthodontics` 改用 `OPEN_VISIT_STATUSES`
-- `ccalm-web/src/pages/roles/*`（人员与角色页）；`lib/permissions.ts` + `usePermissions`
+- `ccalm-web/src/pages/staff/*`（人员管理页）；`lib/permissions.ts` + `usePermissions`
 - `ccalm-web/src/config/{routes,appointments-nav}.ts`、`app-sidebar.tsx`、`main-layout.tsx`、`App.tsx`
 - `ccalm-web/src/pages/appointments/*`（见 4.2）
 - `ccalm-web/src/lib/visits/visit-options.ts` 增加 label；`lib/appointments/{status,layout}.ts` + 两个 `*.test.ts`
@@ -638,7 +638,7 @@ P0 文件清单（便于排期）：
 3. **「治疗完成」只由写病历触发**，前台无"完成"按钮。
 4. 全项目不引入「科室」概念（看板不做科室筛选）。
 5. **角色合并**：不再分 `role` / `staffRole`，统一成一张 `Role` 表（`bookable` 可被预约 + `assistable` 可配台 + `permissions[]`），用户可挂多个角色（见 4.13）。
-6. **权限可配置**：内置 管理员 / 医生 / 护士 三个角色，管理员在「人员与角色」页可改任意角色的权限点（约 16 个，按模块分组）；不做 e看牙 的上百权限点/数据安全矩阵。
+6. **权限可配置**：内置 管理员 / 医生 / 护士 三个角色，管理员在「人员管理」页可改任意角色的权限点（约 16 个，按模块分组）；不做 e看牙 的上百权限点/数据安全矩阵。
 7. **病历人员**：只留「医生（必填）+ 配台护士（可选）」，删掉 `assistant` 字段（数据并入 `nurse`）；**不算配台费**，字段仅用于追溯。
 8. 预约项目**单独维护**（`AppointmentCategory` + `AppointmentItem`：分类、名称、配色、启停、排序），不复用收费项目。
 9. **待定预约做 C 档（完整复刻）**，见 4.9。

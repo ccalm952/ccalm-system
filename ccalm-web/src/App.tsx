@@ -80,14 +80,11 @@ const OrthodonticsPage = lazy(() =>
     default: m.OrthodonticsPage,
   })),
 );
-const UsersPage = lazy(() =>
-  import("./pages/users/UsersPage").then((m) => ({ default: m.UsersPage })),
+const StaffPage = lazy(() =>
+  import("./pages/staff/StaffPage").then((m) => ({ default: m.StaffPage })),
 );
 const SalaryPage = lazy(() =>
   import("./pages/salary/SalaryPage").then((m) => ({ default: m.SalaryPage })),
-);
-const RolesPage = lazy(() =>
-  import("./pages/roles/RolesPage").then((m) => ({ default: m.RolesPage })),
 );
 const AppointmentBoardPage = lazy(() =>
   import("./pages/appointments/AppointmentBoardPage").then((m) => ({
@@ -244,7 +241,7 @@ function App() {
               <Route path="schedule" element={<SchedulePage />} />
             </Route>
 
-            <Route path={ROUTES.users.root} element={<UsersPage />} />
+            <Route path={ROUTES.staff.root} element={<StaffPage />} />
 
             <Route path={ROUTES.workbench.root} element={<WorkbenchPage />} />
 
@@ -275,8 +272,6 @@ function App() {
             />
 
             <Route path={ROUTES.salary.root} element={<SalaryPage />} />
-
-            <Route path={ROUTES.roles.root} element={<RolesPage />} />
 
             <Route
               path={ROUTES.appointments.root}

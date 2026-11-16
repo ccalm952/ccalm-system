@@ -10,13 +10,15 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
-import { requireAdmin } from "../../common/request-auth";
+import { RequirePermissions } from "../../common/permissions/require-permissions.decorator";
+import { actor } from "../../common/request-auth";
 import { SaveSalarySheetBodyDto } from "./dto/save-salary-sheet-body.dto";
 import { SalaryUnlockDto } from "./dto/salary-unlock.dto";
 import { SalaryService } from "./salary.service";
 import { SalaryUnlockService } from "./salary-unlock.service";
 
 @Controller("salary")
+@RequirePermissions("salary.view")
 export class SalaryController {
   constructor(
     private readonly salary: SalaryService,
@@ -24,17 +26,17 @@ export class SalaryController {
   ) {}
 
   private assertSalaryAccess(req: Request) {
-    const actor = requireAdmin(req, "仅管理员可查看薪资");
+    const a = actor(req);
     const token = req.header("x-salary-token") ?? undefined;
-    this.salaryUnlock.assertUnlocked(actor.userId, token);
-    return actor;
+    this.salaryUnlock.assertUnlocked(a.userId, token);
+    return a;
   }
 
   @Post("unlock")
   async unlock(@Req() req: Request, @Body() dto: SalaryUnlockDto) {
-    const actor = requireAdmin(req, "仅管理员可查看薪资");
+    const a = actor(req);
     this.salaryUnlock.verifyPassword(dto.password);
-    return await this.salaryUnlock.issueUnlockToken(actor.userId);
+    return await this.salaryUnlock.issueUnlockToken(a.userId);
   }
 
   @Get("months")

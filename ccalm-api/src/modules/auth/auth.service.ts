@@ -20,7 +20,6 @@ type SafeUser = {
   username: string;
   displayName: string;
   avatarUrl: string;
-  role: "user" | "admin";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -40,12 +39,10 @@ export class AuthService {
   private async signUser(user: {
     id: string;
     username: string;
-    role: "user" | "admin";
   }): Promise<string> {
     return await this.jwt.signAsync({
       sub: user.id,
       username: user.username,
-      role: user.role,
     });
   }
 
@@ -79,7 +76,6 @@ export class AuthService {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -106,7 +102,6 @@ export class AuthService {
         username: true,
         displayName: true,
         avatarUrl: true,
-        role: true,
         createdAt: true,
         updatedAt: true,
         roles: {
@@ -133,7 +128,6 @@ export class AuthService {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       roles,
@@ -152,7 +146,6 @@ export class AuthService {
         username: true,
         displayName: true,
         avatarUrl: true,
-        role: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -230,7 +223,6 @@ export class AuthService {
           username: true,
           displayName: true,
           avatarUrl: true,
-          role: true,
           createdAt: true,
           updatedAt: true,
         },

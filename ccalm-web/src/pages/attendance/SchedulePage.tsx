@@ -39,6 +39,7 @@ import {
   SCHEDULE_SHIFT_SWATCH_CLASS,
 } from "@/lib/attendance/attendance-theme";
 import { api } from "@/lib/api";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
@@ -118,7 +119,8 @@ export function SchedulePage() {
     Record<string, ChinaHolidayYear>
   >({});
 
-  const isAdmin = me?.role === "admin";
+  const canManageAttendance = can(me, "attendance.manage");
+  const canManageStaff = can(me, "staff.manage");
   const year = month.split("-")[0] ?? dayjs().format("YYYY");
   const holidays = holidaysByYear[year] ?? null;
 
@@ -348,46 +350,55 @@ export function SchedulePage() {
             </Button>
           </div>
 
-          {isAdmin ? (
+          {canManageStaff || canManageAttendance ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!data}
-                onClick={openLeaveSettings}
-              >
-                <Settings className="size-3.5" />
-                设置
-              </Button>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="month-allowance" className="shrink-0 text-sm">
-                  本月假期（全员）
-                </Label>
-                <Input
-                  id="month-allowance"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  className="w-28 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  value={monthAllowanceInput}
-                  onChange={(e) => setMonthAllowanceInput(e.target.value)}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={savingAllowance}
-                onClick={() => void saveMonthAllowance()}
-              >
-                {savingAllowance ? (
-                  <>
-                    <Spinner data-icon="inline-start" />
-                    保存中…
-                  </>
-                ) : (
-                  "保存假期"
-                )}
-              </Button>
+              {canManageStaff ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!data}
+                  onClick={openLeaveSettings}
+                >
+                  <Settings className="size-3.5" />
+                  设置
+                </Button>
+              ) : null}
+              {canManageAttendance ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor="month-allowance"
+                      className="shrink-0 text-sm"
+                    >
+                      本月假期（全员）
+                    </Label>
+                    <Input
+                      id="month-allowance"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      className="w-28 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      value={monthAllowanceInput}
+                      onChange={(e) => setMonthAllowanceInput(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={savingAllowance}
+                    onClick={() => void saveMonthAllowance()}
+                  >
+                    {savingAllowance ? (
+                      <>
+                        <Spinner data-icon="inline-start" />
+                        保存中…
+                      </>
+                    ) : (
+                      "保存假期"
+                    )}
+                  </Button>
+                </>
+              ) : null}
             </div>
           ) : null}
         </CardHeader>
@@ -407,12 +418,12 @@ export function SchedulePage() {
             <ScrollArea className="max-w-full whitespace-nowrap [&_[data-slot=table-container]]:w-max">
               <ScheduleUsersTable
                 data={data}
-                isAdmin={isAdmin}
+                isAdmin={canManageAttendance}
                 holidayDateKey={holidayDateKey}
                 holidays={holidays}
                 onReorderUsers={reorderUsers}
                 renderLeaveOffset={(user) =>
-                  isAdmin ? (
+                  canManageAttendance ? (
                     <LeaveOffsetInput
                       value={user.leaveOffsetDays}
                       onCommit={(days) =>
