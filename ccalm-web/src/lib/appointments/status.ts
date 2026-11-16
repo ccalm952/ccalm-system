@@ -20,7 +20,7 @@ export function toneOf(
 ): CardTone {
   if (card.isPending) return APPOINTMENT_TONES.pending;
   if (card.status === "booked" && card.visitId != null) {
-    return { ...APPOINTMENT_TONES.booked, label: "接诊中" };
+    return { ...APPOINTMENT_TONES.booked, label: "待写病历" };
   }
   return APPOINTMENT_TONES[card.status] ?? APPOINTMENT_TONES.booked;
 }

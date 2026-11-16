@@ -27,7 +27,11 @@ export function visitStatusLabel(status: VisitStatus): string {
 }
 
 /** 状态 + 是否到店合成一个展示文案：预约 + 已到店 = 已到店 */
-export function visitDisplayStatusLabel(status: VisitStatus): string {
+export function visitDisplayStatusLabel(
+  status: VisitStatus,
+  started = false,
+): string {
+  if (status === "booked" && started) return "待写病历";
   return visitStatusLabel(status);
 }
 

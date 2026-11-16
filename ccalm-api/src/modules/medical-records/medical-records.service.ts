@@ -267,14 +267,12 @@ export class MedicalRecordsService {
     });
     const out: PlanLinkInput[] = [];
     for (const link of links) {
+      // 计划行被删/顺序变化时忽略这条关联，避免整份病历保存失败
       const index =
-        link.planItemIndex ??
-        (link.planItemId != null
+        link.planItemId != null
           ? items.findIndex((i) => i.id === link.planItemId)
-          : -1);
-      if (index < 0 || index >= items.length) {
-        throw new BadRequestException("关联的治疗计划行不存在");
-      }
+          : (link.planItemIndex ?? -1);
+      if (index < 0 || index >= items.length) continue;
       out.push({ planItemId: items[index].id, completes: link.completes });
     }
     return out;
@@ -438,14 +436,19 @@ export class MedicalRecordsService {
       await tx.medicalRecord.delete({ where: { id } });
       if (existing.visitId == null) return;
       // 由病历自动创建、且已无其他病历和收费单的就诊一并删除
-      await tx.patientVisit.deleteMany({
+      const visit = await tx.patientVisit.findFirst({
         where: {
           id: existing.visitId,
           remark: "由病历创建",
           medicalRecords: { none: {} },
           chargeOrders: { none: {} },
         },
+        select: { id: true },
       });
+      if (!visit) return;
+      // 就诊删除后预约会变成没有就诊记录的孤立卡，一并清掉
+      await tx.appointment.deleteMany({ where: { visitId: visit.id } });
+      await tx.patientVisit.delete({ where: { id: visit.id } });
     });
     return { ok: true };
   }

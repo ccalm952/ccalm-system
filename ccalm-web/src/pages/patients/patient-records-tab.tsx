@@ -426,7 +426,9 @@ export function PatientRecordsTab({
     );
   }
 
-  const timeline = records.filter((r) => !r.planLinks.length);
+  const isFirstType = (r: MedicalRecord) =>
+    r.type === "first" || r.type === "orthoFirst";
+  const timeline = records.filter((r) => isFirstType(r) || !r.planLinks.length);
   const chargeByVisit = new Map<number, VisitCharge>();
   for (const o of charges) {
     if (o.status === "void" || o.visitId == null) continue;
@@ -444,6 +446,8 @@ export function PatientRecordsTab({
       `${b.visitDate} ${b.visitTime}`,
     ),
   )) {
+    // 初诊自己的计划行关联不算复诊记录
+    if (isFirstType(r)) continue;
     for (const l of r.planLinks) {
       const list = followUps.get(l.planItemId) ?? [];
       list.push(r);
@@ -468,11 +472,12 @@ export function PatientRecordsTab({
   }
 
   function editRecord(r: MedicalRecord) {
-    const first = r.planLinks.length
-      ? records.find((f) =>
-          f.treatmentPlan.some((i) => i.id === r.planLinks[0].planItemId),
-        )
-      : undefined;
+    const first =
+      !isFirstType(r) && r.planLinks.length
+        ? records.find((f) =>
+            f.treatmentPlan.some((i) => i.id === r.planLinks[0].planItemId),
+          )
+        : undefined;
     setEditing({
       record: r,
       plan: first

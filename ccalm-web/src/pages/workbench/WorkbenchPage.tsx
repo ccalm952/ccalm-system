@@ -132,8 +132,7 @@ type Overview = {
 type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
 
 /** 今日就诊两档：待接诊（未到店）/ 待治疗完成（已到店未写病历） */
-type VisitStatusFilter =
-  "waiting" | "treating" | "toRecord" | "completed" | "missed";
+type VisitStatusFilter = "waiting" | "toRecord" | "completed" | "missed";
 
 function StatItem({
   label,
@@ -213,7 +212,6 @@ export function WorkbenchPage() {
     todayVisits.filter((v) => matchesVisitFilter(v, filter)).length;
   const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) => {
     if (filter === "waiting") return v.status === "booked" && !v.started;
-    if (filter === "treating") return v.status === "booked" && v.started;
     if (filter === "toRecord") {
       return v.status === "booked" && !!v.started && !v.recorded;
     }
@@ -221,7 +219,6 @@ export function WorkbenchPage() {
   };
   const FILTER_LABELS: Record<VisitStatusFilter, string> = {
     waiting: "待接诊",
-    treating: "接诊中",
     toRecord: "待写病历",
     completed: "已完成",
     missed: "已失约",
@@ -247,11 +244,6 @@ export function WorkbenchPage() {
               label="待接诊"
               value={countVisitStatus("waiting")}
               onClick={() => showVisits("waiting")}
-            />
-            <StatItem
-              label="接诊中"
-              value={countVisitStatus("treating")}
-              onClick={() => showVisits("treating")}
             />
             <StatItem
               label="已完成"

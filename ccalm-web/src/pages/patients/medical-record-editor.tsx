@@ -104,19 +104,10 @@ function toForm(
     advice: record?.advice ?? "",
     remark: record?.remark ?? "",
     planLinks: record
-      ? record.type === "first" || record.type === "orthoFirst"
-        ? record.planLinks.map((l) => {
-            const index = record.treatmentPlan.findIndex(
-              (i) => i.id === l.planItemId,
-            );
-            return index >= 0
-              ? { planItemIndex: index, completes: l.completes }
-              : { planItemId: l.planItemId, completes: l.completes };
-          })
-        : record.planLinks.map((l) => ({
-            planItemId: l.planItemId,
-            completes: l.completes,
-          }))
+      ? record.planLinks.map((l) => ({
+          planItemId: l.planItemId,
+          completes: l.completes,
+        }))
       : plan?.startItemId != null
         ? [{ planItemId: plan.startItemId, completes: false }]
         : [],
@@ -186,12 +177,36 @@ export function MedicalRecordEditor({
     }));
   }
 
-  function setIndexLink(index: number, link: boolean, completes: boolean) {
+  function linkFor(item: { id?: number }, index: number) {
+    return form.planLinks.find((l) =>
+      item.id != null ? l.planItemId === item.id : l.planItemIndex === index,
+    );
+  }
+
+  function setRowLink(
+    item: { id?: number },
+    index: number,
+    link: boolean,
+    completes: boolean,
+  ) {
     setForm((f) => ({
       ...f,
       planLinks: [
-        ...f.planLinks.filter((l) => l.planItemIndex !== index),
-        ...(link ? [{ planItemIndex: index, completes }] : []),
+        ...f.planLinks.filter((l) =>
+          item.id != null
+            ? l.planItemId !== item.id
+            : l.planItemIndex !== index,
+        ),
+        ...(link
+          ? [
+              {
+                ...(item.id != null
+                  ? { planItemId: item.id }
+                  : { planItemIndex: index }),
+                completes,
+              },
+            ]
+          : []),
       ],
     }));
   }
@@ -210,6 +225,12 @@ export function MedicalRecordEditor({
     }
     setSaving(true);
     try {
+      const cleanPlan = cleanPlanItems(form.treatmentPlan);
+      const planLinks = form.planLinks.filter(
+        (l) =>
+          l.planItemId != null ||
+          (l.planItemIndex != null && l.planItemIndex < cleanPlan.length),
+      );
       const body = {
         patientId,
         type: form.type,
@@ -225,11 +246,11 @@ export function MedicalRecordEditor({
         oralExam: cleanToothEntries(form.oralExam),
         auxiliaryExam: form.auxiliaryExam.trim(),
         diagnosis: cleanToothEntries(form.diagnosis),
-        treatmentPlan: cleanPlanItems(form.treatmentPlan),
+        treatmentPlan: cleanPlan,
         treatment,
         advice: form.advice.trim(),
         remark: form.remark.trim(),
-        planLinks: form.planLinks.length ? form.planLinks : undefined,
+        planLinks: planLinks.length ? planLinks : undefined,
       };
       if (record) {
         await api("PUT", `/medical-records/${record.id}`, body);
@@ -425,26 +446,18 @@ export function MedicalRecordEditor({
                         <div className="flex items-center gap-4 text-sm">
                           <label className="flex items-center gap-2">
                             <Checkbox
-                              checked={
-                                form.planLinks.find(
-                                  (l) => l.planItemIndex === index,
-                                ) != null
-                              }
+                              checked={linkFor(item, index) != null}
                               onCheckedChange={(checked) =>
-                                setIndexLink(index, checked === true, false)
+                                setRowLink(item, index, checked === true, false)
                               }
                             />
                             本次处理
                           </label>
                           <label className="flex items-center gap-2">
                             <Checkbox
-                              checked={
-                                form.planLinks.find(
-                                  (l) => l.planItemIndex === index,
-                                )?.completes ?? false
-                              }
+                              checked={linkFor(item, index)?.completes ?? false}
                               onCheckedChange={(checked) =>
-                                setIndexLink(index, true, checked === true)
+                                setRowLink(item, index, true, checked === true)
                               }
                             />
                             本行已完成
