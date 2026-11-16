@@ -105,19 +105,24 @@ function PlanItemStatus({
   return (
     <div className="flex items-center gap-3">
       {item.followUpCount ? (
-        <span className="flex items-center gap-1">
-          已复诊 {item.followUpCount} 次
-          {open ? (
-            <ChevronUp className="size-4" />
-          ) : (
-            <ChevronDown className="size-4" />
-          )}
+        <span className="flex items-center gap-2">
+          {ownHandled ? (
+            <span className="text-muted-foreground">初诊已处置</span>
+          ) : null}
+          <span className="flex items-center gap-1">
+            已复诊 {item.followUpCount} 次
+            {open ? (
+              <ChevronUp className="size-4" />
+            ) : (
+              <ChevronDown className="size-4" />
+            )}
+          </span>
         </span>
       ) : ownHandled ? (
         <span className="text-muted-foreground">本次处置</span>
       ) : (
         <span className="text-muted-foreground">未开始</span>
-      )}
+      )}{" "}
       {item.doneDate ? (
         <Badge variant="secondary" className="h-auto text-sm">
           已完成 {item.doneDate}
