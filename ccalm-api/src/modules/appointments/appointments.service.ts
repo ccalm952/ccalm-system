@@ -282,8 +282,7 @@ export class AppointmentsService {
     doctor: string;
     excludeId?: number;
   }) {
-    const { patientId, visitDate, startTime, endTime, excludeId } =
-      params;
+    const { patientId, visitDate, startTime, endTime, excludeId } = params;
     const sameDay = await this.prisma.appointment.findMany({
       where: {
         visitDate,
