@@ -49,7 +49,7 @@ export const PERMISSION_GROUPS = [
   },
   {
     key: "staff",
-    label: "人员与角色",
+    label: "人员管理",
     items: [{ key: "staff.manage", label: "人员、角色与权限管理" }],
   },
   {
@@ -78,16 +78,4 @@ const PERMISSION_SET = new Set(ALL_PERMISSIONS);
 
 export function isPermission(value: string): value is Permission {
   return PERMISSION_SET.has(value);
-}
-
-/** 内置角色 id（迁移脚本里固定写入） */
-export const BUILTIN_ROLE_IDS = {
-  admin: "builtin-admin",
-  doctor: "builtin-doctor",
-  nurse: "builtin-nurse",
-} as const;
-
-/** 旧 User.role 由「是否拥有管理员角色」推导，过渡期用 */
-export function legacyRoleFor(roleIds: string[]): "admin" | "user" {
-  return roleIds.includes(BUILTIN_ROLE_IDS.admin) ? "admin" : "user";
 }

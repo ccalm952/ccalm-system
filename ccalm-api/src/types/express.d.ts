@@ -6,7 +6,6 @@ declare global {
     interface User {
       sub: string;
       username: string;
-      role: "user" | "admin";
     }
   }
 }

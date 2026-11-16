@@ -60,6 +60,7 @@ import type {
 } from "@/lib/attendance/types";
 import { api } from "@/lib/api";
 import type { AuthMe } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 import { errorMessage } from "@/lib/errorMessage";
 import { cn } from "cn";
@@ -125,7 +126,7 @@ async function loadSummary(
   summary: UserAgg[];
   pendingMakeupRequests: AttendanceMakeupRequest[];
 }> {
-  const isAdmin = me.role === "admin";
+  const isAdmin = can(me, "attendance.manage");
 
   const [pendingMakeupRequests, summaryResult] = await Promise.all([
     loadPendingMakeupRequests(isAdmin),

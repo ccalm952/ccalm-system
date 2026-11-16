@@ -12,14 +12,10 @@ import {
   Sse,
 } from "@nestjs/common";
 import type { Request } from "express";
-import type { Observable } from "rxjs";
+import { from, switchMap, type Observable } from "rxjs";
 
-import {
-  actor,
-  isAdmin,
-  requireAdmin,
-  userId as authUserId,
-} from "../../common/request-auth";
+import { PermissionsService } from "../../common/permissions/permissions.service";
+import { actor, userId as authUserId } from "../../common/request-auth";
 
 import { UpsertGeofenceDto } from "./dto/geofence.dto";
 import {
@@ -51,12 +47,28 @@ export class AttendanceController {
     private readonly schedule: AttendanceScheduleService,
     private readonly holidays: ChinaHolidaysService,
     private readonly makeupEvents: MakeupEventsService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  /** 是否拥有「管理他人考勤/排班」权限（角色权限并集） */
+  private async canManage(req: Request): Promise<boolean> {
+    return await this.permissions.has(actor(req).userId, "attendance.manage");
+  }
+
+  private async assertCanManage(req: Request) {
+    const a = actor(req);
+    if (!(await this.permissions.has(a.userId, "attendance.manage"))) {
+      throw new ForbiddenException("需要「管理他人考勤/排班」权限");
+    }
+    return a;
+  }
 
   @Sse("makeup-events")
   makeupEventsStream(@Req() req: Request): Observable<MessageEvent> {
     const a = actor(req);
-    return this.makeupEvents.stream(a.userId, a.role);
+    return from(this.permissions.has(a.userId, "attendance.manage")).pipe(
+      switchMap((canManage) => this.makeupEvents.stream(a.userId, canManage)),
+    );
   }
 
   @Get("geofence")
@@ -66,7 +78,7 @@ export class AttendanceController {
 
   @Put("geofence")
   async putGeofence(@Req() req: Request, @Body() dto: UpsertGeofenceDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.attendance.upsertGeofence(dto);
   }
 
@@ -77,7 +89,7 @@ export class AttendanceController {
 
   @Put("shift")
   async putShift(@Req() req: Request, @Body() dto: UpsertShiftDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.attendance.upsertShift(dto);
   }
 
@@ -101,7 +113,7 @@ export class AttendanceController {
 
   @Get("punch-devices")
   async listPunchDevices(@Req() req: Request) {
-    requireAdmin(req, "仅管理员可查看打卡设备");
+    await this.assertCanManage(req);
     return await this.attendance.listPunchDevices();
   }
 
@@ -110,7 +122,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: UnbindPunchDeviceDto,
   ) {
-    requireAdmin(req, "仅管理员可解绑打卡设备");
+    await this.assertCanManage(req);
     return await this.attendance.unbindPunchDevice(dto.userId);
   }
 
@@ -132,7 +144,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Query("status") status?: string,
   ) {
-    requireAdmin(req, "仅管理员可查看解绑申请");
+    await this.assertCanManage(req);
     return await this.punchDeviceUnbind.listForAdmin(status);
   }
 
@@ -141,7 +153,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Param("id") id: string,
   ) {
-    requireAdmin(req, "仅管理员可处理解绑申请");
+    await this.assertCanManage(req);
     return await this.punchDeviceUnbind.approve(id, authUserId(req));
   }
 
@@ -150,7 +162,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Param("id") id: string,
   ) {
-    requireAdmin(req, "仅管理员可处理解绑申请");
+    await this.assertCanManage(req);
     return await this.punchDeviceUnbind.reject(id, authUserId(req));
   }
 
@@ -165,7 +177,7 @@ export class AttendanceController {
     @Query("month") month: string,
     @Query("detail") detail?: string,
   ) {
-    requireAdmin(req, "仅管理员可查看全员考勤统计");
+    await this.assertCanManage(req);
     return await this.attendance.monthlySummariesForAll(month, detail !== "0");
   }
 
@@ -181,8 +193,12 @@ export class AttendanceController {
     @Query("userId") userId?: string,
   ) {
     const targetUserId = userId ? String(userId) : authUserId(req);
-    if (userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可查看他人考勤统计");
+    if (
+      userId &&
+      targetUserId !== authUserId(req) &&
+      !(await this.canManage(req))
+    ) {
+      throw new ForbiddenException("需要「管理他人考勤/排班」权限");
     }
     return await this.attendance.monthlySummary(targetUserId, month);
   }
@@ -199,7 +215,7 @@ export class AttendanceController {
 
   @Post("makeup")
   async directMakeup(@Req() req: Request, @Body() dto: AdminMakeupDto) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     const result = await this.makeup.directMakeup(dto);
     this.attendance.clearMissingHistoryCache();
     return result;
@@ -208,8 +224,12 @@ export class AttendanceController {
   @Post("rest")
   async declareRest(@Req() req: Request, @Body() dto: DeclareRestDto) {
     const targetUserId = dto.userId ? String(dto.userId) : authUserId(req);
-    if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可为他人登记休息");
+    if (
+      dto.userId &&
+      targetUserId !== authUserId(req) &&
+      !(await this.canManage(req))
+    ) {
+      throw new ForbiddenException("需要「管理他人考勤/排班」权限");
     }
     const result = await this.schedule.declareRest(
       targetUserId,
@@ -223,8 +243,12 @@ export class AttendanceController {
   @Post("rest/clear")
   async clearRest(@Req() req: Request, @Body() dto: ClearRestDto) {
     const targetUserId = dto.userId ? String(dto.userId) : authUserId(req);
-    if (dto.userId && targetUserId !== authUserId(req) && !isAdmin(req)) {
-      throw new ForbiddenException("仅管理员可为他人取消休息");
+    if (
+      dto.userId &&
+      targetUserId !== authUserId(req) &&
+      !(await this.canManage(req))
+    ) {
+      throw new ForbiddenException("需要「管理他人考勤/排班」权限");
     }
     const result = await this.schedule.clearRestHalf(
       targetUserId,
@@ -248,13 +272,13 @@ export class AttendanceController {
     @Req() req: Request,
     @Query("status") status?: string,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.makeup.listForAdmin(status);
   }
 
   @Post("makeup-requests/:id/approve")
   async approveMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     const result = await this.makeup.approve(id, authUserId(req));
     this.attendance.clearMissingHistoryCache();
     return result;
@@ -262,7 +286,7 @@ export class AttendanceController {
 
   @Post("makeup-requests/:id/reject")
   async rejectMakeupRequest(@Req() req: Request, @Param("id") id: string) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     const result = await this.makeup.reject(id, authUserId(req));
     this.attendance.clearMissingHistoryCache();
     return result;
@@ -301,7 +325,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: UpsertScheduleMonthConfigDto,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.schedule.upsertMonthConfig(dto);
   }
 
@@ -310,7 +334,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: UpsertScheduleLeaveOffsetDto,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.schedule.setLeaveOffset(dto);
   }
 
@@ -319,7 +343,7 @@ export class AttendanceController {
     @Req() req: Request,
     @Body() dto: ReorderScheduleUsersDto,
   ) {
-    requireAdmin(req, "仅管理员可修改全站考勤范围与班次");
+    await this.assertCanManage(req);
     return await this.schedule.reorderUsers(dto);
   }
 }

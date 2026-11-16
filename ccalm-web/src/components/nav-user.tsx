@@ -17,7 +17,9 @@ import { cn } from "cn";
 import { api, setToken } from "@/lib/api";
 import { ROUTES } from "@/config/routes";
 import { errorMessage } from "@/lib/errorMessage";
-import type { AuthMe, UserRole } from "@/lib/auth";
+import type { AuthMe } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/lib/use-auth";
 import { EllipsisVerticalIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,12 +39,12 @@ export function NavUser({
     name: string;
     username?: string;
     avatar: string;
-    role: UserRole;
   };
   variant?: "sidebar" | "header";
   onAvatarUpdated?: (avatarUrl: string) => void;
 }) {
   const nav = useNavigate();
+  const { me } = useAuth();
   const { isMobile } = useSidebar();
   const initials = avatarInitials(user.name);
   const inMobileSidebar = variant === "sidebar" && isMobile;
@@ -188,7 +190,7 @@ export function NavUser({
       <PunchDeviceDialog
         open={deviceOpen}
         onOpenChange={setDeviceOpen}
-        isAdmin={user.role === "admin"}
+        isAdmin={can(me, "attendance.manage")}
       />
     </>
   );

@@ -1,7 +1,5 @@
 import * as React from "react";
 
-export type UserRole = "admin" | "user";
-
 /** 权限点与后端 common/permissions/permissions.ts 保持一致 */
 export type Permission =
   | "appointment.view"
@@ -35,8 +33,6 @@ export type AuthMe = {
   username: string;
   displayName: string;
   avatarUrl: string;
-  /** @deprecated 过渡字段：由是否拥有管理员角色推导 */
-  role: UserRole;
   roles?: AuthRole[];
   permissions?: string[];
   bookable?: boolean;

@@ -6,11 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  user
-  admin
-}
-
 enum AttendancePunchType {
   morning_in
   morning_out
@@ -41,8 +36,6 @@ model User {
   passwordHash        String
   displayName         String
   avatarUrl           String   @default("")
-  /// @deprecated 旧登录权限；已由 Role 取代，保留一个版本周期用于兼容
-  role                UserRole @default(user)
   leaveInitialBalance Float    @default(0)
   sortOrder           Int      @default(0)
   wechatOpenId        String?  @unique

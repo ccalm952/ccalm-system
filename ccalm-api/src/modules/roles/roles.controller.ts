@@ -23,7 +23,7 @@ export class RolesController {
     return this.roles.list();
   }
 
-  /** 权限点目录（给「人员与角色」页渲染勾选框） */
+  /** 权限点目录（给「人员管理」页渲染勾选框） */
   @Get("meta")
   meta() {
     return { groups: PERMISSION_GROUPS };

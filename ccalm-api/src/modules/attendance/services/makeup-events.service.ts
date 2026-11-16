@@ -28,9 +28,9 @@ export class MakeupEventsService {
     this.bus.next(event);
   }
 
-  stream(userId: string, role: "user" | "admin"): Observable<MessageEvent> {
+  stream(userId: string, canManage: boolean): Observable<MessageEvent> {
     const filtered = this.bus.pipe(
-      filter((e) => role === "admin" || e.userId === userId),
+      filter((e) => canManage || e.userId === userId),
       map((e): MessageEvent => ({
         data: e satisfies AttendanceTodoSseClientEvent,
       })),

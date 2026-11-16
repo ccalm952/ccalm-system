@@ -35,7 +35,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { appointmentsNavItem } from "@/config/appointments-nav";
-import { attendanceNavItemsForRole } from "@/config/attendance-nav";
+import { attendanceNavItemsFor } from "@/config/attendance-nav";
 import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
@@ -138,7 +138,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     {
       title: "考勤",
       icon: CalendarCheck2,
-      items: attendanceNavItemsForRole(me?.role),
+      items: attendanceNavItemsFor(me),
     },
     { title: "种植", icon: Sprout, items: implantSubNavItems },
   ];
@@ -248,21 +248,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="font-medium"
-                  isActive={subPathActive(activePath, ROUTES.roles.root)}
+                  isActive={subPathActive(activePath, ROUTES.staff.root)}
                   render={
                     <Link
-                      to={ROUTES.roles.root}
-                      onClick={() => onNavClick(ROUTES.roles.root)}
+                      to={ROUTES.staff.root}
+                      onClick={() => onNavClick(ROUTES.staff.root)}
                     />
                   }
-                  tooltip="人员与角色"
+                  tooltip="人员管理"
                 >
                   <ShieldCheck className="shrink-0" />
-                  <span>人员与角色</span>
+                  <span>人员管理</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ) : null}
-            {me?.role === "admin" ? (
+            {can(me, "salary.view") ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="font-medium"
@@ -293,7 +293,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 name: me?.displayName ?? "用户",
                 username: me?.username,
                 avatar: me?.avatarUrl ?? "",
-                role: me?.role ?? "user",
               }}
               onAvatarUpdated={(avatarUrl) => {
                 setMe((current) =>

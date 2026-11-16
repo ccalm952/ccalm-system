@@ -13,7 +13,6 @@ describe("审核账号微信绑定", () => {
       punchDevice: { userId: "u1", tokenHash: "old" },
       displayName: "测试",
       avatarUrl: "",
-      role: "user" as const,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -27,7 +26,6 @@ describe("审核账号微信绑定", () => {
             username: user.username,
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
-            role: user.role,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
           });
@@ -87,7 +85,6 @@ describe("审核账号微信绑定", () => {
       punchDevice: null,
       displayName: "Alice",
       avatarUrl: "",
-      role: "user" as const,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -101,7 +98,6 @@ describe("审核账号微信绑定", () => {
             username: user.username,
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
-            role: user.role,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
           });

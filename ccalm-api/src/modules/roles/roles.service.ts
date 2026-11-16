@@ -53,9 +53,7 @@ export class RolesService {
       },
     });
     if (count === 0) {
-      throw new BadRequestException(
-        "至少要保留一个拥有「人员与角色管理」权限的用户",
-      );
+      throw new BadRequestException("至少要保留一个拥有「人员管理」权限的用户");
     }
   }
 

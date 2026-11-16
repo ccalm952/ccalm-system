@@ -9,10 +9,6 @@ import { unlink } from "node:fs/promises";
 import path from "node:path";
 
 import { API_ROOT } from "../../common/api-root";
-import {
-  BUILTIN_ROLE_IDS,
-  legacyRoleFor,
-} from "../../common/permissions/permissions";
 import { PermissionsService } from "../../common/permissions/permissions.service";
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -24,7 +20,6 @@ const USER_SELECT = {
   username: true,
   displayName: true,
   avatarUrl: true,
-  role: true,
   leaveInitialBalance: true,
   createdAt: true,
   updatedAt: true,
@@ -63,7 +58,7 @@ export class UsersService {
     });
   }
 
-  /** 角色 id 校验 + 至少保留一个「人员与角色管理」用户 */
+  /** 角色 id 校验 + 至少保留一个「人员管理」用户 */
   private async normalizeRoleIds(raw: string[] | undefined) {
     if (!raw) return undefined;
     const roleIds = [...new Set(raw)];
@@ -84,9 +79,7 @@ export class UsersService {
       },
     });
     if (count === 0) {
-      throw new BadRequestException(
-        "至少要保留一个拥有「人员与角色管理」权限的用户",
-      );
+      throw new BadRequestException("至少要保留一个拥有「人员管理」权限的用户");
     }
   }
 
@@ -94,22 +87,20 @@ export class UsersService {
     username: string;
     password: string;
     displayName: string;
-    roleIds?: string[];
+    roleIds: string[];
   }) {
     const passwordHash = await bcrypt.hash(input.password, 10);
     const last = await this.prisma.user.findFirst({
       orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     });
-    const roleIds = (await this.normalizeRoleIds(input.roleIds)) ?? [
-      BUILTIN_ROLE_IDS.doctor,
-    ];
+    const roleIds = await this.normalizeRoleIds(input.roleIds);
+    if (!roleIds) throw new BadRequestException("请至少选择一个角色");
     return await this.prisma.user.create({
       data: {
         username: input.username,
         passwordHash,
         displayName: input.displayName,
-        role: legacyRoleFor(roleIds),
         sortOrder: (last?.sortOrder ?? -1) + 1,
         roles: { connect: roleIds.map((id) => ({ id })) },
       },
@@ -124,8 +115,6 @@ export class UsersService {
     displayName?: string;
     password?: string;
     roleIds?: string[];
-    /** @deprecated 旧前端只传 user/admin：仅增删管理员角色 */
-    legacyRole?: "user" | "admin";
     leaveInitialBalance?: number;
   }) {
     const { actorUserId, canManage, targetUserId } = params;
@@ -134,15 +123,15 @@ export class UsersService {
 
     const existing = await this.prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true, role: true, roles: { select: { id: true } } },
+      select: { id: true },
     });
     if (!existing) throw new NotFoundException("用户不存在");
 
     if (params.roleIds !== undefined && !canManage) {
-      throw new ForbiddenException("仅管理员可修改角色");
+      throw new ForbiddenException("仅拥有人员管理权限的用户可修改角色");
     }
     if (params.leaveInitialBalance !== undefined && !canManage) {
-      throw new ForbiddenException("仅管理员可修改假期余额");
+      throw new ForbiddenException("仅拥有人员管理权限的用户可修改假期余额");
     }
 
     const data: Record<string, unknown> = {};
@@ -158,19 +147,6 @@ export class UsersService {
         await this.assertStaffManageRemains(targetUserId);
       }
       data.roles = { set: roleIds.map((id) => ({ id })) };
-      data.role = legacyRoleFor(roleIds);
-    } else if (params.legacyRole) {
-      // 旧前端：只在现有角色基础上增删「管理员」，不动其它角色
-      const current = existing.roles.map((r) => r.id);
-      const next = new Set(current);
-      if (params.legacyRole === "admin") next.add(BUILTIN_ROLE_IDS.admin);
-      else next.delete(BUILTIN_ROLE_IDS.admin);
-      const ids = [...next];
-      if (!(await this.rolesGrantStaffManage(ids))) {
-        await this.assertStaffManageRemains(targetUserId);
-      }
-      data.roles = { set: ids.map((id) => ({ id })) };
-      data.role = legacyRoleFor(ids);
     }
     if (typeof params.leaveInitialBalance === "number" && canManage) {
       data.leaveInitialBalance = params.leaveInitialBalance;

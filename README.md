@@ -45,7 +45,7 @@ pnpm exec prisma migrate dev
 pnpm run start:dev
 ```
 
-首次部署需在数据库中自行插入至少一名 `role` 为 `admin` 的用户（例如用 `pnpm exec prisma studio` 或 SQL），否则无法登录后台管理人员。
+首次部署需保证数据库里至少有一名拥有「管理员」角色（迁移内置的 `builtin-admin`）的用户，例如用 `pnpm exec prisma studio` 在 `_RoleToUser` 里关联，否则无法登录后台管理人员。
 
 ### 2) 启动前端
 
@@ -62,8 +62,8 @@ pnpm dev
 ### 3) 页面入口
 
 - `/login`：登录
-- `/`：考勤主页面
-- `/users`：人员管理（仅管理员可见入口）
+- `/workbench`：工作台（`/` 会跳到这里）
+- `/staff`：人员管理（人员、角色与权限，需「人员管理」权限）
 
 添加 UI 组件时进入前端目录执行：`cd ccalm-web && pnpm dlx shadcn@latest add <组件名>`。
 
@@ -176,7 +176,7 @@ pnpm exec prisma generate
 pnpm exec prisma migrate deploy
 ```
 
-首次部署请确保数据库里至少有 1 个 `role=admin` 的用户，否则无法登录后台管理人员。可以用 1Panel 数据库管理工具、Prisma Studio 或 SQL 初始化。
+首次部署请确保数据库里至少有 1 个拥有「管理员」角色（`builtin-admin`）的用户，否则无法登录后台管理人员。可以用 1Panel 数据库管理工具、Prisma Studio 或 SQL 初始化角色关联。
 
 ### 6) 构建前后端
 

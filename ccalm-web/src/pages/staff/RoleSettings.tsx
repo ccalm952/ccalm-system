@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,36 +19,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
-import { can } from "@/lib/permissions";
-import { useAuth } from "@/lib/use-auth";
 
-type Role = {
-  id: string;
-  name: string;
-  bookable: boolean;
-  assistable: boolean;
-  permissions: string[];
-  builtin: boolean;
-  sortOrder: number;
-  userCount: number;
-};
-
-type PermissionGroup = {
-  key: string;
-  label: string;
-  items: { key: string; label: string }[];
-};
-
-type UserRow = {
-  id: string;
-  username: string;
-  displayName: string;
-  role: "user" | "admin";
-  roles: { id: string; name: string; bookable: boolean; assistable: boolean }[];
-};
+import type { PermissionGroup, Role, StaffUser } from "./staff-types";
 
 type Draft = {
   id: string | null;
@@ -66,38 +40,20 @@ const EMPTY_DRAFT: Draft = {
   permissions: [],
 };
 
-export function RolesPage() {
-  const { me } = useAuth();
-  const [roles, setRoles] = React.useState<Role[]>([]);
-  const [groups, setGroups] = React.useState<PermissionGroup[]>([]);
-  const [users, setUsers] = React.useState<UserRow[]>([]);
+export function RoleSettings({
+  roles,
+  groups,
+  users,
+  reload,
+}: {
+  roles: Role[];
+  groups: PermissionGroup[];
+  users: StaffUser[];
+  reload: () => Promise<Role[]>;
+}) {
   const [draft, setDraft] = React.useState<Draft | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [removing, setRemoving] = React.useState<Role | null>(null);
-
-  const load = React.useCallback(async () => {
-    try {
-      const [roleRows, meta, userRows] = await Promise.all([
-        api<Role[]>("GET", "/roles"),
-        api<{ groups: PermissionGroup[] }>("GET", "/roles/meta"),
-        api<UserRow[]>("GET", "/users"),
-      ]);
-      setRoles(roleRows);
-      setGroups(meta.groups);
-      setUsers(userRows);
-      return roleRows;
-    } catch (e) {
-      toast.error(errorMessage(e));
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    void load();
-  }, [load]);
 
   React.useEffect(() => {
     if (!draft && roles.length) {
@@ -152,7 +108,7 @@ export function RolesPage() {
       if (draft.id) await api("PUT", `/roles/${draft.id}`, body);
       else await api("POST", "/roles", body);
       toast.success("已保存");
-      const rows = await load();
+      const rows = await reload();
       const saved = draft.id
         ? rows.find((r) => r.id === draft.id)
         : rows.find((r) => r.name === body.name);
@@ -171,7 +127,7 @@ export function RolesPage() {
       await api("DELETE", `/roles/${removing.id}`);
       toast.success("已删除");
       setDraft(null);
-      await load();
+      await reload();
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -179,7 +135,11 @@ export function RolesPage() {
     }
   }
 
-  async function toggleMember(user: UserRow, roleId: string, checked: boolean) {
+  async function toggleMember(
+    user: StaffUser,
+    roleId: string,
+    checked: boolean,
+  ) {
     const next = checked
       ? [...new Set([...user.roles.map((r) => r.id), roleId])]
       : user.roles.map((r) => r.id).filter((id) => id !== roleId);
@@ -188,63 +148,29 @@ export function RolesPage() {
       return;
     }
     try {
-      const updated = await api<UserRow>("PATCH", `/users/${user.id}`, {
-        roleIds: next,
-      });
-      setUsers((rows) =>
-        rows.map((r) =>
-          r.id === user.id
-            ? { ...r, role: updated.role, roles: updated.roles }
-            : r,
-        ),
-      );
-      void load();
+      await api("PATCH", `/users/${user.id}`, { roleIds: next });
+      await reload();
     } catch (e) {
       toast.error(errorMessage(e));
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Spinner className="size-8 opacity-60" />
-      </div>
-    );
-  }
-
-  if (!can(me, "staff.manage")) {
-    return (
-      <div className="p-6 text-muted-foreground">
-        你没有「人员与角色管理」权限，请联系管理员。
-      </div>
-    );
-  }
-
   const selectedRole = roles.find((r) => r.id === draft?.id) ?? null;
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="size-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">人员与角色</h1>
-          <span className="text-muted-foreground">
-            角色 = 岗位身份（可被预约 / 可配台）+ 权限点，可随时调整
-          </span>
-        </div>
-        <Button
-          type="button"
-          onClick={() => setDraft({ ...EMPTY_DRAFT, permissions: [] })}
-        >
-          <Plus className="size-4" />
-          新建角色
-        </Button>
-      </div>
-
+    <>
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <Card className="h-fit">
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-2">
             <CardTitle className="text-sm">角色（{roles.length}）</CardTitle>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setDraft({ ...EMPTY_DRAFT, permissions: [] })}
+            >
+              <Plus className="size-4" />
+              新建
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-1">
             {roles.map((role) => {
@@ -482,6 +408,6 @@ export function RolesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

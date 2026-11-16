@@ -34,6 +34,7 @@ import {
 import { formatMakeupTime } from "@/lib/attendance/makeup";
 import { api, subscribeMakeupEvents } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -478,7 +479,7 @@ export function MakeupTodoButton() {
   >([]);
   const [loading, setLoading] = React.useState(false);
 
-  const isAdmin = me?.role === "admin";
+  const isAdmin = can(me, "attendance.manage");
   const badgeCount = isAdmin
     ? pendingItems.length + pendingUnbindItems.length
     : mineItems.filter((item) => item.status === "pending").length +

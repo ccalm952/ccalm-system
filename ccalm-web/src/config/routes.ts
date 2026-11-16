@@ -3,8 +3,8 @@ export const ROUTES = {
   auth: {
     login: "/login",
   },
-  users: {
-    root: "/users",
+  staff: {
+    root: "/staff",
   },
   workbench: {
     root: "/workbench",
@@ -39,9 +39,6 @@ export const ROUTES = {
   },
   salary: {
     root: "/salary",
-  },
-  roles: {
-    root: "/roles",
   },
   appointments: {
     root: "/appointments",

@@ -19,7 +19,6 @@ import { diskStorage } from "multer";
 import type { Request } from "express";
 
 import { API_ROOT } from "../../common/api-root";
-import { BUILTIN_ROLE_IDS } from "../../common/permissions/permissions";
 import { PermissionsService } from "../../common/permissions/permissions.service";
 import { RequirePermissions } from "../../common/permissions/require-permissions.decorator";
 import { actor } from "../../common/request-auth";
@@ -34,17 +33,6 @@ const avatarMimeExtensions = new Map([
   ["image/png", ".png"],
   ["image/webp", ".webp"],
 ]);
-
-/** 兼容旧前端只传 role 的情况 */
-function roleIdsFromDto(dto: {
-  roleIds?: string[];
-  role?: "user" | "admin";
-}): string[] | undefined {
-  if (dto.roleIds) return dto.roleIds;
-  if (dto.role === "admin") return [BUILTIN_ROLE_IDS.admin];
-  if (dto.role === "user") return [BUILTIN_ROLE_IDS.doctor];
-  return undefined;
-}
 
 @Controller("users")
 export class UsersController {
@@ -66,7 +54,7 @@ export class UsersController {
       username: dto.username,
       password: dto.password,
       displayName: dto.displayName,
-      roleIds: roleIdsFromDto(dto),
+      roleIds: dto.roleIds,
     });
   }
 
@@ -113,17 +101,13 @@ export class UsersController {
   ) {
     const a = actor(req);
     const canManage = await this.permissions.has(a.userId, "staff.manage");
-    const roleIds = dto.roleIds;
-    // 旧前端只传 role 时，仅增删「管理员」角色，不动医生/护士等其它角色
-    const legacyRole = roleIds ? undefined : dto.role;
     return await this.users.update({
       actorUserId: a.userId,
       canManage,
       targetUserId: id,
       displayName: dto.displayName,
       password: dto.password,
-      roleIds,
-      legacyRole,
+      roleIds: dto.roleIds,
       leaveInitialBalance: dto.leaveInitialBalance,
     });
   }
