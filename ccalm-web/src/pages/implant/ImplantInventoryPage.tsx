@@ -351,7 +351,7 @@ export function ImplantInventoryPage() {
   }
 
   return (
-    <div className="bg-background p-4">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">

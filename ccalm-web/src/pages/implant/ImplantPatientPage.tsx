@@ -344,7 +344,7 @@ export function ImplantPatientPage() {
   const visibleShareColCount = leafCols.filter((c) => c.id !== "select").length;
 
   return (
-    <div className="bg-background p-4">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
           <CardHeader className="flex flex-col gap-3 space-y-0 md:flex-row md:items-center md:justify-between">

@@ -79,7 +79,7 @@ export function ImplantStatsPage() {
   }, []);
 
   return (
-    <div className="bg-background p-4">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
