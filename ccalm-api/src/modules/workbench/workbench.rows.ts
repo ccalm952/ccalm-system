@@ -33,6 +33,8 @@ export type TodayVisitRow = {
   status: string;
   /** 已开始接诊（已生成 Visit，状态仍是 booked） */
   started: boolean;
+  /** 已写病历 */
+  recorded: boolean;
   staff: string;
 };
 
@@ -67,6 +69,7 @@ export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
     endTime: row.endTime,
     status: row.status,
     started: row.visitId != null,
+    recorded: (row.visit?.medicalRecords.length ?? 0) > 0,
     staff: staffSource?.doctor || row.doctor,
   };
   return ortho

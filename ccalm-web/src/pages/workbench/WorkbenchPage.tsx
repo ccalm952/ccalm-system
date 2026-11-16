@@ -47,6 +47,8 @@ type TodayVisit = {
   status?: VisitStatus;
   /** 已开始接诊（已生成就诊记录，状态仍是预约） */
   started?: boolean;
+  /** 已写病历 */
+  recorded?: boolean;
   staff: string;
 };
 
@@ -130,7 +132,8 @@ type Overview = {
 type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
 
 /** 今日就诊两档：待接诊（未到店）/ 待治疗完成（已到店未写病历） */
-type VisitStatusFilter = "waiting" | "treating" | "completed" | "missed";
+type VisitStatusFilter =
+  "waiting" | "treating" | "toRecord" | "completed" | "missed";
 
 function StatItem({
   label,
@@ -211,11 +214,15 @@ export function WorkbenchPage() {
   const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) => {
     if (filter === "waiting") return v.status === "booked" && !v.started;
     if (filter === "treating") return v.status === "booked" && v.started;
+    if (filter === "toRecord") {
+      return v.status === "booked" && !!v.started && !v.recorded;
+    }
     return v.status === filter;
   };
   const FILTER_LABELS: Record<VisitStatusFilter, string> = {
     waiting: "待接诊",
     treating: "接诊中",
+    toRecord: "待写病历",
     completed: "已完成",
     missed: "已失约",
   };
@@ -274,9 +281,14 @@ export function WorkbenchPage() {
               onClick={() => setTab("followUp")}
             />
             <StatItem
-              label="疗程待完成"
+              label="待完成疗程"
               value={pendingCourses.length}
               onClick={() => setTab("pendingCourse")}
+            />
+            <StatItem
+              label="待写病历"
+              value={countVisitStatus("toRecord")}
+              onClick={() => showVisits("toRecord")}
             />
           </CardContent>
         </Card>
