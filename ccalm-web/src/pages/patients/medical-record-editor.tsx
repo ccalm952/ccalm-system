@@ -210,6 +210,12 @@ export function MedicalRecordEditor({
     }
     setSaving(true);
     try {
+      const cleanPlan = cleanPlanItems(form.treatmentPlan);
+      const planLinks = form.planLinks.filter(
+        (l) =>
+          l.planItemId != null ||
+          (l.planItemIndex != null && l.planItemIndex < cleanPlan.length),
+      );
       const body = {
         patientId,
         type: form.type,
@@ -225,11 +231,11 @@ export function MedicalRecordEditor({
         oralExam: cleanToothEntries(form.oralExam),
         auxiliaryExam: form.auxiliaryExam.trim(),
         diagnosis: cleanToothEntries(form.diagnosis),
-        treatmentPlan: cleanPlanItems(form.treatmentPlan),
+        treatmentPlan: cleanPlan,
         treatment,
         advice: form.advice.trim(),
         remark: form.remark.trim(),
-        planLinks: form.planLinks.length ? form.planLinks : undefined,
+        planLinks: planLinks.length ? planLinks : undefined,
       };
       if (record) {
         await api("PUT", `/medical-records/${record.id}`, body);

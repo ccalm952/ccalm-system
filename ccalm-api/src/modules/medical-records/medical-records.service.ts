@@ -272,9 +272,8 @@ export class MedicalRecordsService {
         (link.planItemId != null
           ? items.findIndex((i) => i.id === link.planItemId)
           : -1);
-      if (index < 0 || index >= items.length) {
-        throw new BadRequestException("关联的治疗计划行不存在");
-      }
+      // 计划行被删/顺序变化时忽略这条关联，避免整份病历保存失败
+      if (index < 0 || index >= items.length) continue;
       out.push({ planItemId: items[index].id, completes: link.completes });
     }
     return out;
