@@ -223,7 +223,14 @@ export class MedicalRecordsService {
       : [];
     const links =
       dto.planLinks !== undefined
-        ? normalizePlanLinks(dto.planLinks)
+        ? normalizePlanLinks(
+            dto.planLinks
+              .filter((l) => l.planItemId != null)
+              .map((l) => ({
+                planItemId: l.planItemId as number,
+                completes: l.completes,
+              })),
+          )
         : existingLinks;
     if (!links.length) {
       if (existing?.type === "return" && !existingLinks.length) return [];
@@ -245,6 +252,33 @@ export class MedicalRecordsService {
     return links;
   }
 
+  /** 初诊：计划行刚创建还没有 id，按提交顺序的下标转成 id */
+  private async resolveIndexPlanLinks(
+    tx: Prisma.TransactionClient,
+    recordId: number,
+    dto: SaveMedicalRecordDto,
+  ): Promise<PlanLinkInput[]> {
+    const links = dto.planLinks ?? [];
+    if (!links.length) return [];
+    const items = await tx.treatmentPlanItem.findMany({
+      where: { recordId },
+      orderBy: { sort: "asc" },
+      select: { id: true },
+    });
+    const out: PlanLinkInput[] = [];
+    for (const link of links) {
+      const index =
+        link.planItemIndex ??
+        (link.planItemId != null
+          ? items.findIndex((i) => i.id === link.planItemId)
+          : -1);
+      if (index < 0 || index >= items.length) {
+        throw new BadRequestException("关联的治疗计划行不存在");
+      }
+      out.push({ planItemId: items[index].id, completes: link.completes });
+    }
+    return out;
+  }
   private async writePlanLinks(
     tx: Prisma.TransactionClient,
     recordId: number,
@@ -333,7 +367,11 @@ export class MedicalRecordsService {
         data: { patientId: dto.patientId, visitId, ...data },
       });
       await this.syncPlanItems(tx, created.id, planItems);
-      await this.writePlanLinks(tx, created.id, links);
+      const planLinkRows =
+        dto.type === "return"
+          ? links
+          : await this.resolveIndexPlanLinks(tx, created.id, dto);
+      await this.writePlanLinks(tx, created.id, planLinkRows);
       return tx.medicalRecord.findUniqueOrThrow({
         where: { id: created.id },
         include: RECORD_INCLUDE,
@@ -361,7 +399,11 @@ export class MedicalRecordsService {
         data: { visitId, ...data },
       });
       await this.syncPlanItems(tx, id, planItems);
-      await this.writePlanLinks(tx, id, links);
+      const planLinkRows =
+        dto.type === "return"
+          ? links
+          : await this.resolveIndexPlanLinks(tx, id, dto);
+      await this.writePlanLinks(tx, id, planLinkRows);
       return tx.medicalRecord.findUniqueOrThrow({
         where: { id },
         include: RECORD_INCLUDE,
