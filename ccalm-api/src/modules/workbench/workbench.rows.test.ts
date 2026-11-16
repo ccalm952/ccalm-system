@@ -116,4 +116,18 @@ describe("todayVisitRow", () => {
     );
     expect(row.kind).toBe("clinic");
   });
+
+  it("种植记录生成的预约出一行种植，牙位挂在行上", () => {
+    const row = todayVisitRow(
+      visit({ source: "implant", remark: "种植就诊" }),
+      ["14", "15", "17"],
+    );
+    expect(row).toMatchObject({
+      key: "implant-1",
+      kind: "implant",
+      detail: "",
+      teeth: ["14", "15", "17"],
+      status: "completed",
+    });
+  });
 });

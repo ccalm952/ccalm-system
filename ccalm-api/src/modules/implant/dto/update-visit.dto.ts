@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsString } from "class-validator";
+import { IsInt, IsOptional, IsString, Matches } from "class-validator";
 
 export class UpdateImplantVisitDto {
   @IsOptional()
@@ -34,6 +34,9 @@ export class UpdateImplantVisitDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^$|^(?:[1-4][1-8]|[5-8][1-5])$/, {
+    message: "牙位只能填 FDI 编号，如 11、12、36",
+  })
   toothNo?: string | null;
 
   @IsOptional()

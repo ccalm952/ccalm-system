@@ -32,6 +32,7 @@ export const APPOINTMENT_SOURCES = [
   "network",
   "record",
   "system",
+  "implant",
 ] as const;
 
 export const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;

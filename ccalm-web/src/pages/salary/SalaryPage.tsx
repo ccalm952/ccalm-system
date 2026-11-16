@@ -51,7 +51,6 @@ import {
   formatSalaryMonthTab,
   isSalarySheetData,
   normalizeSalarySheet,
-  ensureEmployeeDeductionRates,
   previousSalaryMonth,
   resolveDefaultSalarySheet,
 } from "@/lib/salary/defaults";
@@ -237,31 +236,20 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         undefined,
         salaryApi,
       );
-      const data = ensureEmployeeDeductionRates(
-        normalizeSalarySheet(res.data, month),
-        globalSettings,
-      );
+      const data = normalizeSalarySheet(res.data, month);
       const rawDays = isSalarySheetData(res.data)
         ? res.data.summary.daysInMonth
         : undefined;
-      const missingDeduction = (res.data?.employees ?? []).some(
-        (row) =>
-          !(
-            typeof row.deductionRate === "number" &&
-            Number.isFinite(row.deductionRate)
-          ),
-      );
       if (
         persist &&
         (!isSalarySheetData(res.data) ||
-          rawDays !== calendarDaysForMonth(month) ||
-          missingDeduction)
+          rawDays !== calendarDaysForMonth(month))
       ) {
         await api("PUT", `/salary/${month}`, { data }, salaryApi);
       }
       return data;
     },
-    [globalSettings],
+    [],
   );
 
   const lockSalary = React.useCallback(() => {

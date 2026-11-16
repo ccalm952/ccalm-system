@@ -100,33 +100,10 @@ export type SalaryOtherCostItem = {
   amount: number;
 };
 
-export type SalaryCostLine = {
-  id: string;
-  label: string;
-  amount: number;
-};
-
-export type SalaryProcessingLine = {
-  id: string;
-  label: string;
-  amount: number;
-};
-
-export type SalaryOperatingLine = {
-  id: string;
-  label: string;
-  amount: number;
-};
-
 export type SalaryLeaveQuotas = {
   chen: number;
   lu: number;
   xu: number;
-};
-
-export type SalaryOperatingExpenses = {
-  utilities: number;
-  rent: number;
 };
 
 type SalarySummaryInput = {

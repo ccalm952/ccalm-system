@@ -27,6 +27,10 @@ import {
   implantCountsForPending,
   remainingPendingTeeth,
 } from "./pending-teeth";
+import {
+  IMPLANT_VISIT_REMARK,
+  OPEN_VISIT_STATUSES,
+} from "../visits/visit-options";
 
 export type ImplantRecordRow = {
   patientId: number;
@@ -169,6 +173,13 @@ export class ImplantService {
         include: { teeth: true },
       });
 
+      await this.ensureVisitRecord(tx, {
+        patientId: patient.id,
+        visitDate: visit.visitDate,
+        doctor: visit.staff ?? "",
+      });
+      await this.syncImplantTeeth(tx, patient.id, visit.visitDate);
+
       await this.consumePending(
         tx,
         patient.id,
@@ -177,6 +188,80 @@ export class ImplantService {
       );
       return visit;
     });
+  }
+
+  /**
+   * 种植记录同时生成「就诊」：当天已有未完成就诊就复用（缺预约则补一条），
+   * 否则新建就诊 + 预约，患者就诊记录、病历与工作台都能看到这次种植。
+   */
+  private async ensureVisitRecord(
+    tx: Prisma.TransactionClient,
+    params: { patientId: number; visitDate: string; doctor: string },
+  ) {
+    const { patientId, visitDate, doctor } = params;
+    const open = await tx.patientVisit.findFirst({
+      where: { patientId, visitDate, status: { in: OPEN_VISIT_STATUSES } },
+      orderBy: { id: "desc" },
+    });
+
+    if (open) {
+      const startTime = open.startTime || dayjs().format("HH:mm");
+      const endTime = open.endTime || dayjs().add(30, "minute").format("HH:mm");
+      if (!open.startTime) {
+        await tx.patientVisit.update({
+          where: { id: open.id },
+          data: { startTime, endTime },
+        });
+      }
+      const linked = await tx.appointment.findUnique({
+        where: { visitId: open.id },
+      });
+      if (!linked) {
+        await tx.appointment.create({
+          data: {
+            patientId,
+            visitId: open.id,
+            visitDate: open.visitDate,
+            startTime,
+            endTime,
+            kind: open.kind,
+            status: "booked",
+            doctor: open.doctor,
+            remark: open.remark,
+            source: "implant",
+          },
+        });
+      }
+      return open;
+    }
+
+    const created = await tx.patientVisit.create({
+      data: {
+        patientId,
+        visitDate,
+        startTime: dayjs().format("HH:mm"),
+        endTime: dayjs().add(30, "minute").format("HH:mm"),
+        kind: "return",
+        status: "booked",
+        doctor,
+        remark: IMPLANT_VISIT_REMARK,
+      },
+    });
+    await tx.appointment.create({
+      data: {
+        patientId,
+        visitId: created.id,
+        visitDate: created.visitDate,
+        startTime: created.startTime,
+        endTime: created.endTime,
+        kind: created.kind,
+        status: "booked",
+        doctor: created.doctor,
+        remark: created.remark,
+        source: "implant",
+      },
+    });
+    return created;
   }
 
   /** 已种的牙位从该患者的待种植里去掉，全部种完的待种植记录删除 */
@@ -271,6 +356,25 @@ export class ImplantService {
         }
       }
 
+      if (dto.visitDate != null && dto.visitDate !== visit.visitDate) {
+        await this.cleanupImplantVisitRecord(
+          tx,
+          visit.patientId,
+          visit.visitDate,
+        );
+        await this.ensureVisitRecord(tx, {
+          patientId: visit.patientId,
+          visitDate: dto.visitDate,
+          doctor: dto.staff ?? visit.staff ?? "",
+        });
+        await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
+      }
+      await this.syncImplantTeeth(
+        tx,
+        visit.patientId,
+        dto.visitDate ?? visit.visitDate,
+      );
+
       return { ok: true };
     });
   }
@@ -303,6 +407,7 @@ export class ImplantService {
       await this.consumePending(tx, visit.patientId, visit.visitDate, [
         tooth.toothNo,
       ]);
+      await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
       return tooth;
     });
   }
@@ -313,18 +418,69 @@ export class ImplantService {
     });
     if (!visit) throw new NotFoundException("就诊记录不存在");
 
-    if (toothId != null) {
-      await this.prisma.implantTooth.deleteMany({
-        where: { id: toothId, visitId },
-      });
-      const left = await this.prisma.implantTooth.count({ where: { visitId } });
-      if (left === 0) {
-        await this.prisma.implantVisit.delete({ where: { id: visitId } });
+    await this.prisma.$transaction(async (tx) => {
+      if (toothId != null) {
+        await tx.implantTooth.deleteMany({ where: { id: toothId, visitId } });
+        const left = await tx.implantTooth.count({ where: { visitId } });
+        if (left === 0) {
+          await tx.implantVisit.delete({ where: { id: visitId } });
+        }
+      } else {
+        await tx.implantVisit.delete({ where: { id: visitId } });
       }
-    } else {
-      await this.prisma.implantVisit.delete({ where: { id: visitId } });
-    }
+      await this.cleanupImplantVisitRecord(
+        tx,
+        visit.patientId,
+        visit.visitDate,
+      );
+      await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
+    });
     return { ok: true };
+  }
+
+  /** 把当天种植牙位同步到种植就诊的预约上，工作台只读就诊数据即可 */
+  private async syncImplantTeeth(
+    tx: Prisma.TransactionClient,
+    patientId: number,
+    visitDate: string,
+  ) {
+    const rows = await tx.implantVisit.findMany({
+      where: { patientId, visitDate },
+      select: { teeth: { select: { toothNo: true } } },
+    });
+    const teeth = [
+      ...new Set(
+        rows
+          .flatMap((r) => r.teeth.map((t) => t.toothNo?.trim() ?? ""))
+          .filter(Boolean),
+      ),
+    ].sort();
+
+    await tx.appointment.updateMany({
+      where: { patientId, visitDate, source: "implant" },
+      data: { implantTeeth: teeth },
+    });
+  }
+
+  /** 当天已没有种植记录时，删掉自动生成的「种植就诊」与其预约 */
+  private async cleanupImplantVisitRecord(
+    tx: Prisma.TransactionClient,
+    patientId: number,
+    visitDate: string,
+  ) {
+    const left = await tx.implantVisit.count({
+      where: { patientId, visitDate },
+    });
+    if (left > 0) return;
+
+    const visit = await tx.patientVisit.findFirst({
+      where: { patientId, visitDate, remark: IMPLANT_VISIT_REMARK },
+      orderBy: { id: "desc" },
+    });
+    if (!visit) return;
+
+    await tx.appointment.deleteMany({ where: { visitId: visit.id } });
+    await tx.patientVisit.delete({ where: { id: visit.id } });
   }
 
   async listInventory() {

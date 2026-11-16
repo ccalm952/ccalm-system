@@ -239,7 +239,6 @@ export class MedicalRecordsService {
           )
         : existingLinks;
     if (!links.length) {
-      if (existing?.type === "return" && !existingLinks.length) return [];
       throw new BadRequestException("请至少勾选一行治疗计划");
     }
     const items = await tx.treatmentPlanItem.findMany({

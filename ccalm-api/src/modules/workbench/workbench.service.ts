@@ -11,7 +11,7 @@ import {
   daysSinceVisit,
   isOrthodonticsFollowUpDue,
 } from "../orthodontics/follow-up";
-import { todayVisitRow } from "./workbench.rows";
+import { todayVisitRow, type TodayVisitRow } from "./workbench.rows";
 
 @Injectable()
 export class WorkbenchService {
@@ -23,81 +23,58 @@ export class WorkbenchService {
   async overview() {
     const today = dayjs().format("YYYY-MM-DD");
 
-    const [
-      visits,
-      implantVisits,
-      orthodonticsOpen,
-      openCourses,
-      followUpTasks,
-    ] = await Promise.all([
-      this.prisma.appointment.findMany({
-        where: { visitDate: today, isPending: false },
-        include: {
-          patient: true,
-          visit: {
-            include: {
-              medicalRecords: {
-                orderBy: { id: "desc" },
-                select: { type: true, doctor: true },
-              },
-            },
-          },
-        },
-        orderBy: [{ startTime: "asc" }, { id: "asc" }],
-      }),
-      this.prisma.implantVisit.findMany({
-        where: { visitDate: today },
-        include: { patient: true, teeth: { orderBy: { id: "asc" } } },
-        orderBy: { id: "asc" },
-      }),
-      this.prisma.orthodonticsPatient.findMany({
-        where: {
-          category: { not: "completed" },
-          lastVisitDate: { not: null },
-        },
-        include: { patient: true },
-      }),
-      this.prisma.medicalRecord.findMany({
-        where: {
-          type: "first",
-          planStoppedAt: null,
-          planItems: { some: { followUps: { none: { completes: true } } } },
-        },
-        include: {
-          patient: true,
-          planItems: {
-            orderBy: { sort: "asc" },
-            include: {
-              followUps: {
-                select: {
-                  completes: true,
-                  record: { select: { visitDate: true } },
+    const [visits, orthodonticsOpen, openCourses, followUpTasks] =
+      await Promise.all([
+        this.prisma.appointment.findMany({
+          where: { visitDate: today, isPending: false },
+          include: {
+            patient: true,
+            visit: {
+              include: {
+                medicalRecords: {
+                  orderBy: { id: "desc" },
+                  select: { type: true, doctor: true },
                 },
               },
             },
           },
-        },
-      }),
-      this.followUps.list({ due: true }),
-    ]);
+          orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        }),
+        this.prisma.orthodonticsPatient.findMany({
+          where: {
+            category: { not: "completed" },
+            lastVisitDate: { not: null },
+          },
+          include: { patient: true },
+        }),
+        this.prisma.medicalRecord.findMany({
+          where: {
+            type: "first",
+            planStoppedAt: null,
+            planItems: { some: { followUps: { none: { completes: true } } } },
+          },
+          include: {
+            patient: true,
+            planItems: {
+              orderBy: { sort: "asc" },
+              include: {
+                followUps: {
+                  select: {
+                    completes: true,
+                    record: { select: { visitDate: true } },
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.followUps.list({ due: true }),
+      ]);
 
-    const todayVisits = [
-      // 一次就诊一行；挂了正畸病历的就按正畸展示，不再另出正畸档案行
-      ...visits.map(todayVisitRow),
-      ...implantVisits.map((v) => ({
-        key: `implant-${v.id}`,
-        kind: "implant" as const,
-        patientId: v.patientId,
-        name: v.patient.name,
-        phone: v.patient.phone,
-        chartNo: v.patient.chartNo,
-        detail: v.teeth
-          .map((t) => t.toothNo?.trim())
-          .filter(Boolean)
-          .join("、"),
-        staff: v.staff ?? "",
-      })),
-    ];
+    // 工作台只看就诊数据：种植行也来自就诊（牙位快照存在预约的 implantTeeth 上）
+    const todayVisits: TodayVisitRow[] = visits.map((v) =>
+      todayVisitRow(v, v.implantTeeth),
+    );
 
     const followUps = orthodonticsOpen
       .map((o) => ({

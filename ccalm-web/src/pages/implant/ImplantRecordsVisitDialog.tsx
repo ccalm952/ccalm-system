@@ -35,6 +35,9 @@ import type {
   ImplantRecordsVisitDialogState,
 } from "./implant-records-types";
 
+/** FDI 牙位：恒牙 11–48，乳牙 51–85 */
+const FDI_TOOTH = /^(?:[1-4][1-8]|[5-8][1-5])$/;
+
 type ToothLine = {
   toothNo: string;
   implantBrand: string;
@@ -170,11 +173,17 @@ function ToothRows<T extends ToothLine>({
                 <Field orientation="vertical">
                   <FieldContent>
                     <Input
-                      placeholder="牙位"
+                      placeholder="如 16"
+                      inputMode="numeric"
+                      maxLength={2}
                       aria-label={addAriaLabels ? "牙位" : undefined}
                       value={row.toothNo}
                       onChange={(event) =>
-                        update(index, { toothNo: event.target.value })
+                        update(index, {
+                          toothNo: event.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 2),
+                        })
                       }
                     />
                   </FieldContent>
@@ -559,6 +568,14 @@ export function ImplantRecordsVisitDialog({
       ].some((v) => v.trim()),
     );
     if (!payloadTeeth.length) return toast.warning("请至少填写一条牙位与植体");
+    if (
+      payloadTeeth.some(
+        (tooth) =>
+          tooth.toothNo.trim() !== "" && !FDI_TOOTH.test(tooth.toothNo.trim()),
+      )
+    ) {
+      return toast.warning("牙位只能填 FDI 编号，如 11、12、36");
+    }
     const inventoryError = inventoryValidation(payloadTeeth, modelsByBrand);
     if (inventoryError) return toast.warning(inventoryError);
     if (!patientName.trim()) return toast.warning("请填写姓名");
@@ -610,6 +627,14 @@ export function ImplantRecordsVisitDialog({
       ].some((v) => v.trim()),
     );
     if (!payloadTeeth.length) return toast.warning("请至少填写一条牙位与植体");
+    if (
+      payloadTeeth.some(
+        (tooth) =>
+          tooth.toothNo.trim() !== "" && !FDI_TOOTH.test(tooth.toothNo.trim()),
+      )
+    ) {
+      return toast.warning("牙位只能填 FDI 编号，如 11、12、36");
+    }
     const inventoryError = inventoryValidation(payloadTeeth, modelsByBrand);
     if (inventoryError) return toast.warning(inventoryError);
     setSaving(true);
