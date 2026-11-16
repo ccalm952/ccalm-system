@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -472,21 +472,13 @@ export function StaffPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <ShieldCheck className="size-5 text-muted-foreground" />
-        <h1 className="text-lg font-semibold">人员管理</h1>
-        <span className="text-muted-foreground">
-          员工账号、岗位角色与权限都在这里维护
-        </span>
-      </div>
-
       <Tabs
         value={tab}
         onValueChange={(value) => setTab(value as "people" | "roles")}
       >
         <TabsList>
-          <TabsTrigger value="people">人员（{users.length}）</TabsTrigger>
-          <TabsTrigger value="roles">角色（{roles.length}）</TabsTrigger>
+          <TabsTrigger value="people">人员管理</TabsTrigger>
+          <TabsTrigger value="roles">角色管理</TabsTrigger>
         </TabsList>
         <TabsContent value="people">
           <PeoplePanel me={me} roles={roles} users={users} reload={reload} />
