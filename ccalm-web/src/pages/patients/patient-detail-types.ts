@@ -88,6 +88,7 @@ export type ChargeOrder = {
   id: number;
   patientId: number;
   visitId: number | null;
+  recordId: number | null;
   chargeDate: string;
   doctor: string;
   status: "normal" | "void";
@@ -105,12 +106,25 @@ export type ChargeOrder = {
     quantity: number;
     amount: number;
   }[];
-  payments: { id: number; amount: number; method: string; paidAt: string }[];
+  payments: {
+    id: number;
+    amount: number;
+    method: string;
+    paidAt: string;
+    visitId: number | null;
+    visitDate: string | null;
+    visitKind: VisitKind | null;
+  }[];
 };
 
 export type ChargesResponse = {
   summary: { receivable: number; paid: number; owed: number };
   orders: ChargeOrder[];
+};
+
+export type CourseChargeResult = {
+  order: ChargeOrder;
+  unquotedCount: number;
 };
 
 export type PatientTab = "info" | "visits" | "records" | "followUp" | "charges";

@@ -27,6 +27,16 @@ export class ChargesController {
     return this.charges.create(dto);
   }
 
+  @Post("courses/:recordId")
+  createForCourse(@Param("recordId", ParseIntPipe) recordId: number) {
+    return this.charges.createForCourse(recordId);
+  }
+
+  @Post("courses/:recordId/sync")
+  syncForCourse(@Param("recordId", ParseIntPipe) recordId: number) {
+    return this.charges.syncForCourse(recordId);
+  }
+
   @Put(":id")
   update(
     @Param("id", ParseIntPipe) id: number,

@@ -89,4 +89,10 @@ export class AddChargePaymentDto {
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "收款日期格式无效" })
   paidAt!: string;
+
+  /** 本次收款关联的就诊 id；不传表示不关联 */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  visitId?: number | null;
 }

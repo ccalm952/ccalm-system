@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,6 +29,7 @@ import {
 import { api } from "@/lib/api";
 import { CHARGE_STATE_LABELS, formatMoney } from "@/lib/charges/charge-calc";
 import { errorMessage } from "@/lib/errorMessage";
+import { visitKindLabel } from "@/lib/visits/visit-options";
 import { cn } from "cn";
 import { ChargeOrderEditor } from "./charge-order-editor";
 import { ChargePaymentDialog } from "./charge-payment-dialog";
@@ -75,6 +76,9 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
   const chargeParam = searchParams.get("charge");
   const [paying, setPaying] = React.useState<ChargeOrder | null>(null);
   const [confirm, setConfirm] = React.useState<Confirm | null>(null);
+  const [expandedPayments, setExpandedPayments] = React.useState<Set<number>>(
+    () => new Set(),
+  );
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -145,6 +149,15 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
     }
   }
 
+  function togglePayments(orderId: number) {
+    setExpandedPayments((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -187,7 +200,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
+              <TableBody>
                 {!loading && !data.orders.length ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-muted-foreground">
@@ -195,85 +208,153 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                     </TableCell>
                   </TableRow>
                 ) : null}
-                {data.orders.map((o) => (
-                  <TableRow
-                    key={o.id}
-                    className={cn(
-                      o.status === "void" && "text-muted-foreground",
-                    )}
-                  >
-                    <TableCell>{o.chargeDate}</TableCell>
-                    <TableCell className="max-w-48 truncate">
-                      {o.items.map((i) => i.name).join("、")}
-                    </TableCell>
-                    <TableCell>{o.doctor}</TableCell>
-                    <TableCell className="tabular-nums">
-                      {formatMoney(o.receivable)}
-                    </TableCell>
-                    <TableCell className="tabular-nums">
-                      {formatMoney(o.paid)}
-                    </TableCell>
-                    <TableCell
+                {data.orders.map((o, index) => (
+                  <React.Fragment key={o.id}>
+                    <TableRow
                       className={cn(
-                        "tabular-nums",
-                        o.owed > 0 && "text-destructive",
+                        o.status === "void" && "text-muted-foreground",
+                        index % 2 === 1 && "bg-muted/30",
                       )}
                     >
-                      {formatMoney(o.owed)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          o.state === "owing" ? "destructive" : "secondary"
-                        }
+                      <TableCell>{o.chargeDate}</TableCell>
+                      <TableCell className="max-w-48 truncate">
+                        {o.items.map((i) => i.name).join("、")}
+                      </TableCell>
+                      <TableCell>{o.doctor}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatMoney(o.receivable)}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {o.payments.length ? (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 hover:underline"
+                            aria-expanded={expandedPayments.has(o.id)}
+                            aria-label={
+                              expandedPayments.has(o.id)
+                                ? "收起收款记录"
+                                : "展开收款记录"
+                            }
+                            onClick={() => togglePayments(o.id)}
+                          >
+                            {formatMoney(o.paid)}
+                            <span className="text-xs text-muted-foreground">
+                              ({o.payments.length}笔)
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                "size-3.5 text-muted-foreground transition-transform",
+                                expandedPayments.has(o.id) && "rotate-180",
+                              )}
+                            />
+                          </button>
+                        ) : (
+                          formatMoney(o.paid)
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "tabular-nums",
+                          o.owed > 0 && "text-destructive",
+                        )}
                       >
-                        {CHARGE_STATE_LABELS[o.state]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-32 truncate">
-                      {o.remark}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => setPaying(o)}
-                        >
-                          {o.state === "owing" ? "收款" : "收款记录"}
-                        </Button>
-                        {o.status !== "void" ? (
-                          <>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={() => openEditor(o.id)}
-                            >
-                              编辑
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={() =>
-                                setConfirm({ order: o, action: "void" })
-                              }
-                            >
-                              作废
-                            </Button>
-                          </>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() =>
-                            setConfirm({ order: o, action: "delete" })
+                        {formatMoney(o.owed)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            o.state === "owing" ? "destructive" : "secondary"
                           }
                         >
-                          删除
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          {CHARGE_STATE_LABELS[o.state]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-32 truncate">
+                        {o.remark}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setPaying(o)}
+                          >
+                            {o.state === "owing" ? "收款" : "收款记录"}
+                          </Button>
+                          {o.status !== "void" ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => openEditor(o.id)}
+                              >
+                                编辑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() =>
+                                  setConfirm({ order: o, action: "void" })
+                                }
+                              >
+                                作废
+                              </Button>
+                            </>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() =>
+                              setConfirm({ order: o, action: "delete" })
+                            }
+                          >
+                            删除
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {expandedPayments.has(o.id) && o.payments.length ? (
+                      <TableRow className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={9} className="p-0 text-left">
+                          <div className="px-6 py-3">
+                            <div className="mb-2 text-sm text-muted-foreground">
+                              收款记录（{o.payments.length}笔）
+                            </div>
+                            <Table className="max-w-3xl">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>收款日期</TableHead>
+                                  <TableHead>方式</TableHead>
+                                  <TableHead>金额</TableHead>
+                                  <TableHead>关联就诊</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {o.payments.map((p) => (
+                                  <TableRow key={p.id}>
+                                    <TableCell>{p.paidAt}</TableCell>
+                                    <TableCell>{p.method || "—"}</TableCell>
+                                    <TableCell className="tabular-nums">
+                                      {formatMoney(p.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                      {p.visitDate
+                                        ? `${p.visitDate}${
+                                            p.visitKind
+                                              ? ` ${visitKindLabel(p.visitKind)}`
+                                              : ""
+                                          }`
+                                        : "未关联"}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -293,6 +374,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
           if (!open) setPaying(null);
         }}
         order={paying}
+        visits={visits}
         onSaved={load}
       />
 

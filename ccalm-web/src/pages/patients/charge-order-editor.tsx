@@ -203,7 +203,13 @@ export function ChargeOrderEditor({
       <FeeCatalogPanel categories={categories} onPick={addFeeItem} />
       <Card>
         <CardHeader>
-          <CardTitle>{order ? "编辑收费单" : "新建收费单"}</CardTitle>
+          <CardTitle>
+            {order
+              ? order.recordId != null
+                ? "编辑疗程收费单"
+                : "编辑收费单"
+              : "新建收费单"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-3">
