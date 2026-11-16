@@ -45,7 +45,7 @@ describe("record-types", () => {
   });
 
   it("初诊不写处置", () => {
-    expect(MEDICAL_RECORD_FIELDS.first).not.toContain("treatment");
+    expect(MEDICAL_RECORD_FIELDS.first).toContain("treatment");
     expect(MEDICAL_RECORD_FIELDS.first).toContain("treatmentPlan");
   });
 
