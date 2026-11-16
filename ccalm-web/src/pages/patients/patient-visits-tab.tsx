@@ -28,7 +28,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import {
   visitKindLabel,
-  visitStatusLabel,
+  visitDisplayStatusLabel,
   visitTimeRange,
 } from "@/lib/visits/visit-options";
 import type { PatientTab, PatientVisit } from "./patient-detail-types";
@@ -97,7 +97,10 @@ export function PatientVisitsTab({
                     </span>
                     <span>{visitKindLabel(v.kind)}</span>
                     <Badge variant="secondary">
-                      {visitStatusLabel(v.status)}
+                      {visitDisplayStatusLabel(
+                        v.status,
+                        v.appointmentId != null,
+                      )}
                     </Badge>
                   </TimelineTitle>
                   <div className="flex flex-wrap items-center gap-2">
@@ -156,8 +159,9 @@ export function PatientVisitsTab({
           <AlertDialogHeader>
             <AlertDialogTitle>删除</AlertDialogTitle>
             <AlertDialogDescription>
-              确定删除 {deleting?.visitDate}{" "}
-              的就诊记录吗？关联的病历和收费单会保留。
+              {deleting?.appointmentId != null
+                ? `删除 ${deleting?.visitDate} 的就诊记录会同时删除对应预约，确认吗？`
+                : `确定删除 ${deleting?.visitDate} 的就诊记录吗？关联的病历和收费单会保留。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

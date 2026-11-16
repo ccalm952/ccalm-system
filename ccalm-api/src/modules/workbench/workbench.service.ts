@@ -31,7 +31,7 @@ export class WorkbenchService {
       followUpTasks,
     ] = await Promise.all([
       this.prisma.appointment.findMany({
-        where: { visitDate: today },
+        where: { visitDate: today, isPending: false },
         include: {
           patient: true,
           visit: {
