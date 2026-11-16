@@ -1,6 +1,6 @@
 import * as React from "react";
 import dayjs from "dayjs";
-import { Pencil, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -145,7 +145,6 @@ export function AppointmentDrawer({
   };
   const [patient, setPatient] = React.useState<PatientMatch | null>(null);
   const [patientName, setPatientName] = React.useState("");
-  const [patientSearchOpen, setPatientSearchOpen] = React.useState(true);
   const [visitDate, setVisitDate] = React.useState(defaultDate);
   const [startTime, setStartTime] = React.useState(defaultStart);
   const [duration, setDuration] = React.useState(30);
@@ -162,7 +161,6 @@ export function AppointmentDrawer({
     if (!open) return;
     setPatient(null);
     setPatientName(initial?.patientName ?? "");
-    setPatientSearchOpen(!initial);
     const d = defaultsRef.current;
     setVisitDate(initial?.visitDate ?? d.defaultDate);
     setStartTime(initial?.startTime || d.defaultStart);
@@ -328,28 +326,27 @@ export function AppointmentDrawer({
           <ScrollArea className="size-full" viewportClassName="px-4 py-4">
             <div className="flex flex-col gap-4">
               <section className="flex flex-col gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="min-w-0 flex-1">
+                    <PatientNameCombobox
+                      value={patientName}
+                      onValueChange={(v) => {
+                        setPatientName(v);
+                        setPatient(null);
+                      }}
+                      onSelect={(p) => {
+                        setPatient(p);
+                        setPatientName(p.name);
+                      }}
+                      placeholder="搜索患者"
+                    />
+                  </div>
+                </div>
+
                 <h4 className="text-sm font-medium text-muted-foreground">
                   患者信息
                 </h4>
-                {patientSearchOpen || !patientId ? (
-                  <div className="flex items-center gap-1.5">
-                    <div className="min-w-0 flex-1">
-                      <PatientNameCombobox
-                        value={patientName}
-                        onValueChange={(v) => {
-                          setPatientName(v);
-                          setPatient(null);
-                        }}
-                        onSelect={(p) => {
-                          setPatient(p);
-                          setPatientName(p.name);
-                          setPatientSearchOpen(false);
-                        }}
-                        placeholder="搜索患者"
-                      />
-                    </div>
-                  </div>
-                ) : (
+                {patientId ? (
                   <div className="flex flex-col gap-1">
                     <InlineRow label="患者">
                       <span className="flex items-center gap-2 text-sm">
@@ -364,21 +361,6 @@ export function AppointmentDrawer({
                             </span>
                           ) : null;
                         })()}
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 text-sm text-primary"
-                          onClick={() => {
-                            setPatientName(
-                              selectedPatient?.name ??
-                                initial?.patientName ??
-                                "",
-                            );
-                            setPatientSearchOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-3" />
-                          编辑
-                        </button>
                       </span>
                     </InlineRow>
                     <InlineRow label="手机">
@@ -392,8 +374,7 @@ export function AppointmentDrawer({
                       </span>
                     </InlineRow>
                   </div>
-                )}
-
+                ) : null}
                 {upcoming.length ? (
                   <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900">
                     <p className="font-medium">该患者已有预约</p>
