@@ -804,7 +804,7 @@ export function AppointmentBoardPage() {
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col gap-3 p-4 transition-[padding]"
+      className="flex min-h-0 flex-1 flex-col gap-3 p-4 transition-[padding] md:p-6"
       style={{
         paddingRight: drawerOpen ? "calc(min(96vw, 440px) + 12px)" : undefined,
       }}

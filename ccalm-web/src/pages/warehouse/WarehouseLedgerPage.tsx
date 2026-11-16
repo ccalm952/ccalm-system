@@ -511,7 +511,7 @@ export function WarehouseLedgerPage() {
   }
 
   return (
-    <div className="bg-background p-4">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center gap-2">

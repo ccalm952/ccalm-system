@@ -143,7 +143,7 @@ export function AttendanceShiftSettingsPage() {
   if (!ready) {
     if (loadError) {
       return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background p-4">
+        <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background p-4 md:p-6">
           <div className="text-sm text-destructive">{loadError}</div>
           <Button
             type="button"
@@ -165,7 +165,7 @@ export function AttendanceShiftSettingsPage() {
   }
 
   return (
-    <div className="min-h-svh bg-background p-4">
+    <div className="min-h-svh bg-background p-4 md:p-6">
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col gap-4 text-sm">
           <section className="rounded-lg border border-border p-4">
