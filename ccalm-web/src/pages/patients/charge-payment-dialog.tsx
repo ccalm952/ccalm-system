@@ -31,29 +31,44 @@ import {
 import { api } from "@/lib/api";
 import { formatMoney, PAY_METHODS } from "@/lib/charges/charge-calc";
 import { errorMessage } from "@/lib/errorMessage";
-import type { ChargeOrder } from "./patient-detail-types";
+import { visitKindLabel } from "@/lib/visits/visit-options";
+import type { ChargeOrder, PatientVisit } from "./patient-detail-types";
+
+const NO_VISIT = "none";
 
 export function ChargePaymentDialog({
   open,
   onOpenChange,
   order,
+  visits,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: ChargeOrder | null;
+  visits: PatientVisit[];
   onSaved: () => void | Promise<void>;
 }) {
   const [amount, setAmount] = React.useState("");
   const [method, setMethod] = React.useState(PAY_METHODS[0]);
   const [paidAt, setPaidAt] = React.useState("");
+  const [visitId, setVisitId] = React.useState(NO_VISIT);
   const [saving, setSaving] = React.useState(false);
+
+  const visitItems = [
+    { value: NO_VISIT, label: "不关联就诊" },
+    ...visits.map((v) => ({
+      value: String(v.id),
+      label: `${v.visitDate} ${visitKindLabel(v.kind)}`,
+    })),
+  ];
 
   React.useEffect(() => {
     if (open && order) {
       setAmount(order.owed > 0 ? String(order.owed) : "");
       setMethod(PAY_METHODS[0]);
       setPaidAt(dayjs().format("YYYY-MM-DD"));
+      setVisitId(NO_VISIT);
     }
   }, [open, order]);
 
@@ -74,6 +89,7 @@ export function ChargePaymentDialog({
         amount: value,
         method,
         paidAt,
+        visitId: visitId === NO_VISIT ? undefined : Number(visitId),
       });
       toast.success("已收款");
       onOpenChange(false);
@@ -87,7 +103,7 @@ export function ChargePaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>收款</DialogTitle>
         </DialogHeader>
@@ -117,6 +133,7 @@ export function ChargePaymentDialog({
                   <TableRow>
                     <TableHead>日期</TableHead>
                     <TableHead>方式</TableHead>
+                    <TableHead>就诊</TableHead>
                     <TableHead>金额</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -124,7 +141,16 @@ export function ChargePaymentDialog({
                   {order.payments.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.paidAt}</TableCell>
-                      <TableCell>{p.method}</TableCell>
+                      <TableCell>{p.method || "—"}</TableCell>
+                      <TableCell>
+                        {p.visitDate
+                          ? `${p.visitDate}${
+                              p.visitKind
+                                ? ` ${visitKindLabel(p.visitKind)}`
+                                : ""
+                            }`
+                          : "—"}
+                      </TableCell>
                       <TableCell className="tabular-nums">
                         {formatMoney(p.amount)}
                       </TableCell>
@@ -168,6 +194,29 @@ export function ChargePaymentDialog({
                     onValueChange={setPaidAt}
                     placeholder="收款日期"
                   />
+                </div>
+                <div className="grid gap-1.5">
+                  <span className="text-muted-foreground">关联就诊</span>
+                  <Select
+                    items={visitItems}
+                    value={visitId}
+                    onValueChange={(v: string | null) => {
+                      if (v) setVisitId(v);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {visitItems.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             ) : null}

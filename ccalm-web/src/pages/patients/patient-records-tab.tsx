@@ -26,12 +26,15 @@ import {
   type MedicalRecordField,
   medicalRecordTypeLabel,
   planCourseStatus,
+  planItemAmount,
   type PlanItem,
 } from "@/lib/medical-records/record-types";
 import { MedicalRecordEditor, type ReturnPlan } from "./medical-record-editor";
+import { ChargePaymentDialog } from "./charge-payment-dialog";
 import type {
   ChargeOrder,
   ChargesResponse,
+  CourseChargeResult,
   MedicalRecord,
   PatientVisit,
 } from "./patient-detail-types";
@@ -70,13 +73,33 @@ function ChargeSummary({
   );
 }
 
+function CourseChargeSummary({ order }: { order: ChargeOrder }) {
+  return (
+    <span className="flex flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
+      <span>疗程应收：{formatMoney(order.receivable)}</span>
+      <span>已收：{formatMoney(order.paid)}</span>
+      {order.status === "void" ? (
+        <span className="text-destructive">已作废</span>
+      ) : order.owed > 0 ? (
+        <span className="text-destructive">
+          欠费：{formatMoney(order.owed)}
+        </span>
+      ) : (
+        <span className="text-primary">已结清</span>
+      )}
+    </span>
+  );
+}
+
 function PlanItemStatus({
   item,
   open,
+  ownHandled,
   onWriteReturn,
 }: {
   item: PlanItem;
   open: boolean;
+  ownHandled: boolean;
   onWriteReturn: () => void;
 }) {
   return (
@@ -90,6 +113,8 @@ function PlanItemStatus({
             <ChevronDown className="size-4" />
           )}
         </span>
+      ) : ownHandled ? (
+        <span className="text-muted-foreground">本次处置</span>
       ) : (
         <span className="text-muted-foreground">未开始</span>
       )}
@@ -246,6 +271,9 @@ function RecordBody({
                 <PlanItemStatus
                   item={item}
                   open={openItems.has(item.id)}
+                  ownHandled={record.planLinks.some(
+                    (l) => l.planItemId === item.id,
+                  )}
                   onWriteReturn={() => onWriteReturn(item.id as number)}
                 />
               ) : null;
@@ -345,6 +373,11 @@ export function PatientRecordsTab({
   );
   const [deleting, setDeleting] = React.useState<MedicalRecord | null>(null);
   const [stopping, setStopping] = React.useState<MedicalRecord | null>(null);
+  const [coursePaying, setCoursePaying] = React.useState<ChargeOrder | null>(
+    null,
+  );
+  const [courseBusyId, setCourseBusyId] = React.useState<number | null>(null);
+  const [syncing, setSyncing] = React.useState<MedicalRecord | null>(null);
 
   const isEditing = editing != null;
   React.useEffect(() => {
@@ -410,6 +443,44 @@ export function PatientRecordsTab({
     }
   }
 
+  async function generateCourseOrder(record: MedicalRecord) {
+    setCourseBusyId(record.id);
+    try {
+      const result = await api<CourseChargeResult>(
+        "POST",
+        `/charges/courses/${record.id}`,
+      );
+      toast.success("已生成疗程收费单");
+      if (result.unquotedCount > 0) {
+        toast.message(`${result.unquotedCount} 项治疗计划未报价，未计入收费单`);
+      }
+      await load();
+      setCoursePaying(result.order);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setCourseBusyId(null);
+    }
+  }
+
+  async function syncCourseOrder(record: MedicalRecord) {
+    try {
+      const result = await api<CourseChargeResult>(
+        "POST",
+        `/charges/courses/${record.id}/sync`,
+      );
+      toast.success("已按治疗计划更新收费单");
+      if (result.unquotedCount > 0) {
+        toast.message(`${result.unquotedCount} 项治疗计划未报价，未计入收费单`);
+      }
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSyncing(null);
+    }
+  }
+
   if (editing) {
     return (
       <MedicalRecordEditor
@@ -431,11 +502,17 @@ export function PatientRecordsTab({
   const timeline = records.filter((r) => isFirstType(r) || !r.planLinks.length);
   const chargeByVisit = new Map<number, VisitCharge>();
   for (const o of charges) {
-    if (o.status === "void" || o.visitId == null) continue;
+    if (o.status === "void" || o.visitId == null || o.recordId != null) {
+      continue;
+    }
     chargeByVisit.set(
       o.visitId,
       addCharges([chargeByVisit.get(o.visitId) ?? NO_CHARGE, o]),
     );
+  }
+  const courseOrderByRecord = new Map<number, ChargeOrder>();
+  for (const o of charges) {
+    if (o.recordId != null) courseOrderByRecord.set(o.recordId, o);
   }
   const allExpanded =
     timeline.length > 0 && timeline.every((r) => expanded.has(r.id));
@@ -455,20 +532,12 @@ export function PatientRecordsTab({
     }
   }
 
-  /** 初诊合计本次及所有复诊就诊的收费；无收费返回 null */
-  function courseCharge(record: MedicalRecord): VisitCharge | null {
-    const visitIds = new Set<number>();
-    if (record.visitId != null) visitIds.add(record.visitId);
-    for (const item of record.treatmentPlan) {
-      if (item.id == null) continue;
-      for (const r of followUps.get(item.id) ?? []) {
-        if (r.visitId != null) visitIds.add(r.visitId);
-      }
-    }
-    const amounts = [...visitIds]
-      .filter((id) => chargeByVisit.has(id))
-      .map((id) => chargeByVisit.get(id)!);
-    return amounts.length ? addCharges(amounts) : null;
+  function courseQuotedTotal(record: MedicalRecord): number {
+    return sumMoney(
+      record.treatmentPlan
+        .map((item) => planItemAmount(item))
+        .filter((v): v is number => v != null),
+    );
   }
 
   function editRecord(r: MedicalRecord) {
@@ -523,6 +592,10 @@ export function PatientRecordsTab({
         <div className="flex flex-col">
           {timeline.map((record) => {
             const isOpen = expanded.has(record.id);
+            const courseOrder = courseOrderByRecord.get(record.id) ?? null;
+            const quotedTotal = isFirstType(record)
+              ? courseQuotedTotal(record)
+              : 0;
             return (
               <div key={record.id} className="grid grid-cols-[7rem_1fr]">
                 <div className="relative border-r pt-[17px] pr-5 text-right text-primary tabular-nums">
@@ -554,14 +627,16 @@ export function PatientRecordsTab({
                             配台护士：{record.nurse}
                           </span>
                         ) : null}
-                        {courseCharge(record) != null ? (
-                          <ChargeSummary
-                            charge={courseCharge(record)!}
-                            prefix={record.type === "first" ? "疗程" : ""}
-                          />
+                        {courseOrder ? (
+                          <CourseChargeSummary order={courseOrder} />
+                        ) : null}
+                        {!courseOrder && quotedTotal > 0 ? (
+                          <span className="text-muted-foreground tabular-nums">
+                            疗程报价：{formatMoney(quotedTotal)}
+                          </span>
                         ) : null}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         <Button
                           type="button"
                           variant="secondary"
@@ -569,6 +644,56 @@ export function PatientRecordsTab({
                         >
                           {isOpen ? "收起" : "展开详情"}
                         </Button>
+                        {isFirstType(record) &&
+                        record.treatmentPlan.length > 0 ? (
+                          courseOrder ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant={
+                                  courseOrder.owed > 0 &&
+                                  courseOrder.status !== "void"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                onClick={() => setCoursePaying(courseOrder)}
+                              >
+                                {courseOrder.owed > 0 &&
+                                courseOrder.status !== "void"
+                                  ? "收款"
+                                  : "收款记录"}
+                              </Button>
+                              {courseOrder.status !== "void" ? (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => setSyncing(record)}
+                                >
+                                  同步计划
+                                </Button>
+                              ) : null}
+                            </>
+                          ) : (
+                            <Button
+                              type="button"
+                              disabled={
+                                quotedTotal <= 0 || courseBusyId === record.id
+                              }
+                              title={
+                                quotedTotal <= 0
+                                  ? "请先在治疗计划中填写报价"
+                                  : undefined
+                              }
+                              onClick={() => void generateCourseOrder(record)}
+                            >
+                              {courseBusyId === record.id
+                                ? "生成中…"
+                                : quotedTotal <= 0
+                                  ? "待报价"
+                                  : "生成收费单"}
+                            </Button>
+                          )
+                        ) : null}
                         {recordCourseStatus(record) === "pending" ? (
                           <Button
                             type="button"
@@ -681,6 +806,40 @@ export function PatientRecordsTab({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={syncing != null}
+        onOpenChange={(open) => {
+          if (!open) setSyncing(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>同步治疗计划</AlertDialogTitle>
+            <AlertDialogDescription>
+              将按当前治疗计划重算收费单的明细和总价，已收金额不变。确定同步吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => syncing && void syncCourseOrder(syncing)}
+            >
+              确定
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ChargePaymentDialog
+        open={coursePaying != null}
+        onOpenChange={(open) => {
+          if (!open) setCoursePaying(null);
+        }}
+        order={coursePaying}
+        visits={visits}
+        onSaved={load}
+      />
     </Card>
   );
 }

@@ -4,7 +4,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import dayjs from "dayjs";
 
+import { isPrismaUniqueViolation } from "../../common/prisma-errors";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   chargeItemAmount,
@@ -12,11 +14,15 @@ import {
   roundMoney,
   sumMoney,
 } from "./charge-calc";
+import { courseChargeItems } from "./course-charge";
 import { AddChargePaymentDto, SaveChargeOrderDto } from "./dto/charge.dto";
 
 const orderInclude = {
   items: { orderBy: { id: "asc" } },
-  payments: { orderBy: [{ paidAt: "asc" }, { id: "asc" }] },
+  payments: {
+    orderBy: [{ paidAt: "asc" }, { id: "asc" }],
+    include: { visit: { select: { visitDate: true, kind: true } } },
+  },
 } satisfies Prisma.ChargeOrderInclude;
 
 type OrderWithDetail = Prisma.ChargeOrderGetPayload<{
@@ -29,6 +35,7 @@ function mapOrder(o: OrderWithDetail) {
     id: o.id,
     patientId: o.patientId,
     visitId: o.visitId,
+    recordId: o.recordId,
     chargeDate: o.chargeDate,
     doctor: o.doctor,
     status: o.status,
@@ -51,6 +58,9 @@ function mapOrder(o: OrderWithDetail) {
       amount: p.amount,
       method: p.method,
       paidAt: p.paidAt,
+      visitId: p.visitId,
+      visitDate: p.visit?.visitDate ?? null,
+      visitKind: p.visit?.kind ?? null,
     })),
   };
 }
@@ -150,6 +160,7 @@ export class ChargesService {
                   amount: paidAmount,
                   method: dto.payMethod?.trim() ?? "",
                   paidAt: dto.chargeDate,
+                  visitId,
                 },
               }
             : undefined,
@@ -157,6 +168,85 @@ export class ChargesService {
       include: orderInclude,
     });
     return mapOrder(order);
+  }
+
+  private async courseRecord(recordId: number) {
+    const record = await this.prisma.medicalRecord.findUnique({
+      where: { id: recordId },
+      include: { planItems: { orderBy: { sort: "asc" } } },
+    });
+    if (!record) throw new NotFoundException("病历不存在");
+    if (record.type !== "first" && record.type !== "orthoFirst") {
+      throw new BadRequestException("只有初诊病历可以生成疗程收费单");
+    }
+    return record;
+  }
+
+  /** 以初诊病历为一个疗程，按治疗计划报价生成一张收费单；后续只分次收款 */
+  async createForCourse(recordId: number) {
+    const record = await this.courseRecord(recordId);
+    const existing = await this.prisma.chargeOrder.findUnique({
+      where: { recordId },
+    });
+    if (existing) throw new BadRequestException("该疗程已生成收费单");
+    const { items, unquotedCount, receivable } = courseChargeItems(
+      record.planItems,
+    );
+    if (!items.length) {
+      throw new BadRequestException("治疗计划还没有报价，请先填写单价");
+    }
+    try {
+      const order = await this.prisma.chargeOrder.create({
+        data: {
+          patientId: record.patientId,
+          visitId: record.visitId,
+          recordId: record.id,
+          chargeDate: dayjs().format("YYYY-MM-DD"),
+          doctor: record.doctor,
+          receivable,
+          items: { create: items },
+        },
+        include: orderInclude,
+      });
+      return { order: mapOrder(order), unquotedCount };
+    } catch (error) {
+      if (isPrismaUniqueViolation(error)) {
+        throw new BadRequestException("该疗程已生成收费单");
+      }
+      throw error;
+    }
+  }
+
+  /** 按当前治疗计划重算疗程收费单明细；已收金额保持不变，新总价不能低于已收 */
+  async syncForCourse(recordId: number) {
+    const order = await this.prisma.chargeOrder.findUnique({
+      where: { recordId },
+      include: orderInclude,
+    });
+    if (!order) throw new NotFoundException("该疗程还没有收费单");
+    if (order.status === "void") {
+      throw new BadRequestException("已作废的收费单不能同步");
+    }
+    const record = await this.courseRecord(recordId);
+    const { items, unquotedCount, receivable } = courseChargeItems(
+      record.planItems,
+    );
+    if (!items.length) {
+      throw new BadRequestException("治疗计划还没有报价，请先填写单价");
+    }
+    const paid = sumMoney(order.payments.map((p) => p.amount));
+    if (receivable < paid) {
+      throw new BadRequestException("新总价低于已收金额，请先处理退款");
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.chargeItem.deleteMany({ where: { orderId: order.id } });
+      return tx.chargeOrder.update({
+        where: { id: order.id },
+        data: { receivable, items: { create: items } },
+        include: orderInclude,
+      });
+    });
+    return { order: mapOrder(updated), unquotedCount };
   }
 
   private async findOrder(id: number) {
@@ -212,12 +302,14 @@ export class ChargesService {
     if (amount > existing.owed) {
       throw new BadRequestException("收款金额不能超过欠费");
     }
+    const visitId = await this.checkVisit(existing.patientId, dto.visitId);
     await this.prisma.chargePayment.create({
       data: {
         orderId: id,
         amount,
         method: dto.method?.trim() ?? "",
         paidAt: dto.paidAt,
+        visitId,
       },
     });
     return mapOrder(await this.findOrder(id));
