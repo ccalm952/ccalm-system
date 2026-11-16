@@ -44,6 +44,7 @@ export function RootCanalField({
   const [open, setOpen] = React.useState(false);
   const [activeTooth, setActiveTooth] = React.useState("");
   const [editing, setEditing] = React.useState<Editing | null>(null);
+  const [fileEditing, setFileEditing] = React.useState<Editing | null>(null);
   const [focusName, setFocusName] = React.useState<string | null>(null);
   const [extras, setExtras] = React.useState<Record<string, string[]>>({});
   const inputs = React.useRef<Record<string, HTMLInputElement | null>>({});
@@ -165,6 +166,19 @@ export function RootCanalField({
     }
   }
 
+  function commitFile(name: string, raw: string) {
+    // 根备型号只接受 4 位；填一半或清空时保持原值，避免写坏文本
+    if (raw !== "" && raw.length !== 4) {
+      setFileEditing(null);
+      return;
+    }
+    apply(
+      slots.map((s) =>
+        s.name === name ? { ...s, file: raw || undefined } : s,
+      ),
+    );
+    setFileEditing(null);
+  }
   function focusSlot(offset: number, name: string) {
     const index = slots.findIndex((s) => s.name === name);
     const target = slots[index + offset];
@@ -250,7 +264,7 @@ export function RootCanalField({
             <span
               key={canal.name}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border bg-card py-0.5 pl-2 text-xs shadow-xs",
+                "inline-flex h-6 items-center gap-1 rounded-full border bg-card py-0 pl-2 text-xs shadow-xs",
                 // 没有删除按钮的槽位左右留一样宽
                 isSlot ? "pr-2" : "pr-1",
               )}
@@ -280,12 +294,40 @@ export function RootCanalField({
                 inputMode="decimal"
                 aria-label={`${canal.name}工作长度`}
                 placeholder="—"
-                className="h-6 w-8 rounded-none border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
+                className="h-5 w-8 rounded-none border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
               />
               <span className="text-muted-foreground/70">mm</span>
-              {canal.file ? (
-                <span className="text-muted-foreground/60">{canal.file}</span>
-              ) : null}
+              <Input
+                value={
+                  fileEditing?.name === canal.name
+                    ? fileEditing.value
+                    : (canal.file ?? "")
+                }
+                maxLength={4}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+                  setFileEditing({ name: canal.name, value: raw });
+                }}
+                onBlur={() =>
+                  commitFile(
+                    canal.name,
+                    fileEditing?.name === canal.name
+                      ? fileEditing.value
+                      : (canal.file ?? ""),
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
+                inputMode="numeric"
+                aria-label={`${canal.name}根备终末型号`}
+                placeholder="根备型号"
+                title="根备终末型号，如 0625（06 锥度 / 25 号）"
+                className="h-5 w-14 rounded-none border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
+              />
               {isSlot ? null : (
                 <Button
                   type="button"

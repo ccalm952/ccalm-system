@@ -17,14 +17,14 @@ export type RootCanal = {
 const SINGLE = ["单根"];
 // 名字要和 CANAL_ALIASES 的规范名一致：腭根统一写成「腭」、颊根统一写成「颊」，
 // 否则回写后再解析会多出一个根管
-const UPPER_PREMOLAR = ["颊", "腭"];
-const UPPER_MOLAR = ["近颊", "近颊2", "远颊", "腭"];
+const UPPER_PREMOLAR = ["颊", "腭根"];
+const UPPER_MOLAR = ["近颊", "近颊2", "远颊", "腭根"];
 const LOWER_MOLAR = ["近颊", "近舌", "远中"];
-const UPPER_DECIDUOUS_MOLAR = ["近颊", "远颊", "腭"];
+const UPPER_DECIDUOUS_MOLAR = ["近颊", "远颊", "腭根"];
 const LOWER_DECIDUOUS_MOLAR = ["近中", "远中"];
 
 /** 没选牙位（或牙位是自由文本）时的兜底候选 */
-export const GENERIC_CANALS = ["近颊", "近舌", "远颊", "远中", "腭", "单根"];
+export const GENERIC_CANALS = ["近颊", "近舌", "远颊", "远中", "腭根", "单根"];
 
 function canalsForFdi(fdi: number): string[] {
   const quadrant = Math.floor(fdi / 10);
@@ -85,9 +85,9 @@ const CANAL_ALIASES: [alias: string, name: string][] = [
   ["远中", "远中"],
   ["近中根", "近中"],
   ["近中", "近中"],
-  ["腭根", "腭"],
-  ["腭侧", "腭"],
-  ["腭", "腭"],
+  ["腭根", "腭根"],
+  ["腭侧", "腭根"],
+  ["腭", "腭根"],
   ["颊根", "颊"],
   ["颊侧", "颊"],
   ["颊", "颊"],
@@ -122,9 +122,9 @@ const DIGIT_NAME_PATTERN = CANAL_ALIASES.filter(([a]) => endsWithDigit(a))
 const CANAL_PATTERN = new RegExp(
   [
     // 1) 以数字结尾的根管名（近颊2）：必须用空格/分隔符隔开，优先于普通名字匹配
-    `(${DIGIT_NAME_PATTERN})(?:\\s*[=:：]\\s*|\\s+)(\\d{1,2}(?:\\.\\d*)?)\\s*(?:mm|MM|毫米)?(?:\\s+(\\d{3,4}))?`,
+    `(${DIGIT_NAME_PATTERN})(?:\\s*[=:：]\\s*|\\s+)(\\d{1,2}(?:\\.\\d*)?)(?:\\s*(?:mm|MM|毫米))?(?:\\s+(\\d{3,4}))?`,
     // 2) 普通根管名 + 可选分隔符 + 长度（允许 "18." 这类输入中间态）+ 可选 mm + 可选锉号
-    `(${SAFE_NAME_PATTERN})\\s*[=:：]?\\s*(\\d{1,2}(?:\\.\\d*)?)\\s*(?:mm|MM|毫米)?(?:\\s+(\\d{3,4}))?`,
+    `(${SAFE_NAME_PATTERN})\\s*[=:：]?\\s*(\\d{1,2}(?:\\.\\d*)?)(?:\\s*(?:mm|MM|毫米))?(?:\\s+(\\d{3,4}))?`,
     // 3) 只有根管名（长度还没填），要求后面是空白或分隔符，避免误判「近颊侧壁」
     `(${SAFE_NAME_PATTERN})(?=\\s|$|[，,、/;；])`,
   ].join("|"),
@@ -246,7 +246,7 @@ export function formatCanalGroups(
           const separator = endsWithDigit(name) ? " " : "";
           return `${name}${separator}${c.length.trim()}${c.file ? ` ${c.file}` : ""}`;
         })
-        .join(" ");
+        .join("  ");
       const body = [tidyPrefix(group.before), tokens, tidyPrefix(group.after)]
         .filter(Boolean)
         .join(" ");
