@@ -282,18 +282,18 @@ export class AppointmentsService {
     doctor: string;
     excludeId?: number;
   }) {
-    const { patientId, visitDate, startTime, endTime, doctor, excludeId } =
+    const { patientId, visitDate, startTime, endTime, excludeId } =
       params;
     const sameDay = await this.prisma.appointment.findMany({
       where: {
         visitDate,
-        status: OPEN_STATUS,
+        // 同一患者已完成也算占用；医生允许重叠
+        status: { in: [OPEN_STATUS, "completed"] },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
       select: {
         id: true,
         patientId: true,
-        doctor: true,
         startTime: true,
         endTime: true,
       },
@@ -306,18 +306,6 @@ export class AppointmentsService {
     );
     if (patientConflict) {
       throw new BadRequestException("该患者当天这个时段已有预约");
-    }
-
-    if (!doctor) return;
-    const doctorConflict = sameDay.find(
-      (v) =>
-        v.doctor === doctor &&
-        hasOverlap(startTime, endTime, v.startTime, v.endTime),
-    );
-    if (doctorConflict) {
-      throw new BadRequestException(
-        `医生「${doctor}」该时段已有预约，确认要同时安排吗？`,
-      );
     }
   }
 
