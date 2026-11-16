@@ -21,6 +21,7 @@ export function ToothEntriesField<T extends ToothEntry>({
   renderDetail?: (
     entry: T,
     update: (patch: Partial<T>) => void,
+    index: number,
   ) => React.ReactNode;
 }) {
   const entries = value.length ? value : [{ teeth: "", text: "" } as T];
@@ -48,7 +49,7 @@ export function ToothEntriesField<T extends ToothEntry>({
               value={entry.text}
               onChange={(text) => update(index, { text } as Partial<T>)}
             />
-            {renderDetail?.(entry, (patch) => update(index, patch))}
+            {renderDetail?.(entry, (patch) => update(index, patch), index)}
           </div>
           <Button
             type="button"

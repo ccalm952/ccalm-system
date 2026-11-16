@@ -43,9 +43,16 @@ export class PlanItemDto extends ToothEntryDto {
 }
 
 export class PlanLinkDto {
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  planItemId!: number;
+  planItemId?: number;
+
+  /** 初诊保存时计划行还没有 id，用本次提交的计划行下标关联 */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  planItemIndex?: number;
 
   @IsBoolean()
   completes!: boolean;

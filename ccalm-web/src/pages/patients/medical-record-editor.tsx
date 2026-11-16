@@ -53,7 +53,11 @@ type FormState = Record<MedicalRecordTextField, string> &
     visitTime: string;
     doctor: string;
     nurse: string;
-    planLinks: { planItemId: number; completes: boolean }[];
+    planLinks: {
+      planItemId?: number;
+      planItemIndex?: number;
+      completes: boolean;
+    }[];
   };
 
 /** 复诊所属初诊的治疗计划；startItemId 为从哪一行点进来写复诊，doctor 为初诊医生 */
@@ -100,10 +104,19 @@ function toForm(
     advice: record?.advice ?? "",
     remark: record?.remark ?? "",
     planLinks: record
-      ? record.planLinks.map((l) => ({
-          planItemId: l.planItemId,
-          completes: l.completes,
-        }))
+      ? record.type === "first" || record.type === "orthoFirst"
+        ? record.planLinks.map((l) => {
+            const index = record.treatmentPlan.findIndex(
+              (i) => i.id === l.planItemId,
+            );
+            return index >= 0
+              ? { planItemIndex: index, completes: l.completes }
+              : { planItemId: l.planItemId, completes: l.completes };
+          })
+        : record.planLinks.map((l) => ({
+            planItemId: l.planItemId,
+            completes: l.completes,
+          }))
       : plan?.startItemId != null
         ? [{ planItemId: plan.startItemId, completes: false }]
         : [],
@@ -173,6 +186,15 @@ export function MedicalRecordEditor({
     }));
   }
 
+  function setIndexLink(index: number, link: boolean, completes: boolean) {
+    setForm((f) => ({
+      ...f,
+      planLinks: [
+        ...f.planLinks.filter((l) => l.planItemIndex !== index),
+        ...(link ? [{ planItemIndex: index, completes }] : []),
+      ],
+    }));
+  }
   async function save() {
     const treatment = cleanToothEntries(form.treatment);
     if (
@@ -207,7 +229,7 @@ export function MedicalRecordEditor({
         treatment,
         advice: form.advice.trim(),
         remark: form.remark.trim(),
-        planLinks: plan ? form.planLinks : undefined,
+        planLinks: form.planLinks.length ? form.planLinks : undefined,
       };
       if (record) {
         await api("PUT", `/medical-records/${record.id}`, body);
@@ -396,8 +418,40 @@ export function MedicalRecordEditor({
                   value={form.treatmentPlan}
                   onValueChange={(v) => set("treatmentPlan", v)}
                   phraseField="treatmentPlan"
-                  renderDetail={(item, update) => (
-                    <PlanQuoteInputs item={item} onChange={update} />
+                  renderDetail={(item, update, index) => (
+                    <div className="flex flex-col gap-2">
+                      <PlanQuoteInputs item={item} onChange={update} />
+                      {form.type === "first" || form.type === "orthoFirst" ? (
+                        <div className="flex items-center gap-4 text-sm">
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={
+                                form.planLinks.find(
+                                  (l) => l.planItemIndex === index,
+                                ) != null
+                              }
+                              onCheckedChange={(checked) =>
+                                setIndexLink(index, checked === true, false)
+                              }
+                            />
+                            本次处理
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={
+                                form.planLinks.find(
+                                  (l) => l.planItemIndex === index,
+                                )?.completes ?? false
+                              }
+                              onCheckedChange={(checked) =>
+                                setIndexLink(index, true, checked === true)
+                              }
+                            />
+                            本行已完成
+                          </label>
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 />
               ) : isEntryField(field) ? (
