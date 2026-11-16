@@ -175,11 +175,11 @@ describe("pickRecordContent", () => {
     advice: "不适随诊",
   };
 
-  it("初诊保留主诉和诊断，不写处置", () => {
+  it("初诊保留主诉、诊断和处置", () => {
     const c = pickRecordContent("first", raw);
     expect(c.chiefComplaint).toBe("牙痛");
     expect(c.diagnosis).toEqual([{ teeth: "36", text: "龋齿" }]);
-    expect(c.treatment).toEqual([]);
+    expect(c.treatment).toEqual([{ teeth: "36", text: "充填" }]);
   });
 
   it("复诊清空主诉和诊断", () => {

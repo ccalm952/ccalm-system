@@ -56,7 +56,7 @@ export const MEDICAL_RECORD_FIELDS: Record<
   MedicalRecordType,
   MedicalRecordField[]
 > = {
-  first: FIRST_FIELDS.filter((f) => f !== "treatment"),
+  first: FIRST_FIELDS,
   orthoFirst: FIRST_FIELDS,
   return: RETURN_FIELDS.filter((f) => f !== "oralExam"),
   orthoReturn: RETURN_FIELDS,
