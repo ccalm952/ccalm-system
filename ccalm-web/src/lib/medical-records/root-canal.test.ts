@@ -11,7 +11,7 @@ import {
 
 describe("canalSlotsForTeeth", () => {
   it("MB2 默认不占槽位，单独作为可选根管", () => {
-    expect(canalSlotsForTeeth("16")).toEqual(["近颊", "远颊", "腭"]);
+    expect(canalSlotsForTeeth("16")).toEqual(["近颊", "远颊", "腭根"]);
     expect(optionalCanalPresetsForTeeth("16")).toEqual(["近颊2"]);
   });
 
@@ -27,11 +27,16 @@ describe("canalPresetsForTeeth", () => {
   });
 
   it("上颌前磨牙颊腭两根", () => {
-    expect(canalPresetsForTeeth("14")).toEqual(["颊", "腭"]);
+    expect(canalPresetsForTeeth("14")).toEqual(["颊", "腭根"]);
   });
 
   it("上颌磨牙 MB2 也算一根", () => {
-    expect(canalPresetsForTeeth("16")).toEqual(["近颊", "近颊2", "远颊", "腭"]);
+    expect(canalPresetsForTeeth("16")).toEqual([
+      "近颊",
+      "近颊2",
+      "远颊",
+      "腭根",
+    ]);
   });
 
   it("下颌磨牙近颊、近舌、远中", () => {
@@ -44,7 +49,7 @@ describe("canalPresetsForTeeth", () => {
 
   it("乳磨牙按乳牙根管", () => {
     expect(canalPresetsForTeeth("75")).toEqual(["近中", "远中"]);
-    expect(canalPresetsForTeeth("55")).toEqual(["近颊", "远颊", "腭"]);
+    expect(canalPresetsForTeeth("55")).toEqual(["近颊", "远颊", "腭根"]);
   });
 
   it("多牙位合并候选", () => {
@@ -52,7 +57,7 @@ describe("canalPresetsForTeeth", () => {
       "近颊",
       "近颊2",
       "远颊",
-      "腭",
+      "腭根",
       "近舌",
       "远中",
     ]);
@@ -76,7 +81,7 @@ describe("parseCanalGroups", () => {
           before: "根备",
           after: "",
           canals: [
-            { name: "腭", length: "18", file: "0625" },
+            { name: "腭根", length: "18", file: "0625" },
             { name: "近颊", length: "16", file: "0425" },
             { name: "远颊", length: "15" },
           ],
@@ -123,7 +128,7 @@ describe("parseCanalGroups", () => {
     const { groups } = parseCanalGroups("15：颊根22 腭根22");
     expect(groups[0].canals).toEqual([
       { name: "颊", length: "22" },
-      { name: "腭", length: "22" },
+      { name: "腭根", length: "22" },
     ]);
     expect(parseCanalGroups("11：单根管15").groups[0].canals).toEqual([
       { name: "单根", length: "15" },
@@ -140,7 +145,7 @@ describe("parseCanalGroups", () => {
     expect(
       parseCanalGroups("腭根18 近中颊16 近颊2 17").groups[0].canals,
     ).toEqual([
-      { name: "腭", length: "18" },
+      { name: "腭根", length: "18" },
       { name: "近颊", length: "16" },
       { name: "近颊2", length: "17" },
     ]);
@@ -205,7 +210,7 @@ describe("formatCanalGroups", () => {
           ],
         },
       ]),
-    ).toBe("根备 近颊18 近舌17 远中17");
+    ).toBe("根备 近颊18  近舌17  远中17");
   });
 
   it("多牙位带牙位前缀，一个牙位一行", () => {
@@ -221,10 +226,10 @@ describe("formatCanalGroups", () => {
           tooth: "37",
           before: "",
           after: "",
-          canals: [{ name: "腭", length: "16" }],
+          canals: [{ name: "腭根", length: "16" }],
         },
       ]),
-    ).toBe("36 近颊18\n37 腭16");
+    ).toBe("36 近颊18\n37 腭根16");
   });
 
   it("空组不写进文本", () => {
@@ -238,10 +243,10 @@ describe("formatCanalGroups", () => {
 
   it("解析后再回写不改变已规范化的文本", () => {
     const texts = [
-      "36 近颊18 近舌17 远中17",
-      "36 近颊18 近舌17\n37 近颊18",
-      "25 颊22 腭22",
-      "根备 近颊18 近舌17",
+      "36 近颊18  近舌17  远中17",
+      "36 近颊18  近舌17\n37 近颊18",
+      "25 颊22  腭根22",
+      "根备 近颊18  近舌17",
     ];
     for (const text of texts) {
       const { prefix, groups } = parseCanalGroups(text);
@@ -251,7 +256,7 @@ describe("formatCanalGroups", () => {
 
   it("旧的「牙位：」写法回写后改成空格", () => {
     const { prefix, groups } = parseCanalGroups("36：近颊18\n37：腭19");
-    expect(formatCanalGroups(prefix, groups)).toBe("36 近颊18\n37 腭19");
+    expect(formatCanalGroups(prefix, groups)).toBe("36 近颊18\n37 腭根19");
   });
 
   it("旧「；」分隔的文本回写后改成一个牙位一行", () => {
@@ -264,7 +269,7 @@ describe("formatCanalGroups", () => {
       "根备   腭根18mm   0625 近颊16mm 0425",
     );
     expect(formatCanalGroups(prefix, groups)).toBe(
-      "根备 腭18 0625 近颊16 0425",
+      "根备 腭根18 0625  近颊16 0425",
     );
   });
 });
