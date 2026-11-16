@@ -7,17 +7,10 @@ import {
   insuranceWithAutoHeadcounts,
   syncAutoInsuranceHeadcounts,
 } from "./calc";
-import { defaultDeductionRateForMode } from "./settings";
-import { stripLegacySalarySheet } from "./strip-legacy";
 import type {
   SalaryCostItems,
-  SalaryCostLine,
-  SalaryGlobalSettings,
   SalaryMaterialLine,
-  SalaryOperatingExpenses,
-  SalaryOperatingLine,
   SalaryOtherInsured,
-  SalaryProcessingLine,
   SalarySheetData,
 } from "./types";
 
@@ -227,59 +220,11 @@ function createDefaultSalarySheet(month: string): SalarySheetData {
   });
 }
 
-function isLegacyOperatingExpenses(
-  operating: unknown,
-): operating is SalaryOperatingExpenses {
-  return (
-    operating != null &&
-    typeof operating === "object" &&
-    !Array.isArray(operating) &&
-    "utilities" in operating &&
-    "rent" in operating
-  );
-}
-
-function isOperatingLine(value: unknown): value is SalaryOperatingLine {
-  if (!value || typeof value !== "object") return false;
-  const line = value as SalaryOperatingLine;
-  return (
-    typeof line.id === "string" &&
-    typeof line.label === "string" &&
-    typeof line.amount === "number"
-  );
-}
-
-function normalizeOperatingExpenses(operating: unknown): SalaryOperatingLine[] {
-  if (Array.isArray(operating)) {
-    return operating.filter(isOperatingLine).map((line) => ({ ...line }));
-  }
-  if (isLegacyOperatingExpenses(operating)) {
-    return [
-      { id: nextEntityId("op"), label: "水电", amount: operating.utilities },
-      { id: nextEntityId("op"), label: "租金", amount: operating.rent },
-    ];
-  }
-  return [
-    { id: nextEntityId("op"), label: "水电", amount: 3000 },
-    { id: nextEntityId("op"), label: "租金", amount: 7500 },
-  ];
-}
-
-function costAmountByLabel(
-  lines: { label: string; amount: number }[],
-  label: string,
-): number {
-  return lines.find((line) => line.label === label)?.amount ?? 0;
-}
-
 function normalizeCostItems(data: {
   costItems?: Partial<SalaryCostItems>;
-  costs?: SalaryCostLine[];
-  processing?: SalaryProcessingLine[];
-  operating?: unknown;
 }): SalaryCostItems {
-  if (data.costItems && typeof data.costItems === "object") {
-    const items = data.costItems;
+  const items = data.costItems;
+  if (items && typeof items === "object") {
     const num = (value: unknown) => {
       const n = Number(value);
       return Number.isFinite(n) ? n : 0;
@@ -292,40 +237,23 @@ function normalizeCostItems(data: {
       processing: num(items.processing),
     };
   }
-
-  const operating = normalizeOperatingExpenses(data.operating);
-  const costs = Array.isArray(data.costs) ? data.costs : [];
-  const processingLines = Array.isArray(data.processing) ? data.processing : [];
-
   return {
-    utilities: costAmountByLabel(operating, "水电"),
-    rent: costAmountByLabel(operating, "租金"),
-    materials: costAmountByLabel(costs, "材料"),
-    planting: costAmountByLabel(costs, "种植"),
-    processing: round2(
-      processingLines.reduce((sum, line) => sum + line.amount, 0),
-    ),
+    utilities: 3000,
+    rent: 7500,
+    materials: 0,
+    planting: 0,
+    processing: 0,
   };
 }
 
-type SalarySheetDataLike = SalarySheetData & {
-  costs?: SalaryCostLine[];
-  processing?: SalaryProcessingLine[];
-  operating?: unknown;
-};
-
-export function isSalarySheetData(data: unknown): data is SalarySheetDataLike {
+export function isSalarySheetData(data: unknown): data is SalarySheetData {
   if (!data || typeof data !== "object") return false;
-  const sheet = data as SalarySheetDataLike;
+  const sheet = data as SalarySheetData;
   return (
     sheet.summary != null &&
     Array.isArray(sheet.employees) &&
     sheet.leaveQuotas != null &&
-    (sheet.costItems != null ||
-      Array.isArray(sheet.costs) ||
-      Array.isArray(sheet.processing) ||
-      Array.isArray(sheet.operating) ||
-      isLegacyOperatingExpenses(sheet.operating))
+    sheet.costItems != null
   );
 }
 
@@ -408,78 +336,48 @@ function normalizeOtherInsured(raw: unknown): SalaryOtherInsured[] {
   return rows;
 }
 
-/** 缺省扣减时用全局医生/护士扣减默认值补齐（便于旧月数据迁移） */
-export function ensureEmployeeDeductionRates(
-  sheet: SalarySheetData,
-  settings: SalaryGlobalSettings,
-): SalarySheetData {
-  let changed = false;
-  const employees = sheet.employees.map((row) => {
-    if (
-      typeof row.deductionRate === "number" &&
-      Number.isFinite(row.deductionRate)
-    ) {
-      return row;
-    }
-    changed = true;
-    return {
-      ...row,
-      deductionRate: defaultDeductionRateForMode(row.bonusMode, settings),
-    };
-  });
-  return changed ? { ...sheet, employees } : sheet;
-}
-
 export function normalizeSalarySheet(
   data: unknown,
   month: string,
 ): SalarySheetData {
-  if (!data || typeof data !== "object") {
+  if (!isSalarySheetData(data)) {
     return createDefaultSalarySheet(month);
   }
 
-  const stripped = stripLegacySalarySheet(data as Record<string, unknown>);
-
-  if (!isSalarySheetData(stripped)) {
-    return createDefaultSalarySheet(month);
-  }
-
-  const costItems = normalizeCostItems(stripped);
+  const costItems = normalizeCostItems(data);
   const materialLines = normalizeMaterialLines(
-    (stripped as { materialLines?: unknown }).materialLines,
+    (data as { materialLines?: unknown }).materialLines,
     costItems.materials,
   );
   const materials = sumMaterialLines(materialLines);
-  const employees = normalizeEmployees(
-    stripped.employees as SalarySheetData["employees"],
-  );
+  const employees = normalizeEmployees(data.employees);
   const otherInsured = normalizeOtherInsured(
-    (stripped as { otherInsured?: unknown }).otherInsured,
+    (data as { otherInsured?: unknown }).otherInsured,
   );
   const insuranceHeadcountAuto =
-    (stripped as { insuranceHeadcountAuto?: unknown })
-      .insuranceHeadcountAuto === true;
+    (data as { insuranceHeadcountAuto?: unknown }).insuranceHeadcountAuto ===
+    true;
   const insurance =
-    insuranceHeadcountAuto && stripped.insurance
+    insuranceHeadcountAuto && data.insurance
       ? insuranceWithAutoHeadcounts(
-          stripped.insurance,
+          data.insurance,
           socialInsuredCount({ employees, otherInsured }),
           medicalInsuredCount({ employees, otherInsured }),
         )
-      : stripped.insurance;
+      : data.insurance;
 
   return applyMonthCalendar(
     {
       summary: {
-        ...stripped.summary,
-        workingDays: stripped.summary.workingDays || 25,
+        ...data.summary,
+        workingDays: data.summary.workingDays || 25,
       },
-      leaveQuotas: stripped.leaveQuotas,
+      leaveQuotas: data.leaveQuotas,
       employees,
       otherInsured,
       insurance,
       ...(insuranceHeadcountAuto ? { insuranceHeadcountAuto: true } : {}),
-      housingFund: stripped.housingFund,
+      housingFund: data.housingFund,
       costItems: { ...costItems, materials },
       materialLines,
     },

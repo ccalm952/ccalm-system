@@ -7,7 +7,6 @@ import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
 import { PrismaService } from "../../prisma/prisma.service";
-import { stripLegacySalarySheet } from "./salary-sheet-sanitize";
 
 function assertValidMonth(month: string) {
   if (!/^\d{4}-\d{2}$/.test(month)) {
@@ -22,12 +21,6 @@ function assertValidMonth(month: string) {
 export class SalaryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private sanitizeSheetData(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return stripLegacySalarySheet(data);
-  }
-
   async listMonths(): Promise<string[]> {
     const rows = await this.prisma.salarySheet.findMany({
       select: { month: true },
@@ -40,25 +33,23 @@ export class SalaryService {
     assertValidMonth(month);
     const row = await this.prisma.salarySheet.findUnique({ where: { month } });
     if (!row) throw new NotFoundException("该月份薪资表不存在");
-    const data = this.sanitizeSheetData(row.data as Record<string, unknown>);
     return {
       month: row.month,
-      data,
+      data: row.data,
       updatedAt: row.updatedAt.toISOString(),
     };
   }
 
   async saveMonth(dto: { month: string; data: Record<string, unknown> }) {
     assertValidMonth(dto.month);
-    const data = this.sanitizeSheetData(dto.data);
     const row = await this.prisma.salarySheet.upsert({
       where: { month: dto.month },
       create: {
         month: dto.month,
-        data: data as Prisma.InputJsonValue,
+        data: dto.data as Prisma.InputJsonValue,
       },
       update: {
-        data: data as Prisma.InputJsonValue,
+        data: dto.data as Prisma.InputJsonValue,
       },
     });
     return {
@@ -86,7 +77,7 @@ export class SalaryService {
         updatedAt: null,
       };
     }
-    const data = this.sanitizeSheetData(row.data as Record<string, unknown>);
+    const data = row.data as Record<string, unknown>;
     return {
       data,
       updatedAt: row.updatedAt.toISOString(),
@@ -94,15 +85,14 @@ export class SalaryService {
   }
 
   async saveDefaultTemplate(data: Record<string, unknown>) {
-    const cleaned = this.sanitizeSheetData(data);
     const row = await this.prisma.salaryDefaultTemplate.upsert({
       where: { id: "global" },
       create: {
         id: "global",
-        data: cleaned as Prisma.InputJsonValue,
+        data: data as Prisma.InputJsonValue,
       },
       update: {
-        data: cleaned as Prisma.InputJsonValue,
+        data: data as Prisma.InputJsonValue,
       },
     });
     return {

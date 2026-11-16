@@ -4,13 +4,17 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   MinLength,
   ValidateNested,
 } from "class-validator";
 
+const FDI_TOOTH = /^(?:[1-4][1-8]|[5-8][1-5])$/;
+
 export class ImplantToothInputDto {
   @IsOptional()
   @IsString()
+  @Matches(FDI_TOOTH, { message: "牙位只能填 FDI 编号，如 11、12、36" })
   toothNo?: string;
 
   @IsOptional()

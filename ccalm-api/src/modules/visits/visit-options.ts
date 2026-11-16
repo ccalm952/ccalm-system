@@ -26,3 +26,6 @@ export function visitKindForRecordType(type: string): VisitKind {
 
 /** 正畸名单点「就诊」建的就诊备注；工作台据此把这次就诊归为正畸 */
 export const ORTHO_VISIT_REMARK = "正畸就诊";
+
+/** 保存种植记录时自动建的就诊备注 */
+export const IMPLANT_VISIT_REMARK = "种植就诊";

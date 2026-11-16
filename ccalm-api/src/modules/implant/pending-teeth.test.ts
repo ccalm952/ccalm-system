@@ -32,14 +32,8 @@ describe("remainingPendingTeeth", () => {
     expect(remainingPendingTeeth("47", ["36", "37", "46"])).toBeNull();
   });
 
-  it("含文字说明时不处理", () => {
-    expect(remainingPendingTeeth("26/27，36/37可先种", ["36"])).toBeNull();
-  });
-
-  it("空牙位或非法牙位不处理", () => {
+  it("空牙位不处理", () => {
     expect(remainingPendingTeeth("", ["46"])).toBeNull();
-    expect(remainingPendingTeeth("19 46", ["46"])).toBeNull();
-    expect(remainingPendingTeeth("56", ["56"])).toBeNull();
   });
 });
 

@@ -37,6 +37,7 @@ import {
 } from "@/lib/medical-records/record-types";
 import { visitKindLabel, visitTimeRange } from "@/lib/visits/visit-options";
 import { pickPendingVisitId } from "@/lib/visits/pending-visit";
+import { useAuth } from "@/lib/use-auth";
 import type { MedicalRecord, PatientVisit } from "./patient-detail-types";
 import { PhraseTextarea } from "./phrase-textarea";
 import { PlanQuoteInputs } from "./plan-quote";
@@ -85,13 +86,14 @@ function toForm(
   record: MedicalRecord | null,
   plan: ReturnPlan | null,
   visits: PatientVisit[],
+  defaultDoctor: string,
 ): FormState {
   return {
     type: record?.type ?? (plan ? "return" : "first"),
     visitLink: defaultVisitLink(record, visits),
     visitDate: record?.visitDate ?? dayjs().format("YYYY-MM-DD"),
     visitTime: record?.visitTime ?? dayjs().format("HH:mm"),
-    doctor: record?.doctor ?? plan?.doctor ?? "",
+    doctor: record?.doctor || plan?.doctor || defaultDoctor,
     nurse: record?.nurse ?? "",
     chiefComplaint: record?.chiefComplaint ?? "",
     presentIllness: record?.presentIllness ?? "",
@@ -129,8 +131,9 @@ export function MedicalRecordEditor({
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
 }) {
+  const { me } = useAuth();
   const [form, setForm] = React.useState<FormState>(() =>
-    toForm(record, plan, visits),
+    toForm(record, plan, visits, me?.displayName ?? ""),
   );
   const [saving, setSaving] = React.useState(false);
 
@@ -211,6 +214,10 @@ export function MedicalRecordEditor({
     }));
   }
   async function save() {
+    if (!form.doctor.trim()) {
+      toast.error("请选择医生");
+      return;
+    }
     const treatment = cleanToothEntries(form.treatment);
     if (
       MEDICAL_RECORD_FIELDS[form.type].includes("treatment") &&
@@ -307,7 +314,10 @@ export function MedicalRecordEditor({
         <CardContent className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Field>
-              <FieldLabel>医生</FieldLabel>
+              <FieldLabel>
+                医生
+                <span className="text-destructive">*</span>
+              </FieldLabel>
               <StaffCombobox
                 value={form.doctor}
                 onValueChange={(v) => set("doctor", v)}

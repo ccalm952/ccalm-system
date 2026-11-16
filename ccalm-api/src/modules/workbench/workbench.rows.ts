@@ -22,7 +22,7 @@ export type TodayVisitSource = {
 
 export type TodayVisitRow = {
   key: string;
-  kind: "clinic" | "orthodontics";
+  kind: "clinic" | "orthodontics" | "implant";
   patientId: number;
   name: string;
   phone: string;
@@ -36,6 +36,8 @@ export type TodayVisitRow = {
   /** 已写病历 */
   recorded: boolean;
   staff: string;
+  /** 种植就诊的牙位（FDI 原文），用于十字展示 */
+  teeth?: string[];
 };
 
 export function isOrthoVisit(row: {
@@ -52,7 +54,10 @@ export function isOrthoVisit(row: {
  * 一次就诊只出一行：挂了正畸病历、或在正畸名单点过「就诊」的就算正畸，
  * 避免和正畸档案的「上次就诊」重复列出。
  */
-export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
+export function todayVisitRow(
+  row: TodayVisitSource,
+  teeth?: string[],
+): TodayVisitRow {
   const medicalRecords = row.visit?.medicalRecords ?? [];
   const orthoRecord = medicalRecords.find((r) =>
     isOrthoRecordType(r.type as MedicalRecordType),
@@ -72,6 +77,16 @@ export function todayVisitRow(row: TodayVisitSource): TodayVisitRow {
     recorded: (row.visit?.medicalRecords.length ?? 0) > 0,
     staff: staffSource?.doctor || row.doctor,
   };
+  // 种植记录保存时生成的就诊（source = implant）出一行种植，内容列用牙位十字
+  if (row.source === "implant") {
+    return {
+      ...common,
+      key: `implant-${row.id}`,
+      kind: "implant",
+      detail: "",
+      teeth: teeth ?? [],
+    };
+  }
   return ortho
     ? {
         ...common,

@@ -1,4 +1,13 @@
-import { IsInt, IsOptional, IsString, MinLength } from "class-validator";
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+} from "class-validator";
+
+const FDI_TOOTH_LIST =
+  /^$|^(?:[1-4][1-8]|[5-8][1-5])(?:[\s、，,/]+(?:[1-4][1-8]|[5-8][1-5]))*$/;
 
 export class CreateImplantPendingDto {
   /** 下拉选中的已有患者 */
@@ -20,6 +29,7 @@ export class CreateImplantPendingDto {
 
   @IsOptional()
   @IsString()
+  @Matches(FDI_TOOTH_LIST, { message: "牙位只能填 FDI 编号，如 11 12 36" })
   teeth?: string;
 
   @IsOptional()
@@ -46,6 +56,7 @@ export class UpdateImplantPendingDto {
 
   @IsOptional()
   @IsString()
+  @Matches(FDI_TOOTH_LIST, { message: "牙位只能填 FDI 编号，如 11 12 36" })
   teeth?: string;
 
   @IsOptional()

@@ -308,6 +308,8 @@ model Appointment {
   items         String[]      @default([])
   /// booking 正常预约 | pending 待定 | walk_in 直接写病历 | orthodontics 正畸就诊
   source        String        @default("booking")
+  /// 种植就诊的牙位快照（FDI，来自 ImplantTooth）；工作台内容列十字展示用
+  implantTeeth String[]      @default([])
   /// 创建人 User.id
   createdById   String?
   /// 失约原因

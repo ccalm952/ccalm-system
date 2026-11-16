@@ -49,6 +49,8 @@ type TodayVisit = {
   started?: boolean;
   /** 已写病历 */
   recorded?: boolean;
+  /** 种植牙位（FDI 原文），内容列用十字展示 */
+  teeth?: string[];
   staff: string;
 };
 
@@ -368,7 +370,13 @@ export function WorkbenchPage() {
                         <TableCell>{v.phone}</TableCell>
                         <TableCell>{v.chartNo}</TableCell>
                         <TableCell>{TODAY_KIND_LABELS[v.kind]}</TableCell>
-                        <TableCell>{todayVisitDetail(v)}</TableCell>
+                        <TableCell>
+                          {v.kind === "implant" && v.teeth?.length ? (
+                            <TeethCell teeth={v.teeth.join(" ")} />
+                          ) : (
+                            todayVisitDetail(v)
+                          )}
+                        </TableCell>
                         <TableCell>{v.staff}</TableCell>
                       </TableRow>
                     ))

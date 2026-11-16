@@ -9,13 +9,20 @@ import {
   IsString,
   Matches,
   Min,
+  MinLength,
   ValidateNested,
 } from "class-validator";
 
 import { MEDICAL_RECORD_TYPES } from "../record-rules";
 
+const FDI_TOOTH_LIST =
+  /^$|^(?:[1-4][1-8]|[5-8][1-5])(?:[\s、，,/]+(?:[1-4][1-8]|[5-8][1-5]))*$/;
+
 export class ToothEntryDto {
   @IsString()
+  @Matches(FDI_TOOTH_LIST, {
+    message: "牙位只能填 FDI 编号，如 11 12 36",
+  })
   teeth!: string;
 
   @IsString()
@@ -83,9 +90,9 @@ export class SaveMedicalRecordDto {
   @Matches(/^(\d{2}:\d{2})?$/, { message: "就诊时间格式无效" })
   visitTime?: string;
 
-  @IsOptional()
   @IsString()
-  doctor?: string;
+  @MinLength(1, { message: "请选择医生" })
+  doctor!: string;
 
   @IsOptional()
   @IsString()
