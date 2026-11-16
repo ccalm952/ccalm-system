@@ -32,7 +32,11 @@ const RECORD_INCLUDE = {
     orderBy: { sort: "asc" },
     include: {
       followUps: {
-        select: { completes: true, record: { select: { visitDate: true } } },
+        select: {
+          recordId: true,
+          completes: true,
+          record: { select: { visitDate: true } },
+        },
       },
     },
   },
@@ -69,7 +73,9 @@ function mapRecord(r: RecordWithPlan) {
       unitPrice: i.unitPrice,
       quantity: i.quantity,
       discountNote: i.discountNote,
-      followUpCount: i.followUps.length,
+      // 初诊自己的处置关联不算复诊次数
+      followUpCount: i.followUps.filter((f) => f.recordId !== i.recordId)
+        .length,
       doneDate: planItemDoneDate(
         i.followUps.map((f) => ({
           visitDate: f.record.visitDate,
