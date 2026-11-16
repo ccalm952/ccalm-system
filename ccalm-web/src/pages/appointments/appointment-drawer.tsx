@@ -326,9 +326,6 @@ export function AppointmentDrawer({
           <ScrollArea className="size-full" viewportClassName="px-4 py-4">
             <div className="flex flex-col gap-4">
               <section className="flex flex-col gap-3">
-                <h4 className="text-sm font-medium text-muted-foreground">
-                  患者信息
-                </h4>
                 <div className="flex items-center gap-1.5">
                   <div className="min-w-0 flex-1">
                     <PatientNameCombobox
@@ -346,6 +343,9 @@ export function AppointmentDrawer({
                   </div>
                 </div>
 
+                <h4 className="text-sm font-medium text-muted-foreground">
+                  患者信息
+                </h4>
                 {patientId ? (
                   <div className="flex flex-col gap-1">
                     <InlineRow label="患者">
