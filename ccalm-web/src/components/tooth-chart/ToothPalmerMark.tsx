@@ -22,7 +22,7 @@ export function ToothPalmerMark({
   const g = groupPalmerLabels(fdis);
   const vLine = "bg-sky-300 w-0.5";
   const hLine = "bg-sky-300 h-0.5 w-full";
-  const cell = "flex items-center overflow-hidden whitespace-nowrap p-1.5";
+  const cell = "flex items-center overflow-hidden whitespace-nowrap p-[1.5px]";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
   const measureRef = React.useRef<HTMLSpanElement>(null);
@@ -47,7 +47,7 @@ export function ToothPalmerMark({
         aria-hidden
       >
         {labels.map((label, i) => (
-          <span key={i} data-m className={cn("px-1.5 whitespace-nowrap")}>
+          <span key={i} data-m className={cn("px-[1.5px] whitespace-nowrap")}>
             {label || "\u00a0"}
           </span>
         ))}
