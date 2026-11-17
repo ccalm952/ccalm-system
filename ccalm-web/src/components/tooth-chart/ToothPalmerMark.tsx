@@ -13,9 +13,6 @@ type ToothPalmerMarkProps = {
   minColPx?: number;
 };
 
-/** 行高固定，保证所有页面十字图高度一致 */
-const ROW_PX = 18;
-
 /** 图：十字象限 Palmer 标记；宽度按牙位文字动态测量，高度固定 */
 export function ToothPalmerMark({
   fdis,
@@ -24,7 +21,7 @@ export function ToothPalmerMark({
 }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const line = "bg-sky-300";
-  const cell = "flex items-center overflow-hidden whitespace-nowrap";
+  const cell = "flex items-center overflow-hidden whitespace-nowrap py-[3px]";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
   const measureRef = React.useRef<HTMLSpanElement>(null);
@@ -60,8 +57,6 @@ export function ToothPalmerMark({
           gridTemplateColumns: colPx
             ? `${colPx}px 1px ${colPx}px`
             : "auto 1px auto",
-          gridTemplateRows: `${ROW_PX}px 1px ${ROW_PX}px`,
-          height: `${ROW_PX * 2 + 1}px`,
         }}
       >
         <span className={cn(cell, "justify-end pr-1")}>{g.UR || "\u00a0"}</span>
