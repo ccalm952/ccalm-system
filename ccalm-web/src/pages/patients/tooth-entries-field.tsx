@@ -104,7 +104,7 @@ export function ToothEntriesView({
               className={cn(
                 "flex items-center gap-6",
                 onClick &&
-                  "-mx-2 -my-1 cursor-pointer rounded-2xl px-2 py-1 transition-all hover:bg-muted dark:hover:bg-muted/50",
+                  "cursor-pointer rounded-2xl transition-all hover:bg-muted dark:hover:bg-muted/50",
               )}
               onClick={onClick}
             >
