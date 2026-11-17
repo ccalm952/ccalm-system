@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompleteFollowUpDialog } from "@/components/follow-ups/complete-follow-up-dialog";
-import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
+import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -21,7 +21,6 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { followUpTypeLabel, type FollowUpType } from "@/lib/follow-ups/options";
 import type { FollowUp as FollowUpTask } from "@/lib/follow-ups/types";
-import { parseTeethStrict } from "@/lib/tooth-fdi";
 import {
   orthodonticsCategoryLabel,
   type OrthodonticsCategory,
@@ -159,14 +158,11 @@ function StatItem({
 }
 
 function TeethCell({ teeth }: { teeth: string }) {
-  const parsed = parseTeethStrict(teeth);
-  if (parsed == null) {
-    return <span className="truncate">{teeth}</span>;
-  }
-  if (!parsed.length) return null;
-  return <ToothPalmerMark fdis={parsed} compact />;
+  if (!teeth.trim()) return null;
+  return (
+    <ToothPositionField large readOnly value={teeth} onValueChange={() => {}} />
+  );
 }
-
 function PatientLink({
   id,
   name,
