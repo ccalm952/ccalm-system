@@ -20,9 +20,9 @@ export function ToothPalmerMark({
   minColPx = 0,
 }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const vLine = "bg-sky-300";
-  const hLine = "bg-sky-300 h-px";
-  const cell = "flex items-center overflow-hidden whitespace-nowrap py-[3px]";
+  const vLine = "bg-sky-300 w-px";
+  const hLine = "bg-sky-300 h-px w-full";
+  const cell = "flex items-center overflow-hidden whitespace-nowrap p-1";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
   const measureRef = React.useRef<HTMLSpanElement>(null);
@@ -36,7 +36,7 @@ export function ToothPalmerMark({
     for (const el of root.querySelectorAll<HTMLElement>("[data-m]")) {
       max = Math.max(max, el.offsetWidth);
     }
-    setColPx(Math.max(Math.ceil(max) + 2, minColPx, 16));
+    setColPx(Math.max(Math.ceil(max), minColPx, 16));
   }, [measureKey, minColPx]);
 
   return (
@@ -61,21 +61,17 @@ export function ToothPalmerMark({
             : "auto 1px auto",
         }}
       >
-        <span className={cn(cell, "justify-end pr-1")}>{g.UR || "\u00a0"}</span>
+        <span className={cn(cell, "justify-end")}>{g.UR || "\u00a0"}</span>
         <span className={vLine} />
-        <span className={cn(cell, "justify-start pl-1")}>
-          {g.UL || "\u00a0"}
-        </span>
+        <span className={cn(cell, "justify-start")}>{g.UL || "\u00a0"}</span>
 
         <span className={hLine} />
         <span className={hLine} />
         <span className={hLine} />
 
-        <span className={cn(cell, "justify-end pr-1")}>{g.LR || "\u00a0"}</span>
+        <span className={cn(cell, "justify-end")}>{g.LR || "\u00a0"}</span>
         <span className={vLine} />
-        <span className={cn(cell, "justify-start pl-1")}>
-          {g.LL || "\u00a0"}
-        </span>
+        <span className={cn(cell, "justify-start")}>{g.LL || "\u00a0"}</span>
       </span>
     </span>
   );
