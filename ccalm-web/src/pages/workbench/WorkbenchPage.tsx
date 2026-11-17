@@ -160,7 +160,7 @@ function StatItem({
 function TeethCell({ teeth }: { teeth: string }) {
   if (!teeth.trim()) return null;
   return (
-    <span className="flex h-10 items-center justify-center pb-px">
+    <span className="flex items-center justify-center">
       <ToothPositionField
         large
         readOnly
