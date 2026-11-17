@@ -1,102 +1,42 @@
-import * as React from "react";
-
 import { cn } from "cn";
 import { groupPalmerLabels } from "@/lib/tooth-fdi";
 
 type ToothPalmerMarkProps = {
   fdis: number[];
   className?: string;
-  /** 更紧凑，用于表格单元格 */
+  /** 更紧凑（保留兼容；十字图本体尺寸已统一） */
   compact?: boolean;
   large?: boolean;
-  /** 左右列最小宽度（px），空牙位时也能显示完整十字 */
+  /** 左右列最小宽度（保留兼容；十字图本体尺寸已统一） */
   minColPx?: number;
 };
 
-/** 图1：十字象限 Palmer 标记；按实宽测左右列，等宽且保留水平 padding */
-export function ToothPalmerMark({
-  fdis,
-  className,
-  compact,
-  large,
-  minColPx = 0,
-}: ToothPalmerMarkProps) {
+/** 左右列宽 / 行高固定，保证所有页面十字图本体大小一致 */
+const COL_PX = 30;
+const ROW_PX = 18;
+
+/** 图：十字象限 Palmer 标记；四象限固定网格 */
+export function ToothPalmerMark({ fdis, className }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const text = compact
-    ? "text-[10px] leading-none"
-    : large
-      ? "text-sm leading-none"
-      : "text-xs leading-none";
-  // 四边内边距；行高用 leading-none，避免 leading-[0] 把上下行压扁导致竖线消失
-  const cell = compact
-    ? "min-h-[10px] p-0.5"
-    : large
-      ? "min-h-4 p-0.5"
-      : "min-h-3 p-0.5";
   const line = "bg-sky-300";
-  const labels = [g.UR, g.UL, g.LR, g.LL] as const;
-  const size = compact ? "c" : large ? "l" : "n";
-  const measureKey = `${labels.join("\0")}:${size}`;
-
-  const measureRef = React.useRef<HTMLSpanElement>(null);
-  const [colPx, setColPx] = React.useState(0);
-
-  React.useLayoutEffect(() => {
-    const root = measureRef.current;
-    if (!root) return;
-    let max = 0;
-    for (const el of root.querySelectorAll<HTMLElement>("[data-m]")) {
-      max = Math.max(max, el.offsetWidth);
-    }
-    setColPx(Math.max(Math.ceil(max), minColPx));
-  }, [measureKey, minColPx]);
+  const cell = "flex items-center overflow-hidden whitespace-nowrap";
 
   return (
-    <span
-      className={cn(
-        "relative inline-flex items-center leading-none",
-        className,
-      )}
-    >
+    <span className={cn("inline-flex shrink-0 items-center", className)}>
       <span
-        ref={measureRef}
-        className={cn(
-          "pointer-events-none absolute top-0 left-0 flex leading-none font-medium tabular-nums opacity-0",
-          text,
-        )}
+        className="grid text-xs leading-none font-medium text-foreground tabular-nums"
+        style={{
+          gridTemplateColumns: `${COL_PX}px 1px ${COL_PX}px`,
+          gridTemplateRows: `${ROW_PX}px 1px ${ROW_PX}px`,
+          width: `${COL_PX * 2 + 1}px`,
+          height: `${ROW_PX * 2 + 1}px`,
+        }}
       >
-        {labels.map((label, i) => (
-          <span key={i} data-m className={cn("whitespace-nowrap", cell)}>
-            {label || "\u00a0"}
-          </span>
-        ))}
-      </span>
-      <span
-        className={cn(
-          "grid shrink-0 grid-rows-[auto_1px_auto] leading-none font-medium text-foreground tabular-nums",
-          text,
-        )}
-        style={
-          colPx > 0
-            ? { gridTemplateColumns: `${colPx}px 1px ${colPx}px` }
-            : { gridTemplateColumns: "auto 1px auto" }
-        }
-      >
-        <span
-          className={cn(
-            "flex items-center justify-end whitespace-nowrap",
-            cell,
-          )}
-        >
+        <span className={cn(cell, "justify-end pr-0.5")}>
           {g.UR || "\u00a0"}
         </span>
         <span className={line} />
-        <span
-          className={cn(
-            "flex items-center justify-start whitespace-nowrap",
-            cell,
-          )}
-        >
+        <span className={cn(cell, "justify-start pl-0.5")}>
           {g.UL || "\u00a0"}
         </span>
 
@@ -104,21 +44,11 @@ export function ToothPalmerMark({
         <span className={line} />
         <span className={line} />
 
-        <span
-          className={cn(
-            "flex items-center justify-end whitespace-nowrap",
-            cell,
-          )}
-        >
+        <span className={cn(cell, "justify-end pr-0.5")}>
           {g.LR || "\u00a0"}
         </span>
         <span className={line} />
-        <span
-          className={cn(
-            "flex items-center justify-start whitespace-nowrap",
-            cell,
-          )}
-        >
+        <span className={cn(cell, "justify-start pl-0.5")}>
           {g.LL || "\u00a0"}
         </span>
       </span>
