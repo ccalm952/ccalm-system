@@ -20,8 +20,8 @@ export function ToothPalmerMark({
   minColPx = 0,
 }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const vLine = "bg-sky-300 w-0.5";
-  const hLine = "bg-sky-300 h-0.5 w-full";
+  const vLine = "bg-sky-300 w-px";
+  const hLine = "bg-sky-300 h-px w-full";
   const cell = "flex items-center overflow-hidden whitespace-nowrap p-[2.5px]";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
@@ -55,7 +55,7 @@ export function ToothPalmerMark({
       <span
         className="grid text-xs leading-none font-medium text-foreground tabular-nums"
         style={{
-          gridTemplateRows: "auto 2px auto",
+          gridTemplateRows: "auto 1px auto",
           gridTemplateColumns: colPx
             ? `${colPx}px 1px ${colPx}px`
             : "auto 1px auto",
