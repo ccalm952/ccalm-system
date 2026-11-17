@@ -25,6 +25,7 @@ import {
   TimelineTitle,
 } from "@/components/ui/timeline";
 import { api } from "@/lib/api";
+import { formatMoney } from "@/lib/charges/charge-calc";
 import { errorMessage } from "@/lib/errorMessage";
 import {
   visitKindLabel,
@@ -115,14 +116,10 @@ export function PatientVisitsTab({
                         电子病历
                       </Button>
                     ) : null}
-                    {v.chargeOrderIds.length ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => onOpenTab("charges")}
-                      >
-                        收费
-                      </Button>
+                    {v.paidAmount ? (
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        已收 {formatMoney(v.paidAmount)}
+                      </span>
                     ) : null}
 
                     <Button

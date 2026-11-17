@@ -54,6 +54,8 @@ export type PatientVisit = {
   remark: string;
   medicalRecordIds: number[];
   chargeOrderIds: number[];
+  /** 该就诊收款合计 */
+  paidAmount?: number;
   /** 关联的预约；有值表示已开始接诊 */
   appointmentId?: number | null;
 };

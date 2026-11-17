@@ -25,6 +25,7 @@ export class VisitsService {
       include: {
         medicalRecords: { select: { id: true, type: true } },
         chargeOrders: { select: { id: true } },
+        chargePayments: { select: { amount: true } },
         appointment: { select: { id: true } },
       },
       orderBy: [{ visitDate: "desc" }, { startTime: "desc" }, { id: "desc" }],
@@ -46,6 +47,7 @@ export class VisitsService {
       completedAt: v.completedAt?.toISOString() ?? null,
       medicalRecordIds: v.medicalRecords.map((r) => r.id),
       chargeOrderIds: v.chargeOrders.map((c) => c.id),
+      paidAmount: v.chargePayments.reduce((sum, p) => sum + p.amount, 0),
       appointmentId: v.appointment?.id ?? null,
     }));
   }
