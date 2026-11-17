@@ -160,7 +160,14 @@ function StatItem({
 function TeethCell({ teeth }: { teeth: string }) {
   if (!teeth.trim()) return null;
   return (
-    <ToothPositionField large readOnly value={teeth} onValueChange={() => {}} />
+    <span className="flex items-center justify-center">
+      <ToothPositionField
+        large
+        readOnly
+        value={teeth}
+        onValueChange={() => {}}
+      />
+    </span>
   );
 }
 function PatientLink({
