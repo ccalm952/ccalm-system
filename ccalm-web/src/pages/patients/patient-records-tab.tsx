@@ -75,7 +75,7 @@ function ChargeSummary({
 
 function CourseChargeSummary({ order }: { order: ChargeOrder }) {
   return (
-    <span className="flex flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
+    <span className="flex h-8 flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
       <span>治疗应收：{formatMoney(order.receivable)}</span>
       <span>已收：{formatMoney(order.paid)}</span>
       {order.status === "void" ? (
@@ -617,21 +617,21 @@ export function PatientRecordsTab({
                   <div className="flex flex-col gap-3 rounded-lg border p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-3">
-                        <Badge variant="secondary" className="h-auto text-sm">
+                        <Badge variant="secondary" className="h-8 px-3 text-sm">
                           {medicalRecordTypeLabel(record.type)}
                         </Badge>
                         {planProgress(record) ? (
-                          <Badge variant="outline" className="h-auto text-sm">
+                          <Badge variant="outline" className="h-8 px-3 text-sm">
                             {planProgress(record)}
                           </Badge>
                         ) : null}
                         {record.doctor ? (
-                          <span className="text-muted-foreground">
+                          <span className="flex h-8 items-center text-muted-foreground">
                             医生：{record.doctor}
                           </span>
                         ) : null}
                         {record.nurse ? (
-                          <span className="text-muted-foreground">
+                          <span className="flex h-8 items-center text-muted-foreground">
                             配台护士：{record.nurse}
                           </span>
                         ) : null}
@@ -639,7 +639,7 @@ export function PatientRecordsTab({
                           <CourseChargeSummary order={courseOrder} />
                         ) : null}
                         {!courseOrder && quotedTotal > 0 ? (
-                          <span className="text-muted-foreground tabular-nums">
+                          <span className="flex h-8 items-center text-muted-foreground tabular-nums">
                             治疗报价：{formatMoney(quotedTotal)}
                           </span>
                         ) : null}
