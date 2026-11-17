@@ -260,7 +260,7 @@ function RecordBody({
   const fields: MedicalRecordField[] = expanded
     ? MEDICAL_RECORD_FIELDS[record.type]
     : record.type === "first"
-      ? ["treatmentPlan", "advice"]
+      ? ["treatmentPlan", "treatment", "advice"]
       : ["treatment", "advice"];
   const rows: { key: string; label: string; content: React.ReactNode }[] = [];
   for (const field of fields) {
