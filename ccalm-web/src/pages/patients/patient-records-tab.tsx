@@ -76,7 +76,7 @@ function ChargeSummary({
 function CourseChargeSummary({ order }: { order: ChargeOrder }) {
   return (
     <span className="flex flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
-      <span>疗程应收：{formatMoney(order.receivable)}</span>
+      <span>治疗应收：{formatMoney(order.receivable)}</span>
       <span>已收：{formatMoney(order.paid)}</span>
       {order.status === "void" ? (
         <span className="text-destructive">已作废</span>
@@ -348,11 +348,11 @@ function recordCourseStatus(record: MedicalRecord) {
 function planProgress(record: MedicalRecord): string | null {
   const status = recordCourseStatus(record);
   if (status === "none") return null;
-  if (status === "done") return "疗程完成";
+  if (status === "done") return "治疗完成";
   const done = record.treatmentPlan.filter((i) => i.doneDate).length;
-  const progress = `疗程进度 ${done}/${record.treatmentPlan.length}`;
+  const progress = `治疗进度 ${done}/${record.treatmentPlan.length}`;
   return status === "stopped"
-    ? `疗程终止 ${record.planStoppedAt} · ${progress}`
+    ? `治疗终止 ${record.planStoppedAt} · ${progress}`
     : progress;
 }
 
@@ -439,7 +439,7 @@ export function PatientRecordsTab({
       await api("PUT", `/medical-records/${record.id}/plan-stopped`, {
         stopped,
       });
-      toast.success(stopped ? "已终止疗程" : "已恢复疗程");
+      toast.success(stopped ? "已终止治疗" : "已恢复治疗");
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -455,7 +455,7 @@ export function PatientRecordsTab({
         "POST",
         `/charges/courses/${record.id}`,
       );
-      toast.success("已生成疗程收费单");
+      toast.success("已生成治疗收费单");
       if (result.unquotedCount > 0) {
         toast.message(`${result.unquotedCount} 项治疗计划未报价，未计入收费单`);
       }
@@ -640,7 +640,7 @@ export function PatientRecordsTab({
                         ) : null}
                         {!courseOrder && quotedTotal > 0 ? (
                           <span className="text-muted-foreground tabular-nums">
-                            疗程报价：{formatMoney(quotedTotal)}
+                            治疗报价：{formatMoney(quotedTotal)}
                           </span>
                         ) : null}
                       </div>
@@ -708,7 +708,7 @@ export function PatientRecordsTab({
                             variant="secondary"
                             onClick={() => setStopping(record)}
                           >
-                            终止疗程
+                            终止治疗
                           </Button>
                         ) : null}
                         {recordCourseStatus(record) === "stopped" ? (
@@ -717,7 +717,7 @@ export function PatientRecordsTab({
                             variant="secondary"
                             onClick={() => void setPlanStopped(record, false)}
                           >
-                            恢复疗程
+                            恢复治疗
                           </Button>
                         ) : null}
                         <Button
@@ -798,10 +798,10 @@ export function PatientRecordsTab({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>终止疗程</AlertDialogTitle>
+            <AlertDialogTitle>终止治疗</AlertDialogTitle>
             <AlertDialogDescription>
               确定终止 {stopping?.visitDate}{" "}
-              初诊的疗程吗？终止后不再出现在工作台待完成疗程中，可随时恢复。
+              初诊的治疗吗？终止后不再出现在工作台待完成治疗中，可随时恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

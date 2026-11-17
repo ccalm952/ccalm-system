@@ -19,7 +19,7 @@ export type PlanItem = ToothEntry & {
 
 export type PlanCourseStatus = "none" | "pending" | "done" | "stopped";
 
-/** 与后端 modules/medical-records/record-rules.ts 一致：计划行全部完成才算疗程完成；未完成且已终止的不再待完成 */
+/** 与后端 modules/medical-records/record-rules.ts 一致：计划行全部完成才算治疗完成；未完成且已终止的不再待完成 */
 export function planCourseStatus(
   items: { doneDate?: string | null }[],
   planStoppedAt: string | null,

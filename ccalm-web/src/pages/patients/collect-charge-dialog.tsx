@@ -154,7 +154,7 @@ export function CollectChargeDialog({
             </label>
           </div>
           <p className="text-sm text-muted-foreground">
-            收款会自动记到该就诊对应的初诊病历疗程单上。
+            收款会自动记到该就诊对应的初诊病历治疗单上。
           </p>
         </div>
         <DialogFooter>

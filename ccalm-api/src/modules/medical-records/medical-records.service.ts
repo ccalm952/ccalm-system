@@ -445,7 +445,7 @@ export class MedicalRecordsService {
     });
     if (!existing) throw new NotFoundException("病历不存在");
     if (existing.type !== "first" || !existing.planItems.length) {
-      throw new BadRequestException("只有带治疗计划的初诊病历可以终止疗程");
+      throw new BadRequestException("只有带治疗计划的初诊病历可以终止治疗");
     }
     const record = await this.prisma.medicalRecord.update({
       where: { id },

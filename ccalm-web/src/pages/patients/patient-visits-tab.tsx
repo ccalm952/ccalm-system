@@ -116,7 +116,21 @@ export function PatientVisitsTab({
                         电子病历
                       </Button>
                     ) : null}
-                    {v.paidAmount ? (
+                    {v.receivable != null ? (
+                      <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground tabular-nums">
+                        <span>应收 {formatMoney(v.receivable)}</span>
+                        <span>已收 {formatMoney(v.coursePaid ?? 0)}</span>
+                        <span
+                          className={
+                            (v.owed ?? 0) > 0
+                              ? "text-destructive"
+                              : "text-primary"
+                          }
+                        >
+                          欠费 {formatMoney(v.owed ?? 0)}
+                        </span>
+                      </span>
+                    ) : v.paidAmount ? (
                       <span className="text-sm text-muted-foreground tabular-nums">
                         已收 {formatMoney(v.paidAmount)}
                       </span>

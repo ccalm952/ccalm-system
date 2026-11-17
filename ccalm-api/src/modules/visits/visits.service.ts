@@ -24,7 +24,14 @@ export class VisitsService {
       where: { patientId },
       include: {
         medicalRecords: { select: { id: true, type: true } },
-        chargeOrders: { select: { id: true } },
+        chargeOrders: {
+          select: {
+            id: true,
+            isCourse: true,
+            receivable: true,
+            payments: { select: { amount: true } },
+          },
+        },
         chargePayments: { select: { amount: true } },
         appointment: { select: { id: true } },
       },
@@ -48,6 +55,19 @@ export class VisitsService {
       medicalRecordIds: v.medicalRecords.map((r) => r.id),
       chargeOrderIds: v.chargeOrders.map((c) => c.id),
       paidAmount: v.chargePayments.reduce((sum, p) => sum + p.amount, 0),
+      ...(() => {
+        const course = v.chargeOrders.find((o) => o.isCourse);
+        if (!course) return { receivable: null, coursePaid: null, owed: null };
+        const coursePaid = course.payments.reduce(
+          (sum, p) => sum + p.amount,
+          0,
+        );
+        return {
+          receivable: course.receivable,
+          coursePaid,
+          owed: Math.round((course.receivable - coursePaid) * 100) / 100,
+        };
+      })(),
       appointmentId: v.appointment?.id ?? null,
     }));
   }

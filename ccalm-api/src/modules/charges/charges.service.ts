@@ -176,23 +176,23 @@ export class ChargesService {
     });
     if (!record) throw new NotFoundException("病历不存在");
     if (record.type !== "first" && record.type !== "orthoFirst") {
-      throw new BadRequestException("只有初诊病历可以生成疗程收费单");
+      throw new BadRequestException("只有初诊病历可以生成治疗收费单");
     }
     return record;
   }
 
-  /** 以初诊病历为一个疗程，按治疗计划报价生成一张收费单；后续只分次收款 */
+  /** 以初诊病历为一个治疗，按治疗计划报价生成一张收费单；后续只分次收款 */
   async createForCourse(recordId: number) {
     const record = await this.courseRecord(recordId);
     if (record.visitId == null) {
       throw new BadRequestException(
-        "初诊病历还没有关联就诊，不能生成疗程收费单",
+        "初诊病历还没有关联就诊，不能生成治疗收费单",
       );
     }
     const existing = await this.prisma.chargeOrder.findFirst({
       where: { visitId: record.visitId, isCourse: true },
     });
-    if (existing) throw new BadRequestException("该疗程已生成收费单");
+    if (existing) throw new BadRequestException("该治疗已生成收费单");
     const { items, unquotedCount, receivable } = courseChargeItems(
       record.planItems,
     );
@@ -222,7 +222,7 @@ export class ChargesService {
       where: { visitId: record.visitId, isCourse: true },
       include: orderInclude,
     });
-    if (!order) throw new NotFoundException("该疗程还没有收费单");
+    if (!order) throw new NotFoundException("该治疗还没有收费单");
     if (order.status === "void") {
       throw new BadRequestException("已作废的收费单不能同步");
     }
@@ -246,7 +246,7 @@ export class ChargesService {
     });
     return { order: mapOrder(updated), unquotedCount };
   }
-  /** 按就诊收款：找到该就诊对应的初诊病历，记到其疗程收费单上 */
+  /** 按就诊收款：找到该就诊对应的初诊病历，记到其治疗收费单上 */
   async collectByVisit(dto: {
     patientId: number;
     visitId: number;

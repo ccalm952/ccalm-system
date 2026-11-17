@@ -206,7 +206,7 @@ export function ChargeOrderEditor({
           <CardTitle>
             {order
               ? order.isCourse
-                ? "编辑疗程收费单"
+                ? "编辑治疗收费单"
                 : "编辑收费单"
               : "新建收费单"}
           </CardTitle>

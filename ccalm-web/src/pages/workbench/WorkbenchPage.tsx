@@ -275,7 +275,7 @@ export function WorkbenchPage() {
               onClick={() => setTab("followUp")}
             />
             <StatItem
-              label="待完成疗程"
+              label="待完成治疗"
               value={pendingCourses.length}
               onClick={() => setTab("pendingCourse")}
             />
@@ -318,7 +318,7 @@ export function WorkbenchPage() {
                 variant={tab === "pendingCourse" ? "default" : "outline"}
                 onClick={() => setTab("pendingCourse")}
               >
-                待完成疗程
+                待完成治疗
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -454,7 +454,7 @@ export function WorkbenchPage() {
                   {pendingCourses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-muted-foreground">
-                        暂无待完成疗程
+                        暂无待完成治疗
                       </TableCell>
                     </TableRow>
                   ) : (
