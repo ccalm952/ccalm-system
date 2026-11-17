@@ -88,7 +88,7 @@ export type ChargeOrder = {
   id: number;
   patientId: number;
   visitId: number | null;
-  recordId: number | null;
+  isCourse: boolean;
   chargeDate: string;
   doctor: string;
   status: "normal" | "void";

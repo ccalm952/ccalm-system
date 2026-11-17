@@ -6,7 +6,6 @@ import {
 import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
-import { isPrismaUniqueViolation } from "../../common/prisma-errors";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   chargeItemAmount,
@@ -35,7 +34,7 @@ function mapOrder(o: OrderWithDetail) {
     id: o.id,
     patientId: o.patientId,
     visitId: o.visitId,
-    recordId: o.recordId,
+    isCourse: o.isCourse,
     chargeDate: o.chargeDate,
     doctor: o.doctor,
     status: o.status,
@@ -185,8 +184,13 @@ export class ChargesService {
   /** 以初诊病历为一个疗程，按治疗计划报价生成一张收费单；后续只分次收款 */
   async createForCourse(recordId: number) {
     const record = await this.courseRecord(recordId);
-    const existing = await this.prisma.chargeOrder.findUnique({
-      where: { recordId },
+    if (record.visitId == null) {
+      throw new BadRequestException(
+        "初诊病历还没有关联就诊，不能生成疗程收费单",
+      );
+    }
+    const existing = await this.prisma.chargeOrder.findFirst({
+      where: { visitId: record.visitId, isCourse: true },
     });
     if (existing) throw new BadRequestException("该疗程已生成收费单");
     const { items, unquotedCount, receivable } = courseChargeItems(
@@ -195,39 +199,33 @@ export class ChargesService {
     if (!items.length) {
       throw new BadRequestException("治疗计划还没有报价，请先填写单价");
     }
-    try {
-      const order = await this.prisma.chargeOrder.create({
-        data: {
-          patientId: record.patientId,
-          visitId: record.visitId,
-          recordId: record.id,
-          chargeDate: dayjs().format("YYYY-MM-DD"),
-          doctor: record.doctor,
-          receivable,
-          items: { create: items },
-        },
-        include: orderInclude,
-      });
-      return { order: mapOrder(order), unquotedCount };
-    } catch (error) {
-      if (isPrismaUniqueViolation(error)) {
-        throw new BadRequestException("该疗程已生成收费单");
-      }
-      throw error;
-    }
+    const order = await this.prisma.chargeOrder.create({
+      data: {
+        patientId: record.patientId,
+        visitId: record.visitId,
+        isCourse: true,
+        chargeDate: dayjs().format("YYYY-MM-DD"),
+        doctor: record.doctor,
+        receivable,
+        items: { create: items },
+      },
+      include: orderInclude,
+    });
+    return { order: mapOrder(order), unquotedCount };
   }
-
-  /** 按当前治疗计划重算疗程收费单明细；已收金额保持不变，新总价不能低于已收 */
   async syncForCourse(recordId: number) {
-    const order = await this.prisma.chargeOrder.findUnique({
-      where: { recordId },
+    const record = await this.courseRecord(recordId);
+    if (record.visitId == null) {
+      throw new BadRequestException("初诊病历还没有关联就诊，不能同步收费单");
+    }
+    const order = await this.prisma.chargeOrder.findFirst({
+      where: { visitId: record.visitId, isCourse: true },
       include: orderInclude,
     });
     if (!order) throw new NotFoundException("该疗程还没有收费单");
     if (order.status === "void") {
       throw new BadRequestException("已作废的收费单不能同步");
     }
-    const record = await this.courseRecord(recordId);
     const { items, unquotedCount, receivable } = courseChargeItems(
       record.planItems,
     );
@@ -248,7 +246,6 @@ export class ChargesService {
     });
     return { order: mapOrder(updated), unquotedCount };
   }
-
   private async findOrder(id: number) {
     const order = await this.prisma.chargeOrder.findUnique({
       where: { id },

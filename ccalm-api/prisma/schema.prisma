@@ -394,7 +394,6 @@ model MedicalRecord {
   /// 复诊病历本次处理的治疗计划行
   planLinks      PlanItemFollowUp[]
   /// 以该初诊病历为疗程的收费单
-  chargeOrders   ChargeOrder[]       @relation("CourseChargeOrders")
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -439,9 +438,8 @@ model ChargeOrder {
   patient    Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   visitId    Int?
   visit      PatientVisit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
-  /// 疗程收费单关联的初诊病历；不关联的为普通收费单
-  recordId   Int?            @unique
-  record     MedicalRecord?  @relation("CourseChargeOrders", fields: [recordId], references: [id], onDelete: SetNull)
+  /// 是否按初诊治疗计划生成的疗程收费单；归属仍只看 visitId
+  isCourse   Boolean         @default(false)
   chargeDate String
   doctor     String          @default("")
   /// normal 正常 | void 作废

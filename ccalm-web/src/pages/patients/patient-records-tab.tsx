@@ -507,7 +507,7 @@ export function PatientRecordsTab({
   const timeline = records.filter((r) => isFirstType(r) || !r.planLinks.length);
   const chargeByVisit = new Map<number, VisitCharge>();
   for (const o of charges) {
-    if (o.status === "void" || o.visitId == null || o.recordId != null) {
+    if (o.status === "void" || o.visitId == null || o.isCourse) {
       continue;
     }
     chargeByVisit.set(
@@ -515,9 +515,9 @@ export function PatientRecordsTab({
       addCharges([chargeByVisit.get(o.visitId) ?? NO_CHARGE, o]),
     );
   }
-  const courseOrderByRecord = new Map<number, ChargeOrder>();
+  const courseOrderByVisit = new Map<number, ChargeOrder>();
   for (const o of charges) {
-    if (o.recordId != null) courseOrderByRecord.set(o.recordId, o);
+    if (o.isCourse && o.visitId != null) courseOrderByVisit.set(o.visitId, o);
   }
   const allExpanded =
     timeline.length > 0 && timeline.every((r) => expanded.has(r.id));
@@ -597,7 +597,10 @@ export function PatientRecordsTab({
         <div className="flex flex-col">
           {timeline.map((record) => {
             const isOpen = expanded.has(record.id);
-            const courseOrder = courseOrderByRecord.get(record.id) ?? null;
+            const courseOrder =
+              record.visitId != null
+                ? (courseOrderByVisit.get(record.visitId) ?? null)
+                : null;
             const quotedTotal = isFirstType(record)
               ? courseQuotedTotal(record)
               : 0;
