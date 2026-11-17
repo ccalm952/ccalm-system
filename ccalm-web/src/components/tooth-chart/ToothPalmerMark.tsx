@@ -26,30 +26,17 @@ export function ToothPalmerMark({
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
   const measureRef = React.useRef<HTMLSpanElement>(null);
-  const [leftPx, setLeftPx] = React.useState(0);
-  const [rightPx, setRightPx] = React.useState(0);
+  const [colPx, setColPx] = React.useState(0);
 
   const measureKey = labels.join("\0");
   React.useLayoutEffect(() => {
     const root = measureRef.current;
     if (!root) return;
-    const widths = [...root.querySelectorAll<HTMLElement>("[data-m]")].map(
-      (el) => el.offsetWidth,
-    );
-    setLeftPx(
-      Math.max(
-        Math.ceil(Math.max(widths[0] ?? 0, widths[2] ?? 0)),
-        minColPx,
-        16,
-      ),
-    );
-    setRightPx(
-      Math.max(
-        Math.ceil(Math.max(widths[1] ?? 0, widths[3] ?? 0)),
-        minColPx,
-        16,
-      ),
-    );
+    let max = 0;
+    for (const el of root.querySelectorAll<HTMLElement>("[data-m]")) {
+      max = Math.max(max, el.offsetWidth);
+    }
+    setColPx(Math.max(Math.ceil(max), minColPx, 16));
   }, [measureKey, minColPx]);
 
   return (
@@ -69,10 +56,9 @@ export function ToothPalmerMark({
         className="grid text-xs leading-none font-medium text-foreground tabular-nums"
         style={{
           gridTemplateRows: "auto 1px auto",
-          gridTemplateColumns:
-            leftPx || rightPx
-              ? `${leftPx}px 1px ${rightPx}px`
-              : "auto 1px auto",
+          gridTemplateColumns: colPx
+            ? `${colPx}px 1px ${colPx}px`
+            : "auto 1px auto",
         }}
       >
         <span className={cn(cell, "justify-end")}>{g.UR || "\u00a0"}</span>
