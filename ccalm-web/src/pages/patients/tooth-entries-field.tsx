@@ -118,7 +118,7 @@ export function ToothEntriesView({
                   />
                 ) : null}
               </div>
-              <div className="flex flex-1 flex-col gap-1">
+              <div className="flex flex-1 flex-col">
                 <span className="whitespace-pre-wrap">{entry.text}</span>
                 {renderDetail?.(index)}
               </div>
