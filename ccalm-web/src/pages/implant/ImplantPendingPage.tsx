@@ -98,7 +98,7 @@ function TeethCell({ teeth }: { teeth: string }) {
   }
   if (!parsed.length) return null;
   return (
-    <span className="flex h-10 -translate-y-px items-center justify-center">
+    <span className="flex h-10 -translate-y-[0.5px] items-center justify-center">
       <ToothPositionField readOnly value={teeth} onValueChange={() => {}} />
     </span>
   );
