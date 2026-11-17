@@ -20,7 +20,8 @@ export function ToothPalmerMark({
   minColPx = 0,
 }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
-  const line = "bg-sky-300";
+  const vLine = "bg-sky-300";
+  const hLine = "bg-sky-300 h-px";
   const cell = "flex items-center overflow-hidden whitespace-nowrap py-[3px]";
   const labels = [g.UR, g.UL, g.LR, g.LL] as const;
 
@@ -54,23 +55,24 @@ export function ToothPalmerMark({
       <span
         className="grid text-xs leading-none font-medium text-foreground tabular-nums"
         style={{
+          gridTemplateRows: "auto 1px auto",
           gridTemplateColumns: colPx
             ? `${colPx}px 1px ${colPx}px`
             : "auto 1px auto",
         }}
       >
         <span className={cn(cell, "justify-end pr-1")}>{g.UR || "\u00a0"}</span>
-        <span className={line} />
+        <span className={vLine} />
         <span className={cn(cell, "justify-start pl-1")}>
           {g.UL || "\u00a0"}
         </span>
 
-        <span className={line} />
-        <span className={line} />
-        <span className={line} />
+        <span className={hLine} />
+        <span className={hLine} />
+        <span className={hLine} />
 
         <span className={cn(cell, "justify-end pr-1")}>{g.LR || "\u00a0"}</span>
-        <span className={line} />
+        <span className={vLine} />
         <span className={cn(cell, "justify-start pl-1")}>
           {g.LL || "\u00a0"}
         </span>
