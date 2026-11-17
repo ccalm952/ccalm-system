@@ -97,7 +97,11 @@ function TeethCell({ teeth }: { teeth: string }) {
     return <span className="truncate">{teeth}</span>;
   }
   if (!parsed.length) return null;
-  return <ToothPositionField readOnly value={teeth} onValueChange={() => {}} />;
+  return (
+    <span className="flex h-10 -translate-y-px items-center justify-center">
+      <ToothPositionField readOnly value={teeth} onValueChange={() => {}} />
+    </span>
+  );
 }
 
 function formFromRow(row: PendingRow): FormState {
