@@ -11,7 +11,11 @@ import {
 } from "@nestjs/common";
 
 import { ChargesService } from "./charges.service";
-import { AddChargePaymentDto, SaveChargeOrderDto } from "./dto/charge.dto";
+import {
+  AddChargePaymentDto,
+  CollectChargeDto,
+  SaveChargeOrderDto,
+} from "./dto/charge.dto";
 
 @Controller("charges")
 export class ChargesController {
@@ -25,6 +29,11 @@ export class ChargesController {
   @Post()
   create(@Body() dto: SaveChargeOrderDto) {
     return this.charges.create(dto);
+  }
+
+  @Post("collect")
+  collect(@Body() dto: CollectChargeDto) {
+    return this.charges.collectByVisit(dto);
   }
 
   @Post("courses/:recordId")

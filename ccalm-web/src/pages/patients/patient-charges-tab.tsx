@@ -32,6 +32,7 @@ import { errorMessage } from "@/lib/errorMessage";
 import { visitKindLabel } from "@/lib/visits/visit-options";
 import { cn } from "cn";
 import { ChargeOrderEditor } from "./charge-order-editor";
+import { CollectChargeDialog } from "./collect-charge-dialog";
 import { ChargePaymentDialog } from "./charge-payment-dialog";
 import type {
   ChargeOrder,
@@ -75,6 +76,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const chargeParam = searchParams.get("charge");
   const [paying, setPaying] = React.useState<ChargeOrder | null>(null);
+  const [collectOpen, setCollectOpen] = React.useState(false);
   const [confirm, setConfirm] = React.useState<Confirm | null>(null);
   const [expandedPayments, setExpandedPayments] = React.useState<Set<number>>(
     () => new Set(),
@@ -177,10 +179,10 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => openEditor("new")}
+              onClick={() => setCollectOpen(true)}
             >
               <Plus className="size-3.5" />
-              新建收费
+              收费
             </Button>
           </div>
         </CardHeader>
@@ -367,6 +369,14 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
           ) : null}
         </CardContent>
       </Card>
+
+      <CollectChargeDialog
+        open={collectOpen}
+        onOpenChange={setCollectOpen}
+        patientId={patientId}
+        visits={visits}
+        onSaved={load}
+      />
 
       <ChargePaymentDialog
         open={paying != null}

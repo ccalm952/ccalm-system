@@ -1,7 +1,7 @@
-import { Type } from "class-transformer";
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsNumber,
   IsOptional,
@@ -11,9 +11,9 @@ import {
   MinLength,
   ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 export class ChargeItemDto {
-  /** 收费项目目录 id；不传时只允许保留原单中已有的项目 */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -65,7 +65,6 @@ export class SaveChargeOrderDto {
   @Type(() => ChargeItemDto)
   items!: ChargeItemDto[];
 
-  /** 仅新建时生效：开单同时收的金额 */
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -75,6 +74,28 @@ export class SaveChargeOrderDto {
   @IsOptional()
   @IsString()
   payMethod?: string;
+}
+
+export class CollectChargeDto {
+  @Type(() => Number)
+  @IsInt()
+  patientId!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  visitId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  method?: string;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "收款日期格式无效" })
+  paidAt!: string;
 }
 
 export class AddChargePaymentDto {
@@ -90,9 +111,14 @@ export class AddChargePaymentDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: "收款日期格式无效" })
   paidAt!: string;
 
-  /** 本次收款关联的就诊 id；不传表示不关联 */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   visitId?: number | null;
+}
+
+export class VoidChargeOrderDto {
+  @IsOptional()
+  @IsBoolean()
+  confirmed?: boolean;
 }

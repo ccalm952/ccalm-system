@@ -246,6 +246,103 @@ export class ChargesService {
     });
     return { order: mapOrder(updated), unquotedCount };
   }
+  /** 按就诊收款：找到该就诊对应的初诊病历，记到其疗程收费单上 */
+  async collectByVisit(dto: {
+    patientId: number;
+    visitId: number;
+    amount: number;
+    method?: string;
+    paidAt: string;
+  }) {
+    const visit = await this.prisma.patientVisit.findFirst({
+      where: { id: dto.visitId, patientId: dto.patientId },
+    });
+    if (!visit) throw new NotFoundException("就诊记录不存在");
+    const initial = await this.resolveInitialRecord(visit.id);
+    if (!initial) {
+      throw new BadRequestException("该就诊没有关联初诊病历，不能收费");
+    }
+    if (initial.visitId == null) {
+      throw new BadRequestException("初诊病历还没有关联就诊，不能收费");
+    }
+    let order = await this.prisma.chargeOrder.findFirst({
+      where: { visitId: initial.visitId, isCourse: true },
+      include: orderInclude,
+    });
+    if (!order) {
+      const { items, unquotedCount, receivable } = courseChargeItems(
+        initial.planItems,
+      );
+      if (!items.length) {
+        throw new BadRequestException(
+          unquotedCount > 0
+            ? "治疗计划还没有报价，请先填写单价"
+            : "初诊病历还没有治疗计划，不能收费",
+        );
+      }
+      order = await this.prisma.chargeOrder.create({
+        data: {
+          patientId: dto.patientId,
+          visitId: initial.visitId,
+          isCourse: true,
+          chargeDate: dto.paidAt,
+          doctor: initial.doctor,
+          receivable,
+          items: { create: items },
+        },
+        include: orderInclude,
+      });
+    }
+    const paid = sumMoney(order.payments.map((p) => p.amount));
+    const owed = roundMoney(order.receivable - paid);
+    if (dto.amount > owed) {
+      throw new BadRequestException("收款金额不能超过欠费");
+    }
+    const updated = await this.prisma.chargeOrder.update({
+      where: { id: order.id },
+      data: {
+        payments: {
+          create: {
+            amount: dto.amount,
+            method: dto.method?.trim() ?? "",
+            paidAt: dto.paidAt,
+            visitId: visit.id,
+          },
+        },
+      },
+      include: orderInclude,
+    });
+    return { order: mapOrder(updated) };
+  }
+
+  /** 就诊对应的初诊病历：初诊本身或复诊计划关联的初诊 */
+  private async resolveInitialRecord(visitId: number) {
+    const direct = await this.prisma.medicalRecord.findFirst({
+      where: {
+        visitId,
+        type: { in: ["first", "orthoFirst"] },
+      },
+      include: { planItems: { orderBy: { sort: "asc" } } },
+      orderBy: { id: "asc" },
+    });
+    if (direct) return direct;
+    const follow = await this.prisma.medicalRecord.findFirst({
+      where: { visitId, type: { in: ["return", "orthoReturn"] } },
+      include: {
+        planLinks: {
+          include: { planItem: { select: { recordId: true } } },
+          orderBy: { planItem: { sort: "asc" } },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+    const recordId = follow?.planLinks[0]?.planItem.recordId;
+    if (!recordId) return null;
+    return this.prisma.medicalRecord.findUnique({
+      where: { id: recordId },
+      include: { planItems: { orderBy: { sort: "asc" } } },
+    });
+  }
   private async findOrder(id: number) {
     const order = await this.prisma.chargeOrder.findUnique({
       where: { id },
