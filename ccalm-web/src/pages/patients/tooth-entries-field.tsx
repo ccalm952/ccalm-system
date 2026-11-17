@@ -102,7 +102,7 @@ export function ToothEntriesView({
           <div key={index} className="flex flex-col gap-3">
             <div
               className={cn(
-                "flex items-center gap-6 px-4",
+                "flex h-10 items-center gap-6 px-4",
                 onClick &&
                   "cursor-pointer rounded-2xl transition-all hover:bg-muted dark:hover:bg-muted/50",
               )}
