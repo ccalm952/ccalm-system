@@ -43,7 +43,7 @@ export function ToothPalmerMark({
     <span className={cn("inline-flex shrink-0 items-center", className)}>
       <span
         ref={measureRef}
-        className="pointer-events-none absolute top-0 left-0 flex text-xs leading-none font-medium tabular-nums opacity-0"
+        className="pointer-events-none absolute top-0 left-0 flex text-[14px] leading-none font-medium tabular-nums opacity-0"
         aria-hidden
       >
         {labels.map((label, i) => (
