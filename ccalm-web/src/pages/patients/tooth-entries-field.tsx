@@ -108,7 +108,7 @@ export function ToothEntriesView({
               )}
               onClick={onClick}
             >
-              <div className="flex w-40 shrink-0 justify-center">
+              <div className="flex w-40 shrink-0 items-center justify-center">
                 {entry.teeth ? (
                   <ToothPositionField
                     large

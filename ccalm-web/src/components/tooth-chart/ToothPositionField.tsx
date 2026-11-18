@@ -80,7 +80,7 @@ export function ToothPositionField({
               compact || plain
                 ? "h-auto min-h-8 border-0 bg-transparent px-0 py-1.5 shadow-none hover:bg-transparent aria-expanded:bg-transparent dark:bg-transparent dark:hover:bg-transparent"
                 : "h-10 items-center border-transparent bg-input/50 px-2.5 py-0 text-base leading-none font-normal hover:bg-input/50 aria-expanded:bg-input/50 md:text-sm dark:bg-input/50 dark:hover:bg-input/50",
-              large ? "h-auto min-h-16 justify-center" : "justify-start",
+              large ? "h-auto justify-center" : "justify-start",
               "w-full overflow-hidden",
               className,
             )}
