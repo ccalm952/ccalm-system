@@ -193,7 +193,6 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                 <TableRow>
                   <TableHead>收费日期</TableHead>
                   <TableHead>项目</TableHead>
-                  <TableHead>医生</TableHead>
                   <TableHead>应收</TableHead>
                   <TableHead>实收</TableHead>
                   <TableHead>欠费</TableHead>
@@ -205,7 +204,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
               <TableBody>
                 {!loading && !data.orders.length ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-muted-foreground">
+                    <TableCell colSpan={8} className="text-muted-foreground">
                       暂无收费记录
                     </TableCell>
                   </TableRow>
@@ -222,7 +221,6 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                       <TableCell className="max-w-48 truncate">
                         {o.items.map((i) => i.name).join("、")}
                       </TableCell>
-                      <TableCell>{o.doctor}</TableCell>
                       <TableCell className="tabular-nums">
                         {formatMoney(o.receivable)}
                       </TableCell>
@@ -317,7 +315,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                     </TableRow>
                     {expandedPayments.has(o.id) && o.payments.length ? (
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
-                        <TableCell colSpan={9} className="p-0 text-left">
+                        <TableCell colSpan={8} className="p-0 text-left">
                           <div className="px-6 py-3">
                             <div className="mb-2 text-sm text-muted-foreground">
                               收款记录（{o.payments.length}笔）
