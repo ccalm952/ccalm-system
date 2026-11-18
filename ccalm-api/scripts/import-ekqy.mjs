@@ -120,25 +120,59 @@ function visitInfo(full) {
 async function ensureVisit(full, isFirst) {
   const { date, time } = visitInfo(full);
   const doctor = full.doctorName || "";
+  const kind = isFirst ? "first" : "return";
   const existing = await prisma.patientVisit.findFirst({
     where: { patientId: patient.id, visitDate: date, startTime: time },
   });
-  if (existing) return existing;
+  if (existing) {
+    return prisma.patientVisit.update({
+      where: { id: existing.id },
+      data: {
+        kind,
+        status: "completed",
+        doctor: doctor || existing.doctor,
+        endTime: time || existing.endTime,
+        source: existing.source === "manual" ? existing.source : "record",
+      },
+    });
+  }
+  if (time) {
+    const slot = await prisma.patientVisit.findFirst({
+      where: {
+        patientId: patient.id,
+        visitDate: date,
+        startTime: "",
+        medicalRecords: { none: {} },
+      },
+    });
+    if (slot) {
+      return prisma.patientVisit.update({
+        where: { id: slot.id },
+        data: {
+          startTime: time,
+          endTime: time,
+          kind,
+          status: "completed",
+          doctor: doctor || slot.doctor,
+          source: "record",
+        },
+      });
+    }
+  }
   return prisma.patientVisit.create({
     data: {
       patientId: patient.id,
       visitDate: date,
       startTime: time,
       endTime: time,
-      kind: isFirst ? "first" : "return",
+      kind,
       status: "completed",
       doctor,
       source: "record",
-      remark: "由 e看牙 导入",
+      remark: "imported from e看牙",
     },
   });
 }
-
 function recordType(full) {
   const summary = summaryById.get(full.id);
   const isFirst = Boolean(full.firstVisit || summary?.firstVisit);
