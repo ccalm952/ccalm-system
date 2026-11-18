@@ -96,11 +96,13 @@ function PlanItemStatus({
   open,
   ownHandled,
   onWriteReturn,
+  onToggle,
 }: {
   item: PlanItem;
   open: boolean;
   ownHandled: boolean;
   onWriteReturn: () => void;
+  onToggle: () => void;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -109,14 +111,18 @@ function PlanItemStatus({
           {ownHandled ? (
             <span className="text-muted-foreground">初诊已处置</span>
           ) : null}
-          <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex items-center gap-1 rounded-md px-1 transition-colors hover:bg-muted"
+          >
             已复诊 {item.followUpCount} 次
             {open ? (
               <ChevronUp className="size-4" />
             ) : (
               <ChevronDown className="size-4" />
             )}
-          </span>
+          </button>
         </span>
       ) : ownHandled ? (
         <span className="text-muted-foreground">本次处置</span>
@@ -128,21 +134,13 @@ function PlanItemStatus({
           已完成 {item.doneDate}
         </Badge>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onWriteReturn();
-          }}
-        >
+        <Button type="button" variant="outline" onClick={onWriteReturn}>
           写复诊
         </Button>
       )}
     </div>
   );
 }
-
 function PlanFollowUps({
   planItemId,
   records,
@@ -280,18 +278,13 @@ function RecordBody({
                     (l) => l.planItemId === item.id,
                   )}
                   onWriteReturn={() => onWriteReturn(item.id as number)}
+                  onToggle={() => toggleItem(item.id as number)}
                 />
               ) : null;
             }}
             renderDetail={(index) => (
               <PlanQuoteView item={record.treatmentPlan[index]} />
             )}
-            rowClick={(index) => {
-              const id = record.treatmentPlan[index].id;
-              return id != null && followUps.has(id)
-                ? () => toggleItem(id)
-                : null;
-            }}
             renderBelow={(index) => {
               const id = record.treatmentPlan[index].id;
               const list = id != null ? followUps.get(id) : undefined;
