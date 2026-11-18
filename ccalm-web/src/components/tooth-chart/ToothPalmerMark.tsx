@@ -36,7 +36,7 @@ export function ToothPalmerMark({
     for (const el of root.querySelectorAll<HTMLElement>("[data-m]")) {
       max = Math.max(max, el.offsetWidth);
     }
-    setColPx(Math.max(Math.ceil(max), minColPx, 16));
+    setColPx(Math.max(Math.ceil(max), 16));
   }, [measureKey, minColPx]);
 
   return (
