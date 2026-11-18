@@ -33,8 +33,6 @@ export type TodayVisitRow = {
   status: string;
   /** 已开始接诊（已生成 Visit，状态仍是 booked） */
   started: boolean;
-  /** 已写病历 */
-  recorded: boolean;
   staff: string;
   /** 种植就诊的牙位（FDI 原文），用于十字展示 */
   teeth?: string[];
@@ -74,7 +72,6 @@ export function todayVisitRow(
     endTime: row.endTime,
     status: row.status,
     started: row.visitId != null,
-    recorded: (row.visit?.medicalRecords.length ?? 0) > 0,
     staff: staffSource?.doctor || row.doctor,
   };
   // 种植记录保存时生成的就诊（source = implant）出一行种植，内容列用牙位十字

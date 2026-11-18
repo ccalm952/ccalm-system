@@ -46,8 +46,6 @@ type TodayVisit = {
   status?: VisitStatus;
   /** 已开始接诊（已生成就诊记录，状态仍是预约） */
   started?: boolean;
-  /** 已写病历 */
-  recorded?: boolean;
   /** 种植牙位（FDI 原文），内容列用十字展示 */
   teeth?: string[];
   staff: string;
@@ -122,18 +120,32 @@ type PendingCourse = {
   doctor: string;
 };
 
+type PendingRecordVisit = {
+  id: number;
+  patientId: number;
+  name: string;
+  phone: string;
+  chartNo: string;
+  visitDate: string;
+  startTime: string;
+  kind: VisitKind;
+  doctor: string;
+};
+
 type Overview = {
   date: string;
   todayVisits: TodayVisit[];
+  pendingRecordVisits: PendingRecordVisit[];
   followUps: FollowUp[];
   pendingCourses: PendingCourse[];
   followUpTasks: FollowUpTask[];
 };
 
-type ListTab = "today" | "followUpTask" | "followUp" | "pendingCourse";
+type ListTab =
+  "today" | "pendingRecord" | "followUpTask" | "followUp" | "pendingCourse";
 
 /** 今日就诊两档：待接诊（未到店）/ 待治疗完成（已到店未写病历） */
-type VisitStatusFilter = "waiting" | "toRecord" | "completed" | "missed";
+type VisitStatusFilter = "waiting" | "completed" | "missed";
 
 function StatItem({
   label,
@@ -210,6 +222,7 @@ export function WorkbenchPage() {
   }, [load]);
 
   const todayVisits = data?.todayVisits ?? [];
+  const pendingRecordVisits = data?.pendingRecordVisits ?? [];
   const followUps = data?.followUps ?? [];
   const pendingCourses = data?.pendingCourses ?? [];
   const followUpTasks = data?.followUpTasks ?? [];
@@ -217,14 +230,10 @@ export function WorkbenchPage() {
     todayVisits.filter((v) => matchesVisitFilter(v, filter)).length;
   const matchesVisitFilter = (v: TodayVisit, filter: VisitStatusFilter) => {
     if (filter === "waiting") return v.status === "booked" && !v.started;
-    if (filter === "toRecord") {
-      return v.status === "booked" && !!v.started && !v.recorded;
-    }
     return v.status === filter;
   };
   const FILTER_LABELS: Record<VisitStatusFilter, string> = {
     waiting: "待接诊",
-    toRecord: "待写病历",
     completed: "已完成",
     missed: "已失约",
   };
@@ -284,8 +293,8 @@ export function WorkbenchPage() {
             />
             <StatItem
               label="待写病历"
-              value={countVisitStatus("toRecord")}
-              onClick={() => showVisits("toRecord")}
+              value={pendingRecordVisits.length}
+              onClick={() => setTab("pendingRecord")}
             />
           </CardContent>
         </Card>
@@ -301,6 +310,13 @@ export function WorkbenchPage() {
                 onClick={() => showVisits(null)}
               >
                 今日就诊
+              </Button>
+              <Button
+                type="button"
+                variant={tab === "pendingRecord" ? "default" : "outline"}
+                onClick={() => setTab("pendingRecord")}
+              >
+                待写病历
               </Button>
               <Button
                 type="button"
@@ -381,6 +397,57 @@ export function WorkbenchPage() {
                           )}
                         </TableCell>
                         <TableCell>{v.staff}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            ) : tab === "pendingRecord" ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>日期</TableHead>
+                    <TableHead>时间</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>手机</TableHead>
+                    <TableHead>病历号</TableHead>
+                    <TableHead>类型</TableHead>
+                    <TableHead>医生 / 经办</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="[&_tr:nth-child(odd)]:bg-muted/30">
+                  {pendingRecordVisits.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-muted-foreground">
+                        暂无待写病历
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingRecordVisits.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell>{v.visitDate}</TableCell>
+                        <TableCell>{v.startTime}</TableCell>
+                        <TableCell>
+                          <PatientLink id={v.patientId} name={v.name} />
+                        </TableCell>
+                        <TableCell>{v.phone}</TableCell>
+                        <TableCell>{v.chartNo}</TableCell>
+                        <TableCell>{visitKindLabel(v.kind)}</TableCell>
+                        <TableCell>{v.doctor}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="secondary"
+                            nativeButton={false}
+                            render={
+                              <Link
+                                to={`${ROUTES.patients.detail(v.patientId)}?tab=records&visit=${v.id}`}
+                              />
+                            }
+                          >
+                            写病历
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}

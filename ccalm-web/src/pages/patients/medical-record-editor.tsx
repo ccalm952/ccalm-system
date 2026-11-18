@@ -74,9 +74,14 @@ const NEW_VISIT = "new";
 function defaultVisitLink(
   record: MedicalRecord | null,
   visits: PatientVisit[],
+  initialVisitId: number | null,
 ): string {
   if (record) {
     return record.visitId != null ? String(record.visitId) : NEW_VISIT;
+  }
+  // 从工作台「待写病历」点进来时，直接挂到那一次就诊
+  if (initialVisitId != null && visits.some((v) => v.id === initialVisitId)) {
+    return String(initialVisitId);
   }
   const pending = pickPendingVisitId(visits, dayjs().format("YYYY-MM-DD"));
   return pending == null ? NEW_VISIT : String(pending);
@@ -87,10 +92,11 @@ function toForm(
   plan: ReturnPlan | null,
   visits: PatientVisit[],
   defaultDoctor: string,
+  initialVisitId: number | null,
 ): FormState {
   return {
     type: record?.type ?? (plan ? "return" : "first"),
-    visitLink: defaultVisitLink(record, visits),
+    visitLink: defaultVisitLink(record, visits, initialVisitId),
     visitDate: record?.visitDate ?? dayjs().format("YYYY-MM-DD"),
     visitTime: record?.visitTime ?? dayjs().format("HH:mm"),
     doctor: record?.doctor || plan?.doctor || defaultDoctor,
@@ -121,6 +127,7 @@ export function MedicalRecordEditor({
   record,
   plan,
   visits,
+  initialVisitId = null,
   onCancel,
   onSaved,
 }: {
@@ -128,12 +135,14 @@ export function MedicalRecordEditor({
   record: MedicalRecord | null;
   plan: ReturnPlan | null;
   visits: PatientVisit[];
+  /** 新建病历时默认挂到的就诊（工作台「待写病历」入口） */
+  initialVisitId?: number | null;
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
 }) {
   const { me } = useAuth();
   const [form, setForm] = React.useState<FormState>(() =>
-    toForm(record, plan, visits, me?.displayName ?? ""),
+    toForm(record, plan, visits, me?.displayName ?? "", initialVisitId),
   );
   const [saving, setSaving] = React.useState(false);
 

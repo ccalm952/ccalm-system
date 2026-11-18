@@ -23,58 +23,85 @@ export class WorkbenchService {
   async overview() {
     const today = dayjs().format("YYYY-MM-DD");
 
-    const [visits, orthodonticsOpen, openCourses, followUpTasks] =
-      await Promise.all([
-        this.prisma.appointment.findMany({
-          where: { visitDate: today, isPending: false },
-          include: {
-            patient: true,
-            visit: {
-              include: {
-                medicalRecords: {
-                  orderBy: { id: "desc" },
-                  select: { type: true, doctor: true },
+    const [
+      visits,
+      pendingVisits,
+      orthodonticsOpen,
+      openCourses,
+      followUpTasks,
+    ] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { visitDate: today, isPending: false },
+        include: {
+          patient: true,
+          visit: {
+            include: {
+              medicalRecords: {
+                orderBy: { id: "desc" },
+                select: { type: true, doctor: true },
+              },
+            },
+          },
+        },
+        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+      }),
+      // 待写病历：所有已开始接诊（有就诊记录和预约）但还没写病历的就诊，不限日期
+      this.prisma.patientVisit.findMany({
+        where: {
+          status: "booked",
+          medicalRecords: { none: {} },
+          appointment: { isNot: null },
+        },
+        include: { patient: true },
+        orderBy: [{ visitDate: "desc" }, { startTime: "desc" }, { id: "desc" }],
+      }),
+      this.prisma.orthodonticsPatient.findMany({
+        where: {
+          category: { not: "completed" },
+          lastVisitDate: { not: null },
+        },
+        include: { patient: true },
+      }),
+      this.prisma.medicalRecord.findMany({
+        where: {
+          type: "first",
+          planStoppedAt: null,
+          planItems: { some: { followUps: { none: { completes: true } } } },
+        },
+        include: {
+          patient: true,
+          planItems: {
+            orderBy: { sort: "asc" },
+            include: {
+              followUps: {
+                select: {
+                  completes: true,
+                  record: { select: { visitDate: true } },
                 },
               },
             },
           },
-          orderBy: [{ startTime: "asc" }, { id: "asc" }],
-        }),
-        this.prisma.orthodonticsPatient.findMany({
-          where: {
-            category: { not: "completed" },
-            lastVisitDate: { not: null },
-          },
-          include: { patient: true },
-        }),
-        this.prisma.medicalRecord.findMany({
-          where: {
-            type: "first",
-            planStoppedAt: null,
-            planItems: { some: { followUps: { none: { completes: true } } } },
-          },
-          include: {
-            patient: true,
-            planItems: {
-              orderBy: { sort: "asc" },
-              include: {
-                followUps: {
-                  select: {
-                    completes: true,
-                    record: { select: { visitDate: true } },
-                  },
-                },
-              },
-            },
-          },
-        }),
-        this.followUps.list({ due: true }),
-      ]);
+        },
+      }),
+      this.followUps.list({ due: true }),
+    ]);
 
     // 工作台只看就诊数据：种植行也来自就诊（牙位快照存在预约的 implantTeeth 上）
     const todayVisits: TodayVisitRow[] = visits.map((v) =>
       todayVisitRow(v, v.implantTeeth),
     );
+
+    const pendingRecordVisits = pendingVisits.map((v) => ({
+      id: v.id,
+      patientId: v.patientId,
+      name: v.patient.name,
+      phone: v.patient.phone,
+      chartNo: v.patient.chartNo,
+      visitDate: v.visitDate,
+      startTime: v.startTime,
+      kind: v.kind,
+      doctor: v.doctor,
+    }));
 
     const followUps = orthodonticsOpen
       .map((o) => ({
@@ -140,6 +167,7 @@ export class WorkbenchService {
     return {
       date: today,
       todayVisits,
+      pendingRecordVisits,
       followUps,
       pendingCourses,
       followUpTasks,
