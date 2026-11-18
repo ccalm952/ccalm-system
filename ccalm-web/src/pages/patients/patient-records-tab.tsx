@@ -142,93 +142,120 @@ function PlanItemStatus({
     </div>
   );
 }
-function FollowUpTimelineRows({
+function PlanFollowUps({
+  planItemId,
   records,
   expanded,
   chargeByVisit,
   onEdit,
   onDelete,
 }: {
-  records: MedicalRecord[];
+  planItemId: number;
   expanded: boolean;
+  records: MedicalRecord[];
   chargeByVisit: Map<number, VisitCharge>;
   onEdit: (record: MedicalRecord) => void;
   onDelete: (record: MedicalRecord) => void;
 }) {
   return (
-    <>
+    <div className="flex flex-col divide-y rounded-lg bg-muted/50 px-4">
       {records.map((r) => (
-        <React.Fragment key={r.id}>
-          <div className="relative border-r pt-[17px] pr-5 text-right text-primary tabular-nums">
-            <div className="flex h-8 flex-col justify-center">
-              <div>{r.visitDate}</div>
-              <div>{r.visitTime}</div>
-            </div>
-            <span className="absolute top-[27px] -right-[6.5px] size-3 rounded-full border-2 border-primary bg-background" />
+        <div
+          key={r.id}
+          className="grid grid-cols-[6rem_1fr_auto_auto_auto] items-center gap-4 py-3"
+        >
+          <div className="text-primary tabular-nums">
+            <div>{r.visitDate}</div>
+            <div className="text-muted-foreground">{r.doctor}</div>
           </div>
-          <div className="pb-4 pl-5">
-            <div className="flex flex-col gap-3 rounded-lg bg-muted/50 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">{r.doctor}</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => onEdit(r)}
-                  >
-                    编辑
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => onDelete(r)}
-                  >
-                    删除
-                  </Button>
-                </div>
+          <div className="flex flex-col gap-2">
+            {r.treatment.length ? (
+              <ToothEntriesView entries={r.treatment} />
+            ) : (
+              <span className="text-muted-foreground">无处置</span>
+            )}
+            {expanded && r.advice ? (
+              <div className="whitespace-pre-wrap">
+                <span className="text-muted-foreground">医嘱：</span>
+                {r.advice}
               </div>
-              {r.treatment.length ? (
-                <ToothEntriesView entries={r.treatment} />
-              ) : (
-                <span className="text-muted-foreground">无处置</span>
-              )}
-              {expanded && r.advice ? (
-                <div className="whitespace-pre-wrap">
-                  <span className="text-muted-foreground">医嘱：</span>
-                  {r.advice}
-                </div>
-              ) : null}
-              {expanded && r.remark ? (
-                <div className="whitespace-pre-wrap">
-                  <span className="text-muted-foreground">备注：</span>
-                  {r.remark}
-                </div>
-              ) : null}
-              {r.visitId != null && chargeByVisit.has(r.visitId) ? (
-                <div>
-                  <ChargeSummary charge={chargeByVisit.get(r.visitId)!} />
-                </div>
-              ) : null}
-            </div>
+            ) : null}
+            {expanded && r.remark ? (
+              <div className="whitespace-pre-wrap">
+                <span className="text-muted-foreground">备注：</span>
+                {r.remark}
+              </div>
+            ) : null}
           </div>
-        </React.Fragment>
+          {r.planLinks.some(
+            (l) => l.planItemId === planItemId && l.completes,
+          ) ? (
+            <Badge variant="secondary" className="h-auto text-sm">
+              本行完成
+            </Badge>
+          ) : (
+            <span />
+          )}
+          {r.visitId != null && chargeByVisit.has(r.visitId) ? (
+            <ChargeSummary charge={chargeByVisit.get(r.visitId)!} />
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="secondary" onClick={() => onEdit(r)}>
+              编辑
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => onDelete(r)}
+            >
+              删除
+            </Button>
+          </div>
+        </div>
       ))}
-    </>
+    </div>
   );
 }
+
 function RecordBody({
   record,
   expanded,
-  openItems,
+  followUps,
+  chargeByVisit,
   onWriteReturn,
-  onToggleItem,
+  onEditRecord,
+  onDeleteRecord,
 }: {
   record: MedicalRecord;
   expanded: boolean;
-  openItems: Set<number>;
+  followUps: Map<number, MedicalRecord[]>;
+  chargeByVisit: Map<number, VisitCharge>;
   onWriteReturn: (planItemId: number) => void;
-  onToggleItem: (planItemId: number) => void;
+  onEditRecord: (record: MedicalRecord) => void;
+  onDeleteRecord: (record: MedicalRecord) => void;
 }) {
+  const followUpItemIds = () =>
+    record.treatmentPlan
+      .map((i) => i.id)
+      .filter((id): id is number => id != null && followUps.has(id));
+  const [openItems, setOpenItems] = React.useState<Set<number>>(
+    () => new Set(expanded ? followUpItemIds() : []),
+  );
+  const [prevExpanded, setPrevExpanded] = React.useState(expanded);
+  if (expanded !== prevExpanded) {
+    setPrevExpanded(expanded);
+    setOpenItems(new Set(expanded ? followUpItemIds() : []));
+  }
+  function toggleItem(id: number) {
+    setOpenItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const fields: MedicalRecordField[] = expanded
     ? MEDICAL_RECORD_FIELDS[record.type]
     : record.type === "first"
@@ -252,13 +279,27 @@ function RecordBody({
                     (l) => l.planItemId === item.id,
                   )}
                   onWriteReturn={() => onWriteReturn(item.id as number)}
-                  onToggle={() => onToggleItem(item.id as number)}
+                  onToggle={() => toggleItem(item.id as number)}
                 />
               ) : null;
             }}
             renderDetail={(index) => (
               <PlanQuoteView item={record.treatmentPlan[index]} />
             )}
+            renderBelow={(index) => {
+              const id = record.treatmentPlan[index].id;
+              const list = id != null ? followUps.get(id) : undefined;
+              return id != null && openItems.has(id) && list?.length ? (
+                <PlanFollowUps
+                  planItemId={id}
+                  records={list}
+                  expanded={expanded}
+                  chargeByVisit={chargeByVisit}
+                  onEdit={onEditRecord}
+                  onDelete={onDeleteRecord}
+                />
+              ) : null;
+            }}
           />
         );
       }
@@ -309,32 +350,6 @@ function planProgress(record: MedicalRecord): string | null {
     : progress;
 }
 
-function defaultOpenIds(
-  record: MedicalRecord,
-  followUps: Map<number, MedicalRecord[]>,
-) {
-  return record.treatmentPlan
-    .map((item) => item.id)
-    .filter((id): id is number => id != null && followUps.has(id));
-}
-
-function followUpRecordsFor(
-  record: MedicalRecord,
-  followUps: Map<number, MedicalRecord[]>,
-  openItems: Set<number>,
-) {
-  const map = new Map<number, MedicalRecord>();
-  for (const item of record.treatmentPlan) {
-    if (item.id == null || !openItems.has(item.id)) continue;
-    for (const r of followUps.get(item.id) ?? []) map.set(r.id, r);
-  }
-  return [...map.values()].sort((a, b) =>
-    `${a.visitDate} ${a.visitTime}`.localeCompare(
-      `${b.visitDate} ${b.visitTime}`,
-    ),
-  );
-}
-
 export function PatientRecordsTab({
   patientId,
   focusRecordId,
@@ -354,9 +369,6 @@ export function PatientRecordsTab({
   } | null>(null);
   const [expanded, setExpanded] = React.useState<Set<number>>(
     () => new Set(focusRecordId != null ? [focusRecordId] : []),
-  );
-  const [planOpen, setPlanOpen] = React.useState<Map<number, Set<number>>>(
-    () => new Map(),
   );
   const [deleting, setDeleting] = React.useState<MedicalRecord | null>(null);
   const [stopping, setStopping] = React.useState<MedicalRecord | null>(null);
@@ -399,19 +411,6 @@ export function PatientRecordsTab({
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      return next;
-    });
-  }
-
-  function togglePlanItem(record: MedicalRecord, itemId: number) {
-    setPlanOpen((prev) => {
-      const next = new Map(prev);
-      const current =
-        next.get(record.id) ?? new Set(defaultOpenIds(record, followUps));
-      const set = new Set(current);
-      if (set.has(itemId)) set.delete(itemId);
-      else set.add(itemId);
-      next.set(record.id, set);
       return next;
     });
   }
@@ -592,13 +591,6 @@ export function PatientRecordsTab({
         <div className="flex flex-col">
           {timeline.map((record) => {
             const isOpen = expanded.has(record.id);
-            const openItems = isOpen
-              ? (planOpen.get(record.id) ??
-                new Set(defaultOpenIds(record, followUps)))
-              : new Set<number>();
-            const followRecords = isOpen
-              ? followUpRecordsFor(record, followUps, openItems)
-              : [];
             const courseOrder =
               record.visitId != null
                 ? (courseOrderByVisit.get(record.visitId) ?? null)
@@ -741,8 +733,8 @@ export function PatientRecordsTab({
                     <RecordBody
                       record={record}
                       expanded={isOpen}
-                      openItems={openItems}
-                      onToggleItem={(itemId) => togglePlanItem(record, itemId)}
+                      followUps={followUps}
+                      chargeByVisit={chargeByVisit}
                       onWriteReturn={(startItemId) =>
                         setEditing({
                           record: null,
@@ -753,18 +745,11 @@ export function PatientRecordsTab({
                           },
                         })
                       }
+                      onEditRecord={editRecord}
+                      onDeleteRecord={setDeleting}
                     />
                   </div>
                 </div>
-                {followRecords.length ? (
-                  <FollowUpTimelineRows
-                    records={followRecords}
-                    expanded={isOpen}
-                    chargeByVisit={chargeByVisit}
-                    onEdit={editRecord}
-                    onDelete={setDeleting}
-                  />
-                ) : null}
               </div>
             );
           })}
