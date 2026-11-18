@@ -46,6 +46,7 @@ export function PatientDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
   const focusRecord = Number(searchParams.get("record"));
+  const focusVisit = Number(searchParams.get("visit"));
   const [patient, setPatient] = React.useState<PatientDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -155,6 +156,7 @@ export function PatientDetailPage() {
               <PatientRecordsTab
                 patientId={patient.id}
                 focusRecordId={focusRecord > 0 ? focusRecord : null}
+                focusVisitId={focusVisit > 0 ? focusVisit : null}
                 onEditingChange={setEditingRecord}
               />
             ) : null}

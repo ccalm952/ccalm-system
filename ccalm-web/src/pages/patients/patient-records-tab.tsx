@@ -353,10 +353,13 @@ function planProgress(record: MedicalRecord): string | null {
 export function PatientRecordsTab({
   patientId,
   focusRecordId,
+  focusVisitId = null,
   onEditingChange,
 }: {
   patientId: number;
   focusRecordId: number | null;
+  /** 从工作台「待写病历」进来时，直接为这次就诊新建病历 */
+  focusVisitId?: number | null;
   onEditingChange: (editing: boolean) => void;
 }) {
   const [records, setRecords] = React.useState<MedicalRecord[]>([]);
@@ -366,6 +369,7 @@ export function PatientRecordsTab({
   const [editing, setEditing] = React.useState<{
     record: MedicalRecord | null;
     plan: ReturnPlan | null;
+    visitId?: number | null;
   } | null>(null);
   const [expanded, setExpanded] = React.useState<Set<number>>(
     () => new Set(focusRecordId != null ? [focusRecordId] : []),
@@ -405,6 +409,15 @@ export function PatientRecordsTab({
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  // 从工作台「待写病历」点进来：自动打开这次就诊的病历编辑器
+  const openedFocusVisit = React.useRef(false);
+  React.useEffect(() => {
+    if (focusVisitId == null || openedFocusVisit.current) return;
+    if (!visits.some((v) => v.id === focusVisitId)) return;
+    openedFocusVisit.current = true;
+    setEditing({ record: null, plan: null, visitId: focusVisitId });
+  }, [focusVisitId, visits]);
 
   function toggle(id: number) {
     setExpanded((prev) => {
@@ -487,6 +500,7 @@ export function PatientRecordsTab({
         record={editing.record}
         plan={editing.plan}
         visits={visits}
+        initialVisitId={editing.visitId ?? null}
         onCancel={() => setEditing(null)}
         onSaved={async () => {
           setEditing(null);
