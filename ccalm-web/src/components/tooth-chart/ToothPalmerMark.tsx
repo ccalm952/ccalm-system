@@ -13,7 +13,7 @@ type ToothPalmerMarkProps = {
   minColPx?: number;
 };
 
-/** 图：十字象限 Palmer 标记；宽度按牙位文字动态测量，高度固定 */
+/** 图：十字象限 Palmer 标记；宽度按牙位文字动态测量，高度由字体和 padding 自然决定 */
 export function ToothPalmerMark({
   fdis,
   className,
