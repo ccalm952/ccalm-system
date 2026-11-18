@@ -42,7 +42,8 @@ const teethKey = (value) =>
     .sort((a, b) => Number(a) - Number(b))
     .join(",");
 
-const entryKey = (entry) => `${teethKey(entry.teeth)}|${clean(entry.text)}`;
+const entryKey = (entry) =>
+  `${teethKey(entry.teeth)}|${clean(entry.text).replace(/\s+/g, "")}`;
 
 const eRecords = [
   ...new Map((raw.fulls ?? []).map((item) => [item.id, item])).values(),
