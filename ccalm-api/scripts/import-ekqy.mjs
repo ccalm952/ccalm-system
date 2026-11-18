@@ -312,6 +312,7 @@ if (initialEntry && total > 0) {
       return {
         amount: Number(payment.amount ?? 0),
         method: payment.payType || "",
+        doctor: visit?.doctor || order.doctorName || order.payee || "",
         paidAt: paidAt || initialEntry.record.visitDate,
         visitId: visit?.id ?? null,
       };

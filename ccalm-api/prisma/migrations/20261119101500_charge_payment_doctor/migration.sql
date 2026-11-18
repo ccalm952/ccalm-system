@@ -1,0 +1,1 @@
+ALTER TABLE "ChargePayment" ADD COLUMN "doctor" TEXT NOT NULL DEFAULT '';

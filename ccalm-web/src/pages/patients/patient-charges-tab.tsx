@@ -327,6 +327,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                                 <TableRow>
                                   <TableHead>收款日期</TableHead>
                                   <TableHead>方式</TableHead>
+                                  <TableHead>医生</TableHead>
                                   <TableHead>金额</TableHead>
                                   <TableHead>关联就诊</TableHead>
                                 </TableRow>
@@ -336,6 +337,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                                   <TableRow key={p.id}>
                                     <TableCell>{p.paidAt}</TableCell>
                                     <TableCell>{p.method || "—"}</TableCell>
+                                    <TableCell>{p.doctor || "—"}</TableCell>
                                     <TableCell className="tabular-nums">
                                       {formatMoney(p.amount)}
                                     </TableCell>

@@ -498,6 +498,8 @@ model ChargePayment {
   visit     PatientVisit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
   amount    Float
   method    String        @default("")
+  /// 收款医生/经办
+  doctor    String        @default("")
   paidAt    String
   createdAt DateTime      @default(now())
 

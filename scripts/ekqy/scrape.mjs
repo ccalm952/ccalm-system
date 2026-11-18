@@ -10,10 +10,11 @@ if (!name) throw new Error("name file is empty");
 const task = await taskSpace("e看牙导入");
 const page = (await task.pages())[0];
 
-await page.goto("https://qzyzkq.linkedcare.cn/ares3/?ekqy=3#/new/patient", {
+await page.goto(`https://qzyzkq.linkedcare.cn/ares3/?t=${Date.now()}#/new/patient`, {
   timeout: 60000,
 });
-await page.waitForTimeout(3500);
+await page.waitForSelector("input.searchTerm", { timeout: 30000 });
+await page.waitForTimeout(1000);
 
 await page.evaluate(() => {
   window.__ekqy = [];

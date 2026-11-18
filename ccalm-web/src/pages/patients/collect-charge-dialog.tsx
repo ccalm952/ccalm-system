@@ -42,6 +42,7 @@ export function CollectChargeDialog({
   const [visitId, setVisitId] = React.useState("");
   const [amount, setAmount] = React.useState("");
   const [method, setMethod] = React.useState(PAY_METHODS[0]);
+  const [doctor, setDoctor] = React.useState("");
   const [paidAt, setPaidAt] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
@@ -51,6 +52,9 @@ export function CollectChargeDialog({
       v.appointmentId != null ? " · 已接诊" : ""
     }`,
   }));
+  const doctorItems = [
+    ...new Set(visits.map((v) => v.doctor).filter(Boolean)),
+  ].map((name) => ({ value: name, label: name }));
 
   React.useEffect(() => {
     if (!open) return;
@@ -58,6 +62,7 @@ export function CollectChargeDialog({
     setAmount("");
     setMethod(PAY_METHODS[0]);
     setPaidAt(dayjs().format("YYYY-MM-DD"));
+    setDoctor(visits[0]?.doctor ?? "");
   }, [open, visits]);
 
   async function save() {
@@ -77,6 +82,7 @@ export function CollectChargeDialog({
         visitId: Number(visitId),
         amount: value,
         method,
+        doctor,
         paidAt,
       });
       toast.success("已收款");
@@ -97,11 +103,36 @@ export function CollectChargeDialog({
         </DialogHeader>
         <div className="grid gap-4">
           <label className="grid gap-1.5">
+            <span className="text-sm text-muted-foreground">收款医生</span>
+            <Select
+              items={doctorItems}
+              value={doctor}
+              onValueChange={(v: string | null) => setDoctor(v ?? "")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="选择医生" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {doctorItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="grid gap-1.5">
             <span className="text-sm text-muted-foreground">就诊</span>
             <Select
               items={visitItems}
               value={visitId}
-              onValueChange={(v: string | null) => setVisitId(v ?? "")}
+              onValueChange={(v: string | null) => {
+                setVisitId(v ?? "");
+                const selected = visits.find((item) => String(item.id) === v);
+                if (selected?.doctor) setDoctor(selected.doctor);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择就诊" />

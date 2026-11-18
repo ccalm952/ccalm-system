@@ -53,7 +53,14 @@ export function ChargePaymentDialog({
   const [method, setMethod] = React.useState(PAY_METHODS[0]);
   const [paidAt, setPaidAt] = React.useState("");
   const [visitId, setVisitId] = React.useState(NO_VISIT);
+  const [doctor, setDoctor] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+
+  const doctorItems = [
+    ...new Set(
+      [order?.doctor ?? "", ...visits.map((v) => v.doctor)].filter(Boolean),
+    ),
+  ].map((name) => ({ value: name, label: name }));
 
   const visitItems = [
     { value: NO_VISIT, label: "不关联就诊" },
@@ -69,6 +76,7 @@ export function ChargePaymentDialog({
       setMethod(PAY_METHODS[0]);
       setPaidAt(dayjs().format("YYYY-MM-DD"));
       setVisitId(NO_VISIT);
+      setDoctor(order.doctor || "");
     }
   }, [open, order]);
 
@@ -88,6 +96,7 @@ export function ChargePaymentDialog({
       await api("POST", `/charges/${order.id}/payments`, {
         amount: value,
         method,
+        doctor,
         paidAt,
         visitId: visitId === NO_VISIT ? undefined : Number(visitId),
       });
@@ -133,6 +142,7 @@ export function ChargePaymentDialog({
                   <TableRow>
                     <TableHead>日期</TableHead>
                     <TableHead>方式</TableHead>
+                    <TableHead>医生</TableHead>
                     <TableHead>就诊</TableHead>
                     <TableHead>金额</TableHead>
                   </TableRow>
@@ -142,6 +152,7 @@ export function ChargePaymentDialog({
                     <TableRow key={p.id}>
                       <TableCell>{p.paidAt}</TableCell>
                       <TableCell>{p.method || "—"}</TableCell>
+                      <TableCell>{p.doctor || "—"}</TableCell>
                       <TableCell>
                         {p.visitDate
                           ? `${p.visitDate}${
@@ -194,6 +205,27 @@ export function ChargePaymentDialog({
                     onValueChange={setPaidAt}
                     placeholder="收款日期"
                   />
+                </div>
+                <div className="grid gap-1.5">
+                  <span className="text-muted-foreground">收款医生</span>
+                  <Select
+                    items={doctorItems}
+                    value={doctor}
+                    onValueChange={(v: string | null) => setDoctor(v ?? "")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="选择医生" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {doctorItems.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-1.5">
                   <span className="text-muted-foreground">关联就诊</span>

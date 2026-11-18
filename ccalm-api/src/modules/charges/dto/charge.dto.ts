@@ -81,6 +81,10 @@ export class CollectChargeDto {
   @IsInt()
   patientId!: number;
 
+  @IsOptional()
+  @IsString()
+  doctor?: string;
+
   @Type(() => Number)
   @IsInt()
   visitId!: number;
@@ -103,6 +107,10 @@ export class AddChargePaymentDto {
   @IsNumber()
   @Min(0.01)
   amount!: number;
+
+  @IsOptional()
+  @IsString()
+  doctor?: string;
 
   @IsOptional()
   @IsString()
