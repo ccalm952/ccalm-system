@@ -193,7 +193,6 @@ export class ReportsService {
     const feeItemMap = new Map<string, Acc>();
 
     for (const order of orders) {
-      addAcc(doctorMap, order.doctor, { receivable: order.receivable });
       for (const item of order.items) {
         const fee = resolveFee(item.name, item.feeItemId);
         addAcc(categoryMap, fee.category, { receivable: item.amount });

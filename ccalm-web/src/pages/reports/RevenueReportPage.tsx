@@ -259,7 +259,6 @@ export function RevenueReportPage() {
     const header = [
       "收费日期",
       "患者",
-      "医生",
       "收费项目",
       "应收",
       "实收",
@@ -270,7 +269,6 @@ export function RevenueReportPage() {
       [
         order.chargeDate,
         order.patientName,
-        order.doctor || "",
         order.items.join(" / "),
         order.receivable.toFixed(2),
         order.paid.toFixed(2),
@@ -416,7 +414,10 @@ export function RevenueReportPage() {
                 onValueChange={(value) => setMetric(value as Metric)}
               >
                 <TabsList>
-                  {METRICS.map((item) => (
+                  {METRICS.filter(
+                    (item) =>
+                      distribution !== "doctor" || item.value === "received",
+                  ).map((item) => (
                     <TabsTrigger key={item.value} value={item.value}>
                       {item.label}
                     </TabsTrigger>
@@ -427,9 +428,11 @@ export function RevenueReportPage() {
             <CardContent className="flex flex-col gap-4">
               <Tabs
                 value={distribution}
-                onValueChange={(value) =>
-                  setDistribution(value as DistributionKey)
-                }
+                onValueChange={(value) => {
+                  const next = value as DistributionKey;
+                  setDistribution(next);
+                  if (next === "doctor") setMetric("received");
+                }}
               >
                 <TabsList className="grid w-full grid-cols-2 sm:w-fit sm:grid-cols-4">
                   {DISTRIBUTIONS.map((item) => (
