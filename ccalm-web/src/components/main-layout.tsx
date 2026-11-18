@@ -24,6 +24,7 @@ import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { patientsNavItem } from "@/config/patients-nav";
+import { reportsSubNavItems } from "@/config/reports-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
@@ -122,6 +123,22 @@ export function MainLayout() {
                     ))}
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+                {can(me, "report.view") ? (
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>报表</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      {reportsSubNavItems.map((item) => (
+                        <NavigationMenuLink
+                          className="w-62"
+                          key={item.title}
+                          render={<Link to={item.url} />}
+                        >
+                          {item.title}
+                        </NavigationMenuLink>
+                      ))}
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                ) : null}
                 {can(me, "staff.manage") ? (
                   <NavigationMenuItem>
                     <NavigationMenuLink

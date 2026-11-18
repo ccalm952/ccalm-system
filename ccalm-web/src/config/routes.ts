@@ -40,6 +40,9 @@ export const ROUTES = {
   salary: {
     root: "/salary",
   },
+  reports: {
+    revenue: "/reports/revenue",
+  },
   appointments: {
     root: "/appointments",
   },

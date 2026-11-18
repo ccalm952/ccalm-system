@@ -123,6 +123,12 @@ const FeeItemsPage = lazy(() =>
   })),
 );
 
+const RevenueReportPage = lazy(() =>
+  import("./pages/reports/RevenueReportPage").then((m) => ({
+    default: m.RevenueReportPage,
+  })),
+);
+
 function RouteFallback() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background">
@@ -293,6 +299,14 @@ function App() {
               />
               <Route path="implant-compare" element={<ImplantComparePage />} />
               <Route path="fee-items" element={<FeeItemsPage />} />
+            </Route>
+
+            <Route path="reports">
+              <Route
+                index
+                element={<Navigate to={ROUTES.reports.revenue} replace />}
+              />
+              <Route path="revenue" element={<RevenueReportPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
