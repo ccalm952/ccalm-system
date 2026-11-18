@@ -144,8 +144,13 @@ for (const date of [...new Set([...eByDate.keys(), ...pByDate.keys()])].sort()) 
 
 const eOrders = [
   ...new Map((raw.orders ?? []).map((order) => [order.id, order])).values(),
-];
-const eTotal = eOrders.reduce(
+].filter((order) => {
+  if (!latestInitial) return true;
+  const date = String(
+    order.payDateTime || order.recordCreatedTime || "",
+  ).slice(0, 10);
+  return !date || date >= latestInitial;
+});const eTotal = eOrders.reduce(
   (sum, order) => sum + Number(order.actualPrice ?? order.planPrice ?? 0),
   0,
 );
