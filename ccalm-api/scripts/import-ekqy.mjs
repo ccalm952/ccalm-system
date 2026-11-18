@@ -69,6 +69,14 @@ const birthday = info.birth ? String(info.birth).slice(0, 10) : null;
 
 let patient = await prisma.patient.findFirst({ where: { chartNo } });
 if (!patient) {
+  const sameName = await prisma.patient.findMany({
+    where: { name: info.name || raw.name },
+  });
+  patient =
+    sameName.find((item) => !item.chartNo) ??
+    (sameName.length === 1 ? sameName[0] : null);
+}
+if (!patient) {
   patient = await prisma.patient.create({
     data: {
       name: info.name || raw.name,
@@ -76,16 +84,19 @@ if (!patient) {
       chartNo,
       gender,
       birthday,
-      remark: "从 e看牙 导入",
+      remark: "imported from e看牙",
     },
   });
 } else {
   patient = await prisma.patient.update({
     where: { id: patient.id },
-    data: { phone: phone || patient.phone, gender: gender || patient.gender },
+    data: {
+      chartNo: patient.chartNo || chartNo,
+      phone: phone || patient.phone,
+      gender: gender || patient.gender,
+    },
   });
 }
-
 await prisma.chargeOrder.deleteMany({ where: { patientId: patient.id } });
 await prisma.medicalRecord.deleteMany({ where: { patientId: patient.id } });
 
@@ -227,7 +238,9 @@ if (initialEntry?.record.planItems.length) {
   }
 }
 
-const orders = raw.orders ?? [];
+const orders = [
+  ...new Map((raw.orders ?? []).map((order) => [order.id, order])).values(),
+];
 const total = orders.reduce(
   (sum, order) => sum + Number(order.actualPrice ?? order.planPrice ?? 0),
   0,
