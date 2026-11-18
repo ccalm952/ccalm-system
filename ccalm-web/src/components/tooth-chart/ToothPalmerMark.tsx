@@ -53,7 +53,7 @@ export function ToothPalmerMark({
         ))}
       </span>
       <span
-        className="grid text-xs leading-none font-medium text-foreground tabular-nums"
+        className="grid text-[14px] leading-none font-medium text-foreground tabular-nums"
         style={{
           gridTemplateRows: "auto 1px auto",
           gridTemplateColumns: colPx
