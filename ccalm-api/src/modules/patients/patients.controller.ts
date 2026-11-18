@@ -66,6 +66,11 @@ export class PatientsController {
   }
 
   /** 病历、收费里医生/助理/护士的下拉选项 */
+  @Get("doctors")
+  doctors() {
+    return this.patients.doctors();
+  }
+
   @Get("staff")
   staff() {
     return this.patients.staff();

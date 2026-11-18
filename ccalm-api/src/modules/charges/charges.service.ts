@@ -56,6 +56,7 @@ function mapOrder(o: OrderWithDetail) {
       id: p.id,
       amount: p.amount,
       method: p.method,
+      doctor: p.doctor,
       paidAt: p.paidAt,
       visitId: p.visitId,
       visitDate: p.visit?.visitDate ?? null,
@@ -252,6 +253,7 @@ export class ChargesService {
     visitId: number;
     amount: number;
     method?: string;
+    doctor?: string;
     paidAt: string;
   }) {
     const visit = await this.prisma.patientVisit.findFirst({
@@ -305,6 +307,7 @@ export class ChargesService {
           create: {
             amount: dto.amount,
             method: dto.method?.trim() ?? "",
+            doctor: dto.doctor?.trim() || visit.doctor,
             paidAt: dto.paidAt,
             visitId: visit.id,
           },
@@ -397,11 +400,20 @@ export class ChargesService {
       throw new BadRequestException("收款金额不能超过欠费");
     }
     const visitId = await this.checkVisit(existing.patientId, dto.visitId);
+    const visitDoctor = visitId
+      ? (
+          await this.prisma.patientVisit.findUnique({
+            where: { id: visitId },
+            select: { doctor: true },
+          })
+        )?.doctor
+      : "";
     await this.prisma.chargePayment.create({
       data: {
         orderId: id,
         amount,
         method: dto.method?.trim() ?? "",
+        doctor: dto.doctor?.trim() || visitDoctor || "",
         paidAt: dto.paidAt,
         visitId,
       },

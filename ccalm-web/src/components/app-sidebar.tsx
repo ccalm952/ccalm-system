@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  BarChart3,
   BookOpen,
   CalendarCheck2,
   CalendarDays,
@@ -40,6 +41,7 @@ import { implantSubNavItems } from "@/config/implant-nav";
 import { materialsSubNavItems } from "@/config/materials-nav";
 import { orthodonticsNavItem } from "@/config/orthodontics-nav";
 import { patientsNavItem } from "@/config/patients-nav";
+import { reportsSubNavItems } from "@/config/reports-nav";
 import { salaryNavItem } from "@/config/salary-nav";
 import { warehouseNavItem } from "@/config/warehouse-nav";
 import { workbenchNavItem } from "@/config/workbench-nav";
@@ -244,6 +246,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               activePath={activePath}
               onNavClick={onNavClick}
             />
+            {can(me, "report.view") ? (
+              <SidebarNavCollapsible
+                title="报表"
+                icon={BarChart3}
+                items={reportsSubNavItems}
+                activePath={activePath}
+                onNavClick={onNavClick}
+              />
+            ) : null}
             {can(me, "staff.manage") ? (
               <SidebarMenuItem>
                 <SidebarMenuButton

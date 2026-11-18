@@ -17,6 +17,7 @@ import { ImplantModule } from "./modules/implant/implant.module";
 import { MedicalRecordsModule } from "./modules/medical-records/medical-records.module";
 import { OrthodonticsModule } from "./modules/orthodontics/orthodontics.module";
 import { PatientsModule } from "./modules/patients/patients.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 import { SalaryModule } from "./modules/salary/salary.module";
 import { VisitsModule } from "./modules/visits/visits.module";
 import { WarehouseModule } from "./modules/warehouse/warehouse.module";
@@ -38,6 +39,7 @@ import { WorkbenchModule } from "./modules/workbench/workbench.module";
     MedicalRecordsModule,
     OrthodonticsModule,
     PatientsModule,
+    ReportsModule,
     SalaryModule,
     VisitsModule,
     WarehouseModule,

@@ -116,6 +116,7 @@ export type ChargeOrder = {
     id: number;
     amount: number;
     method: string;
+    doctor: string;
     paidAt: string;
     visitId: number | null;
     visitDate: string | null;

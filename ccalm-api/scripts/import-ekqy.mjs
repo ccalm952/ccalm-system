@@ -69,6 +69,14 @@ const birthday = info.birth ? String(info.birth).slice(0, 10) : null;
 
 let patient = await prisma.patient.findFirst({ where: { chartNo } });
 if (!patient) {
+  const sameName = await prisma.patient.findMany({
+    where: { name: info.name || raw.name },
+  });
+  patient =
+    sameName.find((item) => !item.chartNo) ??
+    (sameName.length === 1 ? sameName[0] : null);
+}
+if (!patient) {
   patient = await prisma.patient.create({
     data: {
       name: info.name || raw.name,
@@ -76,16 +84,19 @@ if (!patient) {
       chartNo,
       gender,
       birthday,
-      remark: "从 e看牙 导入",
+      remark: "imported from e看牙",
     },
   });
 } else {
   patient = await prisma.patient.update({
     where: { id: patient.id },
-    data: { phone: phone || patient.phone, gender: gender || patient.gender },
+    data: {
+      chartNo: patient.chartNo || chartNo,
+      phone: phone || patient.phone,
+      gender: gender || patient.gender,
+    },
   });
 }
-
 await prisma.chargeOrder.deleteMany({ where: { patientId: patient.id } });
 await prisma.medicalRecord.deleteMany({ where: { patientId: patient.id } });
 
@@ -109,25 +120,59 @@ function visitInfo(full) {
 async function ensureVisit(full, isFirst) {
   const { date, time } = visitInfo(full);
   const doctor = full.doctorName || "";
+  const kind = isFirst ? "first" : "return";
   const existing = await prisma.patientVisit.findFirst({
     where: { patientId: patient.id, visitDate: date, startTime: time },
   });
-  if (existing) return existing;
+  if (existing) {
+    return prisma.patientVisit.update({
+      where: { id: existing.id },
+      data: {
+        kind,
+        status: "completed",
+        doctor: doctor || existing.doctor,
+        endTime: time || existing.endTime,
+        source: existing.source === "manual" ? existing.source : "record",
+      },
+    });
+  }
+  if (time) {
+    const slot = await prisma.patientVisit.findFirst({
+      where: {
+        patientId: patient.id,
+        visitDate: date,
+        startTime: "",
+        medicalRecords: { none: {} },
+      },
+    });
+    if (slot) {
+      return prisma.patientVisit.update({
+        where: { id: slot.id },
+        data: {
+          startTime: time,
+          endTime: time,
+          kind,
+          status: "completed",
+          doctor: doctor || slot.doctor,
+          source: "record",
+        },
+      });
+    }
+  }
   return prisma.patientVisit.create({
     data: {
       patientId: patient.id,
       visitDate: date,
       startTime: time,
       endTime: time,
-      kind: isFirst ? "first" : "return",
+      kind,
       status: "completed",
       doctor,
       source: "record",
-      remark: "由 e看牙 导入",
+      remark: "imported from e看牙",
     },
   });
 }
-
 function recordType(full) {
   const summary = summaryById.get(full.id);
   const isFirst = Boolean(full.firstVisit || summary?.firstVisit);
@@ -227,7 +272,9 @@ if (initialEntry?.record.planItems.length) {
   }
 }
 
-const orders = raw.orders ?? [];
+const orders = [
+  ...new Map((raw.orders ?? []).map((order) => [order.id, order])).values(),
+];
 const total = orders.reduce(
   (sum, order) => sum + Number(order.actualPrice ?? order.planPrice ?? 0),
   0,
@@ -265,6 +312,7 @@ if (initialEntry && total > 0) {
       return {
         amount: Number(payment.amount ?? 0),
         method: payment.payType || "",
+        doctor: visit?.doctor || order.doctorName || order.payee || "",
         paidAt: paidAt || initialEntry.record.visitDate,
         visitId: visit?.id ?? null,
       };
@@ -276,8 +324,14 @@ if (initialEntry && total > 0) {
       patientId: patient.id,
       visitId: initialEntry.visit.id,
       isCourse: true,
-      chargeDate: initialEntry.record.visitDate,
-      doctor: initialEntry.record.doctor,
+      chargeDate:
+        String(
+          orders[0]?.payDateTime || orders[0]?.recordCreatedTime || "",
+        ).slice(0, 10) || initialEntry.record.visitDate,
+      doctor:
+        orders[0]?.doctorName ||
+        orders[0]?.payee ||
+        initialEntry.record.doctor,
       receivable: total,
       items: { create: items },
       payments: { create: payments.filter((p) => p.amount > 0) },
