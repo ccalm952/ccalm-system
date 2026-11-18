@@ -111,10 +111,11 @@ function PlanItemStatus({
           {ownHandled ? (
             <span className="text-muted-foreground">初诊已处置</span>
           ) : null}
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onToggle}
-            className="flex items-center gap-1 rounded-md px-1 transition-colors hover:bg-muted"
+            className="gap-1"
           >
             已复诊 {item.followUpCount} 次
             {open ? (
@@ -122,7 +123,7 @@ function PlanItemStatus({
             ) : (
               <ChevronDown className="size-4" />
             )}
-          </button>
+          </Button>
         </span>
       ) : ownHandled ? (
         <span className="text-muted-foreground">本次处置</span>
