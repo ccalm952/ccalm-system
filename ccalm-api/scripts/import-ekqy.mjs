@@ -323,8 +323,14 @@ if (initialEntry && total > 0) {
       patientId: patient.id,
       visitId: initialEntry.visit.id,
       isCourse: true,
-      chargeDate: initialEntry.record.visitDate,
-      doctor: initialEntry.record.doctor,
+      chargeDate:
+        String(
+          orders[0]?.payDateTime || orders[0]?.recordCreatedTime || "",
+        ).slice(0, 10) || initialEntry.record.visitDate,
+      doctor:
+        orders[0]?.doctorName ||
+        orders[0]?.payee ||
+        initialEntry.record.doctor,
       receivable: total,
       items: { create: items },
       payments: { create: payments.filter((p) => p.amount > 0) },
