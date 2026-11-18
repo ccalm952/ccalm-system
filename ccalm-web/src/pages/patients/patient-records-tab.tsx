@@ -75,8 +75,8 @@ function ChargeSummary({
 
 function CourseChargeSummary({ order }: { order: ChargeOrder }) {
   return (
-    <span className="flex flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
-      <span>疗程应收：{formatMoney(order.receivable)}</span>
+    <span className="flex h-8 flex-wrap items-center gap-3 text-muted-foreground tabular-nums">
+      <span>治疗应收：{formatMoney(order.receivable)}</span>
       <span>已收：{formatMoney(order.paid)}</span>
       {order.status === "void" ? (
         <span className="text-destructive">已作废</span>
@@ -96,11 +96,13 @@ function PlanItemStatus({
   open,
   ownHandled,
   onWriteReturn,
+  onToggle,
 }: {
   item: PlanItem;
   open: boolean;
   ownHandled: boolean;
   onWriteReturn: () => void;
+  onToggle: () => void;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -109,14 +111,19 @@ function PlanItemStatus({
           {ownHandled ? (
             <span className="text-muted-foreground">初诊已处置</span>
           ) : null}
-          <span className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onToggle}
+            className="gap-1"
+          >
             已复诊 {item.followUpCount} 次
             {open ? (
               <ChevronUp className="size-4" />
             ) : (
               <ChevronDown className="size-4" />
             )}
-          </span>
+          </Button>
         </span>
       ) : ownHandled ? (
         <span className="text-muted-foreground">本次处置</span>
@@ -128,21 +135,13 @@ function PlanItemStatus({
           已完成 {item.doneDate}
         </Badge>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onWriteReturn();
-          }}
-        >
+        <Button type="button" variant="outline" onClick={onWriteReturn}>
           写复诊
         </Button>
       )}
     </div>
   );
 }
-
 function PlanFollowUps({
   planItemId,
   records,
@@ -260,7 +259,7 @@ function RecordBody({
   const fields: MedicalRecordField[] = expanded
     ? MEDICAL_RECORD_FIELDS[record.type]
     : record.type === "first"
-      ? ["treatmentPlan", "advice"]
+      ? ["treatmentPlan", "treatment", "advice"]
       : ["treatment", "advice"];
   const rows: { key: string; label: string; content: React.ReactNode }[] = [];
   for (const field of fields) {
@@ -280,18 +279,13 @@ function RecordBody({
                     (l) => l.planItemId === item.id,
                   )}
                   onWriteReturn={() => onWriteReturn(item.id as number)}
+                  onToggle={() => toggleItem(item.id as number)}
                 />
               ) : null;
             }}
             renderDetail={(index) => (
               <PlanQuoteView item={record.treatmentPlan[index]} />
             )}
-            rowClick={(index) => {
-              const id = record.treatmentPlan[index].id;
-              return id != null && followUps.has(id)
-                ? () => toggleItem(id)
-                : null;
-            }}
             renderBelow={(index) => {
               const id = record.treatmentPlan[index].id;
               const list = id != null ? followUps.get(id) : undefined;
@@ -348,11 +342,11 @@ function recordCourseStatus(record: MedicalRecord) {
 function planProgress(record: MedicalRecord): string | null {
   const status = recordCourseStatus(record);
   if (status === "none") return null;
-  if (status === "done") return "疗程完成";
+  if (status === "done") return "治疗完成";
   const done = record.treatmentPlan.filter((i) => i.doneDate).length;
-  const progress = `疗程进度 ${done}/${record.treatmentPlan.length}`;
+  const progress = `治疗进度 ${done}/${record.treatmentPlan.length}`;
   return status === "stopped"
-    ? `疗程终止 ${record.planStoppedAt} · ${progress}`
+    ? `治疗终止 ${record.planStoppedAt} · ${progress}`
     : progress;
 }
 
@@ -439,7 +433,7 @@ export function PatientRecordsTab({
       await api("PUT", `/medical-records/${record.id}/plan-stopped`, {
         stopped,
       });
-      toast.success(stopped ? "已终止疗程" : "已恢复疗程");
+      toast.success(stopped ? "已终止治疗" : "已恢复治疗");
       await load();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -455,7 +449,7 @@ export function PatientRecordsTab({
         "POST",
         `/charges/courses/${record.id}`,
       );
-      toast.success("已生成疗程收费单");
+      toast.success("已生成治疗收费单");
       if (result.unquotedCount > 0) {
         toast.message(`${result.unquotedCount} 项治疗计划未报价，未计入收费单`);
       }
@@ -507,7 +501,7 @@ export function PatientRecordsTab({
   const timeline = records.filter((r) => isFirstType(r) || !r.planLinks.length);
   const chargeByVisit = new Map<number, VisitCharge>();
   for (const o of charges) {
-    if (o.status === "void" || o.visitId == null || o.recordId != null) {
+    if (o.status === "void" || o.visitId == null || o.isCourse) {
       continue;
     }
     chargeByVisit.set(
@@ -515,9 +509,9 @@ export function PatientRecordsTab({
       addCharges([chargeByVisit.get(o.visitId) ?? NO_CHARGE, o]),
     );
   }
-  const courseOrderByRecord = new Map<number, ChargeOrder>();
+  const courseOrderByVisit = new Map<number, ChargeOrder>();
   for (const o of charges) {
-    if (o.recordId != null) courseOrderByRecord.set(o.recordId, o);
+    if (o.isCourse && o.visitId != null) courseOrderByVisit.set(o.visitId, o);
   }
   const allExpanded =
     timeline.length > 0 && timeline.every((r) => expanded.has(r.id));
@@ -597,7 +591,10 @@ export function PatientRecordsTab({
         <div className="flex flex-col">
           {timeline.map((record) => {
             const isOpen = expanded.has(record.id);
-            const courseOrder = courseOrderByRecord.get(record.id) ?? null;
+            const courseOrder =
+              record.visitId != null
+                ? (courseOrderByVisit.get(record.visitId) ?? null)
+                : null;
             const quotedTotal = isFirstType(record)
               ? courseQuotedTotal(record)
               : 0;
@@ -614,21 +611,21 @@ export function PatientRecordsTab({
                   <div className="flex flex-col gap-3 rounded-lg border p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-3">
-                        <Badge variant="secondary" className="h-auto text-sm">
+                        <Badge variant="secondary" className="h-8 px-3 text-sm">
                           {medicalRecordTypeLabel(record.type)}
                         </Badge>
                         {planProgress(record) ? (
-                          <Badge variant="outline" className="h-auto text-sm">
+                          <Badge variant="outline" className="h-8 px-3 text-sm">
                             {planProgress(record)}
                           </Badge>
                         ) : null}
                         {record.doctor ? (
-                          <span className="text-muted-foreground">
+                          <span className="flex h-8 items-center text-muted-foreground">
                             医生：{record.doctor}
                           </span>
                         ) : null}
                         {record.nurse ? (
-                          <span className="text-muted-foreground">
+                          <span className="flex h-8 items-center text-muted-foreground">
                             配台护士：{record.nurse}
                           </span>
                         ) : null}
@@ -636,8 +633,8 @@ export function PatientRecordsTab({
                           <CourseChargeSummary order={courseOrder} />
                         ) : null}
                         {!courseOrder && quotedTotal > 0 ? (
-                          <span className="text-muted-foreground tabular-nums">
-                            疗程报价：{formatMoney(quotedTotal)}
+                          <span className="flex h-8 items-center text-muted-foreground tabular-nums">
+                            治疗报价：{formatMoney(quotedTotal)}
                           </span>
                         ) : null}
                       </div>
@@ -705,7 +702,7 @@ export function PatientRecordsTab({
                             variant="secondary"
                             onClick={() => setStopping(record)}
                           >
-                            终止疗程
+                            终止治疗
                           </Button>
                         ) : null}
                         {recordCourseStatus(record) === "stopped" ? (
@@ -714,7 +711,7 @@ export function PatientRecordsTab({
                             variant="secondary"
                             onClick={() => void setPlanStopped(record, false)}
                           >
-                            恢复疗程
+                            恢复治疗
                           </Button>
                         ) : null}
                         <Button
@@ -795,10 +792,10 @@ export function PatientRecordsTab({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>终止疗程</AlertDialogTitle>
+            <AlertDialogTitle>终止治疗</AlertDialogTitle>
             <AlertDialogDescription>
               确定终止 {stopping?.visitDate}{" "}
-              初诊的疗程吗？终止后不再出现在工作台待完成疗程中，可随时恢复。
+              初诊的治疗吗？终止后不再出现在工作台待完成治疗中，可随时恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

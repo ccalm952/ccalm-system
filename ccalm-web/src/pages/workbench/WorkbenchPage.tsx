@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompleteFollowUpDialog } from "@/components/follow-ups/complete-follow-up-dialog";
-import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -21,7 +21,6 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import { followUpTypeLabel, type FollowUpType } from "@/lib/follow-ups/options";
 import type { FollowUp as FollowUpTask } from "@/lib/follow-ups/types";
-import { parseTeethStrict } from "@/lib/tooth-fdi";
 import {
   orthodonticsCategoryLabel,
   type OrthodonticsCategory,
@@ -159,14 +158,18 @@ function StatItem({
 }
 
 function TeethCell({ teeth }: { teeth: string }) {
-  const parsed = parseTeethStrict(teeth);
-  if (parsed == null) {
-    return <span className="truncate">{teeth}</span>;
-  }
-  if (!parsed.length) return null;
-  return <ToothPalmerMark fdis={parsed} compact />;
+  if (!teeth.trim()) return null;
+  return (
+    <span className="flex items-center justify-center">
+      <ToothPositionField
+        large
+        readOnly
+        value={teeth}
+        onValueChange={() => {}}
+      />
+    </span>
+  );
 }
-
 function PatientLink({
   id,
   name,
@@ -275,7 +278,7 @@ export function WorkbenchPage() {
               onClick={() => setTab("followUp")}
             />
             <StatItem
-              label="待完成疗程"
+              label="待完成治疗"
               value={pendingCourses.length}
               onClick={() => setTab("pendingCourse")}
             />
@@ -318,7 +321,7 @@ export function WorkbenchPage() {
                 variant={tab === "pendingCourse" ? "default" : "outline"}
                 onClick={() => setTab("pendingCourse")}
               >
-                待完成疗程
+                待完成治疗
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -454,7 +457,7 @@ export function WorkbenchPage() {
                   {pendingCourses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-muted-foreground">
-                        暂无待完成疗程
+                        暂无待完成治疗
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -21,7 +21,7 @@ describe("isOrthoRecordType", () => {
 });
 
 describe("planCourseStatus", () => {
-  it("没有计划行时无疗程", () => {
+  it("没有计划行时无治疗", () => {
     expect(planCourseStatus([], null)).toBe("none");
   });
 

@@ -123,7 +123,7 @@ export function planItemDoneDate(
 
 export type PlanCourseStatus = "none" | "pending" | "done" | "stopped";
 
-/** 与前端 lib/medical-records/record-types.ts 一致：计划行全部完成才算疗程完成；未完成且已终止的不再待完成 */
+/** 与前端 lib/medical-records/record-types.ts 一致：计划行全部完成才算治疗完成；未完成且已终止的不再待完成 */
 export function planCourseStatus(
   items: { doneDate: string | null }[],
   planStoppedAt: string | null,

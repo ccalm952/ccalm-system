@@ -17,7 +17,7 @@ export type CourseChargeItem = {
 };
 
 /**
- * 疗程收费单的明细：只汇总治疗计划里已报价的行，未报价的行不计入并返回数量。
+ * 治疗收费单的明细：只汇总治疗计划里已报价的行，未报价的行不计入并返回数量。
  * 收款不按计划行分摊，明细只是账单依据。
  */
 export function courseChargeItems(rows: CoursePlanRow[]) {

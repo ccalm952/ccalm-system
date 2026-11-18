@@ -1,8 +1,7 @@
 import type * as React from "react";
 import { Plus, X } from "lucide-react";
-import { cn } from "cn";
 
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Button } from "@/components/ui/button";
 import type { ToothEntry } from "@/lib/medical-records/record-types";
 import { PhraseTextarea } from "./phrase-textarea";
@@ -84,50 +83,36 @@ export function ToothEntriesView({
   renderExtra,
   renderBelow,
   renderDetail,
-  rowClick,
 }: {
   entries: ToothEntry[];
   renderExtra?: (index: number) => React.ReactNode;
-  /** 文本下方的附加内容 */
   renderDetail?: (index: number) => React.ReactNode;
   renderBelow?: (index: number) => React.ReactNode;
-  /** 返回该行的点击处理；返回 null 表示该行不可点 */
-  rowClick?: (index: number) => (() => void) | null;
 }) {
   return (
     <div className="flex flex-col gap-3">
-      {entries.map((entry, index) => {
-        const onClick = rowClick?.(index) ?? undefined;
-        return (
-          <div key={index} className="flex flex-col gap-3">
-            <div
-              className={cn(
-                "flex items-center gap-6",
-                onClick &&
-                  "-mx-2 -my-1 cursor-pointer rounded-2xl px-2 py-1 transition-all hover:bg-muted dark:hover:bg-muted/50",
-              )}
-              onClick={onClick}
-            >
-              <div className="flex w-40 shrink-0 justify-center">
-                {entry.teeth ? (
-                  <ToothPositionField
-                    large
-                    readOnly
-                    value={entry.teeth}
-                    onValueChange={() => {}}
-                  />
-                ) : null}
-              </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <span className="whitespace-pre-wrap">{entry.text}</span>
-                {renderDetail?.(index)}
-              </div>
-              {renderExtra?.(index)}
+      {entries.map((entry, index) => (
+        <div key={index} className="flex flex-col gap-3">
+          <div className="flex h-10 items-center gap-6 px-4">
+            <div className="flex w-40 shrink-0 items-center justify-center">
+              {entry.teeth ? (
+                <ToothPositionField
+                  large
+                  readOnly
+                  value={entry.teeth}
+                  onValueChange={() => {}}
+                />
+              ) : null}
             </div>
-            {renderBelow?.(index)}
+            <div className="flex flex-1 flex-col">
+              <span className="whitespace-pre-wrap">{entry.text}</span>
+              {renderDetail?.(index)}
+            </div>
+            {renderExtra?.(index)}
           </div>
-        );
-      })}
+          {renderBelow?.(index)}
+        </div>
+      ))}
     </div>
   );
 }

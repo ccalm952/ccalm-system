@@ -176,7 +176,6 @@ export class ImplantService {
       await this.ensureVisitRecord(tx, {
         patientId: patient.id,
         visitDate: visit.visitDate,
-        doctor: visit.staff ?? "",
       });
       await this.syncImplantTeeth(tx, patient.id, visit.visitDate);
 
@@ -196,9 +195,9 @@ export class ImplantService {
    */
   private async ensureVisitRecord(
     tx: Prisma.TransactionClient,
-    params: { patientId: number; visitDate: string; doctor: string },
+    params: { patientId: number; visitDate: string },
   ) {
-    const { patientId, visitDate, doctor } = params;
+    const { patientId, visitDate } = params;
     const open = await tx.patientVisit.findFirst({
       where: { patientId, visitDate, status: { in: OPEN_VISIT_STATUSES } },
       orderBy: { id: "desc" },
@@ -243,7 +242,7 @@ export class ImplantService {
         endTime: dayjs().add(30, "minute").format("HH:mm"),
         kind: "return",
         status: "booked",
-        doctor,
+        doctor: "",
         remark: IMPLANT_VISIT_REMARK,
       },
     });
@@ -365,7 +364,6 @@ export class ImplantService {
         await this.ensureVisitRecord(tx, {
           patientId: visit.patientId,
           visitDate: dto.visitDate,
-          doctor: dto.staff ?? visit.staff ?? "",
         });
         await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
       }

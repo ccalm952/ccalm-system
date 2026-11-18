@@ -54,6 +54,12 @@ export type PatientVisit = {
   remark: string;
   medicalRecordIds: number[];
   chargeOrderIds: number[];
+  /** 该就诊收款合计 */
+  paidAmount?: number;
+  /** 初诊治疗收费单：应收/已收/欠费 */
+  receivable?: number | null;
+  coursePaid?: number | null;
+  owed?: number | null;
   /** 关联的预约；有值表示已开始接诊 */
   appointmentId?: number | null;
 };
@@ -88,7 +94,7 @@ export type ChargeOrder = {
   id: number;
   patientId: number;
   visitId: number | null;
-  recordId: number | null;
+  isCourse: boolean;
   chargeDate: string;
   doctor: string;
   status: "normal" | "void";

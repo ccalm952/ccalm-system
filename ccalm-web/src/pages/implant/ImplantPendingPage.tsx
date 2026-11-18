@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { DatePickerField } from "@/components/date-picker-field";
 import { PatientNameCombobox } from "@/components/patient-name-combobox";
 import { TablePagination } from "@/components/table-pagination";
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
-import { ToothPalmerMark } from "@/components/tooth-chart/ToothPalmerMark";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,7 +97,11 @@ function TeethCell({ teeth }: { teeth: string }) {
     return <span className="truncate">{teeth}</span>;
   }
   if (!parsed.length) return null;
-  return <ToothPalmerMark fdis={parsed} compact />;
+  return (
+    <span className="flex items-center justify-center">
+      <ToothPositionField readOnly value={teeth} onValueChange={() => {}} />
+    </span>
+  );
 }
 
 function formFromRow(row: PendingRow): FormState {

@@ -178,24 +178,47 @@ export class MedicalRecordsService {
     tx: Prisma.TransactionClient,
     visitId: number | null,
     doctor: string,
+    visitTime = "",
   ) {
     if (visitId == null) return;
+    const visit = await tx.patientVisit.findUnique({
+      where: { id: visitId },
+      select: { startTime: true, endTime: true },
+    });
+    const startTime = visit?.startTime || visitTime;
+    const endTime =
+      visit?.endTime ||
+      (startTime ? fromMinutes(toMinutes(startTime) + 30) : "");
     await tx.patientVisit.updateMany({
       where: { id: visitId, status: { in: OPEN_VISIT_STATUSES } },
       data: { status: "completed", completedAt: new Date() },
     });
-    await tx.appointment.updateMany({
-      where: { visitId },
-      data: { status: "completed", completedAt: new Date() },
-    });
-    if (doctor) {
+    const visitData: {
+      doctor?: string;
+      startTime?: string;
+      endTime?: string;
+    } = {};
+    if (doctor) visitData.doctor = doctor;
+    if (startTime) {
+      visitData.startTime = startTime;
+      visitData.endTime = endTime;
+    }
+    if (Object.keys(visitData).length) {
       await tx.patientVisit.update({
         where: { id: visitId },
-        data: { doctor },
+        data: visitData,
       });
     }
+    await tx.appointment.updateMany({
+      where: { visitId },
+      data: {
+        status: "completed",
+        completedAt: new Date(),
+        ...(doctor ? { doctor } : {}),
+        ...(startTime ? { startTime, endTime } : {}),
+      },
+    });
   }
-
   /** 正畸类病历把未结束正畸档案的上次就诊推到病历日期；只往后推 */
   private async syncOrthodontics(
     tx: Prisma.TransactionClient,
@@ -364,7 +387,7 @@ export class MedicalRecordsService {
     const record = await this.prisma.$transaction(async (tx) => {
       const links = await this.resolvePlanLinks(tx, dto, null);
       const visitId = await this.resolveVisitId(tx, dto, data.doctor);
-      await this.syncVisit(tx, visitId, data.doctor);
+      await this.syncVisit(tx, visitId, data.doctor, data.visitTime);
       await this.syncOrthodontics(tx, dto.patientId, dto.type, data.visitDate);
       const created = await tx.medicalRecord.create({
         data: { patientId: dto.patientId, visitId, ...data },
@@ -395,7 +418,7 @@ export class MedicalRecordsService {
     const record = await this.prisma.$transaction(async (tx) => {
       const links = await this.resolvePlanLinks(tx, dto, existing);
       const visitId = await this.resolveVisitId(tx, dto, data.doctor);
-      await this.syncVisit(tx, visitId, data.doctor);
+      await this.syncVisit(tx, visitId, data.doctor, data.visitTime);
       await this.syncOrthodontics(tx, dto.patientId, dto.type, data.visitDate);
       await tx.medicalRecord.update({
         where: { id },
@@ -422,7 +445,7 @@ export class MedicalRecordsService {
     });
     if (!existing) throw new NotFoundException("病历不存在");
     if (existing.type !== "first" || !existing.planItems.length) {
-      throw new BadRequestException("只有带治疗计划的初诊病历可以终止疗程");
+      throw new BadRequestException("只有带治疗计划的初诊病历可以终止治疗");
     }
     const record = await this.prisma.medicalRecord.update({
       where: { id },
