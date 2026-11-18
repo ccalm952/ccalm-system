@@ -49,12 +49,7 @@ export function ToothPositionField({
   const body = freeText ? (
     <span className={cn("truncate", textClass)}>{value}</span>
   ) : fdis.length || plain ? (
-    <ToothPalmerMark
-      fdis={fdis}
-      compact={compact}
-      large={large}
-      minColPx={plain ? 32 : 0}
-    />
+    <ToothPalmerMark fdis={fdis} />
   ) : (
     <span className={cn("text-muted-foreground", textClass)}>
       {compact ? "—" : "选择牙位"}

@@ -6,19 +6,10 @@ import { groupPalmerLabels } from "@/lib/tooth-fdi";
 type ToothPalmerMarkProps = {
   fdis: number[];
   className?: string;
-  /** 更紧凑（保留兼容；高度已统一） */
-  compact?: boolean;
-  large?: boolean;
-  /** 左右列最小宽度（保留兼容） */
-  minColPx?: number;
 };
 
 /** 图：十字象限 Palmer 标记；宽度按牙位文字动态测量，高度由字体和 padding 自然决定 */
-export function ToothPalmerMark({
-  fdis,
-  className,
-  minColPx = 0,
-}: ToothPalmerMarkProps) {
+export function ToothPalmerMark({ fdis, className }: ToothPalmerMarkProps) {
   const g = groupPalmerLabels(fdis);
   const vLine = "bg-sky-300 w-px";
   const hLine = "bg-sky-300 h-px w-full";
@@ -37,7 +28,7 @@ export function ToothPalmerMark({
       max = Math.max(max, el.offsetWidth);
     }
     setColPx(Math.max(Math.ceil(max), 16));
-  }, [measureKey, minColPx]);
+  }, [measureKey]);
 
   return (
     <span className={cn("inline-flex shrink-0 items-center", className)}>
