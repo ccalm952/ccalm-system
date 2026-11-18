@@ -33,6 +33,7 @@ import {
   visitTimeRange,
 } from "@/lib/visits/visit-options";
 import type { PatientTab, PatientVisit } from "./patient-detail-types";
+import { VisitTimeDialog } from "./visit-time-dialog";
 
 export function PatientVisitsTab({
   patientId,
@@ -44,6 +45,7 @@ export function PatientVisitsTab({
   const [visits, setVisits] = React.useState<PatientVisit[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [deleting, setDeleting] = React.useState<PatientVisit | null>(null);
+  const [editing, setEditing] = React.useState<PatientVisit | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -139,6 +141,13 @@ export function PatientVisitsTab({
                     <Button
                       type="button"
                       variant="secondary"
+                      onClick={() => setEditing(v)}
+                    >
+                      编辑
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
                       onClick={() => setDeleting(v)}
                     >
                       删除
@@ -159,6 +168,15 @@ export function PatientVisitsTab({
           </div>
         ) : null}
       </CardContent>
+
+      <VisitTimeDialog
+        open={editing != null}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        visit={editing}
+        onSaved={load}
+      />
 
       <AlertDialog
         open={deleting != null}
