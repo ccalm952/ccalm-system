@@ -106,7 +106,12 @@ for (const date of [...new Set([...eByDate.keys(), ...pByDate.keys()])].sort()) 
   }
   const used = new Set();
   for (const e of eList) {
-    const index = pList.findIndex((p, i) => !used.has(i) && p.time === e.time);
+    let index = pList.findIndex(
+      (p, i) => !used.has(i) && p.time === e.time && p.type === e.type,
+    );
+    if (index < 0) {
+      index = pList.findIndex((p, i) => !used.has(i) && p.time === e.time);
+    }
     const pick = index >= 0 ? index : pList.findIndex((_, i) => !used.has(i));
     if (pick < 0) {
       problems.push(`${date} ${e.time} 生产端缺病历`);

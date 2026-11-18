@@ -54,8 +54,26 @@ await page.keyboard.press("Enter");
 await page.waitForTimeout(5000);
 
 const search = await page.evaluate(() => window.__search);
-const found = (search?.items ?? []).find((item) => item.name === name) ?? null;
+const matches = (search?.items ?? []).filter((item) => item.name === name);
+const found = matches[0] ?? null;
 if (!found) throw new Error(`patient not found: ${name}`);
+const duplicateNames = matches.slice(1).map((item) => ({
+  id: item.id,
+  chartNo: item.privateId,
+  phone: item.mobile,
+}));
+if (duplicateNames.length) {
+  console.warn(
+    `WARNING: e看牙 有 ${matches.length} 个同名患者：`,
+    JSON.stringify(
+      matches.map((item) => ({
+        id: item.id,
+        chartNo: item.privateId,
+        phone: item.mobile,
+      })),
+    ),
+  );
+}
 const patientId = found.id;
 await page.evaluate((id) => {
   location.hash = `#/patient/info/${id}/record`;
@@ -128,6 +146,7 @@ const raw = {
   name,
   patientId,
   patient: result.patient,
+  duplicateNames,
   scrapedAt: new Date().toISOString(),
   summaries,
   fulls,
