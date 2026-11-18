@@ -43,6 +43,7 @@ export function CollectChargeDialog({
   const [amount, setAmount] = React.useState("");
   const [method, setMethod] = React.useState(PAY_METHODS[0]);
   const [doctor, setDoctor] = React.useState("");
+  const [doctors, setDoctors] = React.useState<string[]>([]);
   const [paidAt, setPaidAt] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
@@ -53,7 +54,7 @@ export function CollectChargeDialog({
     }`,
   }));
   const doctorItems = [
-    ...new Set(visits.map((v) => v.doctor).filter(Boolean)),
+    ...new Set([...doctors, ...visits.map((v) => v.doctor).filter(Boolean)]),
   ].map((name) => ({ value: name, label: name }));
 
   React.useEffect(() => {
@@ -64,6 +65,13 @@ export function CollectChargeDialog({
     setPaidAt(dayjs().format("YYYY-MM-DD"));
     setDoctor(visits[0]?.doctor ?? "");
   }, [open, visits]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    void api<string[]>("GET", "/patients/doctors")
+      .then(setDoctors)
+      .catch(() => setDoctors([]));
+  }, [open]);
 
   async function save() {
     if (!visitId) {

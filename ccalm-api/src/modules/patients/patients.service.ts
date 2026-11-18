@@ -245,6 +245,14 @@ export class PatientsService {
     return { ok: true };
   }
 
+  async doctors() {
+    const users = await this.prisma.user.findMany({
+      where: { roles: { some: { bookable: true } } },
+      select: { displayName: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    });
+    return [...new Set(users.map((u) => u.displayName.trim()).filter(Boolean))];
+  }
   async staff() {
     const users = await this.prisma.user.findMany({
       select: { displayName: true },

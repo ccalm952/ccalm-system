@@ -54,11 +54,14 @@ export function ChargePaymentDialog({
   const [paidAt, setPaidAt] = React.useState("");
   const [visitId, setVisitId] = React.useState(NO_VISIT);
   const [doctor, setDoctor] = React.useState("");
+  const [doctors, setDoctors] = React.useState<string[]>([]);
   const [saving, setSaving] = React.useState(false);
 
   const doctorItems = [
     ...new Set(
-      [order?.doctor ?? "", ...visits.map((v) => v.doctor)].filter(Boolean),
+      [...doctors, order?.doctor ?? "", ...visits.map((v) => v.doctor)].filter(
+        Boolean,
+      ),
     ),
   ].map((name) => ({ value: name, label: name }));
 
@@ -79,6 +82,13 @@ export function ChargePaymentDialog({
       setDoctor(order.doctor || "");
     }
   }, [open, order]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    void api<string[]>("GET", "/patients/doctors")
+      .then(setDoctors)
+      .catch(() => setDoctors([]));
+  }, [open]);
 
   async function save() {
     if (!order) return;
