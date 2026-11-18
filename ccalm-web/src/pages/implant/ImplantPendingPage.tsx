@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { DatePickerField } from "@/components/date-picker-field";
 import { PatientNameCombobox } from "@/components/patient-name-combobox";
 import { TablePagination } from "@/components/table-pagination";
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import {
   AlertDialog,
   AlertDialogAction,

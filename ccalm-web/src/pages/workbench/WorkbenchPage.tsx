@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompleteFollowUpDialog } from "@/components/follow-ups/complete-follow-up-dialog";
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,

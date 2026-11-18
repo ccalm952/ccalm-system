@@ -2,7 +2,7 @@ import type * as React from "react";
 import { Plus, X } from "lucide-react";
 import { cn } from "cn";
 
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Button } from "@/components/ui/button";
 import type { ToothEntry } from "@/lib/medical-records/record-types";
 import { PhraseTextarea } from "./phrase-textarea";

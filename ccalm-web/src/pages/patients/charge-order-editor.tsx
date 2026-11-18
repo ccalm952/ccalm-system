@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { DatePickerField } from "@/components/date-picker-field";
-import { ToothPositionField } from "@/components/tooth-chart/ToothPositionField";
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
