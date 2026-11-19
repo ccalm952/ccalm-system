@@ -142,8 +142,31 @@ function PlanItemStatus({
     </div>
   );
 }
+function treatmentForPlanItem(
+  treatment: ToothEntry[],
+  planTeeth: string,
+): ToothEntry[] {
+  const planSet = new Set(
+    planTeeth
+      .split(/[\s,，、]+/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  if (!planSet.size) return treatment;
+  const filtered = treatment.filter((e) => {
+    if (!e.teeth.trim()) return true;
+    return e.teeth
+      .split(/[\s,，、]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .some((t) => planSet.has(t));
+  });
+  return filtered.length ? filtered : treatment;
+}
+
 function PlanFollowUps({
   planItemId,
+  planTeeth,
   records,
   expanded,
   chargeByVisit,
@@ -151,6 +174,7 @@ function PlanFollowUps({
   onDelete,
 }: {
   planItemId: number;
+  planTeeth: string;
   expanded: boolean;
   records: MedicalRecord[];
   chargeByVisit: Map<number, VisitCharge>;
@@ -170,7 +194,9 @@ function PlanFollowUps({
           </div>
           <div className="flex flex-col gap-2">
             {r.treatment.length ? (
-              <ToothEntriesView entries={r.treatment} />
+              <ToothEntriesView
+                entries={treatmentForPlanItem(r.treatment, planTeeth)}
+              />
             ) : (
               <span className="text-muted-foreground">无处置</span>
             )}
@@ -288,11 +314,13 @@ function RecordBody({
               <PlanQuoteView item={record.treatmentPlan[index]} />
             )}
             renderBelow={(index) => {
-              const id = record.treatmentPlan[index].id;
+              const planItem = record.treatmentPlan[index];
+              const id = planItem.id;
               const list = id != null ? followUps.get(id) : undefined;
               return id != null && openItems.has(id) && list?.length ? (
                 <PlanFollowUps
                   planItemId={id}
+                  planTeeth={planItem.teeth}
                   records={list}
                   expanded={expanded}
                   chargeByVisit={chargeByVisit}

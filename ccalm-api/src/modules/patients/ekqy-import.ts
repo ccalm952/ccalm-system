@@ -176,26 +176,68 @@ export function pickCourseInitial<
   );
 }
 
-/** 按牙位/文本匹配计划行；都对不上则回退该初诊第一条计划 */
+const ORTHO_PLAN_RE = /正畸|矫正|矫治/;
+const ORTHO_CURE_RE = /正畸|矫正|矫治|弹力|托槽|弓丝|中线|斜拉|牵引|调颌|调合/;
+
+function scorePlanForCure(
+  plan: EkqyPlanItemRef,
+  cureTeeth: Set<number>,
+  cureText: string,
+): number {
+  const planTeeth = toothSet(plan.teeth);
+  const inter = [...planTeeth].filter((n) => cureTeeth.has(n)).length;
+  const specificity = planTeeth.size ? inter / planTeeth.size : 0;
+  const orthoPlan = ORTHO_PLAN_RE.test(plan.text);
+  const orthoCure = ORTHO_CURE_RE.test(cureText);
+  const sameText =
+    plan.text.length > 3 && cureText.includes(plan.text.slice(0, 8));
+
+  let score = 0;
+  if (sameText) score += 100;
+  // 普通计划：要求重叠牙位占该计划牙位一半以上，避免全口矫正「沾边」就挂上
+  if (!orthoPlan && inter > 0 && specificity >= 0.5) {
+    score += 40 + specificity * 30;
+  }
+  // 正畸/矫正计划：有重叠或处置无牙位时弱匹配；处置文案偏正畸时加分
+  if (orthoPlan && (inter > 0 || cureTeeth.size === 0 || orthoCure)) {
+    score += 20;
+    if (orthoCure) score += 50;
+  }
+  return score;
+}
+
+/**
+ * 按每条处置各自匹配最合适的计划行（去重）。
+ * 避免「任意牙位命中全口计划」导致同一复诊挂到很多行、页面重复展示。
+ */
 export function matchPlanItemsForReturn(
   full: EkqyFullRecord,
   planItems: EkqyPlanItemRef[],
 ): EkqyPlanItemRef[] {
   if (!planItems.length) return [];
-  const cureTeeth = new Set(
-    (full.cureRecordList ?? []).flatMap((c) => [...toothSet(c.fdiToothCodes)]),
-  );
-  const matched = planItems.filter((plan) => {
-    const planTeeth = toothSet(plan.teeth);
-    const sameTooth = [...planTeeth].some((n) => cureTeeth.has(n));
-    const sameText =
-      plan.text.length > 3 &&
-      (full.cureRecordList ?? []).some((c) =>
-        clean(c.cure).includes(plan.text.slice(0, 8)),
-      );
-    return sameTooth || sameText;
-  });
-  return matched.length ? matched : [planItems[0]];
+  const cures = full.cureRecordList ?? [];
+  if (!cures.length) return [planItems[0]];
+
+  const picked = new Map<number, EkqyPlanItemRef>();
+  for (const cure of cures) {
+    const cureTeeth = toothSet(cure.fdiToothCodes);
+    const cureText = clean(cure.cure);
+    let best: { plan: EkqyPlanItemRef; score: number } | null = null;
+    for (const plan of planItems) {
+      const score = scorePlanForCure(plan, cureTeeth, cureText);
+      if (score <= 0) continue;
+      if (
+        !best ||
+        score > best.score ||
+        (score === best.score && plan.id < best.plan.id)
+      ) {
+        best = { plan, score };
+      }
+    }
+    if (best) picked.set(best.plan.id, best.plan);
+  }
+  if (!picked.size) return [planItems[0]];
+  return planItems.filter((p) => picked.has(p.id));
 }
 
 /** 生成复诊 → 计划行关联；初诊之间不互挂 */
