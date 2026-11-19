@@ -158,7 +158,8 @@ export function EkqyImportDialog({
           <DialogHeader>
             <DialogTitle>导入 e看牙</DialogTitle>
             <DialogDescription>
-              上传 scrape 产出的 JSON。确认后会清空该患者已有病历与收费，再写入抓取内容。
+              上传 scrape 产出的
+              JSON。确认后会清空该患者已有病历与收费，再写入抓取内容。
             </DialogDescription>
           </DialogHeader>
 
@@ -172,7 +173,7 @@ export function EkqyImportDialog({
                 onChange={onFileChange}
               />
               {fileName ? (
-                <p className="text-muted-foreground text-xs">{fileName}</p>
+                <p className="text-xs text-muted-foreground">{fileName}</p>
               ) : null}
             </div>
 
@@ -193,8 +194,10 @@ export function EkqyImportDialog({
             ) : null}
 
             {preview ? (
-              <div className="bg-muted/40 rounded-md border p-3 text-sm">
-                <p>{MATCH_LABEL[preview.matchedBy]} · 病历号 {preview.chartNo}</p>
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <p>
+                  {MATCH_LABEL[preview.matchedBy]} · 病历号 {preview.chartNo}
+                </p>
                 {preview.patientId != null ? (
                   <p>线上患者 id {preview.patientId}</p>
                 ) : null}
