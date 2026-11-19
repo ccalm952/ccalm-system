@@ -573,14 +573,17 @@ export function MakeupTodoButton() {
           </button>
         }
       />
-      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 md:max-w-md">
+      <SheetContent
+        showCloseButton={false}
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 md:max-w-md"
+      >
         <Tabs
           value={tab}
           onValueChange={(value) => setTab(value as TodoTab)}
           className="flex h-full min-h-0 flex-col"
         >
-          <div className="shrink-0 border-b px-4 pt-12 pb-3">
-            <TabsList className="grid w-full grid-cols-2">
+          <div className="shrink-0 border-b px-4 pt-4 pb-3">
+            <TabsList className="w-full">
               <TabsTrigger value="mine">我创建的</TabsTrigger>
               <TabsTrigger value="pending">待我处理</TabsTrigger>
             </TabsList>

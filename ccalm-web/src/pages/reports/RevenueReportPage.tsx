@@ -356,16 +356,10 @@ export function RevenueReportPage() {
         onValueChange={(value) => setTab(value as TabKey)}
         className="gap-4"
       >
-        <TabsList className="w-fit">
-          <TabsTrigger value="overview" className="px-3">
-            营收分析
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="px-3">
-            收入统计
-          </TabsTrigger>
-          <TabsTrigger value="trend" className="px-3">
-            收入趋势
-          </TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="overview">营收分析</TabsTrigger>
+          <TabsTrigger value="stats">收入统计</TabsTrigger>
+          <TabsTrigger value="trend">收入趋势</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="flex flex-col gap-4">
@@ -434,7 +428,7 @@ export function RevenueReportPage() {
                   if (next === "doctor") setMetric("received");
                 }}
               >
-                <TabsList className="grid w-full grid-cols-2 sm:w-fit sm:grid-cols-4">
+                <TabsList>
                   {DISTRIBUTIONS.map((item) => (
                     <TabsTrigger key={item.value} value={item.value}>
                       {item.label}
