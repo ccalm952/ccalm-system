@@ -40,9 +40,15 @@ export class EkqyImportService {
 
   async import(dto: EkqyImportDto): Promise<ImportResult> {
     const rawPatient = (dto.patient ?? {}) as EkqyPatientInfo;
-    const summaries = (Array.isArray(dto.summaries) ? dto.summaries : []) as EkqySummary[];
-    const fulls = (Array.isArray(dto.fulls) ? dto.fulls : []) as EkqyFullRecord[];
-    const ordersRaw = (Array.isArray(dto.orders) ? dto.orders : []) as EkqyOrder[];
+    const summaries = (
+      Array.isArray(dto.summaries) ? dto.summaries : []
+    ) as EkqySummary[];
+    const fulls = (
+      Array.isArray(dto.fulls) ? dto.fulls : []
+    ) as EkqyFullRecord[];
+    const ordersRaw = (
+      Array.isArray(dto.orders) ? dto.orders : []
+    ) as EkqyOrder[];
 
     const summaryById = new Map(
       summaries.map((item) => [item.medicalRecordId, item]),
@@ -58,8 +64,11 @@ export class EkqyImportService {
       throw new BadRequestException("抓取数据中没有初诊病历");
     }
 
-    const chartNo =
-      (dto.chartNo?.trim() || rawPatient.privateId || `EKQY-${dto.patientId}`).trim();
+    const chartNo = (
+      dto.chartNo?.trim() ||
+      rawPatient.privateId ||
+      `EKQY-${dto.patientId}`
+    ).trim();
     const phone =
       rawPatient.mobile ||
       rawPatient.patientMobile ||
@@ -155,10 +164,7 @@ export class EkqyImportService {
       await tx.chargeOrder.deleteMany({ where: { patientId: target.id } });
       await tx.medicalRecord.deleteMany({ where: { patientId: target.id } });
 
-      async function ensureVisit(
-        full: EkqyFullRecord,
-        isFirst: boolean,
-      ) {
+      async function ensureVisit(full: EkqyFullRecord, isFirst: boolean) {
         const { date, time } = visitInfo(full, summaryById);
         const doctor = full.doctorName || "";
         const kind = isFirst ? "first" : "return";

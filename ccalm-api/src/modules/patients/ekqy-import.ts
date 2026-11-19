@@ -64,15 +64,24 @@ export type EkqyPatientInfo = {
   birth?: string;
 };
 
+function asText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+}
+
 export function clean(value: unknown): string {
-  return String(value ?? "")
+  return asText(value)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/&nbsp;/g, " ")
     .trim();
 }
 
 export function teeth(value: unknown): string {
-  return String(value ?? "")
+  return asText(value)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
@@ -80,12 +89,7 @@ export function teeth(value: unknown): string {
 }
 
 export function toothSet(value: unknown): Set<number> {
-  return new Set(
-    teeth(value)
-      .split(",")
-      .filter(Boolean)
-      .map(Number),
-  );
+  return new Set(teeth(value).split(",").filter(Boolean).map(Number));
 }
 
 export function entries(

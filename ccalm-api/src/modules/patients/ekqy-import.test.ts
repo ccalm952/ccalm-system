@@ -21,10 +21,7 @@ describe("ekqy-import helpers", () => {
 
   it("visitInfo drops midnight time", () => {
     expect(
-      visitInfo(
-        { id: 1, appointDateTime: "2024-01-02T00:00:00" },
-        new Map(),
-      ),
+      visitInfo({ id: 1, appointDateTime: "2024-01-02T00:00:00" }, new Map()),
     ).toEqual({ date: "2024-01-02", time: "" });
   });
 
