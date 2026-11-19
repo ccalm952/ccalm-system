@@ -11,6 +11,7 @@ export type Permission =
   | "appointment.settings"
   | "patient.view"
   | "patient.edit"
+  | "patient.import_ekqy"
   | "record.view"
   | "record.edit"
   | "charge.view"

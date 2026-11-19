@@ -24,6 +24,7 @@ export const PERMISSION_GROUPS = [
     items: [
       { key: "patient.view", label: "查看患者" },
       { key: "patient.edit", label: "新建/编辑/合并患者" },
+      { key: "patient.import_ekqy", label: "导入 e看牙病历与收费" },
     ],
   },
   {

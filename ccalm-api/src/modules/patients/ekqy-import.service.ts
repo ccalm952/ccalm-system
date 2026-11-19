@@ -1,0 +1,401 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+
+import { PrismaService } from "../../prisma/prisma.service";
+
+import type { EkqyImportDto } from "./dto/ekqy-import.dto";
+import {
+  clean,
+  entries,
+  type EkqyFullRecord,
+  type EkqyOrder,
+  type EkqyPatientInfo,
+  type EkqySummary,
+  pickInitialFull,
+  recordType,
+  teeth,
+  toothSet,
+  visitInfo,
+} from "./ekqy-import";
+
+type ImportResult = {
+  dryRun: boolean;
+  patientId: number | null;
+  chartNo: string;
+  matchedBy: "chartNo" | "name" | "create";
+  existingRecords: number;
+  existingCharges: number;
+  records: number;
+  planItems: number;
+  charges: number;
+  payments: number;
+};
+
+@Injectable()
+export class EkqyImportService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async import(dto: EkqyImportDto): Promise<ImportResult> {
+    const rawPatient = (dto.patient ?? {}) as EkqyPatientInfo;
+    const summaries = (Array.isArray(dto.summaries) ? dto.summaries : []) as EkqySummary[];
+    const fulls = (Array.isArray(dto.fulls) ? dto.fulls : []) as EkqyFullRecord[];
+    const ordersRaw = (Array.isArray(dto.orders) ? dto.orders : []) as EkqyOrder[];
+
+    const summaryById = new Map(
+      summaries.map((item) => [item.medicalRecordId, item]),
+    );
+    const fullById = new Map(fulls.map((item) => [item.id, item]));
+    const all = [...fullById.values()].sort((a, b) =>
+      String(a.appointDateTime).localeCompare(String(b.appointDateTime)),
+    );
+    if (!all.length) {
+      throw new BadRequestException("抓取数据中没有病历");
+    }
+    if (!pickInitialFull(all, summaryById)) {
+      throw new BadRequestException("抓取数据中没有初诊病历");
+    }
+
+    const chartNo =
+      (dto.chartNo?.trim() || rawPatient.privateId || `EKQY-${dto.patientId}`).trim();
+    const phone =
+      rawPatient.mobile ||
+      rawPatient.patientMobile ||
+      rawPatient.phoneNumber1 ||
+      rawPatient.phone ||
+      "";
+    const gender =
+      rawPatient.sex === 1 ? "男" : rawPatient.sex === 2 ? "女" : "";
+    const birthday = rawPatient.birth
+      ? String(rawPatient.birth).slice(0, 10)
+      : null;
+    const name = rawPatient.name || dto.name;
+
+    let patient = await this.prisma.patient.findFirst({ where: { chartNo } });
+    let matchedBy: ImportResult["matchedBy"] = "chartNo";
+    if (!patient) {
+      const sameName = await this.prisma.patient.findMany({ where: { name } });
+      patient =
+        sameName.find((item) => !item.chartNo) ??
+        (sameName.length === 1 ? sameName[0] : null);
+      matchedBy = patient ? "name" : "create";
+    }
+
+    const existingRecords = patient
+      ? await this.prisma.medicalRecord.count({
+          where: { patientId: patient.id },
+        })
+      : 0;
+    const existingCharges = patient
+      ? await this.prisma.chargeOrder.count({
+          where: { patientId: patient.id },
+        })
+      : 0;
+
+    const orders = [
+      ...new Map(ordersRaw.map((order) => [order.id, order])).values(),
+    ];
+    const total = orders.reduce(
+      (sum, order) => sum + Number(order.actualPrice ?? order.planPrice ?? 0),
+      0,
+    );
+    const payments = orders.reduce(
+      (n, o) => n + (o.paymentList?.length ?? 0),
+      0,
+    );
+    const planItemsPreview = all.reduce((n, full) => {
+      const type = recordType(full, summaryById);
+      if (type !== "first" && type !== "orthoFirst") return n;
+      return n + (full.treatmentPlanList?.length ?? 0);
+    }, 0);
+
+    if (dto.dryRun) {
+      return {
+        dryRun: true,
+        patientId: patient?.id ?? null,
+        chartNo,
+        matchedBy,
+        existingRecords,
+        existingCharges,
+        records: all.length,
+        planItems: planItemsPreview,
+        charges: total,
+        payments,
+      };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let target = patient;
+      if (!target) {
+        target = await tx.patient.create({
+          data: {
+            name,
+            phone,
+            chartNo,
+            gender,
+            birthday,
+            remark: "imported from e看牙",
+          },
+        });
+        matchedBy = "create";
+      } else {
+        target = await tx.patient.update({
+          where: { id: target.id },
+          data: {
+            chartNo: target.chartNo || chartNo,
+            phone: phone || target.phone,
+            gender: gender || target.gender,
+            birthday: birthday || target.birthday,
+          },
+        });
+      }
+
+      await tx.chargeOrder.deleteMany({ where: { patientId: target.id } });
+      await tx.medicalRecord.deleteMany({ where: { patientId: target.id } });
+
+      async function ensureVisit(
+        full: EkqyFullRecord,
+        isFirst: boolean,
+      ) {
+        const { date, time } = visitInfo(full, summaryById);
+        const doctor = full.doctorName || "";
+        const kind = isFirst ? "first" : "return";
+        const existing = await tx.patientVisit.findFirst({
+          where: {
+            patientId: target!.id,
+            visitDate: date,
+            startTime: time,
+          },
+        });
+        if (existing) {
+          return tx.patientVisit.update({
+            where: { id: existing.id },
+            data: {
+              kind,
+              status: "completed",
+              doctor: doctor || existing.doctor,
+              endTime: time || existing.endTime,
+              source: existing.source === "manual" ? existing.source : "record",
+            },
+          });
+        }
+        if (time) {
+          const slot = await tx.patientVisit.findFirst({
+            where: {
+              patientId: target!.id,
+              visitDate: date,
+              startTime: "",
+              medicalRecords: { none: {} },
+            },
+          });
+          if (slot) {
+            return tx.patientVisit.update({
+              where: { id: slot.id },
+              data: {
+                startTime: time,
+                endTime: time,
+                kind,
+                status: "completed",
+                doctor: doctor || slot.doctor,
+                source: "record",
+              },
+            });
+          }
+        }
+        return tx.patientVisit.create({
+          data: {
+            patientId: target!.id,
+            visitDate: date,
+            startTime: time,
+            endTime: time,
+            kind,
+            status: "completed",
+            doctor,
+            source: "record",
+            remark: "imported from e看牙",
+          },
+        });
+      }
+
+      const createdRecords: {
+        full: EkqyFullRecord;
+        record: {
+          id: number;
+          visitDate: string;
+          doctor: string;
+          planItems: { id: number; teeth: string; text: string }[];
+        };
+        type: ReturnType<typeof recordType>;
+        visit: { id: number; visitDate: string; doctor: string };
+      }[] = [];
+
+      for (const full of all) {
+        const type = recordType(full, summaryById);
+        const isFirst = type === "first" || type === "orthoFirst";
+        const visit = await ensureVisit(full, isFirst);
+        const { date, time } = visitInfo(full, summaryById);
+        const record = await tx.medicalRecord.create({
+          data: {
+            patientId: target.id,
+            visitId: visit.id,
+            type,
+            visitDate: date,
+            visitTime: time,
+            doctor: full.doctorName || visit.doctor || "",
+            nurse: full.nurseName || "",
+            chiefComplaint: clean(full.chiefComplaint),
+            presentIllness: clean(full.history),
+            pastHistory: clean(full.pastHistory),
+            oralExam: entries(full.oralCheckRecordList, "description"),
+            diagnosis: entries(full.diagnoseRecordList, "diagnose"),
+            treatment: entries(full.cureRecordList, "cure"),
+            advice: clean(full.advice),
+            remark: clean(full.comment),
+            planItems: isFirst
+              ? {
+                  create: (full.treatmentPlanList ?? []).map((item, index) => ({
+                    sort: index,
+                    teeth: teeth(item.fdiToothCodes),
+                    text: clean(item.planContent),
+                  })),
+                }
+              : undefined,
+          },
+          include: { planItems: true },
+        });
+        createdRecords.push({ full, record, type, visit });
+      }
+
+      const initialEntry = createdRecords.find(
+        (item) => item.type === "first" || item.type === "orthoFirst",
+      );
+      if (!initialEntry) {
+        throw new NotFoundException("写入后未找到初诊病历");
+      }
+
+      if (initialEntry.record.planItems.length) {
+        for (const item of createdRecords) {
+          if (item === initialEntry) continue;
+          const cureTeeth = new Set(
+            (item.full.cureRecordList ?? []).flatMap((c) => [
+              ...toothSet(c.fdiToothCodes),
+            ]),
+          );
+          for (const plan of initialEntry.record.planItems) {
+            const planTeeth = toothSet(plan.teeth);
+            const sameTooth = [...planTeeth].some((n) => cureTeeth.has(n));
+            const sameText =
+              plan.text.length > 3 &&
+              (item.full.cureRecordList ?? []).some((c) =>
+                clean(c.cure).includes(plan.text.slice(0, 8)),
+              );
+            if (!sameTooth && !sameText) continue;
+            await tx.planItemFollowUp.create({
+              data: {
+                recordId: item.record.id,
+                planItemId: plan.id,
+                completes: false,
+              },
+            });
+          }
+        }
+
+        for (const item of createdRecords) {
+          if (item === initialEntry) continue;
+          const count = await tx.planItemFollowUp.count({
+            where: { recordId: item.record.id },
+          });
+          if (count === 0) {
+            await tx.planItemFollowUp.create({
+              data: {
+                recordId: item.record.id,
+                planItemId: initialEntry.record.planItems[0].id,
+                completes: false,
+              },
+            });
+          }
+        }
+      }
+
+      if (total > 0) {
+        const items = orders.flatMap((order) =>
+          (order.chargeOrderSimpleDetailList ?? []).map((detail) => ({
+            name: detail.chargeType || "收费",
+            teeth: "",
+            unitPrice: Number(detail.price ?? detail.actualPrice ?? 0),
+            quantity: 1,
+            amount: Number(detail.actualPrice ?? detail.price ?? 0),
+          })),
+        );
+        if (!items.length) {
+          items.push({
+            name: "治疗费",
+            teeth: "",
+            unitPrice: total,
+            quantity: 1,
+            amount: total,
+          });
+        }
+
+        const visits = await tx.patientVisit.findMany({
+          where: { patientId: target.id },
+        });
+        const paymentRows = orders.flatMap((order) =>
+          (order.paymentList ?? []).map((payment) => {
+            const paidAt = String(
+              order.payDateTime || order.recordCreatedTime || "",
+            ).slice(0, 10);
+            const visit =
+              visits.find((v) => v.visitDate === paidAt) ?? initialEntry.visit;
+            return {
+              amount: Number(payment.amount ?? 0),
+              method: payment.payType || "",
+              doctor: visit?.doctor || order.doctorName || order.payee || "",
+              paidAt: paidAt || initialEntry.record.visitDate,
+              visitId: visit?.id ?? null,
+            };
+          }),
+        );
+
+        await tx.chargeOrder.create({
+          data: {
+            patientId: target.id,
+            visitId: initialEntry.visit.id,
+            isCourse: true,
+            chargeDate:
+              String(
+                orders[0]?.payDateTime || orders[0]?.recordCreatedTime || "",
+              ).slice(0, 10) || initialEntry.record.visitDate,
+            doctor:
+              orders[0]?.doctorName ||
+              orders[0]?.payee ||
+              initialEntry.record.doctor,
+            receivable: total,
+            items: { create: items },
+            payments: {
+              create: paymentRows.filter((p) => p.amount > 0),
+            },
+          },
+        });
+      }
+
+      return {
+        dryRun: false,
+        patientId: target.id,
+        chartNo,
+        matchedBy,
+        existingRecords,
+        existingCharges,
+        records: createdRecords.length,
+        planItems: createdRecords.reduce(
+          (n, r) => n + r.record.planItems.length,
+          0,
+        ),
+        charges: total,
+        payments,
+      };
+    });
+  }
+}
