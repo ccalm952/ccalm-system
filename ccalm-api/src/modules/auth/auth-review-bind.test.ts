@@ -42,7 +42,16 @@ describe("审核账号微信绑定", () => {
         findUnique: vi
           .fn()
           .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(user),
+          .mockResolvedValueOnce(user)
+          .mockResolvedValueOnce({
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            roles: [],
+          }),
         update: vi.fn(),
       },
       $transaction: vi.fn((fn: (client: typeof tx) => Promise<unknown>) =>
@@ -66,6 +75,11 @@ describe("审核账号微信绑定", () => {
 
     expect(result.status).toBe("bound");
     expect(result.deviceToken).toBe("openid-reviewer");
+    expect(result.user).toMatchObject({
+      id: "u1",
+      permissions: [],
+      roles: [],
+    });
     expect(tx.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { wechatOpenId: null },
@@ -114,7 +128,24 @@ describe("审核账号微信绑定", () => {
         findUnique: vi
           .fn()
           .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(user),
+          .mockResolvedValueOnce(user)
+          .mockResolvedValueOnce({
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            roles: [
+              {
+                id: "builtin-admin",
+                name: "管理员",
+                bookable: false,
+                assistable: false,
+                permissions: ["attendance.manage"],
+              },
+            ],
+          }),
       },
       $transaction: vi.fn((fn: (client: typeof tx) => Promise<unknown>) =>
         fn(tx),
@@ -133,7 +164,7 @@ describe("审核账号微信绑定", () => {
 
     const auth = new AuthService(prisma as never, jwt as never, {} as never);
 
-    await auth.wechatBind("ticket", "alice", "123456");
+    const result = await auth.wechatBind("ticket", "alice", "123456");
 
     expect(tx.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,5 +173,9 @@ describe("审核账号微信绑定", () => {
     );
     expect(tx.attendancePunchDevice.create).toHaveBeenCalledTimes(1);
     expect(tx.attendancePunchDevice.upsert).not.toHaveBeenCalled();
+    expect(result.user).toMatchObject({
+      id: "u2",
+      permissions: ["attendance.manage"],
+    });
   });
 });

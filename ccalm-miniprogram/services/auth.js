@@ -1,6 +1,6 @@
 const { getLoginCode } = require("./wechat");
-const { post } = require("./http");
-const { setSession } = require("../store/session");
+const { get, post } = require("./http");
+const { getSession, setSession } = require("../store/session");
 
 function buildSession(response) {
   if (
@@ -16,6 +16,22 @@ function buildSession(response) {
     deviceToken: response.deviceToken,
     user: response.user,
   };
+}
+
+/**
+ * 用 /auth/me 刷新本地 user（roles / permissions），供已登录用户对齐新权限模型。
+ */
+async function refreshCurrentUser() {
+  const session = getSession();
+  if (!session || !session.accessToken) return null;
+  const me = await get("/auth/me");
+  const next = {
+    accessToken: session.accessToken,
+    deviceToken: session.deviceToken,
+    user: me,
+  };
+  setSession(next);
+  return next;
 }
 
 /**
@@ -57,4 +73,5 @@ async function bindWechatAccount(body) {
 module.exports = {
   loginWithWechat,
   bindWechatAccount,
+  refreshCurrentUser,
 };

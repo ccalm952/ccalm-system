@@ -3,6 +3,7 @@ const {
   hasSession,
   redirectToLogin,
 } = require("../../store/session");
+const { refreshCurrentUser } = require("../../services/auth");
 const { fetchTodoState } = require("../../services/todo");
 const { fetchMissingTotal } = require("../../services/badge");
 const { badgeText } = require("../../utils/badge");
@@ -39,6 +40,8 @@ Page({
     if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.bindThemeChange();
+    // 旧登录态没有 permissions，进入首页时对齐 /auth/me
+    this._meReady = refreshCurrentUser().catch(() => null);
   },
 
   onReady() {
@@ -47,8 +50,12 @@ Page({
     if (app && app.loadFontsAfterFirstPaint) app.loadFontsAfterFirstPaint();
   },
 
-  onShow() {
+  async onShow() {
     if (!requireSession()) return;
+    if (this._meReady) {
+      await this._meReady;
+      this._meReady = null;
+    }
     if (!this.data.booted) this.setData({ booted: true });
     this.applyTheme();
     this.refreshBadges();
