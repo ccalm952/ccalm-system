@@ -37,6 +37,17 @@ export const APPOINTMENT_SOURCES = [
 
 export const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/**
+ * 看板展示用的医生：有就诊记录就以就诊记录为准（那是实际接诊），
+ * 没有就诊记录才退回预约上排的医生。历史数据里两者经常会不一致。
+ */
+export function displayDoctor(
+  appointmentDoctor: string,
+  visitDoctor?: string | null,
+): string {
+  return (visitDoctor ?? "").trim() || appointmentDoctor;
+}
+
 export function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
