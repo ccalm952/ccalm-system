@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildPlanFollowUps,
   clean,
+  matchPlanItemsForReturn,
+  pickCourseInitial,
   pickInitialFull,
   recordType,
   teeth,
@@ -48,5 +51,75 @@ describe("ekqy-import helpers", () => {
         new Map(),
       )?.id,
     ).toBe(1);
+  });
+
+  it("pickCourseInitial uses nearest preceding first", () => {
+    const initials = [
+      { type: "first", visitDate: "2022-08-08" },
+      { type: "first", visitDate: "2026-04-10" },
+    ];
+    expect(
+      pickCourseInitial({ type: "return", visitDate: "2026-11-13" }, initials)
+        ?.visitDate,
+    ).toBe("2026-04-10");
+    expect(
+      pickCourseInitial({ type: "return", visitDate: "2023-01-01" }, initials)
+        ?.visitDate,
+    ).toBe("2022-08-08");
+  });
+
+  it("matchPlanItemsForReturn prefers overlapping teeth", () => {
+    const plans = [
+      { id: 1, teeth: "27", text: "拔除" },
+      { id: 2, teeth: "24,25", text: "松动牙治疗" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [{ fdiToothCodes: "24,25", cure: "根备" }],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([2]);
+  });
+
+  it("buildPlanFollowUps links returns to the correct course", () => {
+    const links = buildPlanFollowUps([
+      {
+        type: "first",
+        visitDate: "2022-08-08",
+        full: { id: 1 },
+        planItems: [{ id: 119, teeth: "27", text: "拔除" }],
+      },
+      {
+        type: "first",
+        visitDate: "2026-04-10",
+        full: { id: 2 },
+        planItems: [{ id: 120, teeth: "24,25", text: "松动牙治疗" }],
+      },
+      {
+        type: "return",
+        visitDate: "2026-04-13",
+        full: {
+          id: 3,
+          cureRecordList: [{ fdiToothCodes: "24,25", cure: "根备" }],
+        },
+        planItems: [],
+      },
+      {
+        type: "return",
+        visitDate: "2026-11-13",
+        full: {
+          id: 4,
+          cureRecordList: [{ fdiToothCodes: "36", cure: "种植" }],
+        },
+        planItems: [],
+      },
+    ]);
+    expect(links).toEqual([
+      { recordIndex: 2, planItemId: 120 },
+      { recordIndex: 3, planItemId: 120 },
+    ]);
   });
 });
