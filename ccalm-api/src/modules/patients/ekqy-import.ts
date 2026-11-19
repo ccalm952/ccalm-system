@@ -176,26 +176,85 @@ export function pickCourseInitial<
   );
 }
 
-/** 按牙位/文本匹配计划行；都对不上则回退该初诊第一条计划 */
+const ORTHO_PLAN_RE = /正畸|矫正|矫治/;
+const ORTHO_CURE_RE = /正畸|矫正|矫治|弹力|托槽|弓丝|中线|斜拉|牵引|调颌|调合/;
+
+function scorePlanForCure(
+  plan: EkqyPlanItemRef,
+  cureTeeth: Set<number>,
+  cureText: string,
+): number {
+  const planTeeth = toothSet(plan.teeth);
+  const inter = [...planTeeth].filter((n) => cureTeeth.has(n)).length;
+  const specificity = planTeeth.size ? inter / planTeeth.size : 0;
+  const orthoPlan = ORTHO_PLAN_RE.test(plan.text);
+  const orthoCure = ORTHO_CURE_RE.test(cureText);
+  const sameText =
+    plan.text.length > 3 && cureText.includes(plan.text.slice(0, 8));
+
+  let score = 0;
+  if (sameText) score += 100;
+  if (
+    !sameText &&
+    cureText.length >= 2 &&
+    cureText.length <= 6 &&
+    plan.text.includes(cureText)
+  ) {
+    score += 45;
+  }
+  // 普通计划：要求重叠牙位占该计划牙位一半以上；正畸文案的处置不因牙位沾边挂到充填/治疗
+  if (!orthoPlan && inter > 0 && specificity >= 0.5) {
+    score += orthoCure ? 5 : 40 + specificity * 30;
+  }
+  if (!orthoPlan && inter > 0 && specificity < 0.5 && score >= 45) {
+    score += specificity * 20;
+  }
+  // 正畸/矫正计划：有重叠或处置无牙位时弱匹配；处置文案偏正畸时加分
+  if (orthoPlan && (inter > 0 || cureTeeth.size === 0 || orthoCure)) {
+    score += 20;
+    if (orthoCure) score += 50;
+  }
+  return score;
+}
+
+/**
+ * 每条复诊只挂一行计划（总分最高），避免同一天在多行下重复展开。
+ * 同分时优先更具体的非正畸计划。
+ */
 export function matchPlanItemsForReturn(
   full: EkqyFullRecord,
   planItems: EkqyPlanItemRef[],
 ): EkqyPlanItemRef[] {
   if (!planItems.length) return [];
-  const cureTeeth = new Set(
-    (full.cureRecordList ?? []).flatMap((c) => [...toothSet(c.fdiToothCodes)]),
-  );
-  const matched = planItems.filter((plan) => {
-    const planTeeth = toothSet(plan.teeth);
-    const sameTooth = [...planTeeth].some((n) => cureTeeth.has(n));
-    const sameText =
-      plan.text.length > 3 &&
-      (full.cureRecordList ?? []).some((c) =>
-        clean(c.cure).includes(plan.text.slice(0, 8)),
+  const cures = full.cureRecordList ?? [];
+  if (!cures.length) return [planItems[0]];
+
+  let best: {
+    plan: EkqyPlanItemRef;
+    score: number;
+    ortho: boolean;
+  } | null = null;
+  for (const plan of planItems) {
+    let total = 0;
+    for (const cure of cures) {
+      total += scorePlanForCure(
+        plan,
+        toothSet(cure.fdiToothCodes),
+        clean(cure.cure),
       );
-    return sameTooth || sameText;
-  });
-  return matched.length ? matched : [planItems[0]];
+    }
+    if (total <= 0) continue;
+    const ortho = ORTHO_PLAN_RE.test(plan.text);
+    if (
+      !best ||
+      total > best.score ||
+      (total === best.score && best.ortho && !ortho) ||
+      (total === best.score && ortho === best.ortho && plan.id < best.plan.id)
+    ) {
+      best = { plan, score: total, ortho };
+    }
+  }
+  return [best?.plan ?? planItems[0]];
 }
 
 /** 生成复诊 → 计划行关联；初诊之间不互挂 */

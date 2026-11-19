@@ -28,6 +28,7 @@ import {
   planCourseStatus,
   planItemAmount,
   type PlanItem,
+  type ToothEntry,
 } from "@/lib/medical-records/record-types";
 import { MedicalRecordEditor, type ReturnPlan } from "./medical-record-editor";
 import { ChargePaymentDialog } from "./charge-payment-dialog";
@@ -142,8 +143,65 @@ function PlanItemStatus({
     </div>
   );
 }
+const ORTHO_PLAN_RE = /正畸|矫正|矫治/;
+const ORTHO_CURE_RE = /正畸|矫正|矫治|弹力|托槽|弓丝|中线|斜拉|牵引|调颌|调合/;
+
+function toothNumSet(value: string): Set<number> {
+  const out = new Set<number>();
+  for (const part of value.split(/[\s,，、]+/)) {
+    const n = Number(part.trim());
+    if (Number.isInteger(n) && n > 0) out.add(n);
+  }
+  return out;
+}
+
+/** 处置归属哪一行计划：每条处置只归最匹配的一行，避免同次复诊在多行下全文重复 */
+function treatmentForPlanItem(
+  treatment: ToothEntry[],
+  planItemId: number,
+  planItems: PlanItem[],
+): ToothEntry[] {
+  const candidates = planItems.filter((p) => p.id != null);
+  if (!candidates.length) return treatment;
+  return treatment.filter((entry) => {
+    const cureTeeth = toothNumSet(entry.teeth);
+    const cureText = entry.text.trim();
+    let best: { id: number; score: number; ortho: boolean } | null = null;
+    for (const plan of candidates) {
+      const planTeeth = toothNumSet(plan.teeth);
+      const inter = [...planTeeth].filter((n) => cureTeeth.has(n)).length;
+      const specificity = planTeeth.size ? inter / planTeeth.size : 0;
+      const orthoPlan = ORTHO_PLAN_RE.test(plan.text);
+      const orthoCure = ORTHO_CURE_RE.test(cureText);
+      const sameText =
+        plan.text.length > 3 && cureText.includes(plan.text.slice(0, 8));
+      let score = 0;
+      if (sameText) score += 100;
+      if (!orthoPlan && inter > 0 && specificity >= 0.5) {
+        score += orthoCure ? 5 : 40 + specificity * 30;
+      }
+      if (orthoPlan && (inter > 0 || cureTeeth.size === 0 || orthoCure)) {
+        score += 20;
+        if (orthoCure) score += 50;
+      }
+      if (score <= 0) continue;
+      const id = plan.id as number;
+      if (
+        !best ||
+        score > best.score ||
+        (score === best.score && best.ortho && !orthoPlan) ||
+        (score === best.score && orthoPlan === best.ortho && id < best.id)
+      ) {
+        best = { id, score, ortho: orthoPlan };
+      }
+    }
+    return (best?.id ?? candidates[0].id) === planItemId;
+  });
+}
+
 function PlanFollowUps({
   planItemId,
+  planItems,
   records,
   expanded,
   chargeByVisit,
@@ -151,15 +209,25 @@ function PlanFollowUps({
   onDelete,
 }: {
   planItemId: number;
+  planItems: PlanItem[];
   expanded: boolean;
   records: MedicalRecord[];
   chargeByVisit: Map<number, VisitCharge>;
   onEdit: (record: MedicalRecord) => void;
   onDelete: (record: MedicalRecord) => void;
 }) {
+  const rows = records
+    .map((r) => ({
+      record: r,
+      treatment: treatmentForPlanItem(r.treatment, planItemId, planItems),
+    }))
+    .filter(({ record, treatment }) =>
+      record.treatment.length ? treatment.length > 0 : true,
+    );
+  if (!rows.length) return null;
   return (
     <div className="flex flex-col divide-y rounded-lg bg-muted/50 px-4">
-      {records.map((r) => (
+      {rows.map(({ record: r, treatment }) => (
         <div
           key={r.id}
           className="grid grid-cols-[6rem_1fr_auto_auto_auto] items-center gap-4 py-3"
@@ -169,8 +237,8 @@ function PlanFollowUps({
             <div className="text-muted-foreground">{r.doctor}</div>
           </div>
           <div className="flex flex-col gap-2">
-            {r.treatment.length ? (
-              <ToothEntriesView entries={r.treatment} />
+            {treatment.length ? (
+              <ToothEntriesView entries={treatment} />
             ) : (
               <span className="text-muted-foreground">无处置</span>
             )}
@@ -288,11 +356,13 @@ function RecordBody({
               <PlanQuoteView item={record.treatmentPlan[index]} />
             )}
             renderBelow={(index) => {
-              const id = record.treatmentPlan[index].id;
+              const planItem = record.treatmentPlan[index];
+              const id = planItem.id;
               const list = id != null ? followUps.get(id) : undefined;
               return id != null && openItems.has(id) && list?.length ? (
                 <PlanFollowUps
                   planItemId={id}
+                  planItems={record.treatmentPlan}
                   records={list}
                   expanded={expanded}
                   chargeByVisit={chargeByVisit}

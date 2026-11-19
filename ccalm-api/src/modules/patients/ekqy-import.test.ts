@@ -69,20 +69,100 @@ describe("ekqy-import helpers", () => {
     ).toBe("2022-08-08");
   });
 
-  it("matchPlanItemsForReturn prefers overlapping teeth", () => {
+  it("matchPlanItemsForReturn prefers specific teeth over full-arch ortho", () => {
     const plans = [
-      { id: 1, teeth: "27", text: "拔除" },
-      { id: 2, teeth: "24,25", text: "松动牙治疗" },
+      {
+        id: 1,
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        text: "矫正12000，优惠后10000",
+      },
+      { id: 2, teeth: "16,46", text: "治疗300x2=600" },
+      { id: 3, teeth: "16,46", text: "打桩200x2=400" },
     ];
     expect(
       matchPlanItemsForReturn(
         {
           id: 9,
-          cureRecordList: [{ fdiToothCodes: "24,25", cure: "根备" }],
+          cureRecordList: [
+            { fdiToothCodes: "16,46", cure: "已根充，上头光固化树脂恢复。" },
+          ],
         },
         plans,
       ).map((p) => p.id),
     ).toEqual([2]);
+  });
+
+  it("matchPlanItemsForReturn links ortho text to矫正 plan", () => {
+    const plans = [
+      {
+        id: 1,
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        text: "矫正12000，优惠后10000",
+      },
+      { id: 2, teeth: "16,46", text: "治疗300x2=600" },
+      { id: 3, teeth: "11,12,16,46", text: "修复1000x4=4000" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [
+            { fdiToothCodes: "11,12,13,21,22,23", cure: "弹力绳解除" },
+          ],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([1]);
+  });
+
+  it("matchPlanItemsForReturn keeps bracket bonding on矫正 not 充填", () => {
+    const plans = [
+      { id: 1, teeth: "", text: "矫正费用10000" },
+      { id: 2, teeth: "16,26,36,46", text: "充填各200总800" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [
+            {
+              fdiToothCodes:
+                "11,12,13,14,15,16,21,22,23,24,25,26,31,32,33,34,35,36,41,42,43,44,45,46",
+              cure: "托槽粘接",
+            },
+          ],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([1]);
+  });
+
+  it("matchPlanItemsForReturn picks one plan for mixed cures", () => {
+    const plans = [
+      {
+        id: 1,
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        text: "矫正12000，优惠后10000",
+      },
+      { id: 2, teeth: "16,46", text: "治疗300x2=600" },
+      { id: 3, teeth: "16,46", text: "打桩200x2=400" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [
+            { fdiToothCodes: "16,46", cure: "已根充，上头光固化树脂恢复。" },
+            { fdiToothCodes: "11,12,13,21,22,23", cure: "弹力绳解除" },
+            { fdiToothCodes: "", cure: "中线偏右，整往左边斜拉。" },
+          ],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([1]);
   });
 
   it("buildPlanFollowUps links returns to the correct course", () => {

@@ -1,4 +1,6 @@
-.raw.json
+.cookies.txt
 .name.txt
 .chart.txt
 .token.txt
+.pending.json
+.batch-log.json
