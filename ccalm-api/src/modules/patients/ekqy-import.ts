@@ -194,9 +194,20 @@ function scorePlanForCure(
 
   let score = 0;
   if (sameText) score += 100;
+  if (
+    !sameText &&
+    cureText.length >= 2 &&
+    cureText.length <= 6 &&
+    plan.text.includes(cureText)
+  ) {
+    score += 45;
+  }
   // 普通计划：要求重叠牙位占该计划牙位一半以上；正畸文案的处置不因牙位沾边挂到充填/治疗
   if (!orthoPlan && inter > 0 && specificity >= 0.5) {
     score += orthoCure ? 5 : 40 + specificity * 30;
+  }
+  if (!orthoPlan && inter > 0 && specificity < 0.5 && score >= 45) {
+    score += specificity * 20;
   }
   // 正畸/矫正计划：有重叠或处置无牙位时弱匹配；处置文案偏正畸时加分
   if (orthoPlan && (inter > 0 || cureTeeth.size === 0 || orthoCure)) {
