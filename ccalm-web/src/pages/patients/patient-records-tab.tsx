@@ -256,15 +256,16 @@ function RecordBody({
       return next;
     });
   }
+  const firstType = record.type === "first" || record.type === "orthoFirst";
   const fields: MedicalRecordField[] = expanded
     ? MEDICAL_RECORD_FIELDS[record.type]
-    : record.type === "first"
+    : firstType
       ? ["treatmentPlan", "treatment", "advice"]
       : ["treatment", "advice"];
   const rows: { key: string; label: string; content: React.ReactNode }[] = [];
   for (const field of fields) {
     let content: React.ReactNode = null;
-    if (field === "treatmentPlan" && record.type === "first") {
+    if (field === "treatmentPlan" && firstType) {
       if (record.treatmentPlan.length) {
         content = (
           <ToothEntriesView
@@ -334,7 +335,7 @@ function RecordBody({
 }
 
 function recordCourseStatus(record: MedicalRecord) {
-  return record.type === "first"
+  return record.type === "first" || record.type === "orthoFirst"
     ? planCourseStatus(record.treatmentPlan, record.planStoppedAt)
     : "none";
 }
