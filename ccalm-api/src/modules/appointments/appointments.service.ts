@@ -16,12 +16,14 @@ import {
   PENDING_REASON_LABELS,
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_LABELS,
+  displayDoctor,
   hasOverlap,
   slotDurationError,
   fromMinutes,
   TIME_PATTERN,
   toMinutes,
 } from "./appointment-options";
+import { OPEN_VISIT_STATUSES } from "../visits/visit-options";
 import { CreateAppointmentDto } from "./dto/create-appointment.dto";
 import { UpdateAppointmentDto } from "./dto/update-appointment.dto";
 
@@ -148,7 +150,6 @@ export class AppointmentsService {
       where: {
         visitDate: { gte: from, lte: to },
         status: { in: statuses },
-        ...(doctorNames.length ? { doctor: { in: doctorNames } } : {}),
       },
       include: {
         patient: {
@@ -160,11 +161,13 @@ export class AppointmentsService {
             phone: true,
           },
         },
+        // 展示时以实际接诊医生为准，见 displayDoctor
+        visit: { select: { doctor: true } },
       },
       orderBy: [{ visitDate: "asc" }, { startTime: "asc" }, { id: "asc" }],
     });
 
-    const appointments = rows.map((v) => ({
+    const mapped = rows.map((v) => ({
       id: v.id,
       patientId: v.patientId,
       patientName: v.patient.name,
@@ -175,7 +178,7 @@ export class AppointmentsService {
       visitDate: v.visitDate,
       startTime: v.startTime,
       endTime: v.endTime,
-      doctor: v.doctor,
+      doctor: displayDoctor(v.doctor, v.visit?.doctor),
       kind: v.kind,
       status: v.status,
       items: v.items,
@@ -186,6 +189,11 @@ export class AppointmentsService {
       visitId: v.visitId,
       source: v.source,
     }));
+
+    // 医生筛选按展示用医生来，避免筛「吴介尘」时漏掉显示为吴介尘、预约上却存了别人的卡片
+    const appointments = doctorNames.length
+      ? mapped.filter((a) => doctorNames.includes(a.doctor))
+      : mapped;
 
     const days: {
       date: string;
@@ -447,6 +455,15 @@ export class AppointmentsService {
         source: dto.source ?? existing.source,
       },
     });
+
+    // 预约上换了医生，把还没完成就诊记录一起改掉，避免看板和就诊记录各说各的；
+    // 已完成/已取消的就诊是历史事实，不回写。
+    if (existing.visitId != null && doctor !== existing.doctor) {
+      await this.prisma.patientVisit.updateMany({
+        where: { id: existing.visitId, status: { in: OPEN_VISIT_STATUSES } },
+        data: { doctor },
+      });
+    }
     return { ok: true };
   }
 

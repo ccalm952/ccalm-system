@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  displayDoctor,
   fromMinutes,
   hasOverlap,
   slotDurationError,
@@ -59,5 +60,19 @@ describe("slotDurationError", () => {
   });
   it("结束早于开始拒绝", () => {
     expect(slotDurationError("10:00", "09:00")).toContain("15 分钟");
+  });
+});
+
+describe("displayDoctor", () => {
+  it("有就诊记录时用就诊医生", () => {
+    expect(displayDoctor("胡", "吴介尘")).toBe("吴介尘");
+  });
+  it("没有就诊记录时用预约医生", () => {
+    expect(displayDoctor("胡芊芊", null)).toBe("胡芊芊");
+    expect(displayDoctor("胡芊芊", "")).toBe("胡芊芊");
+    expect(displayDoctor("胡芊芊", "   ")).toBe("胡芊芊");
+  });
+  it("就诊记录只填了空格也退回预约医生", () => {
+    expect(displayDoctor("宁福月", " ")).toBe("宁福月");
   });
 });
