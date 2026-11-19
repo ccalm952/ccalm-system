@@ -233,9 +233,10 @@ export type EkqyVisitCandidate = {
 
 /**
  * 导入就诊复用优先级：
- * 1. 同日同时刻
+ * 1. 同日无病历的预约就诊（待写时间常与 e看牙不完全一致）
  * 2. 同日无病历且开始时间为空
- * 3. 同日无病历（预约待写时间可能对不齐）
+ * 3. 同日同时刻
+ * 4. 同日其它无病历就诊
  */
 export function pickReusableVisit(
   candidates: EkqyVisitCandidate[],
@@ -243,15 +244,16 @@ export function pickReusableVisit(
   time: string,
 ): EkqyVisitCandidate | undefined {
   const sameDay = candidates.filter((v) => v.visitDate === date);
-  const exact = sameDay.find((v) => v.startTime === time);
-  if (exact) return exact;
-
   const open = sameDay.filter((v) => !v.hasRecords);
-  const emptyTime = open.find((v) => !v.startTime);
-  if (emptyTime) return emptyTime;
 
   const withAppt = open.find((v) => v.hasAppointment);
   if (withAppt) return withAppt;
+
+  const emptyTime = open.find((v) => !v.startTime);
+  if (emptyTime) return emptyTime;
+
+  const exact = sameDay.find((v) => v.startTime === time);
+  if (exact) return exact;
 
   return open[0];
 }
