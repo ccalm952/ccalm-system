@@ -222,3 +222,36 @@ export function buildPlanFollowUps(
   });
   return out;
 }
+
+export type EkqyVisitCandidate = {
+  id: number;
+  visitDate: string;
+  startTime: string;
+  hasRecords: boolean;
+  hasAppointment: boolean;
+};
+
+/**
+ * 导入就诊复用优先级：
+ * 1. 同日同时刻
+ * 2. 同日无病历且开始时间为空
+ * 3. 同日无病历（预约待写时间可能对不齐）
+ */
+export function pickReusableVisit(
+  candidates: EkqyVisitCandidate[],
+  date: string,
+  time: string,
+): EkqyVisitCandidate | undefined {
+  const sameDay = candidates.filter((v) => v.visitDate === date);
+  const exact = sameDay.find((v) => v.startTime === time);
+  if (exact) return exact;
+
+  const open = sameDay.filter((v) => !v.hasRecords);
+  const emptyTime = open.find((v) => !v.startTime);
+  if (emptyTime) return emptyTime;
+
+  const withAppt = open.find((v) => v.hasAppointment);
+  if (withAppt) return withAppt;
+
+  return open[0];
+}
