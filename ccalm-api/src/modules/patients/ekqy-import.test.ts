@@ -6,6 +6,7 @@ import {
   matchPlanItemsForReturn,
   pickCourseInitial,
   pickInitialFull,
+  pickReusableVisit,
   recordType,
   teeth,
   toothSet,
@@ -121,5 +122,46 @@ describe("ekqy-import helpers", () => {
       { recordIndex: 2, planItemId: 120 },
       { recordIndex: 3, planItemId: 120 },
     ]);
+  });
+
+  it("pickReusableVisit prefers same-day appointment without records", () => {
+    const picked = pickReusableVisit(
+      [
+        {
+          id: 118,
+          visitDate: "2026-11-18",
+          startTime: "15:38",
+          hasRecords: false,
+          hasAppointment: true,
+        },
+        {
+          id: 266,
+          visitDate: "2026-11-18",
+          startTime: "16:00",
+          hasRecords: true,
+          hasAppointment: false,
+        },
+      ],
+      "2026-11-18",
+      "16:00",
+    );
+    // 16:00 已有病历的那条是 exact；无 exact 空位时才走预约
+    expect(picked?.id).toBe(266);
+
+    expect(
+      pickReusableVisit(
+        [
+          {
+            id: 118,
+            visitDate: "2026-11-18",
+            startTime: "15:38",
+            hasRecords: false,
+            hasAppointment: true,
+          },
+        ],
+        "2026-11-18",
+        "16:00",
+      )?.id,
+    ).toBe(118);
   });
 });

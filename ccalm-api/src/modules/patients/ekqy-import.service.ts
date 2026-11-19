@@ -17,6 +17,7 @@ import {
   type EkqySummary,
   isInitialRecordType,
   pickInitialFull,
+  pickReusableVisit,
   recordType,
   teeth,
   visitInfo,
@@ -169,47 +170,39 @@ export class EkqyImportService {
         const { date, time } = visitInfo(full, summaryById);
         const doctor = full.doctorName || "";
         const kind = isFirst ? "first" : "return";
-        const existing = await tx.patientVisit.findFirst({
-          where: {
-            patientId: target!.id,
-            visitDate: date,
-            startTime: time,
+        const dayVisits = await tx.patientVisit.findMany({
+          where: { patientId: target!.id, visitDate: date },
+          include: {
+            medicalRecords: { select: { id: true } },
+            appointment: { select: { id: true } },
           },
+          orderBy: [{ startTime: "asc" }, { id: "asc" }],
         });
-        if (existing) {
+        const reusable = pickReusableVisit(
+          dayVisits.map((v) => ({
+            id: v.id,
+            visitDate: v.visitDate,
+            startTime: v.startTime,
+            hasRecords: v.medicalRecords.length > 0,
+            hasAppointment: v.appointment != null,
+          })),
+          date,
+          time,
+        );
+        if (reusable) {
+          const slot = dayVisits.find((v) => v.id === reusable.id)!;
           return tx.patientVisit.update({
-            where: { id: existing.id },
+            where: { id: slot.id },
             data: {
               kind,
               status: "completed",
-              doctor: doctor || existing.doctor,
-              endTime: time || existing.endTime,
-              source: existing.source === "manual" ? existing.source : "record",
+              doctor: doctor || slot.doctor,
+              // 预约待写已有时段时保留，只补空的开始/结束时间
+              startTime: slot.startTime || time,
+              endTime: slot.endTime || time || slot.startTime || time,
+              source: slot.source === "manual" ? slot.source : "record",
             },
           });
-        }
-        if (time) {
-          const slot = await tx.patientVisit.findFirst({
-            where: {
-              patientId: target!.id,
-              visitDate: date,
-              startTime: "",
-              medicalRecords: { none: {} },
-            },
-          });
-          if (slot) {
-            return tx.patientVisit.update({
-              where: { id: slot.id },
-              data: {
-                startTime: time,
-                endTime: time,
-                kind,
-                status: "completed",
-                doctor: doctor || slot.doctor,
-                source: "record",
-              },
-            });
-          }
         }
         return tx.patientVisit.create({
           data: {
@@ -365,6 +358,17 @@ export class EkqyImportService {
           },
         });
       }
+
+      // 清掉此前导入留下的同日空就诊（无病历、无预约）
+      await tx.patientVisit.deleteMany({
+        where: {
+          patientId: target.id,
+          remark: "imported from e看牙",
+          medicalRecords: { none: {} },
+          appointment: { is: null },
+          chargeOrders: { none: {} },
+        },
+      });
 
       return {
         dryRun: false,
