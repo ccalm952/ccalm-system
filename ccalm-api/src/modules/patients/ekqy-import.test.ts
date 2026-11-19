@@ -73,7 +73,8 @@ describe("ekqy-import helpers", () => {
     const plans = [
       {
         id: 1,
-        teeth: "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
         text: "矫正12000，优惠后10000",
       },
       { id: 2, teeth: "16,46", text: "治疗300x2=600" },
@@ -96,7 +97,8 @@ describe("ekqy-import helpers", () => {
     const plans = [
       {
         id: 1,
-        teeth: "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
         text: "矫正12000，优惠后10000",
       },
       { id: 2, teeth: "16,46", text: "治疗300x2=600" },
@@ -115,11 +117,34 @@ describe("ekqy-import helpers", () => {
     ).toEqual([1]);
   });
 
-  it("matchPlanItemsForReturn splits restorative and ortho cures", () => {
+  it("matchPlanItemsForReturn keeps bracket bonding on矫正 not 充填", () => {
+    const plans = [
+      { id: 1, teeth: "", text: "矫正费用10000" },
+      { id: 2, teeth: "16,26,36,46", text: "充填各200总800" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [
+            {
+              fdiToothCodes:
+                "11,12,13,14,15,16,21,22,23,24,25,26,31,32,33,34,35,36,41,42,43,44,45,46",
+              cure: "托槽粘接",
+            },
+          ],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([1]);
+  });
+
+  it("matchPlanItemsForReturn picks one plan for mixed cures", () => {
     const plans = [
       {
         id: 1,
-        teeth: "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
+        teeth:
+          "11,12,13,14,15,16,17,21,22,23,24,25,26,27,31,32,33,34,35,36,37,41,42,43,44,45,46,47",
         text: "矫正12000，优惠后10000",
       },
       { id: 2, teeth: "16,46", text: "治疗300x2=600" },
@@ -137,7 +162,7 @@ describe("ekqy-import helpers", () => {
         },
         plans,
       ).map((p) => p.id),
-    ).toEqual([1, 2]);
+    ).toEqual([1]);
   });
 
   it("buildPlanFollowUps links returns to the correct course", () => {

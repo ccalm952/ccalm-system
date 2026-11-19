@@ -194,9 +194,9 @@ function scorePlanForCure(
 
   let score = 0;
   if (sameText) score += 100;
-  // 普通计划：要求重叠牙位占该计划牙位一半以上，避免全口矫正「沾边」就挂上
+  // 普通计划：要求重叠牙位占该计划牙位一半以上；正畸文案的处置不因牙位沾边挂到充填/治疗
   if (!orthoPlan && inter > 0 && specificity >= 0.5) {
-    score += 40 + specificity * 30;
+    score += orthoCure ? 5 : 40 + specificity * 30;
   }
   // 正畸/矫正计划：有重叠或处置无牙位时弱匹配；处置文案偏正畸时加分
   if (orthoPlan && (inter > 0 || cureTeeth.size === 0 || orthoCure)) {
@@ -207,8 +207,8 @@ function scorePlanForCure(
 }
 
 /**
- * 按每条处置各自匹配最合适的计划行（去重）。
- * 避免「任意牙位命中全口计划」导致同一复诊挂到很多行、页面重复展示。
+ * 每条复诊只挂一行计划（总分最高），避免同一天在多行下重复展开。
+ * 同分时优先更具体的非正畸计划。
  */
 export function matchPlanItemsForReturn(
   full: EkqyFullRecord,
@@ -218,26 +218,32 @@ export function matchPlanItemsForReturn(
   const cures = full.cureRecordList ?? [];
   if (!cures.length) return [planItems[0]];
 
-  const picked = new Map<number, EkqyPlanItemRef>();
-  for (const cure of cures) {
-    const cureTeeth = toothSet(cure.fdiToothCodes);
-    const cureText = clean(cure.cure);
-    let best: { plan: EkqyPlanItemRef; score: number } | null = null;
-    for (const plan of planItems) {
-      const score = scorePlanForCure(plan, cureTeeth, cureText);
-      if (score <= 0) continue;
-      if (
-        !best ||
-        score > best.score ||
-        (score === best.score && plan.id < best.plan.id)
-      ) {
-        best = { plan, score };
-      }
+  let best: {
+    plan: EkqyPlanItemRef;
+    score: number;
+    ortho: boolean;
+  } | null = null;
+  for (const plan of planItems) {
+    let total = 0;
+    for (const cure of cures) {
+      total += scorePlanForCure(
+        plan,
+        toothSet(cure.fdiToothCodes),
+        clean(cure.cure),
+      );
     }
-    if (best) picked.set(best.plan.id, best.plan);
+    if (total <= 0) continue;
+    const ortho = ORTHO_PLAN_RE.test(plan.text);
+    if (
+      !best ||
+      total > best.score ||
+      (total === best.score && best.ortho && !ortho) ||
+      (total === best.score && ortho === best.ortho && plan.id < best.plan.id)
+    ) {
+      best = { plan, score: total, ortho };
+    }
   }
-  if (!picked.size) return [planItems[0]];
-  return planItems.filter((p) => picked.has(p.id));
+  return [best?.plan ?? planItems[0]];
 }
 
 /** 生成复诊 → 计划行关联；初诊之间不互挂 */
