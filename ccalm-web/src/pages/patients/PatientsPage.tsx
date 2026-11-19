@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Merge, Plus, SearchIcon, X } from "lucide-react";
+import { Merge, Plus, SearchIcon, Upload, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -36,8 +36,11 @@ import { ROUTES } from "@/config/routes";
 import { api } from "@/lib/api";
 import { batchDelete, toastBatchDeleteResult } from "@/lib/batch-delete";
 import { errorMessage } from "@/lib/errorMessage";
+import { can } from "@/lib/permissions";
 import { PATIENT_AUTO_GROUPS, type PatientGroup } from "@/lib/patients/groups";
 import { usePatientTags } from "@/lib/patients/tags";
+import { useAuth } from "@/lib/use-auth";
+import { EkqyImportDialog } from "./ekqy-import-dialog";
 import {
   PatientFormDialog,
   type PatientFormValue,
@@ -74,6 +77,7 @@ function parseGroup(raw: string | null): PatientGroup {
 }
 
 export function PatientsPage() {
+  const { me } = useAuth();
   const [searchParams] = useSearchParams();
   const tag = searchParams.get("tag");
   const tags = usePatientTags();
@@ -89,12 +93,14 @@ export function PatientsPage() {
   const [selection, setSelection] = React.useState<Set<number>>(new Set());
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [mergeOpen, setMergeOpen] = React.useState(false);
+  const [ekqyOpen, setEkqyOpen] = React.useState(false);
   const mergeIds = React.useMemo(() => [...selection], [selection]);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<PatientRow | null>(null);
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
   const [loading, setLoading] = React.useState(true);
+  const canImportEkqy = can(me, "patient.import_ekqy");
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -225,6 +231,16 @@ export function PatientsPage() {
               <Merge className="size-3.5" />
               合并
             </Button>
+            {canImportEkqy ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEkqyOpen(true)}
+              >
+                <Upload className="size-3.5" />
+                导入 e看牙
+              </Button>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-(--card-spacing)">
@@ -370,6 +386,12 @@ export function PatientsPage() {
         onOpenChange={setMergeOpen}
         ids={mergeIds}
         onMerged={() => void reload()}
+      />
+
+      <EkqyImportDialog
+        open={ekqyOpen}
+        onOpenChange={setEkqyOpen}
+        onImported={() => void reload()}
       />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

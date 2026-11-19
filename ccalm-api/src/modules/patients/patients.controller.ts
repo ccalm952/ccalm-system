@@ -10,14 +10,21 @@ import {
   Query,
 } from "@nestjs/common";
 
+import { RequirePermissions } from "../../common/permissions/require-permissions.decorator";
+
+import { EkqyImportDto } from "./dto/ekqy-import.dto";
 import { MergePatientsDto } from "./dto/merge-patients.dto";
 import { SavePatientDto } from "./dto/save-patient.dto";
 import { CreateTagDto, UpdateTagDto } from "./dto/save-tag.dto";
+import { EkqyImportService } from "./ekqy-import.service";
 import { PatientsService } from "./patients.service";
 
 @Controller("patients")
 export class PatientsController {
-  constructor(private readonly patients: PatientsService) {}
+  constructor(
+    private readonly patients: PatientsService,
+    private readonly ekqyImport: EkqyImportService,
+  ) {}
 
   @Get()
   list(
@@ -90,6 +97,13 @@ export class PatientsController {
   @Post("merge")
   merge(@Body() dto: MergePatientsDto) {
     return this.patients.merge(dto);
+  }
+
+  /** e看牙 scrape 产出的 raw JSON；会清空该患者已有病历与收费后重写 */
+  @Post("ekqy-import")
+  @RequirePermissions("patient.import_ekqy")
+  importEkqy(@Body() dto: EkqyImportDto) {
+    return this.ekqyImport.import(dto);
   }
 
   @Get(":id")
