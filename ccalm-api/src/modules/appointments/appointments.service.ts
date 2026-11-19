@@ -432,38 +432,40 @@ export class AppointmentsService {
       endTime = "";
     }
 
-    await this.prisma.appointment.update({
-      where: { id },
-      data: {
-        status:
-          existing.status === "missed" && !isPending
-            ? OPEN_STATUS
-            : existing.status,
-        missedReason: "",
-        patientId,
-        visitDate,
-        startTime,
-        endTime,
-        doctor,
-        kind: dto.kind ?? existing.kind,
-        items: dto.items ?? existing.items,
-        remark: dto.remark ?? existing.remark,
-        isPending,
-        pendingReason: isPending
-          ? (dto.pendingReason ?? existing.pendingReason ?? "patient_time")
-          : "",
-        source: dto.source ?? existing.source,
-      },
-    });
-
-    // 预约上换了医生，把还没完成就诊记录一起改掉，避免看板和就诊记录各说各的；
+    // 预约与未完成就诊同事务写入，避免预约已改、就诊未同步；
+    // 有 visitId 就回写开放中的就诊医生（含本次未改 doctor），对齐历史漂移；
     // 已完成/已取消的就诊是历史事实，不回写。
-    if (existing.visitId != null && doctor !== existing.doctor) {
-      await this.prisma.patientVisit.updateMany({
-        where: { id: existing.visitId, status: { in: OPEN_VISIT_STATUSES } },
-        data: { doctor },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.appointment.update({
+        where: { id },
+        data: {
+          status:
+            existing.status === "missed" && !isPending
+              ? OPEN_STATUS
+              : existing.status,
+          missedReason: "",
+          patientId,
+          visitDate,
+          startTime,
+          endTime,
+          doctor,
+          kind: dto.kind ?? existing.kind,
+          items: dto.items ?? existing.items,
+          remark: dto.remark ?? existing.remark,
+          isPending,
+          pendingReason: isPending
+            ? (dto.pendingReason ?? existing.pendingReason ?? "patient_time")
+            : "",
+          source: dto.source ?? existing.source,
+        },
       });
-    }
+      if (existing.visitId != null) {
+        await tx.patientVisit.updateMany({
+          where: { id: existing.visitId, status: { in: OPEN_VISIT_STATUSES } },
+          data: { doctor },
+        });
+      }
+    });
     return { ok: true };
   }
 

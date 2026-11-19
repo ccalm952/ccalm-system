@@ -1,3 +1,4 @@
+import { displayDoctor } from "../appointments/appointment-options";
 import {
   isOrthoRecordType,
   type MedicalRecordType,
@@ -16,8 +17,11 @@ export type TodayVisitSource = {
   visitId: number | null;
   source: string;
   patient: { name: string; phone: string; chartNo: string };
-  /** 该次就诊挂的病历（id 倒序，第一条最新） */
-  visit: { medicalRecords: { type: string; doctor: string }[] } | null;
+  /** 该次就诊；病历 id 倒序，第一条最新 */
+  visit: {
+    doctor?: string | null;
+    medicalRecords: { type: string; doctor: string }[];
+  } | null;
 };
 
 export type TodayVisitRow = {
@@ -72,7 +76,10 @@ export function todayVisitRow(
     endTime: row.endTime,
     status: row.status,
     started: row.visitId != null,
-    staff: staffSource?.doctor || row.doctor,
+    // 正畸优先病历医生；否则与看板一致，以就诊医生为准
+    staff:
+      (staffSource?.doctor ?? "").trim() ||
+      displayDoctor(row.doctor, row.visit?.doctor),
   };
   // 种植记录保存时生成的就诊（source = implant）出一行种植，内容列用牙位十字
   if (row.source === "implant") {
