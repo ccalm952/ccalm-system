@@ -124,33 +124,17 @@ describe("ekqy-import helpers", () => {
     ]);
   });
 
-  it("pickReusableVisit prefers same-day appointment without records", () => {
-    const picked = pickReusableVisit(
-      [
-        {
-          id: 118,
-          visitDate: "2026-11-18",
-          startTime: "15:38",
-          hasRecords: false,
-          hasAppointment: true,
-        },
-        {
-          id: 266,
-          visitDate: "2026-11-18",
-          startTime: "16:00",
-          hasRecords: true,
-          hasAppointment: false,
-        },
-      ],
-      "2026-11-18",
-      "16:00",
-    );
-    // 16:00 已有病历的那条是 exact；无 exact 空位时才走预约
-    expect(picked?.id).toBe(266);
-
+  it("pickReusableVisit prefers appointment over exact imported time", () => {
     expect(
       pickReusableVisit(
         [
+          {
+            id: 266,
+            visitDate: "2026-11-18",
+            startTime: "16:00",
+            hasRecords: false,
+            hasAppointment: false,
+          },
           {
             id: 118,
             visitDate: "2026-11-18",
