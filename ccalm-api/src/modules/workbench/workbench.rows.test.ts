@@ -17,7 +17,7 @@ function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
     visitId: null,
     source: "booking",
     patient,
-    visit: { medicalRecords: [] },
+    visit: { doctor: null, medicalRecords: [] },
     ...overrides,
   };
 }
@@ -25,7 +25,14 @@ function visit(overrides: Partial<TodayVisitSource> = {}): TodayVisitSource {
 const withRecords = (
   records: { type: string; doctor: string }[],
   overrides: Partial<TodayVisitSource> = {},
-) => visit({ ...overrides, visit: { medicalRecords: records } });
+) =>
+  visit({
+    ...overrides,
+    visit: {
+      doctor: overrides.visit?.doctor ?? null,
+      medicalRecords: records,
+    },
+  });
 
 describe("todayVisitRow", () => {
   it("普通门诊就诊出一行门诊", () => {
@@ -36,6 +43,16 @@ describe("todayVisitRow", () => {
       detail: "return",
       staff: "吴仲浩",
     });
+  });
+
+  it("普通门诊以就诊医生为准", () => {
+    const row = todayVisitRow(
+      visit({
+        doctor: "胡芊芊",
+        visit: { doctor: "吴介尘", medicalRecords: [] },
+      }),
+    );
+    expect(row.staff).toBe("吴介尘");
   });
 
   it("同一次就诊挂了正畸复诊病历时只出一行正畸，不再重复门诊行", () => {
@@ -61,7 +78,8 @@ describe("todayVisitRow", () => {
   it("病历没填医生时退回就诊医生", () => {
     const row = todayVisitRow(
       withRecords([{ type: "orthoFirst", doctor: "" }], {
-        doctor: "吴仲浩",
+        doctor: "胡芊芊",
+        visit: { doctor: "吴仲浩", medicalRecords: [] },
       }),
     );
     expect(row.staff).toBe("吴仲浩");
