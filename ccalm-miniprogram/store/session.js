@@ -1,4 +1,5 @@
 const { LOGIN_PAGE } = require("../constants/routes");
+const { canManageAttendance } = require("../utils/permissions");
 
 const AUTH_KEY = "ccalm:auth";
 
@@ -41,12 +42,12 @@ function hasSession() {
 }
 
 /**
- * 判断是否管理员。
- * @param {{user?:{role?:string}}|null} [session]
+ * 是否可管理他人考勤（旧名 isAdmin，语义已对齐权限点）。
+ * @param {{user?:{permissions?:string[]}}|null} [session]
  */
 function isAdmin(session) {
   const target = session || getSession();
-  return !!(target && target.user && target.user.role === "admin");
+  return canManageAttendance(target && target.user);
 }
 
 /**

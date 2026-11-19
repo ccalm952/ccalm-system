@@ -14,6 +14,7 @@ const {
   isAdmin,
   requireSession,
 } = require("../../../store/session");
+const { refreshCurrentUser } = require("../../../services/auth");
 const toastBehavior = require("../../../behaviors/toast");
 const pullRefreshBehavior = require("../../../behaviors/pull-refresh");
 const makeupTimeBehavior = require("../../../behaviors/makeup-time");
@@ -104,10 +105,17 @@ Component({
       });
     },
 
-    activate() {
+    async activate() {
       if (!this.isAttached) return;
-      const session = requireSession();
+      let session = requireSession();
       if (!session) return;
+      if (!Array.isArray(session.user && session.user.permissions)) {
+        try {
+          session = (await refreshCurrentUser()) || session;
+        } catch (_) {
+          // 沿用本地登录态
+        }
+      }
       this.syncCurrentMonth();
       this.setData({ makeupDirect: isAdmin(session) });
       if (this.statsLoaded) {
@@ -237,8 +245,15 @@ Component({
     },
 
     async reload() {
-      const session = getSession();
+      let session = getSession();
       if (!session || !session.user) return;
+      if (!Array.isArray(session.user.permissions)) {
+        try {
+          session = (await refreshCurrentUser()) || session;
+        } catch (_) {
+          // 沿用本地登录态
+        }
+      }
       const month = this.data.month;
       const keep = this.data.expandedId;
       const admin = isAdmin(session);

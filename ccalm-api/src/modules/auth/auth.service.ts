@@ -15,15 +15,6 @@ import { WechatService } from "./wechat.service";
 
 const WECHAT_BIND_PURPOSE = "wechat_bind" as const;
 
-type SafeUser = {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -68,17 +59,6 @@ export class AuthService {
       throw new UnauthorizedException("绑定凭证无效或已过期，请重新微信登录");
     }
     return payload.openid.trim();
-  }
-
-  private toSafeUser(user: SafeUser) {
-    return {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
   }
 
   async login(username: string, password: string): Promise<string> {
@@ -165,7 +145,8 @@ export class AuthService {
       status: "bound" as const,
       accessToken,
       deviceToken: openid,
-      user: this.toSafeUser(user),
+      // 与 /auth/me 同结构，小程序用 permissions 判断考勤管理权
+      user: await this.getUserSafe(user.id),
     };
   }
 
@@ -246,7 +227,7 @@ export class AuthService {
       status: "bound" as const,
       accessToken,
       deviceToken: openid,
-      user: this.toSafeUser(updated),
+      user: await this.getUserSafe(updated.id),
     };
   }
 }
