@@ -8,16 +8,17 @@ import { PrismaService } from "../../prisma/prisma.service";
 
 import type { EkqyImportDto } from "./dto/ekqy-import.dto";
 import {
+  buildPlanFollowUps,
   clean,
   entries,
   type EkqyFullRecord,
   type EkqyOrder,
   type EkqyPatientInfo,
   type EkqySummary,
+  isInitialRecordType,
   pickInitialFull,
   recordType,
   teeth,
-  toothSet,
   visitInfo,
 } from "./ekqy-import";
 
@@ -274,55 +275,33 @@ export class EkqyImportService {
         createdRecords.push({ full, record, type, visit });
       }
 
-      const initialEntry = createdRecords.find(
-        (item) => item.type === "first" || item.type === "orthoFirst",
-      );
+      const initialEntry =
+        [...createdRecords]
+          .reverse()
+          .find((item) => isInitialRecordType(item.type)) ??
+        createdRecords.find((item) => isInitialRecordType(item.type));
       if (!initialEntry) {
         throw new NotFoundException("写入后未找到初诊病历");
       }
 
-      if (initialEntry.record.planItems.length) {
-        for (const item of createdRecords) {
-          if (item === initialEntry) continue;
-          const cureTeeth = new Set(
-            (item.full.cureRecordList ?? []).flatMap((c) => [
-              ...toothSet(c.fdiToothCodes),
-            ]),
-          );
-          for (const plan of initialEntry.record.planItems) {
-            const planTeeth = toothSet(plan.teeth);
-            const sameTooth = [...planTeeth].some((n) => cureTeeth.has(n));
-            const sameText =
-              plan.text.length > 3 &&
-              (item.full.cureRecordList ?? []).some((c) =>
-                clean(c.cure).includes(plan.text.slice(0, 8)),
-              );
-            if (!sameTooth && !sameText) continue;
-            await tx.planItemFollowUp.create({
-              data: {
-                recordId: item.record.id,
-                planItemId: plan.id,
-                completes: false,
-              },
-            });
-          }
-        }
-
-        for (const item of createdRecords) {
-          if (item === initialEntry) continue;
-          const count = await tx.planItemFollowUp.count({
-            where: { recordId: item.record.id },
-          });
-          if (count === 0) {
-            await tx.planItemFollowUp.create({
-              data: {
-                recordId: item.record.id,
-                planItemId: initialEntry.record.planItems[0].id,
-                completes: false,
-              },
-            });
-          }
-        }
+      const followUps = buildPlanFollowUps(
+        createdRecords.map((item) => ({
+          type: item.type,
+          visitDate: item.record.visitDate,
+          full: item.full,
+          planItems: item.record.planItems,
+        })),
+      );
+      for (const link of followUps) {
+        const host = createdRecords[link.recordIndex];
+        if (!host) continue;
+        await tx.planItemFollowUp.create({
+          data: {
+            recordId: host.record.id,
+            planItemId: link.planItemId,
+            completes: false,
+          },
+        });
       }
 
       if (total > 0) {

@@ -140,3 +140,85 @@ export function pickInitialFull(
     return summary?.firstVisit || String(summary?.title ?? "").includes("初诊");
   });
 }
+
+export function isInitialRecordType(
+  type: string,
+): type is "first" | "orthoFirst" {
+  return type === "first" || type === "orthoFirst";
+}
+
+export function isReturnRecordType(
+  type: string,
+): type is "return" | "orthoReturn" {
+  return type === "return" || type === "orthoReturn";
+}
+
+export type EkqyPlanItemRef = { id: number; teeth: string; text: string };
+
+export type EkqyLinkableRecord = {
+  type: string;
+  visitDate: string;
+  full: EkqyFullRecord;
+  planItems: EkqyPlanItemRef[];
+};
+
+/** 复诊挂到「日期 ≤ 自己」的最近一次初诊（多疗程） */
+export function pickCourseInitial<
+  T extends { type: string; visitDate: string },
+>(returnItem: T, initials: T[]): T | undefined {
+  const eligible = initials.filter(
+    (item) =>
+      isInitialRecordType(item.type) && item.visitDate <= returnItem.visitDate,
+  );
+  return (
+    eligible.at(-1) ??
+    initials.filter((i) => isInitialRecordType(i.type)).at(-1)
+  );
+}
+
+/** 按牙位/文本匹配计划行；都对不上则回退该初诊第一条计划 */
+export function matchPlanItemsForReturn(
+  full: EkqyFullRecord,
+  planItems: EkqyPlanItemRef[],
+): EkqyPlanItemRef[] {
+  if (!planItems.length) return [];
+  const cureTeeth = new Set(
+    (full.cureRecordList ?? []).flatMap((c) => [...toothSet(c.fdiToothCodes)]),
+  );
+  const matched = planItems.filter((plan) => {
+    const planTeeth = toothSet(plan.teeth);
+    const sameTooth = [...planTeeth].some((n) => cureTeeth.has(n));
+    const sameText =
+      plan.text.length > 3 &&
+      (full.cureRecordList ?? []).some((c) =>
+        clean(c.cure).includes(plan.text.slice(0, 8)),
+      );
+    return sameTooth || sameText;
+  });
+  return matched.length ? matched : [planItems[0]];
+}
+
+/** 生成复诊 → 计划行关联；初诊之间不互挂 */
+export function buildPlanFollowUps(
+  records: EkqyLinkableRecord[],
+): { recordIndex: number; planItemId: number }[] {
+  const initials = records
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => isInitialRecordType(item.type))
+    .sort((a, b) => a.item.visitDate.localeCompare(b.item.visitDate));
+
+  const out: { recordIndex: number; planItemId: number }[] = [];
+  records.forEach((item, recordIndex) => {
+    if (!isReturnRecordType(item.type)) return;
+    const course = pickCourseInitial(
+      item,
+      initials.map((x) => x.item),
+    );
+    if (!course?.planItems.length) return;
+    const plans = matchPlanItemsForReturn(item.full, course.planItems);
+    for (const plan of plans) {
+      out.push({ recordIndex, planItemId: plan.id });
+    }
+  });
+  return out;
+}
