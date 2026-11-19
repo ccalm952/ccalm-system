@@ -144,8 +144,7 @@ function PlanItemStatus({
   );
 }
 const ORTHO_PLAN_RE = /正畸|矫正|矫治/;
-const ORTHO_CURE_RE =
-  /正畸|矫正|矫治|弹力|托槽|弓丝|中线|斜拉|牵引|调颌|调合/;
+const ORTHO_CURE_RE = /正畸|矫正|矫治|弹力|托槽|弓丝|中线|斜拉|牵引|调颌|调合/;
 
 function toothNumSet(value: string): Set<number> {
   const out = new Set<number>();
@@ -191,9 +190,7 @@ function treatmentForPlanItem(
         !best ||
         score > best.score ||
         (score === best.score && best.ortho && !orthoPlan) ||
-        (score === best.score &&
-          orthoPlan === best.ortho &&
-          id < best.id)
+        (score === best.score && orthoPlan === best.ortho && id < best.id)
       ) {
         best = { id, score, ortho: orthoPlan };
       }
