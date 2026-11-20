@@ -677,7 +677,9 @@ export class ImplantService {
       patientId,
       visitDate,
       recordId,
-      toothNos: implantTeeth.map((t) => t.toothNo?.trim() ?? "").filter(Boolean),
+      toothNos: implantTeeth
+        .map((t) => t.toothNo?.trim() ?? "")
+        .filter(Boolean),
     });
 
     await tx.patientVisit.update({
