@@ -736,430 +736,434 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
               className="max-h-[calc(100dvh-5rem)]"
               viewportClassName="max-h-[calc(100dvh-5rem)]"
             >
-            <DialogHeader>
-              <DialogTitle>设置</DialogTitle>
-            </DialogHeader>
-            {settingsDraft ? (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>护士池比例</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>陈美珍池比例(%)</TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={settingsDraft.chenPoolBonusRate}
-                          onChange={(chenPoolBonusRate) =>
-                            setSettingsDraft((prev) =>
-                              prev ? { ...prev, chenPoolBonusRate } : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>卢彤池比例(%)</TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={settingsDraft.luPoolBonusRate}
-                          onChange={(luPoolBonusRate) =>
-                            setSettingsDraft((prev) =>
-                              prev ? { ...prev, luPoolBonusRate } : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>许桦婧池比例(%)</TableCell>
-                      <TableCell>
-                        <RatePercentInput
-                          value={settingsDraft.xuPoolBonusRate}
-                          onChange={(xuPoolBonusRate) =>
-                            setSettingsDraft((prev) =>
-                              prev ? { ...prev, xuPoolBonusRate } : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>职称</TableHead>
-                      {receiptTierLabels(settingsDraft.tierThresholds).map(
-                        (label) => (
-                          <TableHead key={label}>{label}</TableHead>
-                        ),
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SalaryTierRatesRow
-                      label="执业医师"
-                      rates={settingsDraft.docTierRates}
-                      onChange={(docTierRates) =>
-                        setSettingsDraft((prev) =>
-                          prev ? { ...prev, docTierRates } : prev,
-                        )
-                      }
-                    />
-                    <SalaryTierRatesRow
-                      label="助理医师"
-                      rates={settingsDraft.asstTierRates}
-                      onChange={(asstTierRates) =>
-                        setSettingsDraft((prev) =>
-                          prev ? { ...prev, asstTierRates } : prev,
-                        )
-                      }
-                    />
-                  </TableBody>
-                </Table>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>种植单价</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>吴介尘</TableCell>
-                      <TableCell>
-                        <NumInput
-                          value={settingsDraft.wuJiechenPlantingBonusPerUnit}
-                          onChange={(wuJiechenPlantingBonusPerUnit) =>
-                            setSettingsDraft((prev) =>
-                              prev
-                                ? { ...prev, wuJiechenPlantingBonusPerUnit }
-                                : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>其他员工</TableCell>
-                      <TableCell>
-                        <NumInput
-                          value={settingsDraft.plantingBonusPerUnit}
-                          onChange={(plantingBonusPerUnit) =>
-                            setSettingsDraft((prev) =>
-                              prev ? { ...prev, plantingBonusPerUnit } : prev,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>设备分期</TableHead>
-                      <TableHead>总价</TableHead>
-                      <TableHead>期数</TableHead>
-                      <TableHead>起算月</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settingsDraft.equipmentInstallments.map((plan) => (
-                      <TableRow key={plan.id}>
+              <DialogHeader>
+                <DialogTitle>设置</DialogTitle>
+              </DialogHeader>
+              {settingsDraft ? (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>护士池比例</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>陈美珍池比例(%)</TableCell>
                         <TableCell>
-                          <Input
-                            value={plan.name}
-                            onChange={(e) => {
-                              const name = e.target.value;
+                          <RatePercentInput
+                            value={settingsDraft.chenPoolBonusRate}
+                            onChange={(chenPoolBonusRate) =>
                               setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      equipmentInstallments:
-                                        prev.equipmentInstallments.map((row) =>
-                                          row.id === plan.id
-                                            ? { ...row, name }
-                                            : row,
-                                        ),
-                                    }
-                                  : prev,
-                              );
-                            }}
+                                prev ? { ...prev, chenPoolBonusRate } : prev,
+                              )
+                            }
                           />
                         </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>卢彤池比例(%)</TableCell>
+                        <TableCell>
+                          <RatePercentInput
+                            value={settingsDraft.luPoolBonusRate}
+                            onChange={(luPoolBonusRate) =>
+                              setSettingsDraft((prev) =>
+                                prev ? { ...prev, luPoolBonusRate } : prev,
+                              )
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>许桦婧池比例(%)</TableCell>
+                        <TableCell>
+                          <RatePercentInput
+                            value={settingsDraft.xuPoolBonusRate}
+                            onChange={(xuPoolBonusRate) =>
+                              setSettingsDraft((prev) =>
+                                prev ? { ...prev, xuPoolBonusRate } : prev,
+                              )
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>职称</TableHead>
+                        {receiptTierLabels(settingsDraft.tierThresholds).map(
+                          (label) => (
+                            <TableHead key={label}>{label}</TableHead>
+                          ),
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <SalaryTierRatesRow
+                        label="执业医师"
+                        rates={settingsDraft.docTierRates}
+                        onChange={(docTierRates) =>
+                          setSettingsDraft((prev) =>
+                            prev ? { ...prev, docTierRates } : prev,
+                          )
+                        }
+                      />
+                      <SalaryTierRatesRow
+                        label="助理医师"
+                        rates={settingsDraft.asstTierRates}
+                        onChange={(asstTierRates) =>
+                          setSettingsDraft((prev) =>
+                            prev ? { ...prev, asstTierRates } : prev,
+                          )
+                        }
+                      />
+                    </TableBody>
+                  </Table>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>种植单价</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>吴介尘</TableCell>
                         <TableCell>
                           <NumInput
-                            value={plan.totalAmount}
-                            onChange={(totalAmount) =>
+                            value={settingsDraft.wuJiechenPlantingBonusPerUnit}
+                            onChange={(wuJiechenPlantingBonusPerUnit) =>
                               setSettingsDraft((prev) =>
                                 prev
-                                  ? {
-                                      ...prev,
-                                      equipmentInstallments:
-                                        prev.equipmentInstallments.map((row) =>
-                                          row.id === plan.id
-                                            ? {
-                                                ...row,
-                                                totalAmount: Math.max(
-                                                  0,
-                                                  totalAmount,
-                                                ),
-                                              }
-                                            : row,
-                                        ),
-                                    }
+                                  ? { ...prev, wuJiechenPlantingBonusPerUnit }
                                   : prev,
                               )
                             }
                           />
                         </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>其他员工</TableCell>
                         <TableCell>
                           <NumInput
-                            value={plan.months}
-                            onChange={(months) =>
+                            value={settingsDraft.plantingBonusPerUnit}
+                            onChange={(plantingBonusPerUnit) =>
                               setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      equipmentInstallments:
-                                        prev.equipmentInstallments.map((row) =>
-                                          row.id === plan.id
-                                            ? {
-                                                ...row,
-                                                months: Math.max(
-                                                  1,
-                                                  Math.round(months) || 1,
-                                                ),
-                                              }
-                                            : row,
-                                        ),
-                                    }
-                                  : prev,
+                                prev ? { ...prev, plantingBonusPerUnit } : prev,
                               )
                             }
                           />
                         </TableCell>
-                        <TableCell>
-                          <Input
-                            placeholder="YYYY-MM"
-                            value={plan.startMonth}
-                            onChange={(e) => {
-                              const startMonth = e.target.value;
-                              setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      equipmentInstallments:
-                                        prev.equipmentInstallments.map((row) =>
-                                          row.id === plan.id
-                                            ? { ...row, startMonth }
-                                            : row,
-                                        ),
-                                    }
-                                  : prev,
-                              );
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>设备分期</TableHead>
+                        <TableHead>总价</TableHead>
+                        <TableHead>期数</TableHead>
+                        <TableHead>起算月</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settingsDraft.equipmentInstallments.map((plan) => (
+                        <TableRow key={plan.id}>
+                          <TableCell>
+                            <Input
+                              value={plan.name}
+                              onChange={(e) => {
+                                const name = e.target.value;
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        equipmentInstallments:
+                                          prev.equipmentInstallments.map(
+                                            (row) =>
+                                              row.id === plan.id
+                                                ? { ...row, name }
+                                                : row,
+                                          ),
+                                      }
+                                    : prev,
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <NumInput
+                              value={plan.totalAmount}
+                              onChange={(totalAmount) =>
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        equipmentInstallments:
+                                          prev.equipmentInstallments.map(
+                                            (row) =>
+                                              row.id === plan.id
+                                                ? {
+                                                    ...row,
+                                                    totalAmount: Math.max(
+                                                      0,
+                                                      totalAmount,
+                                                    ),
+                                                  }
+                                                : row,
+                                          ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <NumInput
+                              value={plan.months}
+                              onChange={(months) =>
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        equipmentInstallments:
+                                          prev.equipmentInstallments.map(
+                                            (row) =>
+                                              row.id === plan.id
+                                                ? {
+                                                    ...row,
+                                                    months: Math.max(
+                                                      1,
+                                                      Math.round(months) || 1,
+                                                    ),
+                                                  }
+                                                : row,
+                                          ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              placeholder="YYYY-MM"
+                              value={plan.startMonth}
+                              onChange={(e) => {
+                                const startMonth = e.target.value;
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        equipmentInstallments:
+                                          prev.equipmentInstallments.map(
+                                            (row) =>
+                                              row.id === plan.id
+                                                ? { ...row, startMonth }
+                                                : row,
+                                          ),
+                                      }
+                                    : prev,
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        equipmentInstallments:
+                                          prev.equipmentInstallments.filter(
+                                            (row) => row.id !== plan.id,
+                                          ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            >
+                              <X />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow>
+                        <TableCell colSpan={5}>
                           <Button
                             type="button"
                             variant="outline"
-                            size="icon"
-                            onClick={() =>
+                            onClick={() => {
+                              const next: SalaryEquipmentInstallment = {
+                                id:
+                                  typeof crypto !== "undefined" &&
+                                  "randomUUID" in crypto
+                                    ? crypto.randomUUID()
+                                    : `eq-${Date.now()}`,
+                                name: "",
+                                totalAmount: 0,
+                                months: 12,
+                                startMonth: dayjs().format("YYYY-MM"),
+                              };
                               setSettingsDraft((prev) =>
                                 prev
                                   ? {
                                       ...prev,
-                                      equipmentInstallments:
-                                        prev.equipmentInstallments.filter(
-                                          (row) => row.id !== plan.id,
-                                        ),
-                                    }
-                                  : prev,
-                              )
-                            }
-                          >
-                            <X />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={5}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            const next: SalaryEquipmentInstallment = {
-                              id:
-                                typeof crypto !== "undefined" &&
-                                "randomUUID" in crypto
-                                  ? crypto.randomUUID()
-                                  : `eq-${Date.now()}`,
-                              name: "",
-                              totalAmount: 0,
-                              months: 12,
-                              startMonth: dayjs().format("YYYY-MM"),
-                            };
-                            setSettingsDraft((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    equipmentInstallments: [
-                                      ...prev.equipmentInstallments,
-                                      next,
-                                    ],
-                                  }
-                                : prev,
-                            );
-                          }}
-                        >
-                          <Plus data-icon="inline-start" />
-                          添加设备分期
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>其他成本</TableHead>
-                      <TableHead>费用</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settingsDraft.otherCostItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Input
-                            value={item.name}
-                            onChange={(e) => {
-                              const name = e.target.value;
-                              setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      otherCostItems: prev.otherCostItems.map(
-                                        (row) =>
-                                          row.id === item.id
-                                            ? { ...row, name }
-                                            : row,
-                                      ),
+                                      equipmentInstallments: [
+                                        ...prev.equipmentInstallments,
+                                        next,
+                                      ],
                                     }
                                   : prev,
                               );
                             }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <NumInput
-                            value={item.amount}
-                            onChange={(amount) =>
-                              setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      otherCostItems: prev.otherCostItems.map(
-                                        (row) =>
-                                          row.id === item.id
-                                            ? {
-                                                ...row,
-                                                amount: Math.max(0, amount),
-                                              }
-                                            : row,
-                                      ),
-                                    }
-                                  : prev,
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() =>
-                              setSettingsDraft((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      otherCostItems:
-                                        prev.otherCostItems.filter(
-                                          (row) => row.id !== item.id,
-                                        ),
-                                    }
-                                  : prev,
-                              )
-                            }
                           >
-                            <X />
+                            <Plus data-icon="inline-start" />
+                            添加设备分期
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={3}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            const next: SalaryOtherCostItem = {
-                              id:
-                                typeof crypto !== "undefined" &&
-                                "randomUUID" in crypto
-                                  ? crypto.randomUUID()
-                                  : `oc-${Date.now()}`,
-                              name: "",
-                              amount: 0,
-                            };
-                            setSettingsDraft((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    otherCostItems: [
-                                      ...prev.otherCostItems,
-                                      next,
-                                    ],
-                                  }
-                                : prev,
-                            );
-                          }}
-                        >
-                          <Plus data-icon="inline-start" />
-                          添加其他成本
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </>
-            ) : null}
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setTierRateSettingsOpen(false)}
-              >
-                取消
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void confirmTierRateSettings()}
-              >
-                确定
-              </Button>
-            </DialogFooter>
+                    </TableBody>
+                  </Table>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>其他成本</TableHead>
+                        <TableHead>费用</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settingsDraft.otherCostItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Input
+                              value={item.name}
+                              onChange={(e) => {
+                                const name = e.target.value;
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        otherCostItems: prev.otherCostItems.map(
+                                          (row) =>
+                                            row.id === item.id
+                                              ? { ...row, name }
+                                              : row,
+                                        ),
+                                      }
+                                    : prev,
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <NumInput
+                              value={item.amount}
+                              onChange={(amount) =>
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        otherCostItems: prev.otherCostItems.map(
+                                          (row) =>
+                                            row.id === item.id
+                                              ? {
+                                                  ...row,
+                                                  amount: Math.max(0, amount),
+                                                }
+                                              : row,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                setSettingsDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        otherCostItems:
+                                          prev.otherCostItems.filter(
+                                            (row) => row.id !== item.id,
+                                          ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            >
+                              <X />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow>
+                        <TableCell colSpan={3}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              const next: SalaryOtherCostItem = {
+                                id:
+                                  typeof crypto !== "undefined" &&
+                                  "randomUUID" in crypto
+                                    ? crypto.randomUUID()
+                                    : `oc-${Date.now()}`,
+                                name: "",
+                                amount: 0,
+                              };
+                              setSettingsDraft((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      otherCostItems: [
+                                        ...prev.otherCostItems,
+                                        next,
+                                      ],
+                                    }
+                                  : prev,
+                              );
+                            }}
+                          >
+                            <Plus data-icon="inline-start" />
+                            添加其他成本
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </>
+              ) : null}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setTierRateSettingsOpen(false)}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void confirmTierRateSettings()}
+                >
+                  确定
+                </Button>
+              </DialogFooter>
             </ScrollArea>
           </DialogContent>
         </Dialog>

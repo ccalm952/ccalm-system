@@ -90,7 +90,10 @@ export function formatTeeth(fdis: number[]): string {
 export function parseTeethStrict(raw: string): number[] | null {
   const s = raw.trim();
   if (!s) return [];
-  const parts = s.split(",").map((p) => p.trim()).filter(Boolean);
+  const parts = s
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (!parts.length) return [];
   const nums: number[] = [];
   for (const p of parts) {

@@ -24,8 +24,7 @@ const poolCache: Record<StaffPool, Promise<string[]> | null> = {
 };
 
 function loadPool(pool: StaffPool): Promise<string[]> {
-  const path =
-    pool === "doctors" ? "/patients/doctors" : "/patients/staff";
+  const path = pool === "doctors" ? "/patients/doctors" : "/patients/staff";
   poolCache[pool] ??= api<string[]>("GET", path).catch(() => {
     poolCache[pool] = null;
     return [];
@@ -41,7 +40,10 @@ function splitStaffNames(raw: string): string[] {
 }
 
 function joinStaffNames(names: string[]): string {
-  return names.map((s) => s.trim()).filter(Boolean).join("、");
+  return names
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join("、");
 }
 
 export function StaffCombobox({

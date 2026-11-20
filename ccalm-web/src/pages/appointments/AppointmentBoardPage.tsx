@@ -1015,10 +1015,7 @@ export function AppointmentBoardPage() {
             ) : null}
           </ScrollArea>
         </aside>
-        <ScrollArea
-          className="min-h-0 flex-1 bg-card"
-          scrollbars="both"
-        >
+        <ScrollArea className="min-h-0 flex-1 bg-card" scrollbars="both">
           {loading ? (
             <div className="flex h-64 w-full items-center justify-center">
               <Spinner className="size-8 opacity-60" />

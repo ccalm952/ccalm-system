@@ -279,7 +279,8 @@ function PeoplePanel({
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">
-            共 {users.length} 人。配台选人来自带「可配台」角色的人员；编辑人员角色或到「角色管理」勾选即可。
+            共 {users.length}{" "}
+            人。配台选人来自带「可配台」角色的人员；编辑人员角色或到「角色管理」勾选即可。
           </span>
           <Button
             type="button"
@@ -308,7 +309,9 @@ function PeoplePanel({
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-medium">{user.displayName}</span>
+                          <span className="font-medium">
+                            {user.displayName}
+                          </span>
                           {canAssist ? (
                             <Badge variant="secondary">可配台</Badge>
                           ) : null}

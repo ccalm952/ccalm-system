@@ -125,7 +125,10 @@ const comboboxListMaxH =
 
 function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   return (
-    <ScrollArea className={comboboxListMaxH} viewportClassName={comboboxListMaxH}>
+    <ScrollArea
+      className={comboboxListMaxH}
+      viewportClassName={comboboxListMaxH}
+    >
       <ComboboxPrimitive.List
         data-slot="combobox-list"
         className={cn(

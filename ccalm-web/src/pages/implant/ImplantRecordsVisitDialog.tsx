@@ -519,8 +519,7 @@ export function ImplantRecordsVisitDialog({
   function selectSuggestion(suggestion: AddSuggestion) {
     pickingSuggestRef.current = true;
     const patientHit = suggestions.find(
-      (s) =>
-        s.origin === "patient" && s.patientId === suggestion.patientId,
+      (s) => s.origin === "patient" && s.patientId === suggestion.patientId,
     );
     const pendingHit =
       suggestion.origin === "pending"
