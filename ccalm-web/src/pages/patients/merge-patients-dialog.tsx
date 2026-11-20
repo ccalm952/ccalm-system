@@ -58,7 +58,7 @@ function countsText(p: MergeCandidate) {
   const parts = COUNT_LABELS.filter(([k]) => p.counts[k] > 0).map(
     ([k, label]) => `${label} ${p.counts[k]}`,
   );
-  return parts.length ? parts.join(" · ") : "无记录";
+  return parts.length ? parts.join(" / ") : "无记录";
 }
 
 export function MergePatientsDialog({

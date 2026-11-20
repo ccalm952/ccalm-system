@@ -98,18 +98,18 @@ export function PatientInfoTab({ patient }: { patient: PatientDetail }) {
                 {v.teeth
                   .map((t) => t.toothNo)
                   .filter(Boolean)
-                  .join("、")}
+                  .join("，")}
               </TableCell>
               <TableCell>
                 {[...new Set(v.teeth.map((t) => t.implantBrand))]
                   .filter(Boolean)
-                  .join("、")}
+                  .join("，")}
               </TableCell>
               <TableCell>
                 {v.teeth
                   .map((t) => t.implantModel)
                   .filter(Boolean)
-                  .join("、")}
+                  .join("，")}
               </TableCell>
               <TableCell>{v.remark ?? ""}</TableCell>
               <TableCell>{v.staff ?? ""}</TableCell>

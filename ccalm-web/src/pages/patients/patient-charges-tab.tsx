@@ -219,7 +219,7 @@ export function PatientChargesTab({ patientId }: { patientId: number }) {
                     >
                       <TableCell>{o.chargeDate}</TableCell>
                       <TableCell className="max-w-48 truncate">
-                        {o.items.map((i) => i.name).join("、")}
+                        {o.items.map((i) => i.name).join("，")}
                       </TableCell>
                       <TableCell className="tabular-nums">
                         {formatMoney(o.receivable)}

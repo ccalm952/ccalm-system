@@ -381,8 +381,8 @@ export function AppointmentDrawer({
                     {upcoming.map((u) => (
                       <p key={u.id} className="truncate">
                         {u.visitDate} {u.startTime || "待定"}
-                        {u.items.length ? ` · ${u.items.join("/")}` : ""}
-                        {u.doctor ? ` · ${u.doctor}` : ""}
+                        {u.items.length ? ` / ${u.items.join("，")}` : ""}
+                        {u.doctor ? ` / ${u.doctor}` : ""}
                       </p>
                     ))}
                   </div>
@@ -507,7 +507,7 @@ export function AppointmentDrawer({
                       }
                     >
                       <span className="truncate">
-                        {items.length ? items.join("、") : "选择项目"}
+                        {items.length ? items.join("，") : "选择项目"}
                       </span>
                       <span className="ml-2 shrink-0 text-sm text-muted-foreground">
                         {items.length ? `${items.length} 项` : ""}

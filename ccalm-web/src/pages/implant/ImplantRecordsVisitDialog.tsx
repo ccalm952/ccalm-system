@@ -673,6 +673,16 @@ export function ImplantRecordsVisitDialog({
         baseRow.visitId,
       ]);
       for (const visitId of visitIds) {
+        // 先同步就诊级字段，避免只增删牙位时医生/人员未写入种植就诊与病历
+        await api("PUT", `/implant/visits/${visitId}`, {
+          patientId: baseRow.patientId,
+          patientName: editForm.patientName,
+          phone: editForm.phone,
+          visitDate: editForm.visitDate,
+          doctor: editForm.doctor || null,
+          remark: editForm.remark || null,
+          staff: editForm.staff || null,
+        });
         for (const tooth of editTeeth) {
           if (tooth.toothId != null || tooth.visitId !== visitId) continue;
           if (

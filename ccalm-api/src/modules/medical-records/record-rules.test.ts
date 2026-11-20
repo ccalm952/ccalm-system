@@ -2,25 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   hasTreatment,
-  isOrthoRecordType,
+  MEDICAL_RECORD_FIELDS,
   normalizePlanItems,
   normalizePlanLinks,
+  normalizeTeethFdiString,
   normalizeToothEntries,
   pickRecordContent,
   planCourseStatus,
+  planGroupLabel,
   planItemDoneDate,
-  normalizeTeethFdiString,
   toFullWidthComma,
 } from "./record-rules";
-
-describe("isOrthoRecordType", () => {
-  it("只有正畸初诊、正畸复诊算正畸就诊", () => {
-    expect(isOrthoRecordType("orthoFirst")).toBe(true);
-    expect(isOrthoRecordType("orthoReturn")).toBe(true);
-    expect(isOrthoRecordType("first")).toBe(false);
-    expect(isOrthoRecordType("return")).toBe(false);
-  });
-});
 
 describe("planCourseStatus", () => {
   it("没有计划行时无治疗", () => {
@@ -48,63 +40,111 @@ describe("planCourseStatus", () => {
 });
 
 describe("normalizePlanItems", () => {
-  it("保留整数 id，新行 id 为 null，丢掉空行", () => {
+  it("保留组 id，明细进 lines，丢掉空组", () => {
     expect(
       normalizePlanItems([
-        { id: 5, teeth: " 17,18 ", text: " 残根拔除 " },
-        { teeth: "", text: "取模" },
-        { id: "x", teeth: "", text: " " },
+        {
+          id: 5,
+          teeth: " 17,18 ",
+          lines: [
+            {
+              id: 9,
+              feeItemId: 3,
+              name: " 残根拔除 ",
+              teeth: "17",
+              unitPrice: null,
+            },
+          ],
+        },
+        {
+          teeth: "",
+          lines: [{ feeItemId: 1, name: "取模", teeth: "" }],
+        },
+        { id: "x", teeth: "", lines: [] },
       ]),
     ).toEqual([
       {
         id: 5,
         teeth: "17,18",
-        text: "残根拔除",
-        unitPrice: null,
-        quantity: null,
-        discountNote: "",
+        lines: [
+          {
+            id: 9,
+            feeItemId: 3,
+            name: "残根拔除",
+            teeth: "17",
+            unitPrice: null,
+            quantity: null,
+            discountNote: "",
+          },
+        ],
       },
       {
         id: null,
         teeth: "",
-        text: "取模",
-        unitPrice: null,
-        quantity: null,
-        discountNote: "",
+        lines: [
+          {
+            id: null,
+            feeItemId: 1,
+            name: "取模",
+            teeth: "",
+            unitPrice: null,
+            quantity: null,
+            discountNote: "",
+          },
+        ],
       },
     ]);
   });
 
-  it("保留合法报价，丢掉负价和非正整数数量", () => {
+  it("保留合法报价，丢掉负价、组外牙位明细", () => {
     expect(
       normalizePlanItems([
         {
           teeth: "17",
-          text: "修复",
-          unitPrice: 400,
-          quantity: 30,
-          discountNote: " 治疗拔牙优惠 ",
+          lines: [
+            {
+              feeItemId: 2,
+              name: "修复",
+              teeth: "17",
+              unitPrice: 400,
+              quantity: 30,
+              discountNote: " 治疗拔牙优惠 ",
+            },
+            {
+              feeItemId: 4,
+              name: "拔除",
+              teeth: "18",
+              unitPrice: -1,
+              quantity: 1,
+            },
+          ],
         },
-        { teeth: "18", text: "拔除", unitPrice: -1, quantity: 1.5 },
       ]),
     ).toEqual([
       {
         id: null,
         teeth: "17",
-        text: "修复",
-        unitPrice: 400,
-        quantity: 30,
-        discountNote: "治疗拔牙优惠",
-      },
-      {
-        id: null,
-        teeth: "18",
-        text: "拔除",
-        unitPrice: null,
-        quantity: null,
-        discountNote: "",
+        lines: [
+          {
+            id: null,
+            feeItemId: 2,
+            name: "修复",
+            teeth: "17",
+            unitPrice: 400,
+            quantity: 30,
+            discountNote: "治疗拔牙优惠",
+          },
+        ],
       },
     ]);
+  });
+});
+
+describe("planGroupLabel", () => {
+  it("顿号拼接明细名", () => {
+    expect(planGroupLabel([{ name: "种植" }, { name: "骨粉" }])).toBe(
+      "种植，骨粉",
+    );
   });
 });
 
@@ -190,37 +230,34 @@ describe("hasTreatment", () => {
 describe("pickRecordContent", () => {
   const raw = {
     chiefComplaint: " 牙痛 ",
-    oralExam: [{ teeth: "36", text: "叩痛" }],
-    diagnosis: [{ teeth: "36", text: "龋齿" }],
-    treatment: [{ teeth: "36", text: "充填" }],
-    advice: "不适随诊",
+    presentIllness: "a,b",
+    pastHistory: "x",
+    oralExam: [{ teeth: "11", text: "龋" }],
+    auxiliaryExam: "片",
+    diagnosis: [{ teeth: "", text: "深龋" }],
+    treatment: [{ teeth: "11", text: "充填" }],
+    advice: "复诊",
+    remark: "ok",
   };
 
-  it("初诊保留主诉、诊断和处置", () => {
-    const c = pickRecordContent("first", raw);
-    expect(c.chiefComplaint).toBe("牙痛");
-    expect(c.diagnosis).toEqual([{ teeth: "36", text: "龋齿" }]);
-    expect(c.treatment).toEqual([{ teeth: "36", text: "充填" }]);
-  });
-
-  it("保存时文本字段半角逗号改全角", () => {
-    const c = pickRecordContent("first", {
-      ...raw,
-      chiefComplaint: "左下,牙痛",
-      advice: "忌硬,随诊",
-      treatment: [{ teeth: "36", text: "充填,抛光" }],
+  it("复诊只保留处置医嘱备注", () => {
+    expect(pickRecordContent("return", raw)).toEqual({
+      chiefComplaint: "",
+      presentIllness: "",
+      pastHistory: "",
+      oralExam: [],
+      auxiliaryExam: "",
+      diagnosis: [],
+      treatment: [{ teeth: "11", text: "充填" }],
+      advice: "复诊",
+      remark: "ok",
     });
-    expect(c.chiefComplaint).toBe("左下，牙痛");
-    expect(c.advice).toBe("忌硬，随诊");
-    expect(c.treatment).toEqual([{ teeth: "36", text: "充填，抛光" }]);
   });
 
-  it("复诊清空主诉和诊断", () => {
-    const c = pickRecordContent("return", raw);
-    expect(c.chiefComplaint).toBe("");
-    expect(c.diagnosis).toEqual([]);
-    expect(c.oralExam).toEqual([]);
-    expect(c.treatment).toEqual([{ teeth: "36", text: "充填" }]);
-    expect(c.advice).toBe("不适随诊");
+  it("初诊保留全套并改全角逗号", () => {
+    const content = pickRecordContent("first", raw);
+    expect(content.chiefComplaint).toBe("牙痛");
+    expect(content.presentIllness).toBe("a，b");
+    expect(MEDICAL_RECORD_FIELDS.first).toContain("treatmentPlan");
   });
 });

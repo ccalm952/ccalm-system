@@ -1,4 +1,4 @@
-import { chargeItemAmount } from "@/lib/charges/charge-calc";
+import { chargeItemAmount, sumMoney } from "@/lib/charges/charge-calc";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
 
 export type MedicalRecordType =
@@ -6,20 +6,31 @@ export type MedicalRecordType =
 
 export type ToothEntry = { teeth: string; text: string };
 
-/** 治疗计划行；新加的行还没有 id */
-export type PlanItem = ToothEntry & {
+/** 计划组内收费明细 */
+export type PlanLine = {
   id?: number;
-  /** 报价单价；未报价为 null */
+  feeItemId: number | null;
+  name: string;
+  /** 组牙位子集；空表示整组 */
+  teeth: string;
   unitPrice?: number | null;
   quantity?: number | null;
   discountNote?: string;
+};
+
+/** 治疗计划组（完成/复诊单元）；text 为明细名拼接，便于只读展示 */
+export type PlanItem = {
+  id?: number;
+  teeth: string;
+  text: string;
+  lines: PlanLine[];
   followUpCount?: number;
   doneDate?: string | null;
 };
 
 export type PlanCourseStatus = "none" | "pending" | "done" | "stopped";
 
-/** 与后端 modules/medical-records/record-rules.ts 一致：计划行全部完成才算治疗完成；未完成且已终止的不再待完成 */
+/** 与后端 modules/medical-records/record-rules.ts 一致：计划组全部完成才算治疗完成；未完成且已终止的不再待完成 */
 export function planCourseStatus(
   items: { doneDate?: string | null }[],
   planStoppedAt: string | null,
@@ -128,36 +139,75 @@ export function defaultPlanQuantity(teeth: string): number {
   return parseTeethStrict(teeth)?.length || 1;
 }
 
-export function planItemAmount(item: PlanItem): number | null {
-  if (item.unitPrice == null) return null;
+export function planLineAmount(
+  line: PlanLine,
+  groupTeeth: string,
+): number | null {
+  if (line.unitPrice == null) return null;
+  const teeth = line.teeth.trim() || groupTeeth;
   return chargeItemAmount(
-    item.unitPrice,
-    item.quantity ?? defaultPlanQuantity(item.teeth),
+    line.unitPrice,
+    line.quantity ?? defaultPlanQuantity(teeth),
   );
 }
 
-/** 同 cleanToothEntries，但保留已有行的 id，复诊关联才不会丢；有单价时补齐数量 */
+/** 组金额 = 已报价明细合计；全无报价返回 null */
+export function planItemAmount(item: PlanItem): number | null {
+  const amounts = item.lines
+    .map((line) => planLineAmount(line, item.teeth))
+    .filter((v): v is number => v != null);
+  if (!amounts.length) return null;
+  return sumMoney(amounts);
+}
+
+export function planGroupLabel(lines: { name: string }[]): string {
+  return lines
+    .map((l) => l.name.trim())
+    .filter(Boolean)
+    .join("，");
+}
+
+/** 清洗计划组与明细；有单价时补齐数量；丢掉空组 */
 export function cleanPlanItems(items: PlanItem[]): {
   id?: number;
   teeth: string;
-  text: string;
-  unitPrice: number | null;
-  quantity: number | null;
-  discountNote: string;
+  lines: {
+    id?: number;
+    feeItemId: number | null;
+    name: string;
+    teeth: string;
+    unitPrice: number | null;
+    quantity: number | null;
+    discountNote: string;
+  }[];
 }[] {
   return items
-    .map((e) => {
-      const teeth = e.teeth.trim();
-      const unitPrice = e.unitPrice ?? null;
-      return {
-        id: e.id,
-        teeth,
-        text: e.text.trim(),
-        unitPrice,
-        quantity:
-          unitPrice == null ? null : (e.quantity ?? defaultPlanQuantity(teeth)),
-        discountNote: unitPrice == null ? "" : (e.discountNote ?? "").trim(),
-      };
+    .map((g) => {
+      const teeth = g.teeth.trim();
+      const lines = g.lines
+        .map((line) => {
+          const name = line.name.trim();
+          const feeItemId = line.feeItemId ?? null;
+          if (!name && feeItemId == null) return null;
+          const lineTeeth = line.teeth.trim();
+          const unitPrice = line.unitPrice ?? null;
+          const qtyTeeth = lineTeeth || teeth;
+          return {
+            id: line.id,
+            feeItemId,
+            name,
+            teeth: lineTeeth,
+            unitPrice,
+            quantity:
+              unitPrice == null
+                ? null
+                : (line.quantity ?? defaultPlanQuantity(qtyTeeth)),
+            discountNote:
+              unitPrice == null ? "" : (line.discountNote ?? "").trim(),
+          };
+        })
+        .filter((l): l is NonNullable<typeof l> => l != null);
+      return { id: g.id, teeth, lines };
     })
-    .filter((e) => e.teeth || e.text);
+    .filter((g) => g.teeth || g.lines.length);
 }

@@ -22,6 +22,7 @@ import {
   normalizePlanLinks,
   normalizeToothEntries,
   pickRecordContent,
+  planGroupLabel,
   type PlanItemInput,
   planItemDoneDate,
   type PlanLinkInput,
@@ -31,6 +32,7 @@ const RECORD_INCLUDE = {
   planItems: {
     orderBy: { sort: "asc" },
     include: {
+      lines: { orderBy: { sort: "asc" } },
       followUps: {
         select: {
           recordId: true,
@@ -41,7 +43,9 @@ const RECORD_INCLUDE = {
     },
   },
   planLinks: {
-    include: { planItem: true },
+    include: {
+      planItem: { include: { lines: { orderBy: { sort: "asc" } } } },
+    },
     orderBy: { planItem: { sort: "asc" } },
   },
 } satisfies Prisma.MedicalRecordInclude;
@@ -69,10 +73,16 @@ function mapRecord(r: RecordWithPlan) {
     treatmentPlan: r.planItems.map((i) => ({
       id: i.id,
       teeth: i.teeth,
-      text: i.text,
-      unitPrice: i.unitPrice,
-      quantity: i.quantity,
-      discountNote: i.discountNote,
+      text: planGroupLabel(i.lines),
+      lines: i.lines.map((line) => ({
+        id: line.id,
+        feeItemId: line.feeItemId,
+        name: line.name,
+        teeth: line.teeth,
+        unitPrice: line.unitPrice,
+        quantity: line.quantity,
+        discountNote: line.discountNote,
+      })),
       // 初诊自己的处置关联不算复诊次数
       followUpCount: i.followUps.filter((f) => f.recordId !== i.recordId)
         .length,
@@ -90,7 +100,7 @@ function mapRecord(r: RecordWithPlan) {
     planLinks: r.planLinks.map((l) => ({
       planItemId: l.planItemId,
       teeth: l.planItem.teeth,
-      text: l.planItem.text,
+      text: planGroupLabel(l.planItem.lines),
       completes: l.completes,
     })),
     updatedAt: r.updatedAt.toISOString(),
@@ -344,7 +354,43 @@ export class MedicalRecordsService {
     };
   }
 
-  /** 已有行按 id 更新，新行新建，删掉的行其复诊关联一并删除 */
+  private async syncPlanLines(
+    tx: Prisma.TransactionClient,
+    planItemId: number,
+    lines: PlanItemInput["lines"],
+  ) {
+    const existing = await tx.treatmentPlanLine.findMany({
+      where: { planItemId },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((e) => e.id));
+    const keepIds = lines
+      .map((l) => l.id)
+      .filter((id): id is number => id != null && existingIds.has(id));
+    await tx.treatmentPlanLine.deleteMany({
+      where: { planItemId, id: { notIn: keepIds } },
+    });
+    for (const [sort, line] of lines.entries()) {
+      const data = {
+        sort,
+        feeItemId: line.feeItemId,
+        name: line.name,
+        teeth: line.teeth,
+        unitPrice: line.unitPrice,
+        quantity: line.quantity,
+        discountNote: line.discountNote,
+      };
+      if (line.id != null && existingIds.has(line.id)) {
+        await tx.treatmentPlanLine.update({ where: { id: line.id }, data });
+      } else {
+        await tx.treatmentPlanLine.create({
+          data: { planItemId, ...data },
+        });
+      }
+    }
+  }
+
+  /** 已有组按 id 更新，新组新建；明细同步；删掉的组其复诊关联一并删除 */
   private async syncPlanItems(
     tx: Prisma.TransactionClient,
     recordId: number,
@@ -362,19 +408,18 @@ export class MedicalRecordsService {
       where: { recordId, id: { notIn: keepIds } },
     });
     for (const [sort, item] of items.entries()) {
-      const data = {
-        sort,
-        teeth: item.teeth,
-        text: item.text,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        discountNote: item.discountNote,
-      };
+      const data = { sort, teeth: item.teeth };
+      let planItemId: number;
       if (item.id != null && existingIds.has(item.id)) {
         await tx.treatmentPlanItem.update({ where: { id: item.id }, data });
+        planItemId = item.id;
       } else {
-        await tx.treatmentPlanItem.create({ data: { recordId, ...data } });
+        const created = await tx.treatmentPlanItem.create({
+          data: { recordId, ...data },
+        });
+        planItemId = created.id;
       }
+      await this.syncPlanLines(tx, planItemId, item.lines);
     }
   }
 

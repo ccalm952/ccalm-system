@@ -83,18 +83,21 @@ export function ToothEntriesView({
   renderExtra,
   renderBelow,
   renderDetail,
+  hideText,
 }: {
   entries: ToothEntry[];
   renderExtra?: (index: number) => React.ReactNode;
   renderDetail?: (index: number) => React.ReactNode;
   renderBelow?: (index: number) => React.ReactNode;
+  /** 治疗计划组已用明细报价展示时，隐藏组级项目名拼接 */
+  hideText?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3">
       {entries.map((entry, index) => (
         <div key={index} className="flex flex-col gap-3">
-          <div className="flex h-10 items-center gap-6 px-4">
-            <div className="flex w-40 shrink-0 items-center justify-center">
+          <div className="flex min-h-10 items-start gap-6 px-4 py-1">
+            <div className="flex w-40 shrink-0 items-center justify-center self-center">
               {entry.teeth ? (
                 <ToothPositionField
                   large
@@ -104,11 +107,15 @@ export function ToothEntriesView({
                 />
               ) : null}
             </div>
-            <div className="flex flex-1 flex-col">
-              <span className="whitespace-pre-wrap">{entry.text}</span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              {hideText ? null : (
+                <span className="whitespace-pre-wrap">{entry.text}</span>
+              )}
               {renderDetail?.(index)}
             </div>
-            {renderExtra?.(index)}
+            {renderExtra ? (
+              <div className="shrink-0 self-center">{renderExtra(index)}</div>
+            ) : null}
           </div>
           {renderBelow?.(index)}
         </div>

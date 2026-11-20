@@ -23,7 +23,7 @@ export class VisitsService {
     const rows = await this.prisma.patientVisit.findMany({
       where: { patientId },
       include: {
-        medicalRecords: { select: { id: true, type: true } },
+        medicalRecords: { select: { id: true, type: true, nurse: true } },
         chargeOrders: {
           select: {
             id: true,
@@ -46,6 +46,17 @@ export class VisitsService {
       kind: v.kind,
       status: v.status,
       doctor: v.doctor,
+      /** 就诊表无护士字段；有关联病历时取病历配台展示（顿号改全角逗号） */
+      nurse: (() => {
+        const raw =
+          v.medicalRecords.map((r) => r.nurse.trim()).find(Boolean) ?? "";
+        if (!raw) return "";
+        return raw
+          .split(/[、,，+\s]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join("，");
+      })(),
       remark: v.remark,
       items: v.items,
       source: v.source,

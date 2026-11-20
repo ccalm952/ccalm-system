@@ -63,29 +63,61 @@ describe("record-types", () => {
     ).toEqual([{ teeth: "36", text: "充填" }]);
   });
 
-  it("清理计划行时保留 id", () => {
+  it("清理计划组时保留 id 与明细", () => {
     expect(
       cleanPlanItems([
-        { id: 5, teeth: " 17 ", text: " 拔除 ", doneDate: null },
-        { teeth: "", text: "取模" },
-        { id: 6, teeth: "", text: " " },
+        {
+          id: 5,
+          teeth: " 17 ",
+          text: "",
+          lines: [
+            {
+              id: 9,
+              feeItemId: 1,
+              name: " 拔除 ",
+              teeth: "",
+              unitPrice: null,
+            },
+          ],
+          doneDate: null,
+        },
+        {
+          teeth: "",
+          text: "",
+          lines: [{ feeItemId: 2, name: "取模", teeth: "" }],
+        },
+        { id: 6, teeth: "", text: "", lines: [] },
       ]),
     ).toEqual([
       {
         id: 5,
         teeth: "17",
-        text: "拔除",
-        unitPrice: null,
-        quantity: null,
-        discountNote: "",
+        lines: [
+          {
+            id: 9,
+            feeItemId: 1,
+            name: "拔除",
+            teeth: "",
+            unitPrice: null,
+            quantity: null,
+            discountNote: "",
+          },
+        ],
       },
       {
         id: undefined,
         teeth: "",
-        text: "取模",
-        unitPrice: null,
-        quantity: null,
-        discountNote: "",
+        lines: [
+          {
+            id: undefined,
+            feeItemId: 2,
+            name: "取模",
+            teeth: "",
+            unitPrice: null,
+            quantity: null,
+            discountNote: "",
+          },
+        ],
       },
     ]);
   });
@@ -95,27 +127,63 @@ describe("record-types", () => {
       cleanPlanItems([
         {
           teeth: "17,18,26",
-          text: "修复",
-          unitPrice: 400,
-          discountNote: " 优惠 ",
+          text: "",
+          lines: [
+            {
+              feeItemId: 1,
+              name: "修复",
+              teeth: "",
+              unitPrice: 400,
+              discountNote: " 优惠 ",
+            },
+            { feeItemId: 2, name: "洁牙", teeth: "", unitPrice: 300 },
+            {
+              feeItemId: 3,
+              name: "治疗",
+              teeth: "17",
+              unitPrice: 300,
+              quantity: 2,
+            },
+          ],
         },
-        { teeth: "", text: "洁牙", unitPrice: 300 },
-        { teeth: "11", text: "治疗", unitPrice: 300, quantity: 2 },
-      ]).map((i) => [i.quantity, i.discountNote]),
+      ])[0].lines.map((i) => [i.quantity, i.discountNote]),
     ).toEqual([
       [3, "优惠"],
-      [1, ""],
+      [3, ""],
       [2, ""],
     ]);
   });
 
-  it("报价金额 = 单价 × 数量（缺数量按牙位颗数）", () => {
-    expect(planItemAmount({ teeth: "17,18", text: "", unitPrice: 400 })).toBe(
-      800,
-    );
+  it("组报价金额 = 明细合计（缺数量按牙位颗数）", () => {
     expect(
-      planItemAmount({ teeth: "17", text: "", unitPrice: 100, quantity: 6 }),
+      planItemAmount({
+        teeth: "17,18",
+        text: "",
+        lines: [
+          {
+            feeItemId: 1,
+            name: "修复",
+            teeth: "",
+            unitPrice: 400,
+          },
+        ],
+      }),
+    ).toBe(800);
+    expect(
+      planItemAmount({
+        teeth: "17",
+        text: "",
+        lines: [
+          {
+            feeItemId: 1,
+            name: "a",
+            teeth: "",
+            unitPrice: 100,
+            quantity: 6,
+          },
+        ],
+      }),
     ).toBe(600);
-    expect(planItemAmount({ teeth: "17", text: "" })).toBeNull();
+    expect(planItemAmount({ teeth: "17", text: "", lines: [] })).toBeNull();
   });
 });

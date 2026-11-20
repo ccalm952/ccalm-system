@@ -40,9 +40,10 @@ import { pickPendingVisitId } from "@/lib/visits/pending-visit";
 import { useAuth } from "@/lib/use-auth";
 import type { MedicalRecord, PatientVisit } from "./patient-detail-types";
 import { PhraseTextarea } from "./phrase-textarea";
-import { PlanQuoteInputs } from "./plan-quote";
+import { PlanGroupsField } from "./plan-groups-field";
+import { PlanQuoteView } from "./plan-quote";
 import { RootCanalField } from "./root-canal-field";
-import { StaffCombobox } from "./staff-combobox";
+import { formatStaffNames, StaffCombobox } from "./staff-combobox";
 import { ToothEntriesField, ToothEntriesView } from "./tooth-entries-field";
 
 type FormState = Record<MedicalRecordTextField, string> &
@@ -107,7 +108,11 @@ function toForm(
     oralExam: record?.oralExam ?? [],
     auxiliaryExam: record?.auxiliaryExam ?? "",
     diagnosis: record?.diagnosis ?? [],
-    treatmentPlan: record?.treatmentPlan ?? [],
+    treatmentPlan: (record?.treatmentPlan ?? []).map((g) => ({
+      ...g,
+      lines: g.lines ?? [],
+      text: g.text ?? "",
+    })),
     treatment: record?.treatment ?? [],
     advice: record?.advice ?? "",
     remark: record?.remark ?? "",
@@ -255,7 +260,7 @@ export function MedicalRecordEditor({
         visitDate: linkedVisit?.visitDate ?? form.visitDate,
         visitTime: linkedVisit?.startTime ?? form.visitTime,
         doctor: form.doctor.trim(),
-        nurse: form.nurse.trim(),
+        nurse: formatStaffNames(form.nurse),
         chiefComplaint: form.chiefComplaint.trim(),
         presentIllness: form.presentIllness.trim(),
         pastHistory: form.pastHistory.trim(),
@@ -334,7 +339,7 @@ export function MedicalRecordEditor({
               />
             </Field>
             <Field>
-              <FieldLabel>配台护士</FieldLabel>
+              <FieldLabel>配台</FieldLabel>
               <StaffCombobox
                 pool="assistants"
                 value={form.nurse}
@@ -404,6 +409,10 @@ export function MedicalRecordEditor({
               <FieldLabel>治疗计划</FieldLabel>
               <ToothEntriesView
                 entries={plan.items}
+                hideText
+                renderDetail={(index) => (
+                  <PlanQuoteView item={plan.items[index]} />
+                )}
                 renderExtra={(index) => {
                   const item = plan.items[index];
                   if (item.id == null) return null;
@@ -456,37 +465,47 @@ export function MedicalRecordEditor({
                 ) : null}
               </FieldLabel>
               {field === "treatmentPlan" ? (
-                <ToothEntriesField
+                <PlanGroupsField
                   value={form.treatmentPlan}
                   onValueChange={(v) => set("treatmentPlan", v)}
-                  phraseField="treatmentPlan"
-                  renderDetail={(item, update, index) => (
-                    <div className="flex flex-col gap-2">
-                      <PlanQuoteInputs item={item} onChange={update} />
-                      {form.type === "first" || form.type === "orthoFirst" ? (
-                        <div className="flex items-center gap-4 text-sm">
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={linkFor(item, index) != null}
-                              onCheckedChange={(checked) =>
-                                setRowLink(item, index, checked === true, false)
-                              }
-                            />
-                            本次处理
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={linkFor(item, index)?.completes ?? false}
-                              onCheckedChange={(checked) =>
-                                setRowLink(item, index, true, checked === true)
-                              }
-                            />
-                            本行已完成
-                          </label>
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
+                  renderGroupExtra={
+                    form.type === "first" || form.type === "orthoFirst"
+                      ? (item, index) => (
+                          <div className="flex items-center gap-4 text-sm">
+                            <label className="flex items-center gap-2">
+                              <Checkbox
+                                checked={linkFor(item, index) != null}
+                                onCheckedChange={(checked) =>
+                                  setRowLink(
+                                    item,
+                                    index,
+                                    checked === true,
+                                    false,
+                                  )
+                                }
+                              />
+                              本次处理
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <Checkbox
+                                checked={
+                                  linkFor(item, index)?.completes ?? false
+                                }
+                                onCheckedChange={(checked) =>
+                                  setRowLink(
+                                    item,
+                                    index,
+                                    true,
+                                    checked === true,
+                                  )
+                                }
+                              />
+                              本行已完成
+                            </label>
+                          </div>
+                        )
+                      : undefined
+                  }
                 />
               ) : isEntryField(field) ? (
                 <ToothEntriesField

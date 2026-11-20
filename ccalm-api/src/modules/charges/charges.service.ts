@@ -173,7 +173,12 @@ export class ChargesService {
   private async courseRecord(recordId: number) {
     const record = await this.prisma.medicalRecord.findUnique({
       where: { id: recordId },
-      include: { planItems: { orderBy: { sort: "asc" } } },
+      include: {
+        planItems: {
+          orderBy: { sort: "asc" },
+          include: { lines: { orderBy: { sort: "asc" } } },
+        },
+      },
     });
     if (!record) throw new NotFoundException("病历不存在");
     if (record.type !== "first" && record.type !== "orthoFirst") {
@@ -325,7 +330,12 @@ export class ChargesService {
         visitId,
         type: { in: ["first", "orthoFirst"] },
       },
-      include: { planItems: { orderBy: { sort: "asc" } } },
+      include: {
+        planItems: {
+          orderBy: { sort: "asc" },
+          include: { lines: { orderBy: { sort: "asc" } } },
+        },
+      },
       orderBy: { id: "asc" },
     });
     if (direct) return direct;
@@ -343,7 +353,12 @@ export class ChargesService {
     if (!recordId) return null;
     return this.prisma.medicalRecord.findUnique({
       where: { id: recordId },
-      include: { planItems: { orderBy: { sort: "asc" } } },
+      include: {
+        planItems: {
+          orderBy: { sort: "asc" },
+          include: { lines: { orderBy: { sort: "asc" } } },
+        },
+      },
     });
   }
   private async findOrder(id: number) {

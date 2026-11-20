@@ -29,10 +29,24 @@ export class ToothEntryDto {
   text!: string;
 }
 
-export class PlanItemDto extends ToothEntryDto {
+export class PlanLineDto {
   @IsOptional()
   @IsInt()
   id?: number;
+
+  /** 新编辑必选；旧数据/导入可为 null */
+  @IsOptional()
+  @IsInt()
+  feeItemId?: number | null;
+
+  @IsString()
+  name!: string;
+
+  @IsString()
+  @Matches(FDI_TOOTH_LIST, {
+    message: "牙位只能填 FDI 编号，如 11,12,36",
+  })
+  teeth!: string;
 
   @IsOptional()
   @IsNumber()
@@ -47,6 +61,24 @@ export class PlanItemDto extends ToothEntryDto {
   @IsOptional()
   @IsString()
   discountNote?: string;
+}
+
+/** 治疗计划组：牙位 + 收费明细行 */
+export class PlanItemDto {
+  @IsOptional()
+  @IsInt()
+  id?: number;
+
+  @IsString()
+  @Matches(FDI_TOOTH_LIST, {
+    message: "牙位只能填 FDI 编号，如 11,12,36",
+  })
+  teeth!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlanLineDto)
+  lines!: PlanLineDto[];
 }
 
 export class PlanLinkDto {

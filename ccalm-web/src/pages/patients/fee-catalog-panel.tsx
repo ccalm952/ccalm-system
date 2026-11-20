@@ -25,9 +25,12 @@ const ALL = "all";
 export function FeeCatalogPanel({
   categories,
   onPick,
+  embedded,
 }: {
   categories: FeeCategory[];
   onPick: (item: FeeItem) => void;
+  /** 嵌在计划组等局部区域，不用整页 sticky 高度 */
+  embedded?: boolean;
 }) {
   const [filter, setFilter] = React.useState(ALL);
   const filterItems = [
@@ -40,10 +43,18 @@ export function FeeCatalogPanel({
       : categories.filter((c) => String(c.id) === filter);
 
   return (
-    <Card className="lg:sticky lg:top-20 lg:h-[calc(100svh-6.5rem)]">
-      <CardHeader>
-        <CardTitle>收费项目</CardTitle>
-      </CardHeader>
+    <Card
+      className={
+        embedded
+          ? "h-full border-0 shadow-none"
+          : "lg:sticky lg:top-20 lg:h-[calc(100svh-6.5rem)]"
+      }
+    >
+      {embedded ? null : (
+        <CardHeader>
+          <CardTitle>收费项目</CardTitle>
+        </CardHeader>
+      )}
       <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
         <Select
           items={filterItems}
