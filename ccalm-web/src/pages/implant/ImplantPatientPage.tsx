@@ -498,76 +498,81 @@ export function ImplantPatientPage() {
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent
             showCloseButton={false}
-            className="max-h-[90vh] overflow-y-auto"
+            className="max-h-[90vh] overflow-hidden"
           >
-            <div className="grid gap-4">
-              <Input
-                placeholder="姓名"
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, name: e.target.value }))
-                }
-              />
-              <Input
-                placeholder="手机"
-                value={editForm.phone}
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, phone: e.target.value }))
-                }
-              />
-              <Input
-                placeholder="性别"
-                value={editForm.gender}
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, gender: e.target.value }))
-                }
-              />
-              <Input
-                placeholder="病历号"
-                value={editForm.chartNo}
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, chartNo: e.target.value }))
-                }
-              />
-              <Input
-                placeholder="出生日期"
-                value={editForm.birthday}
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, birthday: e.target.value }))
-                }
-              />
-              <Input
-                placeholder="年龄"
-                value={editForm.age}
-                inputMode="numeric"
-                onChange={(e) =>
-                  setEditForm((s) => ({ ...s, age: e.target.value }))
-                }
-              />
-            </div>
-            <DialogFooter className="grid grid-cols-2 *:w-full md:grid-cols-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setEditOpen(false)}
-              >
-                取消
-              </Button>
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => void saveEdit()}
-              >
-                {saving ? (
-                  <>
-                    <Spinner data-icon="inline-start" />
-                    保存中…
-                  </>
-                ) : (
-                  "保存"
-                )}
-              </Button>
-            </DialogFooter>
+            <ScrollArea
+              className="max-h-[calc(90vh-3rem)]"
+              viewportClassName="max-h-[calc(90vh-3rem)]"
+            >
+              <div className="grid gap-4">
+                <Input
+                  placeholder="姓名"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, name: e.target.value }))
+                  }
+                />
+                <Input
+                  placeholder="手机"
+                  value={editForm.phone}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, phone: e.target.value }))
+                  }
+                />
+                <Input
+                  placeholder="性别"
+                  value={editForm.gender}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, gender: e.target.value }))
+                  }
+                />
+                <Input
+                  placeholder="病历号"
+                  value={editForm.chartNo}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, chartNo: e.target.value }))
+                  }
+                />
+                <Input
+                  placeholder="出生日期"
+                  value={editForm.birthday}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, birthday: e.target.value }))
+                  }
+                />
+                <Input
+                  placeholder="年龄"
+                  value={editForm.age}
+                  inputMode="numeric"
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, age: e.target.value }))
+                  }
+                />
+              </div>
+              <DialogFooter className="mt-4 grid grid-cols-2 *:w-full md:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setEditOpen(false)}
+                >
+                  取消
+                </Button>
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void saveEdit()}
+                >
+                  {saving ? (
+                    <>
+                      <Spinner data-icon="inline-start" />
+                      保存中…
+                    </>
+                  ) : (
+                    "保存"
+                  )}
+                </Button>
+              </DialogFooter>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>

@@ -512,7 +512,10 @@ model ImplantVisit {
   patientId Int
   patient   Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   visitDate String
+  /// 种植医生（写入自动就诊/病历）
+  doctor    String?
   remark    String?
+  /// 配台人员（写入自动病历 nurse，不是医生）
   staff     String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt

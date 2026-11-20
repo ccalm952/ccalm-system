@@ -85,6 +85,22 @@ describe("ekqy-import helpers", () => {
     ).toEqual([2]);
   });
 
+  it("matchPlanItemsForReturn picks one plan when teeth overlap both", () => {
+    const plans = [
+      { id: 51, teeth: "24,25,26,27", text: "修复1000x4=4000" },
+      { id: 52, teeth: "24,25,26,27", text: "治疗300x4=1200,优惠后500" },
+    ];
+    expect(
+      matchPlanItemsForReturn(
+        {
+          id: 9,
+          cureRecordList: [{ fdiToothCodes: "24,25,26,27", cure: "根备" }],
+        },
+        plans,
+      ).map((p) => p.id),
+    ).toEqual([51]);
+  });
+
   it("buildPlanFollowUps links returns to the correct course", () => {
     const links = buildPlanFollowUps([
       {

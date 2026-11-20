@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import {
@@ -153,7 +154,7 @@ export function PatientTagDialog({
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <ScrollArea className="max-h-80" viewportClassName="max-h-80">
             {tags.map((tag) => (
               <div
                 key={tag.id}
@@ -234,7 +235,7 @@ export function PatientTagDialog({
                 还没有标签，在上方输入名称添加
               </p>
             ) : null}
-          </div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

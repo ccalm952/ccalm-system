@@ -133,7 +133,7 @@ export function PhraseTextarea({
           side="bottom"
           sideOffset={8}
           initialFocus={ref}
-          className="max-h-(--available-height) w-(--anchor-width) overflow-hidden rounded-2xl p-3"
+          className="max-h-(--available-height) w-(--anchor-width) overflow-hidden rounded-2xl p-3 [--scroll-corner-inset:var(--radius-2xl)]"
         >
           <ScrollArea
             viewportClassName="max-h-[calc(var(--available-height)-1.5rem)]"

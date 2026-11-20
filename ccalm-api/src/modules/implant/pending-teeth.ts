@@ -1,4 +1,10 @@
-const TOOTH_SEPARATOR = /[\s、，,/]+/;
+/** 牙位号串只认半角逗号（旧格式靠迁移脚本改库） */
+function splitTeeth(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
 
 /**
  * 待种植牙位去掉已种的。
@@ -8,10 +14,10 @@ export function remainingPendingTeeth(
   pendingTeeth: string,
   implantedToothNos: (string | null)[],
 ): string[] | null {
-  const pending = pendingTeeth.trim().split(TOOTH_SEPARATOR).filter(Boolean);
+  const pending = splitTeeth(pendingTeeth.trim());
   if (!pending.length) return null;
   const implanted = new Set(
-    implantedToothNos.flatMap((t) => (t ?? "").split(TOOTH_SEPARATOR)),
+    implantedToothNos.flatMap((t) => splitTeeth(t ?? "")),
   );
   const rest = pending.filter((t) => !implanted.has(t));
   return rest.length === pending.length ? null : rest;

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { groupPalmerLabels } from "./tooth-fdi";
+import { formatTeeth, groupPalmerLabels, parseTeethStrict } from "./tooth-fdi";
+
+describe("formatTeeth / parseTeethStrict", () => {
+  it("保存与解析都只用半角逗号", () => {
+    expect(formatTeeth([15, 14, 17])).toBe("14,15,17");
+    expect(parseTeethStrict("14,15,17")).toEqual([14, 15, 17]);
+    expect(parseTeethStrict("14 15 17")).toBeNull();
+  });
+});
 
 describe("groupPalmerLabels", () => {
   it("左侧象限从外侧到中线，右侧从中线到外侧", () => {

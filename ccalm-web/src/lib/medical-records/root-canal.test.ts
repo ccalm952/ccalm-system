@@ -53,7 +53,7 @@ describe("canalPresetsForTeeth", () => {
   });
 
   it("多牙位合并候选", () => {
-    expect(canalPresetsForTeeth("36 16")).toEqual([
+    expect(canalPresetsForTeeth("36,16")).toEqual([
       "近颊",
       "近颊2",
       "远颊",

@@ -25,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import { parseTeethStrict } from "@/lib/tooth-fdi";
+import { StaffCombobox } from "@/pages/patients/staff-combobox";
 
 import {
   ToothBrandCombobox,
@@ -77,10 +79,11 @@ function emptyEditTooth(visitId: number): EditToothLine {
   return { visitId, toothId: null, ...emptyTooth() };
 }
 
+/** 待种植牙位图 → 新增牙位行；非合法 FDI 则不带入 */
 function splitPendingTeeth(raw: string): ToothLine[] | null {
-  const parts = raw.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length || parts.some((part) => !/^\d+$/.test(part))) return null;
-  return parts.map((toothNo) => ({ ...emptyTooth(), toothNo }));
+  const parsed = parseTeethStrict(raw);
+  if (!parsed?.length) return null;
+  return parsed.map((n) => ({ ...emptyTooth(), toothNo: String(n) }));
 }
 
 function inventoryBrands(rows: InventoryRow[]) {
@@ -312,6 +315,7 @@ export function ImplantRecordsVisitDialog({
   const [chartNo, setChartNo] = React.useState("");
   const [birthday, setBirthday] = React.useState("");
   const [age, setAge] = React.useState("");
+  const [doctor, setDoctor] = React.useState("");
   const [staff, setStaff] = React.useState("");
   const [remark, setRemark] = React.useState("");
   const [teeth, setTeeth] = React.useState<ToothLine[]>([emptyTooth()]);
@@ -331,6 +335,8 @@ export function ImplantRecordsVisitDialog({
   );
   const suggestRootRef = React.useRef<HTMLDivElement>(null);
   const suggestInputRef = React.useRef<HTMLInputElement>(null);
+  /** 点选建议时挡住 CommandInput onValueChange，避免冲掉姓名/牙位 */
+  const pickingSuggestRef = React.useRef(false);
   const suggestOpen = Boolean(patientName.trim()) && !suggestDismissed;
   const editRowRef = React.useRef<ImplantRecordRow | null>(null);
   const [editForm, setEditForm] = React.useState({
@@ -340,6 +346,7 @@ export function ImplantRecordsVisitDialog({
     birthday: "",
     age: "",
     visitDate: "",
+    doctor: "",
     remark: "",
     staff: "",
   });
@@ -357,6 +364,7 @@ export function ImplantRecordsVisitDialog({
     setChartNo("");
     setBirthday("");
     setAge("");
+    setDoctor("");
     setStaff("");
     setRemark("");
     setTeeth([emptyTooth()]);
@@ -403,6 +411,7 @@ export function ImplantRecordsVisitDialog({
           ? String(row.age)
           : "",
       visitDate: row.visitDate || "",
+      doctor: row.doctor || "",
       remark: row.remark || "",
       staff: row.staff || "",
     });
@@ -508,22 +517,38 @@ export function ImplantRecordsVisitDialog({
   }
 
   function selectSuggestion(suggestion: AddSuggestion) {
+    pickingSuggestRef.current = true;
+    const patientHit = suggestions.find(
+      (s) => s.origin === "patient" && s.patientId === suggestion.patientId,
+    );
+    const pendingHit =
+      suggestion.origin === "pending"
+        ? suggestion
+        : suggestions.find(
+            (s) =>
+              s.origin === "pending" && s.patientId === suggestion.patientId,
+          );
     setPatientName(suggestion.name);
     setPatientId(suggestion.patientId);
-    setPhone(suggestion.phone);
-    setChartNo(suggestion.source);
-    setBirthday(suggestion.birthday?.trim() ?? "");
-    setAge(
+    setPhone(suggestion.phone || patientHit?.phone || "");
+    setChartNo(suggestion.source || patientHit?.source || "");
+    const birthday =
+      suggestion.birthday?.trim() || patientHit?.birthday?.trim() || "";
+    setBirthday(birthday);
+    const ageVal =
       suggestion.age != null && !Number.isNaN(Number(suggestion.age))
-        ? String(suggestion.age)
-        : "",
+        ? suggestion.age
+        : patientHit?.age;
+    setAge(
+      ageVal != null && !Number.isNaN(Number(ageVal)) ? String(ageVal) : "",
     );
-    if (suggestion.origin === "pending") {
-      const pendingTeeth = splitPendingTeeth(suggestion.teeth ?? "");
-      if (pendingTeeth) setTeeth(pendingTeeth);
-    }
+    const pendingTeeth = splitPendingTeeth(pendingHit?.teeth ?? "");
+    if (pendingTeeth) setTeeth(pendingTeeth);
     setSuggestions([]);
     setSuggestDismissed(true);
+    requestAnimationFrame(() => {
+      pickingSuggestRef.current = false;
+    });
   }
 
   function removeAddTooth(index: number) {
@@ -574,13 +599,14 @@ export function ImplantRecordsVisitDialog({
           tooth.toothNo.trim() !== "" && !FDI_TOOTH.test(tooth.toothNo.trim()),
       )
     ) {
-      return toast.warning("牙位只能填 FDI 编号，如 11、12、36");
+      return toast.warning("牙位只能填 FDI 编号，如 11,12,36");
     }
     const inventoryError = inventoryValidation(payloadTeeth, modelsByBrand);
     if (inventoryError) return toast.warning(inventoryError);
     if (!patientName.trim()) return toast.warning("请填写姓名");
     if (!phone.trim()) return toast.warning("请填写手机");
     if (!chartNo.trim()) return toast.warning("请填写病历号");
+    if (!doctor.trim()) return toast.warning("请选择医生");
     setSaving(true);
     try {
       await api("POST", "/implant/visits", {
@@ -591,6 +617,7 @@ export function ImplantRecordsVisitDialog({
         birthday: birthday.trim() || null,
         age: age.trim() ? Number(age) : null,
         visitDate,
+        doctor: doctor.trim() || null,
         remark: phase2 || null,
         staff: staff.trim() || null,
         followUp: null,
@@ -633,10 +660,11 @@ export function ImplantRecordsVisitDialog({
           tooth.toothNo.trim() !== "" && !FDI_TOOTH.test(tooth.toothNo.trim()),
       )
     ) {
-      return toast.warning("牙位只能填 FDI 编号，如 11、12、36");
+      return toast.warning("牙位只能填 FDI 编号，如 11,12,36");
     }
     const inventoryError = inventoryValidation(payloadTeeth, modelsByBrand);
     if (inventoryError) return toast.warning(inventoryError);
+    if (!editForm.doctor.trim()) return toast.warning("请选择医生");
     setSaving(true);
     try {
       const visitIds = new Set([
@@ -687,6 +715,7 @@ export function ImplantRecordsVisitDialog({
             patientName: editForm.patientName,
             phone: editForm.phone,
             visitDate: editForm.visitDate,
+            doctor: editForm.doctor || null,
             remark: editForm.remark || null,
             staff: editForm.staff || null,
             toothNo: tooth.toothNo.trim() || null,
@@ -711,7 +740,6 @@ export function ImplantRecordsVisitDialog({
     ["手机", editForm.phone, "phone"],
     ["病历号", editForm.chartNo, "chartNo"],
     ["年龄", editForm.age, "age"],
-    ["人员", editForm.staff, "staff"],
     ["二期（月数）", editForm.remark, "remark"],
   ] as const;
 
@@ -802,6 +830,31 @@ export function ImplantRecordsVisitDialog({
                         />
                       </FieldContent>
                     </Field>
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <StaffCombobox
+                          pool="doctors"
+                          value={editForm.doctor}
+                          onValueChange={(v) =>
+                            setEditForm((form) => ({ ...form, doctor: v }))
+                          }
+                          placeholder="医生"
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <StaffCombobox
+                          multiple
+                          pool="assistants"
+                          value={editForm.staff}
+                          onValueChange={(v) =>
+                            setEditForm((form) => ({ ...form, staff: v }))
+                          }
+                          placeholder="配台"
+                        />
+                      </FieldContent>
+                    </Field>
                     {editFields.slice(4).map(([placeholder, value, key]) => (
                       <Field orientation="vertical" key={key}>
                         <FieldContent>
@@ -835,6 +888,7 @@ export function ImplantRecordsVisitDialog({
                               aria-label="姓名"
                               value={patientName}
                               onValueChange={(value) => {
+                                if (pickingSuggestRef.current) return;
                                 setSuggestDismissed(false);
                                 setPatientName(value);
                                 setPatientId(null);
@@ -845,7 +899,7 @@ export function ImplantRecordsVisitDialog({
                             />
                             {suggestOpen ? (
                               <CommandList
-                                className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 rounded-md border bg-popover text-popover-foreground shadow-md"
+                                className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 rounded-2xl border bg-popover text-popover-foreground shadow-md [--scroll-corner-inset:var(--radius-2xl)]"
                                 onMouseDown={(event) => event.preventDefault()}
                               >
                                 <CommandEmpty>未找到匹配患者</CommandEmpty>
@@ -853,20 +907,21 @@ export function ImplantRecordsVisitDialog({
                                   {suggestions.map((suggestion) => (
                                     <CommandItem
                                       key={`${suggestion.origin ?? "patient"}-${suggestion.id}`}
-                                      value={`${suggestion.origin ?? "patient"}-${suggestion.id}-${suggestion.name}-${suggestion.phone}`}
+                                      value={`${suggestion.name} ${suggestion.phone} ${suggestion.source} ${suggestion.originLabel ?? ""}`}
                                       onSelect={() =>
                                         selectSuggestion(suggestion)
                                       }
                                     >
                                       <span>{suggestion.name}</span>
                                       <span className="text-muted-foreground">
-                                        {suggestion.originLabel ?? "患者库"}
-                                        {suggestion.phone
-                                          ? ` · ${suggestion.phone}`
-                                          : ""}
-                                        {suggestion.source
-                                          ? ` · ${suggestion.source}`
-                                          : ""}
+                                        {[
+                                          suggestion.originLabel ?? "患者库",
+                                          suggestion.phone,
+                                          suggestion.source,
+                                        ]
+                                          .map((s) => s?.trim())
+                                          .filter(Boolean)
+                                          .join(" ")}
                                       </span>
                                     </CommandItem>
                                   ))}
@@ -910,26 +965,47 @@ export function ImplantRecordsVisitDialog({
                         />
                       </FieldContent>
                     </Field>
-                    {[
-                      ["年龄", age, onAgeChange],
-                      ["人员", staff, setStaff],
-                      ["二期（月数）", remark, setRemark],
-                    ].map(([placeholder, value, setter]) => (
-                      <Field orientation="vertical" key={placeholder as string}>
-                        <FieldContent>
-                          <Input
-                            placeholder={placeholder as string}
-                            aria-label={placeholder as string}
-                            value={value as string}
-                            onChange={(event) =>
-                              (setter as (next: string) => void)(
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </FieldContent>
-                      </Field>
-                    ))}
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <Input
+                          placeholder="年龄"
+                          aria-label="年龄"
+                          value={age}
+                          onChange={(event) => onAgeChange(event.target.value)}
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <StaffCombobox
+                          pool="doctors"
+                          value={doctor}
+                          onValueChange={setDoctor}
+                          placeholder="医生"
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <StaffCombobox
+                          multiple
+                          pool="assistants"
+                          value={staff}
+                          onValueChange={setStaff}
+                          placeholder="配台"
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field orientation="vertical">
+                      <FieldContent>
+                        <Input
+                          placeholder="二期（月数）"
+                          aria-label="二期（月数）"
+                          value={remark}
+                          onChange={(event) => setRemark(event.target.value)}
+                        />
+                      </FieldContent>
+                    </Field>
                   </>
                 )}
               </div>

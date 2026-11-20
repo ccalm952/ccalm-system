@@ -7,6 +7,7 @@ export type ImplantRecordRow = {
   age?: number | null;
   visitId: number;
   visitDate: string;
+  doctor: string | null;
   remark: string | null;
   staff: string | null;
   toothId: number | null;

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AmapMap } from "@/components/AmapMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { requestAmapGeolocation } from "@/lib/amap-geolocate";
 import {
@@ -315,7 +316,10 @@ export function CheckInRangePage() {
                   }}
                 />
                 {placeInputFocused && placeName.trim() ? (
-                  <div className="absolute top-full z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+                  <ScrollArea
+                    className="absolute top-full z-50 mt-1 max-h-72 w-full rounded-2xl border bg-popover text-popover-foreground shadow-md [--scroll-corner-inset:var(--radius-2xl)]"
+                    viewportClassName="max-h-72 p-1"
+                  >
                     {loadingPlaceSuggestions ? (
                       <div
                         className={cn(
@@ -331,7 +335,7 @@ export function CheckInRangePage() {
                         <button
                           key={suggestion.id}
                           type="button"
-                          className="flex w-full flex-col rounded-sm px-3 py-2 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
+                          className="flex w-full flex-col rounded-xl px-3 py-2 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => void selectPlaceSuggestion(suggestion)}
                         >
@@ -358,7 +362,7 @@ export function CheckInRangePage() {
                         未找到匹配地点
                       </div>
                     )}
-                  </div>
+                  </ScrollArea>
                 ) : null}
               </div>
             </div>

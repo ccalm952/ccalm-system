@@ -24,6 +24,12 @@ import {
 import { UpdateImplantPatientDto } from "./dto/update-patient.dto";
 import { UpdateImplantVisitDto } from "./dto/update-visit.dto";
 import {
+  buildImplantTreatmentEntries,
+  IMPLANT_EMR_REMARK,
+  implantEmrDoctor,
+  implantEmrNurse,
+} from "./implant-emr";
+import {
   implantCountsForPending,
   remainingPendingTeeth,
 } from "./pending-teeth";
@@ -41,6 +47,7 @@ export type ImplantRecordRow = {
   age: number | null;
   visitId: number;
   visitDate: string;
+  doctor: string | null;
   remark: string | null;
   staff: string | null;
   toothId: number | null;
@@ -108,6 +115,7 @@ export class ImplantService {
         age: p.age ?? null,
         visitId: t.visit.id,
         visitDate: t.visit.visitDate,
+        doctor: t.visit.doctor,
         remark: t.visit.remark,
         staff: t.visit.staff,
         toothId: t.id,
@@ -159,6 +167,7 @@ export class ImplantService {
         data: {
           patientId: patient.id,
           visitDate: dto.visitDate,
+          doctor: dto.doctor?.trim() || null,
           remark: phase2 || null,
           staff: dto.staff?.trim() || null,
           teeth: {
@@ -173,11 +182,20 @@ export class ImplantService {
         include: { teeth: true },
       });
 
-      await this.ensureVisitRecord(tx, {
+      const doctor = implantEmrDoctor(visit.doctor);
+      const patientVisit = await this.ensureVisitRecord(tx, {
         patientId: patient.id,
         visitDate: visit.visitDate,
+        doctor,
       });
       await this.syncImplantTeeth(tx, patient.id, visit.visitDate);
+      await this.upsertImplantMedicalRecord(tx, {
+        patientId: patient.id,
+        visitDate: visit.visitDate,
+        patientVisitId: patientVisit.id,
+        doctor,
+        nurse: implantEmrNurse(visit.staff),
+      });
 
       await this.consumePending(
         tx,
@@ -195,9 +213,10 @@ export class ImplantService {
    */
   private async ensureVisitRecord(
     tx: Prisma.TransactionClient,
-    params: { patientId: number; visitDate: string },
+    params: { patientId: number; visitDate: string; doctor?: string },
   ) {
     const { patientId, visitDate } = params;
+    const doctor = params.doctor?.trim() || "";
     const open = await tx.patientVisit.findFirst({
       where: { patientId, visitDate, status: { in: OPEN_VISIT_STATUSES } },
       orderBy: { id: "desc" },
@@ -206,10 +225,20 @@ export class ImplantService {
     if (open) {
       const startTime = open.startTime || dayjs().format("HH:mm");
       const endTime = open.endTime || dayjs().add(30, "minute").format("HH:mm");
+      const patch: {
+        startTime?: string;
+        endTime?: string;
+        doctor?: string;
+      } = {};
       if (!open.startTime) {
+        patch.startTime = startTime;
+        patch.endTime = endTime;
+      }
+      if (doctor && !open.doctor?.trim()) patch.doctor = doctor;
+      if (Object.keys(patch).length) {
         await tx.patientVisit.update({
           where: { id: open.id },
-          data: { startTime, endTime },
+          data: patch,
         });
       }
       const linked = await tx.appointment.findUnique({
@@ -225,10 +254,15 @@ export class ImplantService {
             endTime,
             kind: open.kind,
             status: "booked",
-            doctor: open.doctor,
+            doctor: doctor || open.doctor,
             remark: open.remark,
             source: "implant",
           },
+        });
+      } else if (doctor && !linked.doctor?.trim()) {
+        await tx.appointment.update({
+          where: { id: linked.id },
+          data: { doctor },
         });
       }
       return open;
@@ -242,7 +276,7 @@ export class ImplantService {
         endTime: dayjs().add(30, "minute").format("HH:mm"),
         kind: "return",
         status: "booked",
-        doctor: "",
+        doctor,
         remark: IMPLANT_VISIT_REMARK,
       },
     });
@@ -286,7 +320,7 @@ export class ImplantService {
       if (rest.length) {
         await client.implantPending.update({
           where: { id: row.id },
-          data: { teeth: rest.join(" ") },
+          data: { teeth: rest.join(",") },
         });
       } else {
         await client.implantPending.delete({ where: { id: row.id } });
@@ -320,6 +354,7 @@ export class ImplantService {
         where: { id: visitId },
         data: {
           ...(dto.visitDate != null ? { visitDate: dto.visitDate } : {}),
+          ...(dto.doctor !== undefined ? { doctor: dto.doctor } : {}),
           ...(dto.remark !== undefined ? { remark: dto.remark } : {}),
           ...(dto.staff !== undefined ? { staff: dto.staff } : {}),
         },
@@ -355,23 +390,52 @@ export class ImplantService {
         }
       }
 
+      const nextDate = dto.visitDate ?? visit.visitDate;
+      const doctor = implantEmrDoctor(
+        dto.doctor !== undefined ? dto.doctor : visit.doctor,
+      );
+      const nurse = implantEmrNurse(
+        dto.staff !== undefined ? dto.staff : visit.staff,
+      );
+
       if (dto.visitDate != null && dto.visitDate !== visit.visitDate) {
         await this.cleanupImplantVisitRecord(
           tx,
           visit.patientId,
           visit.visitDate,
         );
-        await this.ensureVisitRecord(tx, {
+        // 旧日若还剩别的种植记录，刷新其自动病历
+        await this.refreshImplantMedicalRecord(
+          tx,
+          visit.patientId,
+          visit.visitDate,
+          doctor,
+          nurse,
+        );
+        const patientVisit = await this.ensureVisitRecord(tx, {
           patientId: visit.patientId,
           visitDate: dto.visitDate,
+          doctor,
         });
         await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
+        await this.syncImplantTeeth(tx, visit.patientId, nextDate);
+        await this.upsertImplantMedicalRecord(tx, {
+          patientId: visit.patientId,
+          visitDate: nextDate,
+          patientVisitId: patientVisit.id,
+          doctor,
+          nurse,
+        });
+      } else {
+        await this.syncImplantTeeth(tx, visit.patientId, nextDate);
+        await this.refreshImplantMedicalRecord(
+          tx,
+          visit.patientId,
+          nextDate,
+          doctor,
+          nurse,
+        );
       }
-      await this.syncImplantTeeth(
-        tx,
-        visit.patientId,
-        dto.visitDate ?? visit.visitDate,
-      );
 
       return { ok: true };
     });
@@ -406,6 +470,13 @@ export class ImplantService {
         tooth.toothNo,
       ]);
       await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
+      await this.refreshImplantMedicalRecord(
+        tx,
+        visit.patientId,
+        visit.visitDate,
+        implantEmrDoctor(visit.doctor),
+        implantEmrNurse(visit.staff),
+      );
       return tooth;
     });
   }
@@ -432,6 +503,13 @@ export class ImplantService {
         visit.visitDate,
       );
       await this.syncImplantTeeth(tx, visit.patientId, visit.visitDate);
+      await this.refreshImplantMedicalRecord(
+        tx,
+        visit.patientId,
+        visit.visitDate,
+        implantEmrDoctor(visit.doctor),
+        implantEmrNurse(visit.staff),
+      );
     });
     return { ok: true };
   }
@@ -460,7 +538,7 @@ export class ImplantService {
     });
   }
 
-  /** 当天已没有种植记录时，删掉自动生成的「种植就诊」与其预约 */
+  /** 当天已没有种植记录时，删掉自动病历；仅删备注为「种植就诊」的自动就诊与预约 */
   private async cleanupImplantVisitRecord(
     tx: Prisma.TransactionClient,
     patientId: number,
@@ -471,6 +549,10 @@ export class ImplantService {
     });
     if (left > 0) return;
 
+    await tx.medicalRecord.deleteMany({
+      where: { patientId, visitDate, remark: IMPLANT_EMR_REMARK },
+    });
+
     const visit = await tx.patientVisit.findFirst({
       where: { patientId, visitDate, remark: IMPLANT_VISIT_REMARK },
       orderBy: { id: "desc" },
@@ -479,6 +561,120 @@ export class ImplantService {
 
     await tx.appointment.deleteMany({ where: { visitId: visit.id } });
     await tx.patientVisit.delete({ where: { id: visit.id } });
+  }
+
+  /**
+   * 按当日种植牙刷新自动病历：有牙则 ensure+upsert，无牙则 cleanup 已处理。
+   * 已 completed 的种植就诊直接复用，避免再开一条。
+   */
+  private async refreshImplantMedicalRecord(
+    tx: Prisma.TransactionClient,
+    patientId: number,
+    visitDate: string,
+    doctor: string,
+    nurse: string,
+  ) {
+    const left = await tx.implantVisit.count({
+      where: { patientId, visitDate },
+    });
+    if (left === 0) return;
+
+    let patientVisit = await tx.patientVisit.findFirst({
+      where: { patientId, visitDate, remark: IMPLANT_VISIT_REMARK },
+      orderBy: { id: "desc" },
+    });
+    if (!patientVisit) {
+      patientVisit = await this.ensureVisitRecord(tx, {
+        patientId,
+        visitDate,
+        doctor,
+      });
+    }
+    await this.upsertImplantMedicalRecord(tx, {
+      patientId,
+      visitDate,
+      patientVisitId: patientVisit.id,
+      doctor,
+      nurse,
+    });
+  }
+
+  /** 仅覆盖「从种植记录自动生成」的病历；已有人工病历则不碰 */
+  private async upsertImplantMedicalRecord(
+    tx: Prisma.TransactionClient,
+    params: {
+      patientId: number;
+      visitDate: string;
+      patientVisitId: number;
+      doctor: string;
+      nurse: string;
+    },
+  ) {
+    const { patientId, visitDate, patientVisitId, doctor, nurse } = params;
+    const implantRows = await tx.implantVisit.findMany({
+      where: { patientId, visitDate },
+      include: {
+        teeth: {
+          orderBy: { id: "asc" },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+    const treatment = buildImplantTreatmentEntries(
+      implantRows.flatMap((r) => r.teeth),
+    );
+    if (!treatment.length) return;
+
+    const onVisit = await tx.medicalRecord.findMany({
+      where: { visitId: patientVisitId },
+      select: { id: true, remark: true },
+    });
+    const auto = onVisit.find((r) => r.remark === IMPLANT_EMR_REMARK);
+    if (!auto && onVisit.length > 0) return;
+
+    if (auto) {
+      await tx.medicalRecord.update({
+        where: { id: auto.id },
+        data: {
+          visitDate,
+          doctor,
+          nurse,
+          treatment,
+          remark: IMPLANT_EMR_REMARK,
+        },
+      });
+    } else {
+      await tx.medicalRecord.create({
+        data: {
+          patientId,
+          visitId: patientVisitId,
+          type: "return",
+          visitDate,
+          visitTime: "",
+          doctor,
+          nurse,
+          treatment,
+          remark: IMPLANT_EMR_REMARK,
+        },
+      });
+    }
+
+    await tx.patientVisit.update({
+      where: { id: patientVisitId },
+      data: {
+        doctor,
+        status: "completed",
+        completedAt: new Date(),
+      },
+    });
+    await tx.appointment.updateMany({
+      where: { visitId: patientVisitId },
+      data: {
+        doctor,
+        status: "completed",
+        completedAt: new Date(),
+      },
+    });
   }
 
   async listInventory() {
@@ -722,8 +918,8 @@ export class ImplantService {
         name: p.patient.name,
         phone: p.patient.phone,
         source: p.patient.chartNo,
-        birthday: "",
-        age: null as number | null,
+        birthday: p.patient.birthday ?? "",
+        age: p.patient.age,
         origin: "pending" as const,
         originLabel: "待种植",
         teeth: p.teeth ?? "",

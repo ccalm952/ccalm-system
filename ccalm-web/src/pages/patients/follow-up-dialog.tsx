@@ -134,6 +134,7 @@ export function FollowUpDialog({
             }
           />
           <StaffCombobox
+            pool="doctors"
             placeholder="随访医生 / 执行人"
             value={form.doctor}
             onValueChange={(v) => setForm((f) => ({ ...f, doctor: v }))}

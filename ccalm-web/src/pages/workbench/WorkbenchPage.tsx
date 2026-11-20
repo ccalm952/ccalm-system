@@ -391,7 +391,7 @@ export function WorkbenchPage() {
                         <TableCell>{TODAY_KIND_LABELS[v.kind]}</TableCell>
                         <TableCell>
                           {v.kind === "implant" && v.teeth?.length ? (
-                            <TeethCell teeth={v.teeth.join(" ")} />
+                            <TeethCell teeth={v.teeth.join(",")} />
                           ) : (
                             todayVisitDetail(v)
                           )}

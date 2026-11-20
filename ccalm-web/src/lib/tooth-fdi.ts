@@ -77,19 +77,23 @@ export function shortcutDeciduous(kind: "upper" | "lower"): number[] {
   return [...DEC_BY_UI.LR, ...DEC_BY_UI.LL];
 }
 
+/** 牙位图选中后的 FDI 串：半角逗号拼接 */
 export function formatTeeth(fdis: number[]): string {
   const uniq = [...new Set(fdis.filter(isValidFdi))].sort((a, b) => a - b);
-  return uniq.join(" ");
+  return uniq.join(",");
 }
 
 /**
  * 仅当整段都能解析为有效 FDI 时返回列表；否则 null（自由文本）。
- * 分隔：空格 / 顿号 / 逗号 / 斜杠
+ * 分隔符：半角逗号（库内已统一，旧格式靠迁移脚本处理）。
  */
 export function parseTeethStrict(raw: string): number[] | null {
   const s = raw.trim();
   if (!s) return [];
-  const parts = s.split(/[\s、，,/]+/).filter(Boolean);
+  const parts = s
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (!parts.length) return [];
   const nums: number[] = [];
   for (const p of parts) {

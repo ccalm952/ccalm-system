@@ -7,25 +7,18 @@ import {
 
 describe("remainingPendingTeeth", () => {
   it("去掉已种的牙位，保留未种的", () => {
-    expect(remainingPendingTeeth("32 34 36 42", ["34", "42"])).toEqual([
+    expect(remainingPendingTeeth("32,34,36,42", ["34", "42"])).toEqual([
       "32",
       "36",
     ]);
   });
 
   it("全部种完返回空数组", () => {
-    expect(remainingPendingTeeth("16、17", ["16", "17", "26"])).toEqual([]);
-  });
-
-  it("支持顿号、逗号、斜杠分隔", () => {
-    expect(remainingPendingTeeth("26/27，36,37", ["27", "36"])).toEqual([
-      "26",
-      "37",
-    ]);
+    expect(remainingPendingTeeth("16,17", ["16", "17", "26"])).toEqual([]);
   });
 
   it("已种牙位一格里写了多颗也能识别", () => {
-    expect(remainingPendingTeeth("46 47", ["46 47"])).toEqual([]);
+    expect(remainingPendingTeeth("46,47", ["46,47"])).toEqual([]);
   });
 
   it("一颗都没种到时不处理", () => {

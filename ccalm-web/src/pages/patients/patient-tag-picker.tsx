@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
 import {
@@ -129,7 +130,7 @@ export function PatientTagPicker({
             else if (!exact) void create();
           }}
         />
-        <div className="mt-1 max-h-56 overflow-y-auto">
+        <ScrollArea className="mt-1 max-h-56" viewportClassName="max-h-56">
           {filtered.map((tag) => (
             <button
               key={tag.name}
@@ -166,7 +167,7 @@ export function PatientTagPicker({
               <span className="truncate">新建“{query.trim()}”</span>
             </button>
           ) : null}
-        </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );

@@ -105,9 +105,15 @@ export function createImplantRecordsColumns(
       cell: ({ getValue }) => (getValue() as string | null) ?? "",
     },
     {
+      id: "doctor",
+      accessorKey: "doctor",
+      header: "医生",
+      cell: ({ getValue }) => (getValue() as string | null) ?? "",
+    },
+    {
       id: "staff",
       accessorKey: "staff",
-      header: "人员",
+      header: "配台",
       cell: ({ getValue }) => (getValue() as string | null) ?? "",
     },
     {

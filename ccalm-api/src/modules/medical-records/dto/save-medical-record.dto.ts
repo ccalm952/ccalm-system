@@ -16,12 +16,12 @@ import {
 import { MEDICAL_RECORD_TYPES } from "../record-rules";
 
 const FDI_TOOTH_LIST =
-  /^$|^(?:[1-4][1-8]|[5-8][1-5])(?:[\s、，,/]+(?:[1-4][1-8]|[5-8][1-5]))*$/;
+  /^$|^(?:[1-4][1-8]|[5-8][1-5])(?:,(?:[1-4][1-8]|[5-8][1-5]))*$/;
 
 export class ToothEntryDto {
   @IsString()
   @Matches(FDI_TOOTH_LIST, {
-    message: "牙位只能填 FDI 编号，如 11 12 36",
+    message: "牙位只能填 FDI 编号，如 11,12,36",
   })
   teeth!: string;
 

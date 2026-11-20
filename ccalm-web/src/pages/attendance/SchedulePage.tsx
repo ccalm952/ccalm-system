@@ -497,69 +497,74 @@ export function SchedulePage() {
       </Card>
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>设置</DialogTitle>
-          </DialogHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>姓名</TableHead>
-                <TableHead>初始假期额度</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaveDraft.map((row) => (
-                <TableRow key={row.userId}>
-                  <TableCell>{row.userName}</TableCell>
-                  <TableCell>
-                    <Input
-                      inputMode="decimal"
-                      value={row.value}
-                      className="h-8 w-28"
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        if (next !== "" && !LEAVE_BALANCE_DRAFT.test(next)) {
-                          return;
-                        }
-                        setLeaveDraft((prev) =>
-                          prev.map((item) =>
-                            item.userId === row.userId
-                              ? { ...item, value: next }
-                              : item,
-                          ),
-                        );
-                      }}
-                    />
-                  </TableCell>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-lg">
+          <ScrollArea
+            className="max-h-[calc(100dvh-5rem)]"
+            viewportClassName="max-h-[calc(100dvh-5rem)]"
+          >
+            <DialogHeader>
+              <DialogTitle>设置</DialogTitle>
+            </DialogHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>初始假期额度</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={savingLeave}
-              onClick={() => setSettingsOpen(false)}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              disabled={savingLeave}
-              onClick={() => void saveLeaveSettings()}
-            >
-              {savingLeave ? (
-                <>
-                  <Spinner data-icon="inline-start" />
-                  保存中…
-                </>
-              ) : (
-                "确定"
-              )}
-            </Button>
-          </DialogFooter>
+              </TableHeader>
+              <TableBody>
+                {leaveDraft.map((row) => (
+                  <TableRow key={row.userId}>
+                    <TableCell>{row.userName}</TableCell>
+                    <TableCell>
+                      <Input
+                        inputMode="decimal"
+                        value={row.value}
+                        className="h-8 w-28"
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          if (next !== "" && !LEAVE_BALANCE_DRAFT.test(next)) {
+                            return;
+                          }
+                          setLeaveDraft((prev) =>
+                            prev.map((item) =>
+                              item.userId === row.userId
+                                ? { ...item, value: next }
+                                : item,
+                            ),
+                          );
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={savingLeave}
+                onClick={() => setSettingsOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                disabled={savingLeave}
+                onClick={() => void saveLeaveSettings()}
+              >
+                {savingLeave ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    保存中…
+                  </>
+                ) : (
+                  "确定"
+                )}
+              </Button>
+            </DialogFooter>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

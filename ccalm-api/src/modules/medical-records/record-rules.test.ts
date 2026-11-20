@@ -9,6 +9,8 @@ import {
   pickRecordContent,
   planCourseStatus,
   planItemDoneDate,
+  normalizeTeethFdiString,
+  toFullWidthComma,
 } from "./record-rules";
 
 describe("isOrthoRecordType", () => {
@@ -49,14 +51,14 @@ describe("normalizePlanItems", () => {
   it("保留整数 id，新行 id 为 null，丢掉空行", () => {
     expect(
       normalizePlanItems([
-        { id: 5, teeth: " 17 18 ", text: " 残根拔除 " },
+        { id: 5, teeth: " 17,18 ", text: " 残根拔除 " },
         { teeth: "", text: "取模" },
         { id: "x", teeth: "", text: " " },
       ]),
     ).toEqual([
       {
         id: 5,
-        teeth: "17 18",
+        teeth: "17,18",
         text: "残根拔除",
         unitPrice: null,
         quantity: null,
@@ -139,17 +141,36 @@ describe("normalizePlanLinks", () => {
   });
 });
 
+describe("toFullWidthComma", () => {
+  it("半角逗号改全角", () => {
+    expect(toFullWidthComma("A,B,C")).toBe("A，B，C");
+    expect(toFullWidthComma("无逗号")).toBe("无逗号");
+  });
+});
+
+describe("normalizeTeethFdiString", () => {
+  it("半角逗号分隔的 FDI 去重排序", () => {
+    expect(normalizeTeethFdiString(" 17,14,15 ")).toBe("14,15,17");
+    expect(normalizeTeethFdiString("11,21")).toBe("11,21");
+  });
+
+  it("非纯 FDI 当自由文本（含旧空格串，不自动改）", () => {
+    expect(normalizeTeethFdiString("全口")).toBe("全口");
+    expect(normalizeTeethFdiString("14 15")).toBe("14 15");
+  });
+});
+
 describe("normalizeToothEntries", () => {
-  it("去空白并丢掉牙位和内容都为空的条目", () => {
+  it("去空白并丢掉牙位和内容都为空的条目；牙位统一逗号、正文半角逗号改全角", () => {
     expect(
       normalizeToothEntries([
-        { teeth: " 11,21 ", text: " 拔除 " },
+        { teeth: " 11,21 ", text: " 拔除,备注 " },
         { teeth: "", text: "  " },
         { text: "口扫" },
         "bad",
       ]),
     ).toEqual([
-      { teeth: "11,21", text: "拔除" },
+      { teeth: "11,21", text: "拔除，备注" },
       { teeth: "", text: "口扫" },
     ]);
   });
@@ -180,6 +201,18 @@ describe("pickRecordContent", () => {
     expect(c.chiefComplaint).toBe("牙痛");
     expect(c.diagnosis).toEqual([{ teeth: "36", text: "龋齿" }]);
     expect(c.treatment).toEqual([{ teeth: "36", text: "充填" }]);
+  });
+
+  it("保存时文本字段半角逗号改全角", () => {
+    const c = pickRecordContent("first", {
+      ...raw,
+      chiefComplaint: "左下,牙痛",
+      advice: "忌硬,随诊",
+      treatment: [{ teeth: "36", text: "充填,抛光" }],
+    });
+    expect(c.chiefComplaint).toBe("左下，牙痛");
+    expect(c.advice).toBe("忌硬，随诊");
+    expect(c.treatment).toEqual([{ teeth: "36", text: "充填，抛光" }]);
   });
 
   it("复诊清空主诉和诊断", () => {
