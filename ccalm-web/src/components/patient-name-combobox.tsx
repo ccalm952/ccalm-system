@@ -102,7 +102,7 @@ export function PatientNameCombobox({
                   p.lastVisitDate ? `最近 ${p.lastVisitDate}` : "",
                 ]
                   .filter(Boolean)
-                  .join(" · ")}
+                  .join(" / ")}
               </span>
             </ComboboxItem>
           )}

@@ -5,6 +5,7 @@ import {
   formatImplantTreatmentLine,
   implantEmrDoctor,
   implantEmrNurse,
+  matchPlanItemForImplant,
   IMPLANT_EMR_DOCTOR_FALLBACK,
 } from "./implant-emr";
 
@@ -104,6 +105,23 @@ describe("buildImplantTreatmentEntries", () => {
   });
 });
 
+describe("matchPlanItemForImplant", () => {
+  const plans = [
+    { id: 51, teeth: "24,25,26,27", text: "种植" },
+    { id: 53, teeth: "14,15,16,17", text: "种植+烤瓷" },
+  ];
+
+  it("按牙位重叠挂到对应计划组", () => {
+    expect(matchPlanItemForImplant(["14", "15", "17"], plans)).toBe(53);
+    expect(matchPlanItemForImplant(["24", "25"], plans)).toBe(51);
+  });
+
+  it("无重叠不挂", () => {
+    expect(matchPlanItemForImplant(["36"], plans)).toBeNull();
+    expect(matchPlanItemForImplant([], plans)).toBeNull();
+  });
+});
+
 describe("implantEmrDoctor", () => {
   it("用医生字段，不是配台人员", () => {
     expect(implantEmrDoctor("胡芊芊")).toBe("胡芊芊");
@@ -113,8 +131,9 @@ describe("implantEmrDoctor", () => {
 });
 
 describe("implantEmrNurse", () => {
-  it("人员映射为配台护士", () => {
-    expect(implantEmrNurse("卢+许")).toBe("卢+许");
+  it("人员映射为配台，旧分隔改全角逗号", () => {
+    expect(implantEmrNurse("卢+许")).toBe("卢，许");
+    expect(implantEmrNurse("陈美珍、卢彤")).toBe("陈美珍，卢彤");
     expect(implantEmrNurse(null)).toBe("");
   });
 });

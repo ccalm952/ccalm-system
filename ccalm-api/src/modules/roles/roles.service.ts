@@ -23,7 +23,7 @@ export class RolesService {
     const allowed = new Set(ALL_PERMISSIONS);
     const invalid = raw.filter((p) => !allowed.has(p));
     if (invalid.length) {
-      throw new BadRequestException(`未知权限点：${invalid.join("、")}`);
+      throw new BadRequestException(`未知权限点：${invalid.join("，")}`);
     }
     return [...new Set(raw)];
   }

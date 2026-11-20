@@ -5,6 +5,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { FollowUpsService } from "../follow-ups/follow-ups.service";
 import {
   planCourseStatus,
+  planGroupLabel,
   planItemDoneDate,
 } from "../medical-records/record-rules";
 import {
@@ -73,6 +74,7 @@ export class WorkbenchService {
           planItems: {
             orderBy: { sort: "asc" },
             include: {
+              lines: { orderBy: { sort: "asc" }, select: { name: true } },
               followUps: {
                 select: {
                   completes: true,
@@ -127,7 +129,7 @@ export class WorkbenchService {
       .map((r) => {
         const items = r.planItems.map((i) => ({
           teeth: i.teeth,
-          text: i.text,
+          text: planGroupLabel(i.lines),
           doneDate: planItemDoneDate(
             i.followUps.map((f) => ({
               visitDate: f.record.visitDate,

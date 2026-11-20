@@ -34,6 +34,25 @@ export function normalizeTeethFdiString(raw: string): string {
   return [...new Set(parts)].sort((a, b) => Number(a) - Number(b)).join(",");
 }
 
+/** 明细牙位须为组牙位子集（空明细牙位表示整组） */
+export function isTeethSubsetOfGroup(
+  lineTeeth: string,
+  groupTeeth: string,
+): boolean {
+  if (!lineTeeth) return true;
+  const group = new Set(
+    groupTeeth
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean),
+  );
+  return lineTeeth
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .every((t) => group.has(t));
+}
+
 export const MEDICAL_RECORD_TEXT_FIELDS = [
   "chiefComplaint",
   "presentIllness",
@@ -94,49 +113,98 @@ export function normalizeToothEntries(raw: unknown): ToothEntry[] {
     .filter((e) => e.teeth || e.text);
 }
 
-export type PlanItemInput = ToothEntry & {
+export type PlanLineInput = {
   id: number | null;
+  feeItemId: number | null;
+  name: string;
+  teeth: string;
   unitPrice: number | null;
   quantity: number | null;
   discountNote: string;
 };
 
-/** 治疗计划行：同牙位条目规则，另保留已有行的 id 以便复诊关联不丢 */
+export type PlanItemInput = {
+  id: number | null;
+  teeth: string;
+  lines: PlanLineInput[];
+};
+
+function normalizePlanLine(
+  e: {
+    id?: unknown;
+    feeItemId?: unknown;
+    name?: unknown;
+    teeth?: unknown;
+    unitPrice?: unknown;
+    quantity?: unknown;
+    discountNote?: unknown;
+  },
+  groupTeeth: string,
+): PlanLineInput | null {
+  const name =
+    typeof e?.name === "string" ? toFullWidthComma(e.name.trim()) : "";
+  const feeItemId = Number.isInteger(e?.feeItemId)
+    ? (e.feeItemId as number)
+    : null;
+  if (!name && feeItemId == null) return null;
+  const teeth =
+    typeof e?.teeth === "string" ? normalizeTeethFdiString(e.teeth) : "";
+  if (!isTeethSubsetOfGroup(teeth, groupTeeth)) return null;
+  const unitPrice =
+    typeof e?.unitPrice === "number" && e.unitPrice >= 0 ? e.unitPrice : null;
+  return {
+    id: Number.isInteger(e?.id) ? (e.id as number) : null,
+    feeItemId,
+    name,
+    teeth,
+    unitPrice,
+    quantity:
+      Number.isInteger(e?.quantity) && (e.quantity as number) > 0
+        ? (e.quantity as number)
+        : null,
+    discountNote:
+      typeof e?.discountNote === "string"
+        ? toFullWidthComma(e.discountNote.trim())
+        : "",
+  };
+}
+
+/** 治疗计划组：牙位 + 收费明细；丢掉无牙位且无明细的空组 */
 export function normalizePlanItems(raw: unknown): PlanItemInput[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map(
-      (e: {
-        id?: unknown;
-        teeth?: unknown;
-        text?: unknown;
-        unitPrice?: unknown;
-        quantity?: unknown;
-        discountNote?: unknown;
-      }) => ({
+    .map((e: { id?: unknown; teeth?: unknown; lines?: unknown }) => {
+      const teeth =
+        typeof e?.teeth === "string" ? normalizeTeethFdiString(e.teeth) : "";
+      const rawLines = Array.isArray(e?.lines) ? e.lines : [];
+      const lines = rawLines
+        .map((line: unknown) =>
+          normalizePlanLine(
+            line && typeof line === "object"
+              ? (line as Parameters<typeof normalizePlanLine>[0])
+              : {},
+            teeth,
+          ),
+        )
+        .filter((line): line is PlanLineInput => line != null);
+      return {
         id: Number.isInteger(e?.id) ? (e.id as number) : null,
-        teeth:
-          typeof e?.teeth === "string" ? normalizeTeethFdiString(e.teeth) : "",
-        text:
-          typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
-        unitPrice:
-          typeof e?.unitPrice === "number" && e.unitPrice >= 0
-            ? e.unitPrice
-            : null,
-        quantity:
-          Number.isInteger(e?.quantity) && (e.quantity as number) > 0
-            ? (e.quantity as number)
-            : null,
-        discountNote:
-          typeof e?.discountNote === "string"
-            ? toFullWidthComma(e.discountNote.trim())
-            : "",
-      }),
-    )
-    .filter((e) => e.teeth || e.text);
+        teeth,
+        lines,
+      };
+    })
+    .filter((e) => e.teeth || e.lines.length);
 }
 
-/** 有复诊勾了「本行已完成」即该行完成；返回最近一次完成的日期 */
+/** 组展示名：明细名称用全角逗号拼接 */
+export function planGroupLabel(lines: { name: string }[]): string {
+  return lines
+    .map((l) => l.name.trim())
+    .filter(Boolean)
+    .join("，");
+}
+
+/** 有复诊勾了「本行已完成」即该组完成；返回最近一次完成的日期 */
 export function planItemDoneDate(
   followUps: { visitDate: string; completes: boolean }[],
 ): string | null {
@@ -149,7 +217,7 @@ export function planItemDoneDate(
 
 export type PlanCourseStatus = "none" | "pending" | "done" | "stopped";
 
-/** 与前端 lib/medical-records/record-types.ts 一致：计划行全部完成才算治疗完成；未完成且已终止的不再待完成 */
+/** 与前端 lib/medical-records/record-types.ts 一致：计划组全部完成才算治疗完成；未完成且已终止的不再待完成 */
 export function planCourseStatus(
   items: { doneDate: string | null }[],
   planStoppedAt: string | null,
@@ -161,7 +229,7 @@ export function planCourseStatus(
 
 export type PlanLinkInput = { planItemId: number; completes: boolean };
 
-/** 同一行重复出现时合并，任一勾了完成即完成 */
+/** 同一组重复出现时合并，任一勾了完成即完成 */
 export function normalizePlanLinks(links: PlanLinkInput[]): PlanLinkInput[] {
   const map = new Map<number, boolean>();
   for (const l of links) {

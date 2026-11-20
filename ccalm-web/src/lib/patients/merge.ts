@@ -34,7 +34,7 @@ export type MergePicks = Record<MergeField, number>;
 
 export function mergeFieldText(p: MergeCandidate, field: MergeField): string {
   const v = p[field];
-  if (Array.isArray(v)) return v.join("、");
+  if (Array.isArray(v)) return v.join("，");
   return v ?? "";
 }
 

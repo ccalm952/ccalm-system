@@ -39,6 +39,7 @@ import type {
   MedicalRecord,
   PatientVisit,
 } from "./patient-detail-types";
+import { formatStaffNames } from "@/lib/staff-names";
 import { PlanQuoteView } from "./plan-quote";
 import { ToothEntriesView } from "./tooth-entries-field";
 
@@ -235,7 +236,14 @@ function PlanFollowUps({
         >
           <div className="text-primary tabular-nums">
             <div>{r.visitDate}</div>
-            <div className="text-muted-foreground">{r.doctor}</div>
+            {r.doctor ? (
+              <div className="text-muted-foreground">医生：{r.doctor}</div>
+            ) : null}
+            {r.nurse ? (
+              <div className="text-muted-foreground">
+                配台：{formatStaffNames(r.nurse)}
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-col gap-2">
             {treatment.length ? (
@@ -339,6 +347,7 @@ function RecordBody({
         content = (
           <ToothEntriesView
             entries={record.treatmentPlan}
+            hideText
             renderExtra={(index) => {
               const item = record.treatmentPlan[index];
               return item.id != null ? (
@@ -395,7 +404,7 @@ function RecordBody({
       {rows.map((row) => (
         <div
           key={row.key}
-          className="grid grid-cols-[5rem_1fr] items-center gap-2 py-3 first:pt-0 last:pb-0"
+          className="grid grid-cols-[5rem_1fr] items-start gap-2 py-3 first:pt-0 last:pb-0"
         >
           <span className="text-muted-foreground">{row.label}</span>
           {row.content}
@@ -418,7 +427,7 @@ function planProgress(record: MedicalRecord): string | null {
   const done = record.treatmentPlan.filter((i) => i.doneDate).length;
   const progress = `治疗进度 ${done}/${record.treatmentPlan.length}`;
   return status === "stopped"
-    ? `治疗终止 ${record.planStoppedAt} · ${progress}`
+    ? `治疗终止 ${record.planStoppedAt} / ${progress}`
     : progress;
 }
 
@@ -712,7 +721,7 @@ export function PatientRecordsTab({
                         ) : null}
                         {record.nurse ? (
                           <span className="flex h-8 items-center text-muted-foreground">
-                            配台护士：{record.nurse}
+                            配台：{formatStaffNames(record.nurse)}
                           </span>
                         ) : null}
                         {courseOrder ? (

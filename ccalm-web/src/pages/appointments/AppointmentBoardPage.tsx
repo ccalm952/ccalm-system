@@ -1003,8 +1003,8 @@ export function AppointmentBoardPage() {
                 </span>
                 <span className="block truncate text-muted-foreground">
                   {p.visitDate}
-                  {p.doctor ? ` · ${p.doctor}` : ""}
-                  {p.items.length ? ` · ${p.items.join("/")}` : ""}
+                  {p.doctor ? ` / ${p.doctor}` : ""}
+                  {p.items.length ? ` / ${p.items.join("，")}` : ""}
                 </span>
               </button>
             ))}
@@ -1279,13 +1279,13 @@ export function AppointmentBoardPage() {
                               </span>
                               {card.doctor ? (
                                 <span className="shrink-0 truncate text-sm text-muted-foreground">
-                                  · {card.doctor}
+                                  {` / ${card.doctor}`}
                                 </span>
                               ) : null}
                             </span>
                             {height >= 36 && card.items.length ? (
                               <span className="block truncate opacity-80">
-                                {card.items.join("/")}
+                                {card.items.join("，")}
                               </span>
                             ) : null}
                             {height >= 48 ? (
@@ -1373,8 +1373,8 @@ export function AppointmentBoardPage() {
               <div className="flex flex-col gap-2 px-4 py-3 text-sm">
                 <p className="text-muted-foreground">
                   {selected.chartNo}
-                  {selected.age ? ` · ${selected.age}岁` : ""}
-                  {selected.gender ? ` · ${selected.gender}` : ""}
+                  {selected.age ? ` / ${selected.age}岁` : ""}
+                  {selected.gender ? ` / ${selected.gender}` : ""}
                 </p>
                 <p className="text-muted-foreground">{selected.phone || "—"}</p>
                 <Separator />
@@ -1390,7 +1390,7 @@ export function AppointmentBoardPage() {
                   <span>{selected.doctor || "未指定"}</span>
                   <span className="text-muted-foreground">预约项目</span>
                   <span>
-                    {selected.items.length ? selected.items.join("、") : "—"}
+                    {selected.items.length ? selected.items.join("，") : "—"}
                   </span>
                   <span className="text-muted-foreground">预约备注</span>
                   <span>{selected.remark || "—"}</span>

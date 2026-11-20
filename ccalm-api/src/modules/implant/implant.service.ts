@@ -28,7 +28,9 @@ import {
   IMPLANT_EMR_REMARK,
   implantEmrDoctor,
   implantEmrNurse,
+  matchPlanItemForImplant,
 } from "./implant-emr";
+import { planGroupLabel } from "../medical-records/record-rules";
 import {
   implantCountsForPending,
   remainingPendingTeeth,
@@ -589,6 +591,16 @@ export class ImplantService {
         visitDate,
         doctor,
       });
+    } else if (doctor) {
+      // 已有种植就诊时也覆盖医生，避免种植记录改医生后就诊仍停在旧值/兜底值
+      await tx.patientVisit.update({
+        where: { id: patientVisit.id },
+        data: { doctor },
+      });
+      await tx.appointment.updateMany({
+        where: { visitId: patientVisit.id },
+        data: { doctor },
+      });
     }
     await this.upsertImplantMedicalRecord(tx, {
       patientId,
@@ -620,9 +632,8 @@ export class ImplantService {
       },
       orderBy: { id: "asc" },
     });
-    const treatment = buildImplantTreatmentEntries(
-      implantRows.flatMap((r) => r.teeth),
-    );
+    const implantTeeth = implantRows.flatMap((r) => r.teeth);
+    const treatment = buildImplantTreatmentEntries(implantTeeth);
     if (!treatment.length) return;
 
     const onVisit = await tx.medicalRecord.findMany({
@@ -632,6 +643,7 @@ export class ImplantService {
     const auto = onVisit.find((r) => r.remark === IMPLANT_EMR_REMARK);
     if (!auto && onVisit.length > 0) return;
 
+    let recordId: number;
     if (auto) {
       await tx.medicalRecord.update({
         where: { id: auto.id },
@@ -643,8 +655,9 @@ export class ImplantService {
           remark: IMPLANT_EMR_REMARK,
         },
       });
+      recordId = auto.id;
     } else {
-      await tx.medicalRecord.create({
+      const created = await tx.medicalRecord.create({
         data: {
           patientId,
           visitId: patientVisitId,
@@ -657,7 +670,17 @@ export class ImplantService {
           remark: IMPLANT_EMR_REMARK,
         },
       });
+      recordId = created.id;
     }
+
+    await this.syncImplantPlanLinks(tx, {
+      patientId,
+      visitDate,
+      recordId,
+      toothNos: implantTeeth
+        .map((t) => t.toothNo?.trim() ?? "")
+        .filter(Boolean),
+    });
 
     await tx.patientVisit.update({
       where: { id: patientVisitId },
@@ -674,6 +697,49 @@ export class ImplantService {
         status: "completed",
         completedAt: new Date(),
       },
+    });
+  }
+
+  /** 按种植牙位挂到未终止初诊的治疗计划组；无重叠则清空自动关联 */
+  private async syncImplantPlanLinks(
+    tx: Prisma.TransactionClient,
+    params: {
+      patientId: number;
+      visitDate: string;
+      recordId: number;
+      toothNos: string[];
+    },
+  ) {
+    const { patientId, visitDate, recordId, toothNos } = params;
+    await tx.planItemFollowUp.deleteMany({ where: { recordId } });
+    if (!toothNos.length) return;
+
+    const initials = await tx.medicalRecord.findMany({
+      where: {
+        patientId,
+        type: { in: ["first", "orthoFirst"] },
+        visitDate: { lte: visitDate },
+        planStoppedAt: null,
+      },
+      include: {
+        planItems: {
+          orderBy: { sort: "asc" },
+          include: { lines: { orderBy: { sort: "asc" } } },
+        },
+      },
+      orderBy: [{ visitDate: "desc" }, { id: "desc" }],
+    });
+    const candidates = initials.flatMap((r) =>
+      r.planItems.map((p) => ({
+        id: p.id,
+        teeth: p.teeth,
+        text: planGroupLabel(p.lines),
+      })),
+    );
+    const planItemId = matchPlanItemForImplant(toothNos, candidates);
+    if (planItemId == null) return;
+    await tx.planItemFollowUp.create({
+      data: { recordId, planItemId, completes: false },
     });
   }
 

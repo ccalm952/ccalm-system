@@ -1,14 +1,21 @@
 import { chargeItemAmount, roundMoney, sumMoney } from "./charge-calc";
 
-export type CoursePlanRow = {
+export type CoursePlanLine = {
+  feeItemId: number | null;
+  name: string;
+  /** 明细牙位；空则用组牙位 */
   teeth: string;
-  text: string;
   unitPrice: number | null;
   quantity: number | null;
 };
 
+export type CoursePlanGroup = {
+  teeth: string;
+  lines: CoursePlanLine[];
+};
+
 export type CourseChargeItem = {
-  feeItemId: null;
+  feeItemId: number | null;
   name: string;
   teeth: string;
   unitPrice: number;
@@ -17,30 +24,33 @@ export type CourseChargeItem = {
 };
 
 /**
- * 治疗收费单的明细：只汇总治疗计划里已报价的行，未报价的行不计入并返回数量。
- * 收款不按计划行分摊，明细只是账单依据。
+ * 治疗收费单明细：展平各组已报价明细；未报价明细不计入并计数。
+ * 收款不按计划组分摊，明细只是账单依据。
  */
-export function courseChargeItems(rows: CoursePlanRow[]) {
+export function courseChargeItems(groups: CoursePlanGroup[]) {
   const items: CourseChargeItem[] = [];
   let unquotedCount = 0;
-  for (const row of rows) {
-    if (row.unitPrice == null) {
-      unquotedCount += 1;
-      continue;
+  for (const group of groups) {
+    const groupTeeth = group.teeth.trim();
+    for (const line of group.lines) {
+      if (line.unitPrice == null) {
+        unquotedCount += 1;
+        continue;
+      }
+      const name = line.name.trim();
+      if (!name) continue;
+      const unitPrice = roundMoney(line.unitPrice);
+      const quantity =
+        line.quantity != null && line.quantity > 0 ? line.quantity : 1;
+      items.push({
+        feeItemId: line.feeItemId,
+        name,
+        teeth: (line.teeth.trim() || groupTeeth).trim(),
+        unitPrice,
+        quantity,
+        amount: chargeItemAmount(unitPrice, quantity),
+      });
     }
-    const name = row.text.trim();
-    if (!name) continue;
-    const unitPrice = roundMoney(row.unitPrice);
-    const quantity =
-      row.quantity != null && row.quantity > 0 ? row.quantity : 1;
-    items.push({
-      feeItemId: null,
-      name,
-      teeth: row.teeth.trim(),
-      unitPrice,
-      quantity,
-      amount: chargeItemAmount(unitPrice, quantity),
-    });
   }
   return {
     items,

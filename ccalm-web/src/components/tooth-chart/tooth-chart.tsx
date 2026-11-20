@@ -87,27 +87,34 @@ type ToothChartPanelProps = {
   /** 当前已选 FDI；点选即时生效 */
   value: number[];
   onValueChange: (fdis: number[]) => void;
+  /** 仅允许点选这些牙位（如计划明细从组牙位中勾选） */
+  allowedFdis?: number[];
 };
 
 function ToothCell({
   fdi,
   selected,
+  disabled,
   onToggle,
 }: {
   fdi: number;
   selected: boolean;
+  disabled?: boolean;
   onToggle: () => void;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onToggle}
       className={cn(
         "box-border flex shrink-0 items-center justify-center rounded-md border font-medium tabular-nums transition-colors",
         "h-7 w-7 text-xs sm:h-[32px] sm:w-[32px] sm:text-sm",
-        selected
-          ? "border-teal-600 bg-teal-500 text-white"
-          : "border-border bg-background hover:bg-muted",
+        disabled
+          ? "cursor-not-allowed border-border/50 bg-muted/40 text-muted-foreground"
+          : selected
+            ? "border-teal-600 bg-teal-500 text-white"
+            : "border-border bg-background hover:bg-muted",
       )}
     >
       {palmerLabel(fdi)}
@@ -118,11 +125,13 @@ function ToothCell({
 function ToothRow({
   fdis,
   selected,
+  allowed,
   toggle,
   alignEnd,
 }: {
   fdis: number[];
   selected: Set<number>;
+  allowed?: Set<number>;
   toggle: (n: number) => void;
   alignEnd?: boolean;
 }) {
@@ -138,6 +147,7 @@ function ToothRow({
           key={n}
           fdi={n}
           selected={selected.has(n)}
+          disabled={allowed != null && !allowed.has(n)}
           onToggle={() => toggle(n)}
         />
       ))}
@@ -157,11 +167,13 @@ function splitPermanent(q: UiQuadrant) {
 function QuadrantBlock({
   q,
   selected,
+  allowed,
   toggle,
   deciduousFirst,
 }: {
   q: UiQuadrant;
   selected: Set<number>;
+  allowed?: Set<number>;
   toggle: (n: number) => void;
   /** 上半口：乳牙在上、恒牙在下 */
   deciduousFirst?: boolean;
@@ -178,13 +190,19 @@ function QuadrantBlock({
     <ToothRow
       fdis={dec}
       selected={selected}
+      allowed={allowed}
       toggle={toggle}
       alignEnd={alignCenter}
     />
   );
   const permanentDesktop = (
     <div className="hidden sm:block">
-      <ToothRow fdis={perm} selected={selected} toggle={toggle} />
+      <ToothRow
+        fdis={perm}
+        selected={selected}
+        allowed={allowed}
+        toggle={toggle}
+      />
     </div>
   );
   const permanentMobile = deciduousFirst ? (
@@ -192,12 +210,14 @@ function QuadrantBlock({
       <ToothRow
         fdis={posterior}
         selected={selected}
+        allowed={allowed}
         toggle={toggle}
         alignEnd={alignOuter}
       />
       <ToothRow
         fdis={anterior}
         selected={selected}
+        allowed={allowed}
         toggle={toggle}
         alignEnd={alignCenter}
       />
@@ -207,12 +227,14 @@ function QuadrantBlock({
       <ToothRow
         fdis={anterior}
         selected={selected}
+        allowed={allowed}
         toggle={toggle}
         alignEnd={alignCenter}
       />
       <ToothRow
         fdis={posterior}
         selected={selected}
+        allowed={allowed}
         toggle={toggle}
         alignEnd={alignOuter}
       />
@@ -241,10 +263,13 @@ function QuadrantBlock({
 export function ToothChartPanel({
   value,
   onValueChange,
+  allowedFdis,
 }: ToothChartPanelProps) {
   const draft = new Set(value);
+  const allowed = allowedFdis != null ? new Set(allowedFdis) : undefined;
 
   function toggle(n: number) {
+    if (allowed && !allowed.has(n)) return;
     const next = new Set(draft);
     if (next.has(n)) next.delete(n);
     else next.add(n);
@@ -252,12 +277,14 @@ export function ToothChartPanel({
   }
 
   function applyShortcut(nums: number[]) {
+    const scoped = allowed ? nums.filter((n) => allowed.has(n)) : nums;
+    if (!scoped.length) return;
     const next = new Set(draft);
-    const allOn = nums.every((n) => next.has(n));
+    const allOn = scoped.every((n) => next.has(n));
     if (allOn) {
-      for (const n of nums) next.delete(n);
+      for (const n of scoped) next.delete(n);
     } else {
-      for (const n of nums) next.add(n);
+      for (const n of scoped) next.add(n);
     }
     onValueChange([...next]);
   }
@@ -297,6 +324,7 @@ export function ToothChartPanel({
           <QuadrantBlock
             q="UR"
             selected={draft}
+            allowed={allowed}
             toggle={toggle}
             deciduousFirst
           />
@@ -306,6 +334,7 @@ export function ToothChartPanel({
           <QuadrantBlock
             q="UL"
             selected={draft}
+            allowed={allowed}
             toggle={toggle}
             deciduousFirst
           />
@@ -323,10 +352,20 @@ export function ToothChartPanel({
         </div>
 
         <div className="pr-2 sm:pr-[12px]">
-          <QuadrantBlock q="LR" selected={draft} toggle={toggle} />
+          <QuadrantBlock
+            q="LR"
+            selected={draft}
+            allowed={allowed}
+            toggle={toggle}
+          />
         </div>
         <div className="pl-2 sm:pl-[12px]">
-          <QuadrantBlock q="LL" selected={draft} toggle={toggle} />
+          <QuadrantBlock
+            q="LL"
+            selected={draft}
+            allowed={allowed}
+            toggle={toggle}
+          />
         </div>
       </div>
     </div>
@@ -357,7 +396,8 @@ export function ToothPositionField({
   large,
   readOnly,
   plain,
-}: ToothPositionFieldProps) {
+  allowedFdis,
+}: ToothPositionFieldProps & { allowedFdis?: number[] }) {
   const parsed = React.useMemo(() => parseTeethStrict(value), [value]);
   const fdis = parsed ?? [];
   const freeText = parsed == null && value.trim() !== "";
@@ -414,6 +454,7 @@ export function ToothPositionField({
       >
         <ToothChartPanel
           value={fdis}
+          allowedFdis={allowedFdis}
           onValueChange={(next) => onValueChange(formatTeeth(next))}
         />
       </PopoverContent>

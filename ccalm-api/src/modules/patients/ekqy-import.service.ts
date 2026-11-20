@@ -225,7 +225,11 @@ export class EkqyImportService {
           id: number;
           visitDate: string;
           doctor: string;
-          planItems: { id: number; teeth: string; text: string }[];
+          planItems: {
+            id: number;
+            teeth: string;
+            lines: { name: string }[];
+          }[];
         };
         type: ReturnType<typeof recordType>;
         visit: { id: number; visitDate: string; doctor: string };
@@ -258,12 +262,21 @@ export class EkqyImportService {
                   create: (full.treatmentPlanList ?? []).map((item, index) => ({
                     sort: index,
                     teeth: teeth(item.fdiToothCodes),
-                    text: clean(item.planContent),
+                    lines: {
+                      create: [
+                        {
+                          sort: 0,
+                          feeItemId: null,
+                          name: clean(item.planContent),
+                          teeth: "",
+                        },
+                      ],
+                    },
                   })),
                 }
               : undefined,
           },
-          include: { planItems: true },
+          include: { planItems: { include: { lines: true } } },
         });
         createdRecords.push({ full, record, type, visit });
       }
@@ -282,7 +295,14 @@ export class EkqyImportService {
           type: item.type,
           visitDate: item.record.visitDate,
           full: item.full,
-          planItems: item.record.planItems,
+          planItems: item.record.planItems.map((p) => ({
+            id: p.id,
+            teeth: p.teeth,
+            text: p.lines
+              .map((l) => l.name.trim())
+              .filter(Boolean)
+              .join("，"),
+          })),
         })),
       );
       for (const link of followUps) {

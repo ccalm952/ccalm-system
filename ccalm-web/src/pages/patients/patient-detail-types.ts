@@ -51,6 +51,8 @@ export type PatientVisit = {
   kind: VisitKind;
   status: VisitStatus;
   doctor: string;
+  /** 来自关联病历的配台（就诊本身不存） */
+  nurse?: string;
   remark: string;
   medicalRecordIds: number[];
   chargeOrderIds: number[];

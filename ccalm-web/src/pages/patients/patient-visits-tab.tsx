@@ -32,6 +32,7 @@ import {
   visitDisplayStatusLabel,
   visitTimeRange,
 } from "@/lib/visits/visit-options";
+import { formatStaffNames } from "@/lib/staff-names";
 import type { PatientTab, PatientVisit } from "./patient-detail-types";
 import { VisitTimeDialog } from "./visit-time-dialog";
 
@@ -156,6 +157,9 @@ export function PatientVisitsTab({
                 </div>
                 <TimelineDescription className="flex flex-col gap-1">
                   {v.doctor ? <span>医生：{v.doctor}</span> : null}
+                  {v.nurse ? (
+                    <span>配台：{formatStaffNames(v.nurse)}</span>
+                  ) : null}
                   {v.remark ? <span>备注：{v.remark}</span> : null}
                 </TimelineDescription>
               </TimelineContent>

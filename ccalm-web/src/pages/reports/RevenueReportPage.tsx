@@ -269,7 +269,7 @@ export function RevenueReportPage() {
       [
         order.chargeDate,
         order.patientName,
-        order.items.join(" / "),
+        order.items.join("，"),
         order.receivable.toFixed(2),
         order.paid.toFixed(2),
         order.owed.toFixed(2),
@@ -504,9 +504,9 @@ export function RevenueReportPage() {
                           </TableCell>
                           <TableCell
                             className="max-w-64 truncate"
-                            title={order.items.join(" / ")}
+                            title={order.items.join("，")}
                           >
-                            {order.items.join(" / ") || "—"}
+                            {order.items.join("，") || "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {formatMoney(order.receivable)}

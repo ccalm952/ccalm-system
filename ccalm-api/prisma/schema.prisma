@@ -401,21 +401,37 @@ model MedicalRecord {
   @@index([visitId])
 }
 
-/// 初诊病历治疗计划的一行；有复诊勾了完成即该行完成
+/// 初诊治疗计划的一组（完成/复诊挂接单元）；报价在明细行
 model TreatmentPlanItem {
-  id           Int                @id @default(autoincrement())
-  recordId     Int
-  record       MedicalRecord      @relation("PlanItems", fields: [recordId], references: [id], onDelete: Cascade)
-  sort         Int                @default(0)
-  teeth        String             @default("")
-  text         String             @default("")
-  /// 报价：单价 × 数量；未报价为 null
-  unitPrice    Float?
-  quantity     Int?
-  discountNote String             @default("")
-  followUps    PlanItemFollowUp[]
+  id        Int                @id @default(autoincrement())
+  recordId  Int
+  record    MedicalRecord      @relation("PlanItems", fields: [recordId], references: [id], onDelete: Cascade)
+  sort      Int                @default(0)
+  teeth     String             @default("")
+  lines     TreatmentPlanLine[]
+  followUps PlanItemFollowUp[]
 
   @@index([recordId])
+}
+
+/// 计划组内的收费明细；feeItemId 可空仅兼容旧数据/导入
+model TreatmentPlanLine {
+  id           Int               @id @default(autoincrement())
+  planItemId   Int
+  planItem     TreatmentPlanItem @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+  sort         Int               @default(0)
+  feeItemId    Int?
+  feeItem      FeeItem?          @relation(fields: [feeItemId], references: [id], onDelete: SetNull)
+  /// 选项目时的名称快照
+  name         String            @default("")
+  /// 组牙位子集；空表示整组
+  teeth        String            @default("")
+  unitPrice    Float?
+  quantity     Int?
+  discountNote String            @default("")
+
+  @@index([planItemId])
+  @@index([feeItemId])
 }
 
 /// 复诊病历与治疗计划行的关联；一份复诊可处理多行
@@ -463,13 +479,14 @@ model FeeCategory {
 }
 
 model FeeItem {
-  id          Int          @id @default(autoincrement())
+  id          Int                  @id @default(autoincrement())
   categoryId  Int
-  category    FeeCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category    FeeCategory          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   name        String
-  price       Float        @default(0)
-  sort        Int          @default(0)
+  price       Float                @default(0)
+  sort        Int                  @default(0)
   chargeItems ChargeItem[]
+  planLines   TreatmentPlanLine[]
 
   @@unique([categoryId, name])
 }
