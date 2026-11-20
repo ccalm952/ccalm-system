@@ -216,14 +216,15 @@ function PlanFollowUps({
   onEdit: (record: MedicalRecord) => void;
   onDelete: (record: MedicalRecord) => void;
 }) {
-  const rows = records
-    .map((r) => ({
+  // records 已是 planLinks 挂到本行的复诊；处置牙位打分只用于挑展示内容。
+  // 对不上时仍展示整次复诊，避免「已复诊 N 次」点开是空的。
+  const rows = records.map((r) => {
+    const matched = treatmentForPlanItem(r.treatment, planItemId, planItems);
+    return {
       record: r,
-      treatment: treatmentForPlanItem(r.treatment, planItemId, planItems),
-    }))
-    .filter(({ record, treatment }) =>
-      record.treatment.length ? treatment.length > 0 : true,
-    );
+      treatment: matched.length || !r.treatment.length ? matched : r.treatment,
+    };
+  });
   if (!rows.length) return null;
   return (
     <div className="flex flex-col divide-y rounded-lg bg-muted/50 px-4">
