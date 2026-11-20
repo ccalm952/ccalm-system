@@ -23,9 +23,7 @@ export function formatImplantTreatmentLine(
     tooth.implantModel,
     tooth.toothRemark,
   ]
-    .map((s) =>
-      typeof s === "string" ? s.trim().replace(/,/g, "，") : "",
-    )
+    .map((s) => (typeof s === "string" ? s.trim().replace(/,/g, "，") : ""))
     .filter(Boolean);
   return parts.length ? parts.join("，") : null;
 }

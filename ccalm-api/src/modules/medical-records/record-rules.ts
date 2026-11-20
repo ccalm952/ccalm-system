@@ -25,7 +25,10 @@ export function toFullWidthComma(s: string): string {
 export function normalizeTeethFdiString(raw: string): string {
   const s = raw.trim();
   if (!s) return "";
-  const parts = s.split(",").map((p) => p.trim()).filter(Boolean);
+  const parts = s
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (!parts.length) return "";
   if (!parts.every((p) => /^\d{2}$/.test(p))) return s;
   return [...new Set(parts)].sort((a, b) => Number(a) - Number(b)).join(",");
@@ -85,11 +88,8 @@ export function normalizeToothEntries(raw: unknown): ToothEntry[] {
   return raw
     .map((e: { teeth?: unknown; text?: unknown }) => ({
       teeth:
-        typeof e?.teeth === "string"
-          ? normalizeTeethFdiString(e.teeth)
-          : "",
-      text:
-        typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
+        typeof e?.teeth === "string" ? normalizeTeethFdiString(e.teeth) : "",
+      text: typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
     }))
     .filter((e) => e.teeth || e.text);
 }
@@ -116,9 +116,7 @@ export function normalizePlanItems(raw: unknown): PlanItemInput[] {
       }) => ({
         id: Number.isInteger(e?.id) ? (e.id as number) : null,
         teeth:
-          typeof e?.teeth === "string"
-            ? normalizeTeethFdiString(e.teeth)
-            : "",
+          typeof e?.teeth === "string" ? normalizeTeethFdiString(e.teeth) : "",
         text:
           typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
         unitPrice:
@@ -202,9 +200,7 @@ export function pickRecordContent(
   for (const f of MEDICAL_RECORD_TEXT_FIELDS) {
     const v = raw[f];
     content[f] =
-      fields.has(f) && typeof v === "string"
-        ? toFullWidthComma(v.trim())
-        : "";
+      fields.has(f) && typeof v === "string" ? toFullWidthComma(v.trim()) : "";
   }
   for (const f of RECORD_JSON_ENTRY_FIELDS) {
     content[f] = fields.has(f) ? normalizeToothEntries(raw[f]) : [];
