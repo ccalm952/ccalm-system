@@ -94,7 +94,7 @@ describe("record-types", () => {
     expect(
       cleanPlanItems([
         {
-          teeth: "17 18 26",
+          teeth: "17,18,26",
           text: "修复",
           unitPrice: 400,
           discountNote: " 优惠 ",
@@ -110,7 +110,7 @@ describe("record-types", () => {
   });
 
   it("报价金额 = 单价 × 数量（缺数量按牙位颗数）", () => {
-    expect(planItemAmount({ teeth: "17 18", text: "", unitPrice: 400 })).toBe(
+    expect(planItemAmount({ teeth: "17,18", text: "", unitPrice: 400 })).toBe(
       800,
     );
     expect(
