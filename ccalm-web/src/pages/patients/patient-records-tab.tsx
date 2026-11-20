@@ -39,8 +39,8 @@ import type {
   MedicalRecord,
   PatientVisit,
 } from "./patient-detail-types";
+import { formatStaffNames } from "@/lib/staff-names";
 import { PlanQuoteView } from "./plan-quote";
-import { formatStaffNames } from "./staff-combobox";
 import { ToothEntriesView } from "./tooth-entries-field";
 
 type VisitCharge = { receivable: number; owed: number };

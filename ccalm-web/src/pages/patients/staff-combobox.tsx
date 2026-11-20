@@ -14,6 +14,7 @@ import {
   useComboboxAnchor,
 } from "@/components/ui/combobox";
 import { api } from "@/lib/api";
+import { joinStaffNames, splitStaffNames } from "@/lib/staff-names";
 
 /** doctors=可预约；assistants=可配台 */
 export type StaffPool = "doctors" | "assistants";
@@ -30,25 +31,6 @@ function loadPool(pool: StaffPool): Promise<string[]> {
     return [];
   });
   return poolCache[pool];
-}
-
-export function splitStaffNames(raw: string): string[] {
-  return raw
-    .split(/[、,，+\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-export function joinStaffNames(names: string[]): string {
-  return names
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join("，");
-}
-
-/** 配台展示/落库：顿号等旧分隔统一成全角逗号 */
-export function formatStaffNames(raw: string): string {
-  return joinStaffNames(splitStaffNames(raw));
 }
 
 export function StaffCombobox({
@@ -126,13 +108,12 @@ export function StaffCombobox({
   return (
     <Combobox
       items={items}
-      value={value || null}
-      onValueChange={(v) => onValueChange(v ?? "")}
-      onInputValueChange={(v) => onValueChange(v)}
+      value={value.trim() ? value : null}
+      onValueChange={(next) => onValueChange(next ?? "")}
     >
       <ComboboxInput placeholder={placeholder} />
       <ComboboxContent>
-        <ComboboxEmpty>暂无匹配，可直接输入</ComboboxEmpty>
+        <ComboboxEmpty>暂无匹配</ComboboxEmpty>
         <ComboboxList>
           {(item: string) => (
             <ComboboxItem key={item} value={item}>

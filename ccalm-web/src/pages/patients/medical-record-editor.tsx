@@ -43,7 +43,8 @@ import { PhraseTextarea } from "./phrase-textarea";
 import { PlanGroupsField } from "./plan-groups-field";
 import { PlanQuoteView } from "./plan-quote";
 import { RootCanalField } from "./root-canal-field";
-import { formatStaffNames, StaffCombobox } from "./staff-combobox";
+import { formatStaffNames } from "@/lib/staff-names";
+import { StaffCombobox } from "./staff-combobox";
 import { ToothEntriesField, ToothEntriesView } from "./tooth-entries-field";
 
 type FormState = Record<MedicalRecordTextField, string> &

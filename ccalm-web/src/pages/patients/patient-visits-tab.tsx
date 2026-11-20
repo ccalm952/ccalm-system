@@ -32,8 +32,8 @@ import {
   visitDisplayStatusLabel,
   visitTimeRange,
 } from "@/lib/visits/visit-options";
+import { formatStaffNames } from "@/lib/staff-names";
 import type { PatientTab, PatientVisit } from "./patient-detail-types";
-import { formatStaffNames } from "./staff-combobox";
 import { VisitTimeDialog } from "./visit-time-dialog";
 
 export function PatientVisitsTab({
