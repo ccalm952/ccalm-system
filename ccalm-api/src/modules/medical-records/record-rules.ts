@@ -13,6 +13,24 @@ export function isOrthoRecordType(type: MedicalRecordType): boolean {
 
 export type ToothEntry = { teeth: string; text: string };
 
+/** 病历正文里的半角逗号统一成全角 */
+export function toFullWidthComma(s: string): string {
+  return s.replace(/,/g, "，");
+}
+
+/**
+ * 牙位号串：整段都是两位 FDI 时去重排序后半角逗号拼接；否则当自由文本原样返回。
+ * 只认半角逗号分隔（旧空格/顿号等靠迁移脚本改库）。
+ */
+export function normalizeTeethFdiString(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  const parts = s.split(",").map((p) => p.trim()).filter(Boolean);
+  if (!parts.length) return "";
+  if (!parts.every((p) => /^\d{2}$/.test(p))) return s;
+  return [...new Set(parts)].sort((a, b) => Number(a) - Number(b)).join(",");
+}
+
 export const MEDICAL_RECORD_TEXT_FIELDS = [
   "chiefComplaint",
   "presentIllness",
@@ -66,8 +84,12 @@ export function normalizeToothEntries(raw: unknown): ToothEntry[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((e: { teeth?: unknown; text?: unknown }) => ({
-      teeth: typeof e?.teeth === "string" ? e.teeth.trim() : "",
-      text: typeof e?.text === "string" ? e.text.trim() : "",
+      teeth:
+        typeof e?.teeth === "string"
+          ? normalizeTeethFdiString(e.teeth)
+          : "",
+      text:
+        typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
     }))
     .filter((e) => e.teeth || e.text);
 }
@@ -93,8 +115,12 @@ export function normalizePlanItems(raw: unknown): PlanItemInput[] {
         discountNote?: unknown;
       }) => ({
         id: Number.isInteger(e?.id) ? (e.id as number) : null,
-        teeth: typeof e?.teeth === "string" ? e.teeth.trim() : "",
-        text: typeof e?.text === "string" ? e.text.trim() : "",
+        teeth:
+          typeof e?.teeth === "string"
+            ? normalizeTeethFdiString(e.teeth)
+            : "",
+        text:
+          typeof e?.text === "string" ? toFullWidthComma(e.text.trim()) : "",
         unitPrice:
           typeof e?.unitPrice === "number" && e.unitPrice >= 0
             ? e.unitPrice
@@ -104,7 +130,9 @@ export function normalizePlanItems(raw: unknown): PlanItemInput[] {
             ? (e.quantity as number)
             : null,
         discountNote:
-          typeof e?.discountNote === "string" ? e.discountNote.trim() : "",
+          typeof e?.discountNote === "string"
+            ? toFullWidthComma(e.discountNote.trim())
+            : "",
       }),
     )
     .filter((e) => e.teeth || e.text);
@@ -173,7 +201,10 @@ export function pickRecordContent(
   const content = {} as RecordContent;
   for (const f of MEDICAL_RECORD_TEXT_FIELDS) {
     const v = raw[f];
-    content[f] = fields.has(f) && typeof v === "string" ? v.trim() : "";
+    content[f] =
+      fields.has(f) && typeof v === "string"
+        ? toFullWidthComma(v.trim())
+        : "";
   }
   for (const f of RECORD_JSON_ENTRY_FIELDS) {
     content[f] = fields.has(f) ? normalizeToothEntries(raw[f]) : [];

@@ -731,7 +731,11 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
           open={tierRateSettingsOpen}
           onOpenChange={setTierRateSettingsOpen}
         >
-          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
+          <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-3xl">
+            <ScrollArea
+              className="max-h-[calc(100dvh-5rem)]"
+              viewportClassName="max-h-[calc(100dvh-5rem)]"
+            >
             <DialogHeader>
               <DialogTitle>设置</DialogTitle>
             </DialogHeader>
@@ -1156,6 +1160,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                 确定
               </Button>
             </DialogFooter>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
 

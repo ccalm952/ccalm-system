@@ -328,6 +328,7 @@ export function MedicalRecordEditor({
                 <span className="text-destructive">*</span>
               </FieldLabel>
               <StaffCombobox
+                pool="doctors"
                 value={form.doctor}
                 onValueChange={(v) => set("doctor", v)}
               />
@@ -335,6 +336,7 @@ export function MedicalRecordEditor({
             <Field>
               <FieldLabel>配台护士</FieldLabel>
               <StaffCombobox
+                pool="assistants"
                 value={form.nurse}
                 onValueChange={(v) => set("nurse", v)}
               />

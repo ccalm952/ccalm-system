@@ -497,7 +497,11 @@ export function SchedulePage() {
       </Card>
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-lg">
+          <ScrollArea
+            className="max-h-[calc(100dvh-5rem)]"
+            viewportClassName="max-h-[calc(100dvh-5rem)]"
+          >
           <DialogHeader>
             <DialogTitle>设置</DialogTitle>
           </DialogHeader>
@@ -560,6 +564,7 @@ export function SchedulePage() {
               )}
             </Button>
           </DialogFooter>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

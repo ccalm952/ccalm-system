@@ -30,6 +30,11 @@ export class UpdateImplantVisitDto {
 
   @IsOptional()
   @IsString()
+  doctor?: string | null;
+
+  /** 配台人员，不是医生 */
+  @IsOptional()
+  @IsString()
   staff?: string | null;
 
   @IsOptional()

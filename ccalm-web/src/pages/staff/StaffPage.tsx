@@ -134,7 +134,7 @@ function UserEditor({
           <DialogTitle>{draft.id ? "编辑人员" : "新增人员"}</DialogTitle>
           <DialogDescription>
             {draft.id
-              ? "可修改姓名、角色与密码（密码留空则不修改）。"
+              ? "可修改姓名、角色与密码（密码留空则不修改）。挂上带「可配台」的角色后会出现在配台选人里。"
               : "创建后即可使用用户名和密码登录，角色必选。"}
           </DialogDescription>
         </DialogHeader>
@@ -279,7 +279,7 @@ function PeoplePanel({
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">
-            共 {users.length} 人，角色决定其岗位与权限。
+            共 {users.length} 人。配台选人来自带「可配台」角色的人员；编辑人员角色或到「角色管理」勾选即可。
           </span>
           <Button
             type="button"
@@ -302,11 +302,17 @@ function PeoplePanel({
             <TableBody>
               {users.map((user) => {
                 const isSelf = user.id === me?.id;
+                const canAssist = user.roles.some((role) => role.assistable);
                 return (
                   <TableRow key={user.id} className="border-t border-border">
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{user.displayName}</span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{user.displayName}</span>
+                          {canAssist ? (
+                            <Badge variant="secondary">可配台</Badge>
+                          ) : null}
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {user.username}
                         </span>

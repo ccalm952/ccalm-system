@@ -265,7 +265,7 @@ export function RoleSettings({
                           )
                         }
                       />
-                      <span className="text-sm">可配台（护士）</span>
+                      <span className="text-sm">可配台（出现在配台选人）</span>
                     </label>
                   </div>
                 </div>

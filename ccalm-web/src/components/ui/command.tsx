@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon } from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SearchIcon, CheckIcon } from "lucide-react";
 
 function Command({
@@ -22,7 +23,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden rounded-3xl bg-popover p-1 text-popover-foreground",
+        "flex size-full flex-col overflow-hidden rounded-3xl bg-popover p-1 text-popover-foreground [--scroll-corner-inset:var(--radius-3xl)]",
         className,
       )}
       {...props}
@@ -89,17 +90,22 @@ function CommandInput({
 
 function CommandList({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
-    <CommandPrimitive.List
-      data-slot="command-list"
-      className={cn(
-        "no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
-        className,
-      )}
-      {...props}
-    />
+    <ScrollArea
+      className={cn("max-h-72", className)}
+      viewportClassName="max-h-[inherit]"
+    >
+      <CommandPrimitive.List
+        data-slot="command-list"
+        className="max-h-none scroll-py-1 overflow-visible outline-none"
+        {...props}
+      >
+        {children}
+      </CommandPrimitive.List>
+    </ScrollArea>
   );
 }
 

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/config/routes";
@@ -971,7 +972,10 @@ export function AppointmentBoardPage() {
             width: `calc((100% - 76px) / ${columns.length + 1})`,
           }}
         >
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-2">
+          <ScrollArea
+            className="min-h-0 flex-1 pb-2"
+            viewportClassName="flex flex-col gap-1.5"
+          >
             {pending.map((p) => (
               <button
                 key={p.id}
@@ -1009,9 +1013,12 @@ export function AppointmentBoardPage() {
                 暂无待定
               </p>
             ) : null}
-          </div>
+          </ScrollArea>
         </aside>
-        <div className="flex min-h-0 flex-1 overflow-auto bg-card">
+        <ScrollArea
+          className="min-h-0 flex-1 bg-card"
+          scrollbars="both"
+        >
           {loading ? (
             <div className="flex h-64 w-full items-center justify-center">
               <Spinner className="size-8 opacity-60" />
@@ -1317,7 +1324,7 @@ export function AppointmentBoardPage() {
               </div>
             </div>
           )}
-        </div>
+        </ScrollArea>
       </div>
       <Popover
         open={popoverOpen}

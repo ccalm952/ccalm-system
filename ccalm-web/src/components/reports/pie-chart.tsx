@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "cn";
 
 import { pieColor, sumValues } from "./chart-utils";
@@ -137,7 +138,10 @@ export function PieChart({
         </div>
       </div>
 
-      <div className="flex max-h-[252px] w-full flex-col gap-1 overflow-y-auto pr-1">
+      <ScrollArea
+        className="max-h-[252px] w-full"
+        viewportClassName="max-h-[252px] flex flex-col gap-1 pr-1"
+      >
         {arcs.map((slice, index) => {
           const share = (slice.value / total) * 100;
           return (
@@ -180,7 +184,7 @@ export function PieChart({
             </button>
           );
         })}
-      </div>
+      </ScrollArea>
     </div>
   );
 }

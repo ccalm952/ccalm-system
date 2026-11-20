@@ -147,7 +147,7 @@ export class EkqyImportService {
             chartNo,
             gender,
             birthday,
-            remark: "imported from e看牙",
+            remark: "从e看牙导入",
           },
         });
         matchedBy = "create";
@@ -214,7 +214,7 @@ export class EkqyImportService {
             status: "completed",
             doctor,
             source: "record",
-            remark: "imported from e看牙",
+            remark: "从e看牙导入",
           },
         });
       }
@@ -363,7 +363,7 @@ export class EkqyImportService {
       await tx.patientVisit.deleteMany({
         where: {
           patientId: target.id,
-          remark: "imported from e看牙",
+          remark: { in: ["从e看牙导入", "imported from e看牙"] },
           medicalRecords: { none: {} },
           appointment: { is: null },
           chargeOrders: { none: {} },

@@ -219,6 +219,7 @@ export function ChargeOrderEditor({
               placeholder="收费日期"
             />
             <StaffCombobox
+              pool="doctors"
               placeholder="医生"
               value={form.doctor}
               onValueChange={(v) => setForm((f) => ({ ...f, doctor: v }))}

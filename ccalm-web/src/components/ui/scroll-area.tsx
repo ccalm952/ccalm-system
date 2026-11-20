@@ -5,11 +5,17 @@ import { cn } from "cn";
 function ScrollArea({
   className,
   viewportClassName,
+  scrollbarClassName,
+  scrollbars = "vertical",
   children,
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
   /** 给滚动视口单独加类（例如限高触发滚动） */
   viewportClassName?: string;
+  /** 滚动条额外类 */
+  scrollbarClassName?: string;
+  /** 显示哪些滚动条 */
+  scrollbars?: "vertical" | "horizontal" | "both";
 }) {
   return (
     <ScrollAreaPrimitive.Root
@@ -26,7 +32,12 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
+      {scrollbars === "vertical" || scrollbars === "both" ? (
+        <ScrollBar className={scrollbarClassName} />
+      ) : null}
+      {scrollbars === "horizontal" || scrollbars === "both" ? (
+        <ScrollBar orientation="horizontal" />
+      ) : null}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   );
@@ -43,7 +54,8 @@ function ScrollBar({
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent",
+        // 上下 inset 读继承的 --scroll-corner-inset（弹层圆角变量）；未设置则为 0
+        "flex touch-none p-px transition-colors select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent data-vertical:py-[var(--scroll-corner-inset,0px)]",
         className,
       )}
       {...props}

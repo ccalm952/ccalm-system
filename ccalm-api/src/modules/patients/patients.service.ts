@@ -253,8 +253,10 @@ export class PatientsService {
     });
     return [...new Set(users.map((u) => u.displayName.trim()).filter(Boolean))];
   }
+  /** 配台护士下拉：仅「可配台」角色人员 */
   async staff() {
     const users = await this.prisma.user.findMany({
+      where: { roles: { some: { assistable: true } } },
       select: { displayName: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });

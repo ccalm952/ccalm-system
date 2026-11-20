@@ -72,12 +72,13 @@ export class PatientsController {
     return this.patients.removeTag(id);
   }
 
-  /** 病历、收费里医生/助理/护士的下拉选项 */
+  /** 可预约人员（医生下拉） */
   @Get("doctors")
   doctors() {
     return this.patients.doctors();
   }
 
+  /** 可配台人员（配台护士下拉） */
   @Get("staff")
   staff() {
     return this.patients.staff();
