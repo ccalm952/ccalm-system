@@ -53,6 +53,18 @@ export function isTeethSubsetOfGroup(
     .every((t) => group.has(t));
 }
 
+/** 报价数量默认取牙位颗数（半角逗号分隔的两位 FDI），否则 1 */
+export function defaultPlanQuantity(teeth: string): number {
+  const s = teeth.trim();
+  if (!s) return 1;
+  const parts = s
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (!parts.length || !parts.every((p) => /^\d{2}$/.test(p))) return 1;
+  return new Set(parts).size;
+}
+
 export const MEDICAL_RECORD_TEXT_FIELDS = [
   "chiefComplaint",
   "presentIllness",
@@ -152,6 +164,11 @@ function normalizePlanLine(
   if (!isTeethSubsetOfGroup(teeth, groupTeeth)) return null;
   const unitPrice =
     typeof e?.unitPrice === "number" && e.unitPrice >= 0 ? e.unitPrice : null;
+  const qtyTeeth = teeth || groupTeeth;
+  const quantity =
+    Number.isInteger(e?.quantity) && (e.quantity as number) > 0
+      ? (e.quantity as number)
+      : null;
   return {
     id: Number.isInteger(e?.id) ? (e.id as number) : null,
     feeItemId,
@@ -159,13 +176,13 @@ function normalizePlanLine(
     teeth,
     unitPrice,
     quantity:
-      Number.isInteger(e?.quantity) && (e.quantity as number) > 0
-        ? (e.quantity as number)
-        : null,
+      unitPrice == null ? null : (quantity ?? defaultPlanQuantity(qtyTeeth)),
     discountNote:
-      typeof e?.discountNote === "string"
-        ? toFullWidthComma(e.discountNote.trim())
-        : "",
+      unitPrice == null
+        ? ""
+        : typeof e?.discountNote === "string"
+          ? toFullWidthComma(e.discountNote.trim())
+          : "",
   };
 }
 

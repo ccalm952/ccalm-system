@@ -96,6 +96,30 @@ describe("normalizePlanItems", () => {
     ]);
   });
 
+  it("有单价未填数量时按牙位颗数补齐", () => {
+    expect(
+      normalizePlanItems([
+        {
+          teeth: "17,18,26",
+          lines: [
+            {
+              feeItemId: 1,
+              name: "修复",
+              teeth: "",
+              unitPrice: 400,
+            },
+            {
+              feeItemId: 2,
+              name: "拔除",
+              teeth: "17",
+              unitPrice: 300,
+            },
+          ],
+        },
+      ])[0].lines.map((l) => l.quantity),
+    ).toEqual([3, 1]);
+  });
+
   it("保留合法报价，丢掉负价、组外牙位明细", () => {
     expect(
       normalizePlanItems([

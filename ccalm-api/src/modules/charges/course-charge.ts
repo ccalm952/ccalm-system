@@ -1,3 +1,4 @@
+import { defaultPlanQuantity } from "../medical-records/record-rules";
 import { chargeItemAmount, roundMoney, sumMoney } from "./charge-calc";
 
 export type CoursePlanLine = {
@@ -40,12 +41,15 @@ export function courseChargeItems(groups: CoursePlanGroup[]) {
       const name = line.name.trim();
       if (!name) continue;
       const unitPrice = roundMoney(line.unitPrice);
+      const teeth = (line.teeth.trim() || groupTeeth).trim();
       const quantity =
-        line.quantity != null && line.quantity > 0 ? line.quantity : 1;
+        line.quantity != null && line.quantity > 0
+          ? line.quantity
+          : defaultPlanQuantity(teeth);
       items.push({
         feeItemId: line.feeItemId,
         name,
-        teeth: (line.teeth.trim() || groupTeeth).trim(),
+        teeth,
         unitPrice,
         quantity,
         amount: chargeItemAmount(unitPrice, quantity),

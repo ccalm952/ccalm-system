@@ -50,11 +50,11 @@ describe("courseChargeItems", () => {
     });
   });
 
-  it("未填数量时按 1 计，未报价的明细不计入并计数", () => {
+  it("未填数量时按牙位颗数，无合法牙位为 1；未报价明细不计入并计数", () => {
     expect(
       courseChargeItems([
         {
-          teeth: "7",
+          teeth: "14,15,17",
           lines: [
             {
               feeItemId: 3,
@@ -66,6 +66,13 @@ describe("courseChargeItems", () => {
             {
               feeItemId: 4,
               name: "拔除",
+              teeth: "17",
+              unitPrice: 300,
+              quantity: null,
+            },
+            {
+              feeItemId: 5,
+              name: "洁牙",
               teeth: "",
               unitPrice: null,
               quantity: null,
@@ -78,14 +85,22 @@ describe("courseChargeItems", () => {
         {
           feeItemId: 3,
           name: "根管治疗",
-          teeth: "7",
+          teeth: "14,15,17",
           unitPrice: 800,
+          quantity: 3,
+          amount: 2400,
+        },
+        {
+          feeItemId: 4,
+          name: "拔除",
+          teeth: "17",
+          unitPrice: 300,
           quantity: 1,
-          amount: 800,
+          amount: 300,
         },
       ],
       unquotedCount: 1,
-      receivable: 800,
+      receivable: 2700,
     });
   });
 
