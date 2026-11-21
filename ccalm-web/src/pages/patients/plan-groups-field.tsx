@@ -4,12 +4,7 @@ import { Plus, X } from "lucide-react";
 import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "cn";
 import type { FeeItem } from "@/lib/fee-catalog/types";
 import {
