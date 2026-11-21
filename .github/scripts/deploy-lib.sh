@@ -188,8 +188,6 @@ cd ${DEPLOY_PROJECT_DIR}
 export PATH=\"/root/.local/share/pnpm/bin:\$PATH\"
 cd ccalm-api
 pnpm exec prisma generate
-# #251 迁移曾因 UTF-8 BOM 失败；先标记回滚再重新 apply（已成功时 resolve 会失败并忽略）
-pnpm exec prisma migrate resolve --rolled-back 20261122023000_fix_zero_duration_appointment_end || true
 pnpm exec prisma migrate deploy
 rm -rf dist
 pnpm run build
