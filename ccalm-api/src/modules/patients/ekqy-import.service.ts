@@ -166,6 +166,48 @@ export class EkqyImportService {
       await tx.chargeOrder.deleteMany({ where: { patientId: target.id } });
       await tx.medicalRecord.deleteMany({ where: { patientId: target.id } });
 
+      async function ensureAppointmentForVisit(visit: {
+        id: number;
+        visitDate: string;
+        startTime: string;
+        endTime: string;
+        kind: string;
+        doctor: string;
+      }) {
+        const existing = await tx.appointment.findUnique({
+          where: { visitId: visit.id },
+        });
+        if (existing) {
+          await tx.appointment.update({
+            where: { id: existing.id },
+            data: {
+              status: "completed",
+              doctor: visit.doctor || existing.doctor,
+              startTime: visit.startTime || existing.startTime,
+              endTime: visit.endTime || existing.endTime,
+              kind: visit.kind,
+              completedAt: new Date(),
+            },
+          });
+          return;
+        }
+        await tx.appointment.create({
+          data: {
+            patientId: target!.id,
+            visitId: visit.id,
+            visitDate: visit.visitDate,
+            startTime: visit.startTime,
+            endTime: visit.endTime,
+            kind: visit.kind,
+            status: "completed",
+            doctor: visit.doctor,
+            remark: "从e看牙导入",
+            source: "record",
+            completedAt: new Date(),
+          },
+        });
+      }
+
       async function ensureVisit(full: EkqyFullRecord, isFirst: boolean) {
         const { date, time } = visitInfo(full, summaryById);
         const doctor = full.doctorName || "";
@@ -189,9 +231,10 @@ export class EkqyImportService {
           date,
           time,
         );
+        let visit;
         if (reusable) {
           const slot = dayVisits.find((v) => v.id === reusable.id)!;
-          return tx.patientVisit.update({
+          visit = await tx.patientVisit.update({
             where: { id: slot.id },
             data: {
               kind,
@@ -201,22 +244,27 @@ export class EkqyImportService {
               startTime: slot.startTime || time,
               endTime: slot.endTime || time || slot.startTime || time,
               source: slot.source === "manual" ? slot.source : "record",
+              completedAt: new Date(),
+            },
+          });
+        } else {
+          visit = await tx.patientVisit.create({
+            data: {
+              patientId: target!.id,
+              visitDate: date,
+              startTime: time,
+              endTime: time,
+              kind,
+              status: "completed",
+              doctor,
+              source: "record",
+              remark: "从e看牙导入",
+              completedAt: new Date(),
             },
           });
         }
-        return tx.patientVisit.create({
-          data: {
-            patientId: target!.id,
-            visitDate: date,
-            startTime: time,
-            endTime: time,
-            kind,
-            status: "completed",
-            doctor,
-            source: "record",
-            remark: "从e看牙导入",
-          },
-        });
+        await ensureAppointmentForVisit(visit);
+        return visit;
       }
 
       const createdRecords: {
