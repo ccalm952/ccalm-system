@@ -1,4 +1,4 @@
-﻿-- 导入/回填曾把 endTime 写成与 startTime 相同，看板 assignLanes 会丢掉零时长卡片
+-- 导入/回填曾把 endTime 写成与 startTime 相同，看板 assignLanes 会丢掉零时长卡片
 UPDATE "PatientVisit"
 SET "endTime" = to_char(
   (date '2000-01-01' + "startTime"::time + interval '30 minutes')::time,
