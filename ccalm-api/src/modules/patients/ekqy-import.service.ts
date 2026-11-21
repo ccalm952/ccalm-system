@@ -7,6 +7,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 
 import type { EkqyImportDto } from "./dto/ekqy-import.dto";
+import { fromMinutes, toMinutes } from "../appointments/appointment-options";
 import {
   buildPlanFollowUps,
   clean,
@@ -22,6 +23,24 @@ import {
   teeth,
   visitInfo,
 } from "./ekqy-import";
+
+/** 与写病历建预约一致：有开始时间则默认 30 分钟时长 */
+function defaultEndTime(startTime: string): string {
+  if (!startTime) return "";
+  return fromMinutes(toMinutes(startTime) + 30);
+}
+
+function resolveEndTime(startTime: string, endTime: string): string {
+  if (!startTime) return endTime || "";
+  if (
+    !endTime ||
+    endTime === startTime ||
+    toMinutes(endTime) <= toMinutes(startTime)
+  ) {
+    return defaultEndTime(startTime);
+  }
+  return endTime;
+}
 
 type ImportResult = {
   dryRun: boolean;
@@ -234,15 +253,16 @@ export class EkqyImportService {
         let visit;
         if (reusable) {
           const slot = dayVisits.find((v) => v.id === reusable.id)!;
+          const startTime = slot.startTime || time;
           visit = await tx.patientVisit.update({
             where: { id: slot.id },
             data: {
               kind,
               status: "completed",
               doctor: doctor || slot.doctor,
-              // 预约待写已有时段时保留，只补空的开始/结束时间
-              startTime: slot.startTime || time,
-              endTime: slot.endTime || time || slot.startTime || time,
+              // 预约待写已有时段时保留；结束时间缺失或零时长时补默认 30 分钟
+              startTime,
+              endTime: resolveEndTime(startTime, slot.endTime || ""),
               source: slot.source === "manual" ? slot.source : "record",
               completedAt: new Date(),
             },
@@ -253,7 +273,7 @@ export class EkqyImportService {
               patientId: target!.id,
               visitDate: date,
               startTime: time,
-              endTime: time,
+              endTime: defaultEndTime(time),
               kind,
               status: "completed",
               doctor,
