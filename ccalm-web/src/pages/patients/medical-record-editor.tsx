@@ -19,8 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "cn";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errorMessage";
+import type { FeeCategory } from "@/lib/fee-catalog/types";
 import {
   cleanPlanItems,
   cleanToothEntries,
@@ -35,15 +37,19 @@ import {
   type PlanItem,
   type ToothEntry,
 } from "@/lib/medical-records/record-types";
-import { visitKindLabel, visitTimeRange } from "@/lib/visits/visit-options";
-import { pickPendingVisitId } from "@/lib/visits/pending-visit";
+import { formatStaffNames } from "@/lib/staff-names";
 import { useAuth } from "@/lib/use-auth";
+import { pickPendingVisitId } from "@/lib/visits/pending-visit";
+import { visitKindLabel, visitTimeRange } from "@/lib/visits/visit-options";
+import { FeeCatalogPanel } from "./fee-catalog-panel";
 import type { MedicalRecord, PatientVisit } from "./patient-detail-types";
 import { PhraseTextarea } from "./phrase-textarea";
-import { PlanGroupsField } from "./plan-groups-field";
+import {
+  PlanGroupsField,
+  type PlanGroupsFieldHandle,
+} from "./plan-groups-field";
 import { PlanQuoteView } from "./plan-quote";
 import { RootCanalField } from "./root-canal-field";
-import { formatStaffNames } from "@/lib/staff-names";
 import { StaffCombobox } from "./staff-combobox";
 import { ToothEntriesField, ToothEntriesView } from "./tooth-entries-field";
 
@@ -151,11 +157,22 @@ export function MedicalRecordEditor({
     toForm(record, plan, visits, me?.displayName ?? "", initialVisitId),
   );
   const [saving, setSaving] = React.useState(false);
+  const [feeCategories, setFeeCategories] = React.useState<FeeCategory[]>([]);
+  const planGroupsRef = React.useRef<PlanGroupsFieldHandle>(null);
 
   const isReturn = plan != null || record?.type === "return";
   const typeOptions = MEDICAL_RECORD_TYPE_OPTIONS.filter((opt) =>
     isReturn ? opt.value === "return" : opt.value !== "return",
   );
+  const showFeeCatalog =
+    MEDICAL_RECORD_FIELDS[form.type].includes("treatmentPlan");
+
+  React.useEffect(() => {
+    if (!showFeeCatalog) return;
+    api<FeeCategory[]>("GET", "/fee-catalog")
+      .then(setFeeCategories)
+      .catch((e: unknown) => toast.error(errorMessage(e)));
+  }, [showFeeCatalog]);
 
   /** 关联了已有就诊时，日期时间以该就诊为准 */
   const linkedVisit = visits.find((v) => String(v.id) === form.visitLink);
@@ -289,253 +306,274 @@ export function MedicalRecordEditor({
   }
 
   return (
-    <Card className="min-h-0 flex-1">
-      <CardHeader className="flex flex-col gap-4">
-        <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={onCancel}
-            >
-              <ChevronLeft />
-            </Button>
-            <CardTitle>{record ? "编辑病历" : "新建病历"}</CardTitle>
-          </div>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onCancel}>
-              取消
-            </Button>
-            <Button type="button" disabled={saving} onClick={() => void save()}>
-              保存
-            </Button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {typeOptions.map((opt) => (
-            <Button
-              key={opt.value}
-              type="button"
-              variant={form.type === opt.value ? "default" : "outline"}
-              onClick={() => set("type", opt.value)}
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
-      </CardHeader>
-      <ScrollArea className="min-h-0 flex-1">
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <Field>
-              <FieldLabel>
-                医生
-                <span className="text-destructive">*</span>
-              </FieldLabel>
-              <StaffCombobox
-                pool="doctors"
-                value={form.doctor}
-                onValueChange={(v) => set("doctor", v)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>配台</FieldLabel>
-              <StaffCombobox
-                pool="assistants"
-                value={form.nurse}
-                onValueChange={(v) => set("nurse", v)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>就诊日期</FieldLabel>
-              <DatePickerField
-                className="h-8 justify-between rounded-2xl border-transparent bg-input/50 px-2.5 font-normal hover:bg-input/50 aria-expanded:bg-input/50 dark:bg-input/50 dark:hover:bg-input/50"
-                value={form.visitDate}
-                onValueChange={(v) => set("visitDate", v)}
-                disabled={visitLocked}
-                hideIcon
-                showChevron
-              />
-            </Field>
-            <Field>
-              <FieldLabel>就诊时间</FieldLabel>
-              <Input
-                type="time"
-                aria-label="就诊时间"
-                className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                value={form.visitTime}
-                onChange={(e) => set("visitTime", e.target.value)}
-                disabled={visitLocked}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>关联就诊</FieldLabel>
-              <Select
-                items={visitItems}
-                value={form.visitLink}
-                onValueChange={(v: string | null) => {
-                  if (!v) return;
-                  const visit = visits.find((x) => String(x.id) === v);
-                  setForm((f) => ({
-                    ...f,
-                    visitLink: v,
-                    doctor: f.doctor || visit?.doctor || "",
-                  }));
-                }}
+    <div
+      className={cn(
+        "grid min-h-0 flex-1 gap-4",
+        showFeeCatalog && "lg:grid-cols-[18rem_minmax(0,1fr)]",
+      )}
+    >
+      {showFeeCatalog ? (
+        <FeeCatalogPanel
+          fillHeight
+          categories={feeCategories}
+          onPick={(fee) => planGroupsRef.current?.addFee(fee)}
+        />
+      ) : null}
+      <Card className="flex min-h-0 flex-1 flex-col">
+        <CardHeader className="flex shrink-0 flex-col gap-4">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={onCancel}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {visitItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {visitLocked ? (
-                <FieldDescription>
-                  已关联就诊，日期时间以该就诊为准
-                </FieldDescription>
-              ) : null}
-            </Field>
+                <ChevronLeft />
+              </Button>
+              <CardTitle>{record ? "编辑病历" : "新建病历"}</CardTitle>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={onCancel}>
+                取消
+              </Button>
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                保存
+              </Button>
+            </div>
           </div>
-
-          {plan ? (
-            <Field>
-              <FieldLabel>治疗计划</FieldLabel>
-              <ToothEntriesView
-                entries={plan.items}
-                hideText
-                renderDetail={(index) => (
-                  <PlanQuoteView item={plan.items[index]} />
-                )}
-                renderExtra={(index) => {
-                  const item = plan.items[index];
-                  if (item.id == null) return null;
-                  const id = item.id;
-                  const link = form.planLinks.find((l) => l.planItemId === id);
-                  const doneHere = record?.planLinks.some(
-                    (l) => l.planItemId === id && l.completes,
-                  );
-                  if (item.doneDate && !doneHere) {
-                    return (
-                      <Badge variant="secondary" className="h-auto text-sm">
-                        已完成 {item.doneDate}
-                      </Badge>
-                    );
-                  }
-                  return (
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <Checkbox
-                          checked={link != null}
-                          onCheckedChange={(checked) =>
-                            setLink(id, checked, false)
-                          }
-                        />
-                        本次处理
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <Checkbox
-                          checked={link?.completes ?? false}
-                          disabled={link == null}
-                          onCheckedChange={(checked) =>
-                            setLink(id, true, checked)
-                          }
-                        />
-                        本行已完成
-                      </label>
-                    </div>
-                  );
-                }}
-              />
-            </Field>
-          ) : null}
-
-          {MEDICAL_RECORD_FIELDS[form.type].map((field) => (
-            <Field key={field}>
-              <FieldLabel>
-                {MEDICAL_RECORD_FIELD_LABELS[field]}
-                {field === "treatment" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {typeOptions.map((opt) => (
+              <Button
+                key={opt.value}
+                type="button"
+                variant={form.type === opt.value ? "default" : "outline"}
+                onClick={() => set("type", opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </CardHeader>
+        <ScrollArea className="min-h-0 flex-1">
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <Field>
+                <FieldLabel>
+                  医生
                   <span className="text-destructive">*</span>
+                </FieldLabel>
+                <StaffCombobox
+                  pool="doctors"
+                  value={form.doctor}
+                  onValueChange={(v) => set("doctor", v)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>配台</FieldLabel>
+                <StaffCombobox
+                  pool="assistants"
+                  value={form.nurse}
+                  onValueChange={(v) => set("nurse", v)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>就诊日期</FieldLabel>
+                <DatePickerField
+                  className="h-8 justify-between rounded-2xl border-transparent bg-input/50 px-2.5 font-normal hover:bg-input/50 aria-expanded:bg-input/50 dark:bg-input/50 dark:hover:bg-input/50"
+                  value={form.visitDate}
+                  onValueChange={(v) => set("visitDate", v)}
+                  disabled={visitLocked}
+                  hideIcon
+                  showChevron
+                />
+              </Field>
+              <Field>
+                <FieldLabel>就诊时间</FieldLabel>
+                <Input
+                  type="time"
+                  aria-label="就诊时间"
+                  className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  value={form.visitTime}
+                  onChange={(e) => set("visitTime", e.target.value)}
+                  disabled={visitLocked}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>关联就诊</FieldLabel>
+                <Select
+                  items={visitItems}
+                  value={form.visitLink}
+                  onValueChange={(v: string | null) => {
+                    if (!v) return;
+                    const visit = visits.find((x) => String(x.id) === v);
+                    setForm((f) => ({
+                      ...f,
+                      visitLink: v,
+                      doctor: f.doctor || visit?.doctor || "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {visitItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                {visitLocked ? (
+                  <FieldDescription>
+                    已关联就诊，日期时间以该就诊为准
+                  </FieldDescription>
                 ) : null}
-              </FieldLabel>
-              {field === "treatmentPlan" ? (
-                <PlanGroupsField
-                  value={form.treatmentPlan}
-                  onValueChange={(v) => set("treatmentPlan", v)}
-                  renderGroupExtra={
-                    form.type === "first" || form.type === "orthoFirst"
-                      ? (item, index) => (
-                          <div className="flex items-center gap-4 text-sm">
-                            <label className="flex items-center gap-2">
-                              <Checkbox
-                                checked={linkFor(item, index) != null}
-                                onCheckedChange={(checked) =>
-                                  setRowLink(
-                                    item,
-                                    index,
-                                    checked === true,
-                                    false,
-                                  )
-                                }
-                              />
-                              本次处理
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <Checkbox
-                                checked={
-                                  linkFor(item, index)?.completes ?? false
-                                }
-                                onCheckedChange={(checked) =>
-                                  setRowLink(
-                                    item,
-                                    index,
-                                    true,
-                                    checked === true,
-                                  )
-                                }
-                              />
-                              本行已完成
-                            </label>
-                          </div>
-                        )
-                      : undefined
-                  }
-                />
-              ) : isEntryField(field) ? (
-                <ToothEntriesField
-                  value={form[field]}
-                  onValueChange={(v) => set(field, v)}
-                  phraseField={field}
-                  renderDetail={
-                    field === "treatment"
-                      ? (entry, update) => (
-                          <RootCanalField
-                            teeth={entry.teeth}
-                            text={entry.text}
-                            onChange={(next) => update({ text: next })}
+              </Field>
+            </div>
+
+            {plan ? (
+              <Field>
+                <FieldLabel>治疗计划</FieldLabel>
+                <ToothEntriesView
+                  entries={plan.items}
+                  hideText
+                  renderDetail={(index) => (
+                    <PlanQuoteView item={plan.items[index]} />
+                  )}
+                  renderExtra={(index) => {
+                    const item = plan.items[index];
+                    if (item.id == null) return null;
+                    const id = item.id;
+                    const link = form.planLinks.find(
+                      (l) => l.planItemId === id,
+                    );
+                    const doneHere = record?.planLinks.some(
+                      (l) => l.planItemId === id && l.completes,
+                    );
+                    if (item.doneDate && !doneHere) {
+                      return (
+                        <Badge variant="secondary" className="h-auto text-sm">
+                          已完成 {item.doneDate}
+                        </Badge>
+                      );
+                    }
+                    return (
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={link != null}
+                            onCheckedChange={(checked) =>
+                              setLink(id, checked, false)
+                            }
                           />
-                        )
-                      : undefined
-                  }
+                          本次处理
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={link?.completes ?? false}
+                            disabled={link == null}
+                            onCheckedChange={(checked) =>
+                              setLink(id, true, checked)
+                            }
+                          />
+                          本行已完成
+                        </label>
+                      </div>
+                    );
+                  }}
                 />
-              ) : (
-                <PhraseTextarea
-                  field={field}
-                  value={form[field]}
-                  onChange={(next) => set(field, next)}
-                />
-              )}
-            </Field>
-          ))}
-        </CardContent>
-      </ScrollArea>
-    </Card>
+              </Field>
+            ) : null}
+
+            {MEDICAL_RECORD_FIELDS[form.type].map((field) => (
+              <Field key={field}>
+                <FieldLabel>
+                  {MEDICAL_RECORD_FIELD_LABELS[field]}
+                  {field === "treatment" ? (
+                    <span className="text-destructive">*</span>
+                  ) : null}
+                </FieldLabel>
+                {field === "treatmentPlan" ? (
+                  <PlanGroupsField
+                    ref={planGroupsRef}
+                    value={form.treatmentPlan}
+                    onValueChange={(v) => set("treatmentPlan", v)}
+                    renderGroupExtra={
+                      form.type === "first" || form.type === "orthoFirst"
+                        ? (item, index) => (
+                            <div className="flex items-center gap-4 text-sm">
+                              <label className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={linkFor(item, index) != null}
+                                  onCheckedChange={(checked) =>
+                                    setRowLink(
+                                      item,
+                                      index,
+                                      checked === true,
+                                      false,
+                                    )
+                                  }
+                                />
+                                本次处理
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={
+                                    linkFor(item, index)?.completes ?? false
+                                  }
+                                  onCheckedChange={(checked) =>
+                                    setRowLink(
+                                      item,
+                                      index,
+                                      true,
+                                      checked === true,
+                                    )
+                                  }
+                                />
+                                本行已完成
+                              </label>
+                            </div>
+                          )
+                        : undefined
+                    }
+                  />
+                ) : isEntryField(field) ? (
+                  <ToothEntriesField
+                    value={form[field]}
+                    onValueChange={(v) => set(field, v)}
+                    phraseField={field}
+                    renderDetail={
+                      field === "treatment"
+                        ? (entry, update) => (
+                            <RootCanalField
+                              teeth={entry.teeth}
+                              text={entry.text}
+                              onChange={(next) => update({ text: next })}
+                            />
+                          )
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <PhraseTextarea
+                    field={field}
+                    value={form[field]}
+                    onChange={(next) => set(field, next)}
+                  />
+                )}
+              </Field>
+            ))}
+          </CardContent>
+        </ScrollArea>
+      </Card>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import { ToothPositionField } from "@/components/tooth-chart/tooth-chart";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/charges/charge-calc";
 import {
@@ -29,7 +30,7 @@ export function PlanLineQuoteInputs({
     defaultPlanQuantity(line.teeth.trim() || groupTeeth),
   );
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
       <Input
         type="number"
         min={0}
@@ -73,6 +74,14 @@ export function PlanQuoteView({ item }: { item: PlanItem }) {
             key={line.id ?? i}
             className="flex flex-wrap items-center gap-3 tabular-nums"
           >
+            {line.teeth.trim() ? (
+              <ToothPositionField
+                plain
+                readOnly
+                value={line.teeth}
+                onValueChange={() => {}}
+              />
+            ) : null}
             <span className="text-foreground">{line.name}</span>
             {lineAmount == null ? (
               <span>未报价</span>

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "cn";
 import { formatMoney } from "@/lib/charges/charge-calc";
 import type { FeeCategory, FeeItem } from "@/lib/fee-catalog/types";
 
@@ -26,11 +27,16 @@ export function FeeCatalogPanel({
   categories,
   onPick,
   embedded,
+  /** 与右侧卡片同列等高铺满，不用视口 sticky 高度 */
+  fillHeight,
+  className,
 }: {
   categories: FeeCategory[];
   onPick: (item: FeeItem) => void;
   /** 嵌在计划组等局部区域，不用整页 sticky 高度 */
   embedded?: boolean;
+  fillHeight?: boolean;
+  className?: string;
 }) {
   const [filter, setFilter] = React.useState(ALL);
   const filterItems = [
@@ -44,14 +50,18 @@ export function FeeCatalogPanel({
 
   return (
     <Card
-      className={
+      className={cn(
+        "flex min-h-0 flex-col",
         embedded
           ? "h-full border-0 shadow-none"
-          : "lg:sticky lg:top-20 lg:h-[calc(100svh-6.5rem)]"
-      }
+          : fillHeight
+            ? "h-full"
+            : "lg:sticky lg:top-20 lg:h-[calc(100svh-6.5rem)]",
+        className,
+      )}
     >
       {embedded ? null : (
-        <CardHeader>
+        <CardHeader className="shrink-0">
           <CardTitle>收费项目</CardTitle>
         </CardHeader>
       )}
