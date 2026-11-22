@@ -74,14 +74,16 @@ export function PlanQuoteView({ item }: { item: PlanItem }) {
             key={line.id ?? i}
             className="flex flex-wrap items-center gap-3 tabular-nums"
           >
-            {line.teeth.trim() ? (
-              <ToothPositionField
-                plain
-                readOnly
-                value={line.teeth}
-                onValueChange={() => {}}
-              />
-            ) : null}
+            <span className="flex w-40 shrink-0 items-center justify-center">
+              {line.teeth.trim() ? (
+                <ToothPositionField
+                  plain
+                  readOnly
+                  value={line.teeth}
+                  onValueChange={() => {}}
+                />
+              ) : null}
+            </span>
             <span className="text-foreground">{line.name}</span>
             {lineAmount == null ? (
               <span>未报价</span>

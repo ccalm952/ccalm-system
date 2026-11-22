@@ -37,9 +37,11 @@ import type {
   ChargesResponse,
   CourseChargeResult,
   MedicalRecord,
+  PatientDetail,
   PatientVisit,
 } from "./patient-detail-types";
 import { formatStaffNames } from "@/lib/staff-names";
+import { printInitialMedicalRecord } from "./print-initial-medical-record";
 import { PlanQuoteView } from "./plan-quote";
 import { ToothEntriesView } from "./tooth-entries-field";
 
@@ -433,11 +435,13 @@ function planProgress(record: MedicalRecord): string | null {
 
 export function PatientRecordsTab({
   patientId,
+  patient,
   focusRecordId,
   focusVisitId = null,
   onEditingChange,
 }: {
   patientId: number;
+  patient: Pick<PatientDetail, "name" | "gender" | "birthday" | "chartNo">;
   focusRecordId: number | null;
   /** 从工作台「待写病历」进来时，直接为这次就诊新建病历 */
   focusVisitId?: number | null;
@@ -613,8 +617,8 @@ export function PatientRecordsTab({
 
   const followUps = new Map<number, MedicalRecord[]>();
   for (const r of [...records].sort((a, b) =>
-    `${a.visitDate} ${a.visitTime}`.localeCompare(
-      `${b.visitDate} ${b.visitTime}`,
+    `${b.visitDate} ${b.visitTime}`.localeCompare(
+      `${a.visitDate} ${a.visitTime}`,
     ),
   )) {
     // 初诊自己的计划行关联不算复诊记录
@@ -807,6 +811,27 @@ export function PatientRecordsTab({
                             onClick={() => void setPlanStopped(record, false)}
                           >
                             恢复治疗
+                          </Button>
+                        ) : null}
+                        {isFirstType(record) ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() =>
+                              printInitialMedicalRecord(
+                                patient,
+                                record,
+                                courseOrder && courseOrder.status !== "void"
+                                  ? {
+                                      receivable: courseOrder.receivable,
+                                      paid: courseOrder.paid,
+                                      owed: courseOrder.owed,
+                                    }
+                                  : null,
+                              )
+                            }
+                          >
+                            打印
                           </Button>
                         ) : null}
                         <Button
