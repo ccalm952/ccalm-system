@@ -155,6 +155,7 @@ export function PatientDetailPage() {
             {tab === "records" ? (
               <PatientRecordsTab
                 patientId={patient.id}
+                patient={patient}
                 focusRecordId={focusRecord > 0 ? focusRecord : null}
                 focusVisitId={focusVisit > 0 ? focusVisit : null}
                 onEditingChange={setEditingRecord}
