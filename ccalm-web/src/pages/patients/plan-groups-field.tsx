@@ -189,7 +189,7 @@ export const PlanGroupsField = React.forwardRef<
                           key={line.id ?? `line-${lineIndex}`}
                           className="h-10 border-b-0"
                         >
-                          <TableCell className="h-10 w-40 max-h-10 overflow-hidden py-0 align-middle">
+                          <TableCell className="h-10 max-h-10 w-40 overflow-hidden py-0 align-middle">
                             <ToothPositionField
                               plain
                               className="h-10 min-h-10 w-full justify-center py-0"

@@ -41,7 +41,7 @@ import type {
   PatientVisit,
 } from "./patient-detail-types";
 import { formatStaffNames } from "@/lib/staff-names";
-import { printInitialMedicalRecord } from "./medical-record-print";
+import { printInitialMedicalRecord } from "./print-initial-medical-record";
 import { PlanQuoteView } from "./plan-quote";
 import { ToothEntriesView } from "./tooth-entries-field";
 

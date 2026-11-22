@@ -1,6 +1,4 @@
 import * as React from "react";
-import { createRoot, type Root } from "react-dom/client";
-import dayjs from "dayjs";
 
 import { CLINIC_PRINT } from "@/lib/clinic-print";
 import { formatMoney } from "@/lib/charges/charge-calc";
@@ -27,7 +25,7 @@ export type PrintCourseCharge = {
   owed: number;
 };
 
-const PRINT_STYLE = `
+export const MEDICAL_RECORD_PRINT_STYLE = `
   @page { size: A4; margin: 16mm 14mm; }
   * {
     box-sizing: border-box;
@@ -123,6 +121,30 @@ function PrintField({
   );
 }
 
+function fieldContent(
+  field: MedicalRecordField,
+  record: MedicalRecord,
+): React.ReactNode {
+  if (field === "treatmentPlan") {
+    return record.treatmentPlan.length ? (
+      <ToothEntriesView
+        entries={record.treatmentPlan}
+        hideText
+        renderDetail={(index) => (
+          <PlanQuoteView item={record.treatmentPlan[index]} />
+        )}
+      />
+    ) : (
+      "\u00a0"
+    );
+  }
+  if (isEntryField(field)) {
+    const entries = record[field];
+    return entries.length ? <ToothEntriesView entries={entries} /> : "\u00a0";
+  }
+  return record[field] || "\u00a0";
+}
+
 export function MedicalRecordPrintView({
   patient,
   record,
@@ -152,36 +174,11 @@ export function MedicalRecordPrintView({
       </div>
       <hr className="mr-print-rule" />
 
-      {fields.map((field) => {
-        let content: React.ReactNode = "\u00a0";
-        if (field === "treatmentPlan") {
-          content = record.treatmentPlan.length ? (
-            <ToothEntriesView
-              entries={record.treatmentPlan}
-              hideText
-              renderDetail={(index) => (
-                <PlanQuoteView item={record.treatmentPlan[index]} />
-              )}
-            />
-          ) : (
-            "\u00a0"
-          );
-        } else if (isEntryField(field)) {
-          const entries = record[field];
-          content = entries.length ? (
-            <ToothEntriesView entries={entries} />
-          ) : (
-            "\u00a0"
-          );
-        } else {
-          content = record[field] || "\u00a0";
-        }
-        return (
-          <PrintField key={field} label={MEDICAL_RECORD_FIELD_LABELS[field]}>
-            {content}
-          </PrintField>
-        );
-      })}
+      {fields.map((field) => (
+        <PrintField key={field} label={MEDICAL_RECORD_FIELD_LABELS[field]}>
+          {fieldContent(field, record)}
+        </PrintField>
+      ))}
 
       {courseCharge ? (
         <div className="mr-print-charge">
@@ -208,81 +205,4 @@ export function MedicalRecordPrintView({
       </div>
     </div>
   );
-}
-
-function copyStyles(targetDoc: Document) {
-  for (const node of document.querySelectorAll(
-    'link[rel="stylesheet"], style',
-  )) {
-    targetDoc.head.appendChild(node.cloneNode(true));
-  }
-  const style = targetDoc.createElement("style");
-  style.textContent = PRINT_STYLE;
-  targetDoc.head.appendChild(style);
-}
-
-/** 在隐藏 iframe 中挂载初诊打印视图并调起浏览器打印 */
-export function printInitialMedicalRecord(
-  patient: PrintPatient,
-  record: MedicalRecord,
-  courseCharge: PrintCourseCharge | null = null,
-): void {
-  const printedAt = dayjs().format("YYYY-MM-DD HH:mm:ss");
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("title", "打印初诊病历");
-  // 离屏但保留真实纸宽，便于牙位十字测宽与横竖线渲染
-  iframe.style.cssText =
-    "position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none";
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentDocument;
-  const win = iframe.contentWindow;
-  if (!doc || !win) {
-    iframe.remove();
-    return;
-  }
-
-  doc.open();
-  doc.write(
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /></head><body><div id=\"root\"></div></body></html>",
-  );
-  doc.close();
-  copyStyles(doc);
-
-  const mount = doc.getElementById("root");
-  if (!mount) {
-    iframe.remove();
-    return;
-  }
-
-  let root: Root | null = createRoot(mount);
-  const cleanup = () => {
-    try {
-      root?.unmount();
-    } catch {
-      /* ignore */
-    }
-    root = null;
-    iframe.remove();
-  };
-
-  win.addEventListener("afterprint", cleanup);
-  root.render(
-    <MedicalRecordPrintView
-      patient={patient}
-      record={record}
-      printedAt={printedAt}
-      courseCharge={courseCharge}
-    />,
-  );
-
-  // 等样式、牙位测宽完成后再打
-  window.setTimeout(() => {
-    try {
-      win.focus();
-      win.print();
-    } catch {
-      cleanup();
-    }
-  }, 400);
 }
