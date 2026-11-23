@@ -198,9 +198,23 @@ pm2 save
 }
 
 deploy_remote_web() {
+  if [[ -n "${VITE_TENCENT_MAP_KEY:-}" ]]; then
+    echo "同步 ccalm-web/.env 中的 VITE_TENCENT_MAP_KEY"
+    # 在 runner 侧展开 Key，写入服务器（勿用单引号 heredoc，否则变量不会替换）
+    deploy_ssh "cat > ${DEPLOY_PROJECT_DIR}/ccalm-web/.env <<EOF
+VITE_API_BASE=/api
+VITE_TENCENT_MAP_KEY=${VITE_TENCENT_MAP_KEY}
+EOF"
+  else
+    echo "未提供 VITE_TENCENT_MAP_KEY，沿用服务器现有 ccalm-web/.env"
+  fi
   deploy_ssh "set -euo pipefail
 cd ${DEPLOY_PROJECT_DIR}
 export PATH=\"/root/.local/share/pnpm/bin:\$PATH\"
+# 清理旧高德变量，避免残留误导
+if [[ -f ccalm-web/.env ]]; then
+  sed -i '/^VITE_AMAP_/d' ccalm-web/.env
+fi
 pnpm --dir ccalm-web build
 test -f ccalm-web/dist/index.html
 rm -rf ${DEPLOY_WEB_ROOT}/*
