@@ -111,7 +111,7 @@ export const PlanGroupsField = React.forwardRef<
                   teeth: "",
                   unitPrice: fee.price,
                   quantity: null,
-                  discountNote: "",
+                  discountPercent: null,
                 },
               ],
             },

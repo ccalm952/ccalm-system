@@ -1,4 +1,4 @@
-import { chargeItemAmount, sumMoney } from "@/lib/charges/charge-calc";
+import { roundMoney, sumMoney } from "@/lib/charges/charge-calc";
 import { parseTeethStrict } from "@/lib/tooth-fdi";
 
 export type MedicalRecordType =
@@ -15,7 +15,8 @@ export type PlanLine = {
   teeth: string;
   unitPrice?: number | null;
   quantity?: number | null;
-  discountNote?: string;
+  /** 折扣率（%），空表示 100 */
+  discountPercent?: number | null;
 };
 
 /** 治疗计划组（完成/复诊单元）；text 为明细名拼接，便于只读展示 */
@@ -139,16 +140,75 @@ export function defaultPlanQuantity(teeth: string): number {
   return parseTeethStrict(teeth)?.length || 1;
 }
 
+export function planLineQuantity(line: PlanLine, groupTeeth: string): number {
+  const teeth = line.teeth.trim() || groupTeeth;
+  return line.quantity ?? defaultPlanQuantity(teeth);
+}
+
+/** 标价小计（优惠前） */
+export function planLineListAmount(
+  line: PlanLine,
+  groupTeeth: string,
+): number | null {
+  if (line.unitPrice == null) return null;
+  return roundMoney(line.unitPrice * planLineQuantity(line, groupTeeth));
+}
+
 export function planLineAmount(
   line: PlanLine,
   groupTeeth: string,
 ): number | null {
   if (line.unitPrice == null) return null;
-  const teeth = line.teeth.trim() || groupTeeth;
-  return chargeItemAmount(
-    line.unitPrice,
-    line.quantity ?? defaultPlanQuantity(teeth),
-  );
+  const quantity = planLineQuantity(line, groupTeeth);
+  const percent =
+    line.discountPercent != null && Number.isFinite(line.discountPercent)
+      ? line.discountPercent
+      : 100;
+  // 先算总价再四舍五入，保证「填金额 → 反算折扣 → 回算金额」能回到原值
+  return roundMoney((line.unitPrice * quantity * percent) / 100);
+}
+
+/** 折后单价（展示用）；无报价返回 null */
+export function planLineEffectiveUnitPrice(
+  line: PlanLine,
+  groupTeeth: string,
+): number | null {
+  const amount = planLineAmount(line, groupTeeth);
+  if (amount == null) return null;
+  const quantity = planLineQuantity(line, groupTeeth);
+  if (!(quantity > 0)) return null;
+  return roundMoney(amount / quantity);
+}
+
+export function planLineHasDiscount(
+  line: PlanLine,
+  groupTeeth: string,
+): boolean {
+  const list = planLineListAmount(line, groupTeeth);
+  const amount = planLineAmount(line, groupTeeth);
+  return list != null && amount != null && amount < list;
+}
+
+/** 由实收金额反算折扣率（%）；满额返回 null；超出标价按 100 */
+export function discountPercentFromAmount(
+  unitPrice: number,
+  quantity: number,
+  amount: number,
+): number | null {
+  if (
+    !(unitPrice >= 0) ||
+    !(quantity > 0) ||
+    !Number.isFinite(amount) ||
+    amount < 0
+  ) {
+    return null;
+  }
+  const list = unitPrice * quantity;
+  if (!(list > 0)) return amount === 0 ? 0 : null;
+  const percent = (amount / list) * 100;
+  if (percent >= 100) return null;
+  if (percent <= 0) return 0;
+  return percent;
 }
 
 /** 组金额 = 已报价明细合计；全无报价返回 null */
@@ -178,7 +238,7 @@ export function cleanPlanItems(items: PlanItem[]): {
     teeth: string;
     unitPrice: number | null;
     quantity: number | null;
-    discountNote: string;
+    discountPercent: number | null;
   }[];
 }[] {
   return items
@@ -192,6 +252,16 @@ export function cleanPlanItems(items: PlanItem[]): {
           const lineTeeth = line.teeth.trim();
           const unitPrice = line.unitPrice ?? null;
           const qtyTeeth = lineTeeth || teeth;
+          const rawPercent = line.discountPercent;
+          const discountPercent =
+            unitPrice == null
+              ? null
+              : typeof rawPercent === "number" &&
+                  Number.isFinite(rawPercent) &&
+                  rawPercent >= 0 &&
+                  rawPercent <= 100
+                ? rawPercent
+                : null;
           return {
             id: line.id,
             feeItemId,
@@ -202,8 +272,7 @@ export function cleanPlanItems(items: PlanItem[]): {
               unitPrice == null
                 ? null
                 : (line.quantity ?? defaultPlanQuantity(qtyTeeth)),
-            discountNote:
-              unitPrice == null ? "" : (line.discountNote ?? "").trim(),
+            discountPercent,
           };
         })
         .filter((l): l is NonNullable<typeof l> => l != null);

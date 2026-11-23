@@ -243,7 +243,11 @@ export function ChargePaymentDialog({
                     items={visitItems}
                     value={visitId}
                     onValueChange={(v: string | null) => {
-                      if (v) setVisitId(v);
+                      if (!v) return;
+                      const visit = visits.find((x) => String(x.id) === v);
+                      setVisitId(v);
+                      if (visit?.visitDate) setPaidAt(visit.visitDate);
+                      if (!doctor && visit?.doctor) setDoctor(visit.doctor);
                     }}
                   >
                     <SelectTrigger className="w-full">

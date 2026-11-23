@@ -1,5 +1,5 @@
 import { defaultPlanQuantity } from "../medical-records/record-rules";
-import { chargeItemAmount, roundMoney, sumMoney } from "./charge-calc";
+import { roundMoney, sumMoney } from "./charge-calc";
 
 export type CoursePlanLine = {
   feeItemId: number | null;
@@ -8,6 +8,8 @@ export type CoursePlanLine = {
   teeth: string;
   unitPrice: number | null;
   quantity: number | null;
+  /** 折扣率（%），空表示 100 */
+  discountPercent?: number | null;
 };
 
 export type CoursePlanGroup = {
@@ -40,19 +42,26 @@ export function courseChargeItems(groups: CoursePlanGroup[]) {
       }
       const name = line.name.trim();
       if (!name) continue;
-      const unitPrice = roundMoney(line.unitPrice);
+      const listUnit = roundMoney(line.unitPrice);
       const teeth = (line.teeth.trim() || groupTeeth).trim();
       const quantity =
         line.quantity != null && line.quantity > 0
           ? line.quantity
           : defaultPlanQuantity(teeth);
+      const percent =
+        line.discountPercent != null && Number.isFinite(line.discountPercent)
+          ? line.discountPercent
+          : 100;
+      const amount = roundMoney((listUnit * quantity * percent) / 100);
+      const unitPrice =
+        quantity > 0 ? roundMoney(amount / quantity) : roundMoney(listUnit);
       items.push({
         feeItemId: line.feeItemId,
         name,
         teeth,
         unitPrice,
         quantity,
-        amount: chargeItemAmount(unitPrice, quantity),
+        amount,
       });
     }
   }
