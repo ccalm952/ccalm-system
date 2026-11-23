@@ -42,11 +42,20 @@ export const PlanGroupsField = React.forwardRef<
   }
 >(function PlanGroupsField({ value, onValueChange, renderGroupExtra }, ref) {
   const [activeGroupIndex, setActiveGroupIndex] = React.useState(0);
+  /** 当前组内选中的明细行；有选中时左侧点收费项目会替换该行，否则追加 */
+  const [activeLineIndex, setActiveLineIndex] = React.useState<number | null>(
+    null,
+  );
   const groups = value.length ? value : [emptyGroup()];
   const activeIndex = Math.min(activeGroupIndex, groups.length - 1);
 
   function setGroups(next: PlanItem[]) {
     onValueChange(next.map(withLabel));
+  }
+
+  function selectGroup(groupIndex: number) {
+    setActiveGroupIndex(groupIndex);
+    setActiveLineIndex(null);
   }
 
   function updateGroup(index: number, patch: Partial<PlanItem>) {
@@ -97,6 +106,38 @@ export const PlanGroupsField = React.forwardRef<
 
   function addFeeToActive(fee: FeeItem) {
     const groupIndex = activeIndex;
+    const group = groups[groupIndex];
+    const replaceIndex =
+      activeLineIndex != null &&
+      activeLineIndex >= 0 &&
+      activeLineIndex < group.lines.length
+        ? activeLineIndex
+        : null;
+
+    if (replaceIndex != null) {
+      setGroups(
+        groups.map((g, i) =>
+          i !== groupIndex
+            ? g
+            : {
+                ...g,
+                lines: g.lines.map((line, j) =>
+                  j !== replaceIndex
+                    ? line
+                    : {
+                        ...line,
+                        feeItemId: fee.id,
+                        name: fee.name,
+                        unitPrice: fee.price,
+                        discountPercent: null,
+                      },
+                ),
+              },
+        ),
+      );
+      return;
+    }
+
     setGroups(
       groups.map((g, i) =>
         i !== groupIndex
@@ -124,9 +165,9 @@ export const PlanGroupsField = React.forwardRef<
     () => ({
       addFee: addFeeToActive,
     }),
-    // activeIndex / groups 需随最新状态进闭包
+    // activeIndex / activeLineIndex / groups 需随最新状态进闭包
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeIndex, groups],
+    [activeIndex, activeLineIndex, groups],
   );
 
   function removeLine(groupIndex: number, lineIndex: number) {
@@ -137,12 +178,21 @@ export const PlanGroupsField = React.forwardRef<
           : { ...g, lines: g.lines.filter((_, j) => j !== lineIndex) },
       ),
     );
+    if (groupIndex === activeIndex) {
+      setActiveLineIndex((prev) => {
+        if (prev == null) return null;
+        if (prev === lineIndex) return null;
+        if (prev > lineIndex) return prev - 1;
+        return prev;
+      });
+    }
   }
 
   function removeGroup(index: number) {
     if (groups.length <= 1) {
       setGroups([emptyGroup()]);
       setActiveGroupIndex(0);
+      setActiveLineIndex(null);
       return;
     }
     setGroups(groups.filter((_, i) => i !== index));
@@ -151,6 +201,7 @@ export const PlanGroupsField = React.forwardRef<
       if (prev > index) return prev - 1;
       return prev;
     });
+    setActiveLineIndex(null);
   }
 
   return (
@@ -161,7 +212,7 @@ export const PlanGroupsField = React.forwardRef<
         return (
           <div
             key={group.id ?? `new-${groupIndex}`}
-            onClick={() => setActiveGroupIndex(groupIndex)}
+            onClick={() => selectGroup(groupIndex)}
             className="flex items-stretch gap-2"
           >
             <div className="w-40 shrink-0 self-stretch">
@@ -184,55 +235,69 @@ export const PlanGroupsField = React.forwardRef<
                 <Table>
                   <TableBody>
                     {group.lines.length ? (
-                      group.lines.map((line, lineIndex) => (
-                        <TableRow
-                          key={line.id ?? `line-${lineIndex}`}
-                          className="h-10 border-b-0"
-                        >
-                          <TableCell className="h-10 max-h-10 w-40 overflow-hidden py-0 align-middle">
-                            <ToothPositionField
-                              plain
-                              className="h-10 min-h-10 w-full justify-center py-0"
-                              value={line.teeth}
-                              allowedFdis={
-                                allowedFdis.length ? allowedFdis : undefined
-                              }
-                              onValueChange={(teeth) =>
-                                updateLine(groupIndex, lineIndex, { teeth })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
-                            <Input
-                              value={line.name}
-                              readOnly
-                              className="h-8 border-0 bg-transparent px-0 shadow-none"
-                            />
-                          </TableCell>
-                          <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
-                            <PlanLineQuoteInputs
-                              line={line}
-                              groupTeeth={group.teeth}
-                              onChange={(patch) =>
-                                updateLine(groupIndex, lineIndex, patch)
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeLine(groupIndex, lineIndex);
-                              }}
-                            >
-                              <X className="size-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      group.lines.map((line, lineIndex) => {
+                        const lineSelected =
+                          selected && activeLineIndex === lineIndex;
+                        return (
+                          <TableRow
+                            key={line.id ?? `line-${lineIndex}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveGroupIndex(groupIndex);
+                              setActiveLineIndex(
+                                lineSelected ? null : lineIndex,
+                              );
+                            }}
+                            className={cn(
+                              "h-10 cursor-pointer border-b-0",
+                              lineSelected && "bg-primary/5",
+                            )}
+                          >
+                            <TableCell className="h-10 max-h-10 w-40 overflow-hidden py-0 align-middle">
+                              <ToothPositionField
+                                plain
+                                className="h-10 min-h-10 w-full justify-center py-0"
+                                value={line.teeth}
+                                allowedFdis={
+                                  allowedFdis.length ? allowedFdis : undefined
+                                }
+                                onValueChange={(teeth) =>
+                                  updateLine(groupIndex, lineIndex, { teeth })
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
+                              <Input
+                                value={line.name}
+                                readOnly
+                                className="h-8 border-0 bg-transparent px-0 shadow-none"
+                              />
+                            </TableCell>
+                            <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
+                              <PlanLineQuoteInputs
+                                line={line}
+                                groupTeeth={group.teeth}
+                                onChange={(patch) =>
+                                  updateLine(groupIndex, lineIndex, patch)
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="h-10 max-h-10 overflow-hidden py-0 align-middle">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeLine(groupIndex, lineIndex);
+                                }}
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     ) : (
                       <TableRow className="h-10 border-b-0">
                         <TableCell
@@ -248,6 +313,11 @@ export const PlanGroupsField = React.forwardRef<
                   </TableBody>
                 </Table>
               </div>
+              {selected && activeLineIndex != null ? (
+                <p className="text-xs text-muted-foreground">
+                  已选中明细行：再点左侧收费项目将替换本行（牙位与数量保留）
+                </p>
+              ) : null}
               {renderGroupExtra?.(group, groupIndex, (patch) =>
                 updateGroup(groupIndex, patch),
               )}
@@ -274,6 +344,7 @@ export const PlanGroupsField = React.forwardRef<
           onClick={() => {
             setGroups([...groups, emptyGroup()]);
             setActiveGroupIndex(groups.length);
+            setActiveLineIndex(null);
           }}
         >
           <Plus className="size-3.5" />
