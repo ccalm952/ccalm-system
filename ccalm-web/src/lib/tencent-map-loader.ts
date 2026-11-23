@@ -27,7 +27,12 @@ export type TMapNamespace = {
   LatLng: new (lat: number, lng: number) => TMapLatLng;
   Map: new (
     container: string | HTMLElement,
-    opts: { center: TMapLatLng; zoom?: number; pitch?: number; rotation?: number },
+    opts: {
+      center: TMapLatLng;
+      zoom?: number;
+      pitch?: number;
+      rotation?: number;
+    },
   ) => {
     destroy: () => void;
     setCenter: (center: TMapLatLng) => void;
@@ -38,7 +43,10 @@ export type TMapNamespace = {
   MultiMarker: new (opts: Record<string, unknown>) => {
     setGeometries: (geometries: unknown[]) => void;
     setMap: (map: unknown) => void;
-    on: (event: string, cb: (e: { geometry?: { position?: TMapLatLng } }) => void) => void;
+    on: (
+      event: string,
+      cb: (e: { geometry?: { position?: TMapLatLng } }) => void,
+    ) => void;
     destroy?: () => void;
   };
   MultiCircle: new (opts: Record<string, unknown>) => {
@@ -50,9 +58,7 @@ export type TMapNamespace = {
   CircleStyle: new (opts: Record<string, unknown>) => unknown;
   service: {
     Geocoder: new () => {
-      getAddress: (params: {
-        location: TMapLatLng;
-      }) => Promise<{
+      getAddress: (params: { location: TMapLatLng }) => Promise<{
         status: number;
         message?: string;
         result?: {
@@ -61,9 +67,7 @@ export type TMapNamespace = {
           address_component?: Record<string, string>;
         };
       }>;
-      getLocation: (params: {
-        address: string;
-      }) => Promise<{
+      getLocation: (params: { address: string }) => Promise<{
         status: number;
         message?: string;
         result?: {
@@ -74,9 +78,7 @@ export type TMapNamespace = {
       }>;
     };
     Suggestion: new (opts?: { pageSize?: number }) => {
-      getSuggestions: (params: {
-        keyword: string;
-      }) => Promise<{
+      getSuggestions: (params: { keyword: string }) => Promise<{
         status: number;
         message?: string;
         data?: Array<{

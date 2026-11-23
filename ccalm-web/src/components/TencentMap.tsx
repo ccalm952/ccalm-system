@@ -190,6 +190,10 @@ export function TencentMap(props: {
   }
 
   return (
-    <div ref={containerRef} className={className} style={{ height, width: "100%" }} />
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ height, width: "100%" }}
+    />
   );
 }
