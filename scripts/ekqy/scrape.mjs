@@ -13,7 +13,9 @@ try {
 if (!name) throw new Error("name file is empty");
 
 const task = await taskSpace("e看牙导入");
-const page = (await task.pages())[0];
+const page =
+  (await task.pages())[0] ??
+  (await task.adopt((await task.tabs())[0].page));
 
 await page.goto(`https://qzyzkq.linkedcare.cn/ares3/?t=${Date.now()}#/new/patient`, {
   timeout: 60000,

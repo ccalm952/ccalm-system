@@ -6,7 +6,11 @@ import {
   hasTreatment,
   MEDICAL_RECORD_FIELDS,
   planCourseStatus,
+  discountPercentFromAmount,
   planItemAmount,
+  planLineAmount,
+  planLineEffectiveUnitPrice,
+  planLineHasDiscount,
 } from "./record-types";
 
 describe("planCourseStatus", () => {
@@ -100,7 +104,7 @@ describe("record-types", () => {
             teeth: "",
             unitPrice: null,
             quantity: null,
-            discountNote: "",
+            discountPercent: null,
           },
         ],
       },
@@ -115,7 +119,7 @@ describe("record-types", () => {
             teeth: "",
             unitPrice: null,
             quantity: null,
-            discountNote: "",
+            discountPercent: null,
           },
         ],
       },
@@ -134,7 +138,7 @@ describe("record-types", () => {
               name: "修复",
               teeth: "",
               unitPrice: 400,
-              discountNote: " 优惠 ",
+              discountPercent: 66.67,
             },
             { feeItemId: 2, name: "洁牙", teeth: "", unitPrice: 300 },
             {
@@ -146,11 +150,11 @@ describe("record-types", () => {
             },
           ],
         },
-      ])[0].lines.map((i) => [i.quantity, i.discountNote]),
+      ])[0].lines.map((i) => [i.quantity, i.discountPercent]),
     ).toEqual([
-      [3, "优惠"],
-      [3, ""],
-      [2, ""],
+      [3, 66.67],
+      [3, null],
+      [2, null],
     ]);
   });
 
@@ -185,5 +189,18 @@ describe("record-types", () => {
       }),
     ).toBe(600);
     expect(planItemAmount({ teeth: "17", text: "", lines: [] })).toBeNull();
+    expect(discountPercentFromAmount(300, 1, 200)).toBeCloseTo(66.6666, 3);
+    const discounted = {
+      feeItemId: 1,
+      name: "树脂充填",
+      teeth: "",
+      unitPrice: 300,
+      quantity: 4,
+      discountPercent: discountPercentFromAmount(300, 4, 500),
+    };
+    expect(planLineAmount(discounted, "11")).toBe(500);
+    expect(planLineEffectiveUnitPrice(discounted, "11")).toBe(125);
+    expect(planLineHasDiscount(discounted, "11")).toBe(true);
+    expect(discountPercentFromAmount(300, 1, 300)).toBeNull();
   });
 });

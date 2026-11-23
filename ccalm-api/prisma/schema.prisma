@@ -426,9 +426,10 @@ model TreatmentPlanLine {
   name         String            @default("")
   /// 组牙位子集；空表示整组
   teeth        String            @default("")
-  unitPrice    Float?
-  quantity     Int?
-  discountNote String            @default("")
+  unitPrice       Float?
+  quantity        Int?
+  /// 折扣率（%），空表示 100；金额 = 单价 × 数量 × 折扣率 / 100
+  discountPercent Float?
 
   @@index([planItemId])
   @@index([feeItemId])

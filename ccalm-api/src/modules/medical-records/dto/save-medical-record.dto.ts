@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Max,
   Min,
   MinLength,
   ValidateNested,
@@ -58,9 +59,12 @@ export class PlanLineDto {
   @Min(1)
   quantity?: number | null;
 
+  /** 折扣率（%），空表示 100 */
   @IsOptional()
-  @IsString()
-  discountNote?: string;
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  discountPercent?: number | null;
 }
 
 /** 治疗计划组：牙位 + 收费明细行 */

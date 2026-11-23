@@ -132,7 +132,8 @@ export type PlanLineInput = {
   teeth: string;
   unitPrice: number | null;
   quantity: number | null;
-  discountNote: string;
+  /** 折扣率（%），null 表示 100 */
+  discountPercent: number | null;
 };
 
 export type PlanItemInput = {
@@ -140,6 +141,12 @@ export type PlanItemInput = {
   teeth: string;
   lines: PlanLineInput[];
 };
+
+function normalizeDiscountPercent(raw: unknown): number | null {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  if (raw < 0 || raw > 100) return null;
+  return raw;
+}
 
 function normalizePlanLine(
   e: {
@@ -149,7 +156,7 @@ function normalizePlanLine(
     teeth?: unknown;
     unitPrice?: unknown;
     quantity?: unknown;
-    discountNote?: unknown;
+    discountPercent?: unknown;
   },
   groupTeeth: string,
 ): PlanLineInput | null {
@@ -177,12 +184,8 @@ function normalizePlanLine(
     unitPrice,
     quantity:
       unitPrice == null ? null : (quantity ?? defaultPlanQuantity(qtyTeeth)),
-    discountNote:
-      unitPrice == null
-        ? ""
-        : typeof e?.discountNote === "string"
-          ? toFullWidthComma(e.discountNote.trim())
-          : "",
+    discountPercent:
+      unitPrice == null ? null : normalizeDiscountPercent(e?.discountPercent),
   };
 }
 
@@ -292,3 +295,5 @@ export function pickRecordContent(
   }
   return content;
 }
+
+

@@ -130,4 +130,37 @@ describe("courseChargeItems", () => {
     expect(result.items).toHaveLength(1);
     expect(result.unquotedCount).toBe(0);
   });
+
+  it("折扣率按百分比折算单价与金额", () => {
+    expect(
+      courseChargeItems([
+        {
+          teeth: "11",
+          lines: [
+            {
+              feeItemId: 7,
+              name: "树脂充填",
+              teeth: "",
+              unitPrice: 300,
+              quantity: 1,
+              discountPercent: (200 / 300) * 100,
+            },
+          ],
+        },
+      ]),
+    ).toEqual({
+      items: [
+        {
+          feeItemId: 7,
+          name: "树脂充填",
+          teeth: "11",
+          unitPrice: 200,
+          quantity: 1,
+          amount: 200,
+        },
+      ],
+      unquotedCount: 0,
+      receivable: 200,
+    });
+  });
 });

@@ -81,7 +81,7 @@ function mapRecord(r: RecordWithPlan) {
         teeth: line.teeth,
         unitPrice: line.unitPrice,
         quantity: line.quantity,
-        discountNote: line.discountNote,
+        discountPercent: line.discountPercent,
       })),
       // 初诊自己的处置关联不算复诊次数
       followUpCount: i.followUps.filter((f) => f.recordId !== i.recordId)
@@ -378,7 +378,7 @@ export class MedicalRecordsService {
         teeth: line.teeth,
         unitPrice: line.unitPrice,
         quantity: line.quantity,
-        discountNote: line.discountNote,
+        discountPercent: line.discountPercent,
       };
       if (line.id != null && existingIds.has(line.id)) {
         await tx.treatmentPlanLine.update({ where: { id: line.id }, data });

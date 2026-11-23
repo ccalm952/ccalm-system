@@ -62,7 +62,7 @@ export function CollectChargeDialog({
     setVisitId(visits[0] ? String(visits[0].id) : "");
     setAmount("");
     setMethod(PAY_METHODS[0]);
-    setPaidAt(dayjs().format("YYYY-MM-DD"));
+    setPaidAt(visits[0]?.visitDate ?? dayjs().format("YYYY-MM-DD"));
     setDoctor(visits[0]?.doctor ?? "");
   }, [open, visits]);
 
@@ -140,6 +140,7 @@ export function CollectChargeDialog({
                 setVisitId(v ?? "");
                 const selected = visits.find((item) => String(item.id) === v);
                 if (selected?.doctor) setDoctor(selected.doctor);
+                if (selected?.visitDate) setPaidAt(selected.visitDate);
               }}
             >
               <SelectTrigger className="w-full">
