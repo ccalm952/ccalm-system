@@ -89,12 +89,10 @@ export function PlanLineQuoteInputs({
         )}
         className={`w-16 ${NUMBER_INPUT}`}
         value={line.quantity ?? ""}
-        onChange={(e) =>
-          onChange({ quantity: toNumber(e.target.value) })
-        }
+        onChange={(e) => onChange({ quantity: toNumber(e.target.value) })}
       />
       <span className="text-muted-foreground">=</span>
-      <span className="w-24 shrink-0 tabular-nums text-muted-foreground">
+      <span className="w-24 shrink-0 text-muted-foreground tabular-nums">
         {listAmount == null ? "—" : formatMoney(listAmount)}
       </span>
       {line.unitPrice != null ? (
@@ -107,9 +105,7 @@ export function PlanLineQuoteInputs({
             placeholder="折后金额"
             className={`w-24 ${NUMBER_INPUT}`}
             value={amountDraft ?? (amount == null ? "" : String(amount))}
-            onFocus={() =>
-              setAmountDraft(amount == null ? "" : String(amount))
-            }
+            onFocus={() => setAmountDraft(amount == null ? "" : String(amount))}
             onChange={(e) => {
               const raw = e.target.value;
               setAmountDraft(raw);
@@ -131,8 +127,7 @@ export function PlanLineQuoteInputs({
       ) : null}
       {hasDiscount && effectiveUnit != null && amount != null ? (
         <span className="shrink-0 text-primary tabular-nums">
-          折后 {formatMoney(effectiveUnit)} × {quantity} ={" "}
-          {formatMoney(amount)}
+          折后 {formatMoney(effectiveUnit)} × {quantity} = {formatMoney(amount)}
         </span>
       ) : null}
     </div>
@@ -174,9 +169,7 @@ export function PlanQuoteView({ item }: { item: PlanItem }) {
                   {formatMoney(line.unitPrice)} × {qty} ={" "}
                   {formatMoney(listAmount)}
                 </span>
-                {hasDiscount &&
-                effectiveUnit != null &&
-                lineAmount != null ? (
+                {hasDiscount && effectiveUnit != null && lineAmount != null ? (
                   <span className="text-primary">
                     折后 {formatMoney(effectiveUnit)} × {qty} ={" "}
                     {formatMoney(lineAmount)}
