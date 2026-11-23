@@ -295,5 +295,3 @@ export function pickRecordContent(
   }
   return content;
 }
-
-
