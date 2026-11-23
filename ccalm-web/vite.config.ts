@@ -36,7 +36,6 @@ export default defineConfig({
           }
           if (id.includes("@tanstack")) return "tanstack";
           if (id.includes("dayjs") || id.includes("date-fns")) return "date";
-          if (id.includes("@amap")) return "amap";
           if (id.includes("lucide-react")) return "lucide";
         },
       },

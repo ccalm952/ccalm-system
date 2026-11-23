@@ -5,7 +5,7 @@ const {
   submitPunch,
 } = require("../../../services/attendance");
 const { getLocation } = require("../../../services/wechat");
-const { reverseGeocode } = require("../../../services/amap");
+const { reverseGeocode } = require("../../../services/tencent-map");
 const {
   clearSession,
   getSession,

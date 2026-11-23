@@ -1,18 +1,18 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AmapMap } from "@/components/AmapMap";
+import { TencentMap } from "@/components/TencentMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
-import { requestAmapGeolocation } from "@/lib/amap-geolocate";
+import { requestTencentGeolocation } from "@/lib/tencent-geolocate";
 import {
   geocodeDisplayAddress,
   reverseGeocodeDisplayAddress,
   searchAddressSuggestions,
   type PlaceSuggestion,
-} from "@/lib/amap-regeo";
+} from "@/lib/tencent-regeo";
 import type { GeofenceConfig } from "@/lib/attendance/types";
 import { attendanceMutedTextClass } from "@/lib/attendance/attendance-theme";
 import { ROUTES } from "@/config/routes";
@@ -121,7 +121,7 @@ export function CheckInRangePage() {
   const refreshLocation = React.useCallback(async () => {
     setGeolocating(true);
     try {
-      const { lat, lng } = await requestAmapGeolocation();
+      const { lat, lng } = await requestTencentGeolocation();
       await updateCenterWithAddress({ lat, lng });
     } catch (e) {
       toast.error(errorMessage(e));
@@ -413,7 +413,7 @@ export function CheckInRangePage() {
           </div>
 
           <div className="overflow-hidden rounded-lg border border-border">
-            <AmapMap
+            <TencentMap
               height={360}
               className="bg-muted/30"
               zoom={15}

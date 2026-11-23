@@ -27,8 +27,8 @@ import {
   TimelineTime,
   TimelineTitle,
 } from "@/components/ui/timeline";
-import { requestAmapGeolocation } from "@/lib/amap-geolocate";
-import { reverseGeocodeDisplayAddress } from "@/lib/amap-regeo";
+import { requestTencentGeolocation } from "@/lib/tencent-geolocate";
+import { reverseGeocodeDisplayAddress } from "@/lib/tencent-regeo";
 import { AttendanceHalfOutCell } from "@/components/attendance-half-out-cell";
 import { AttendanceInCell } from "@/components/attendance-in-cell";
 import { MakeupRequestDialog } from "@/components/makeup-request-dialog";
@@ -253,7 +253,7 @@ function formatCurrentLocation(
 async function locateWithAddress(): Promise<
   Pick<LocationState, "lat" | "lng" | "address">
 > {
-  const { lat, lng } = await requestAmapGeolocation();
+  const { lat, lng } = await requestTencentGeolocation();
   let address = "";
   try {
     address = await reverseGeocodeDisplayAddress(lat, lng);

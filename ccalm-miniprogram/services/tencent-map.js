@@ -1,15 +1,12 @@
-const { AMAP_KEY } = require("../config/index.js");
+const { TENCENT_MAP_KEY } = require("../config/index.js");
 
 const INFO_HINT = {
-  USERKEY_PLAT_NOMATCH:
-    "高德 Key 类型不对：请用「Web服务」Key，不能用网页 JS API Key",
-  INVALID_USER_KEY: "高德 Key 无效",
-  DAILY_QUERY_OVER_LIMIT: "高德调用次数超限",
-  IP_QUERY_OVER_LIMIT: "高德调用次数超限",
-  ACCESS_TOO_FREQUENT: "高德调用过于频繁",
+  311: "腾讯 Key 无效或未启用对应服务",
+  306: "腾讯调用次数超限",
+  110: "请求来源未授权（检查小程序 AppID / 域名白名单）",
 };
 
-function amapText(value) {
+function mapText(value) {
   if (value == null) return "";
   if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) return value.join("").trim();
@@ -20,12 +17,12 @@ function amapText(value) {
  * 去掉省、市、街道，保留区县和具体地点。
  */
 function shortenAddress(formatted, component) {
-  const full = amapText(formatted);
+  const full = mapText(formatted);
   if (!full || !component) return full;
 
-  const province = amapText(component.province);
-  const city = amapText(component.city);
-  const township = amapText(component.township);
+  const province = mapText(component.province);
+  const city = mapText(component.city);
+  const street = mapText(component.street);
 
   let rest = full;
   if (province && rest.indexOf(province) === 0) {
@@ -34,55 +31,59 @@ function shortenAddress(formatted, component) {
   if (city && city !== province && rest.indexOf(city) === 0) {
     rest = rest.substring(city.length);
   }
-  if (township && rest.indexOf(township) >= 0) {
-    rest = rest.replace(township, "");
+  if (street && rest.indexOf(street) >= 0) {
+    rest = rest.replace(street, "");
   }
   return rest.trim();
 }
 
 /**
- * 坐标转中文地址。
+ * 坐标转中文地址（腾讯逆地址解析）。
  * @param {number} latitude
  * @param {number} longitude
  * @returns {Promise<{address:string, error:string}>}
  */
 function reverseGeocode(latitude, longitude) {
-  const key = (AMAP_KEY || "").trim();
+  const key = (TENCENT_MAP_KEY || "").trim();
   if (!key) {
     return Promise.resolve({
       address: "",
-      error: "未配置 AMAP_KEY（config/local.js）",
+      error: "未配置 TENCENT_MAP_KEY（config/local.js）",
     });
   }
-  const location = `${longitude},${latitude}`;
+  const location = `${latitude},${longitude}`;
   return new Promise((resolve) => {
     wx.request({
-      url: "https://restapi.amap.com/v3/geocode/regeo",
+      url: "https://apis.map.qq.com/ws/geocoder/v1/",
       method: "GET",
       data: {
         key,
         location,
-        extensions: "base",
+        get_poi: 0,
       },
       timeout: 8000,
       success(res) {
         const body = res.data || {};
-        if (String(body.status) !== "1") {
-          const info = String(body.info || "逆地理失败");
+        if (Number(body.status) !== 0) {
+          const status = Number(body.status);
+          const info = String(body.message || "逆地理失败");
           resolve({
             address: "",
-            error: INFO_HINT[info] || `地址解析失败：${info}`,
+            error: INFO_HINT[status] || `地址解析失败：${info}`,
           });
           return;
         }
-        if (!body.regeocode) {
+        const result = body.result;
+        if (!result) {
           resolve({ address: "", error: "" });
           return;
         }
+        const recommend =
+          result.formatted_addresses && result.formatted_addresses.recommend;
         resolve({
           address: shortenAddress(
-            body.regeocode.formatted_address,
-            body.regeocode.addressComponent,
+            recommend || result.address,
+            result.address_component,
           ),
           error: "",
         });
@@ -92,7 +93,7 @@ function reverseGeocode(latitude, longitude) {
           address: "",
           error:
             (error && error.errMsg) ||
-            "无法访问高德（检查合法域名 restapi.amap.com）",
+            "无法访问腾讯位置服务（检查合法域名 apis.map.qq.com）",
         });
       },
     });
