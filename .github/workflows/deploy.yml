@@ -150,6 +150,7 @@ jobs:
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           DEPLOY_EXPECTED_SHA: ${{ needs.gate.outputs.sha }}
           DEPLOY_SCOPE: ${{ needs.gate.outputs.scope }}
+          VITE_TENCENT_MAP_KEY: ${{ secrets.VITE_TENCENT_MAP_KEY }}
         run: |
           set -euo pipefail
           if [ -z "${DEPLOY_SSH_HOST:-}" ] || [ -z "${DEPLOY_SSH_USER:-}" ]; then
