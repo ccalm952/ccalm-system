@@ -14,7 +14,7 @@ ccalm-system/
 ## 开发约定
 
 - **开分支 + PR 再合 `master`**，避免直推主分支（绕过必检）。命名示例：`feat/mp-…`、`fix/web-…`、`chore/api-…`。
-- **密钥不进仓库**：`ccalm-api/.env`、`ccalm-web/.env`、`ccalm-miniprogram/config/local.js` 仅本机/服务器保留；小程序高德 Key 用 `config/local.example.js` 复制填写。
+- **密钥不进仓库**：`ccalm-api/.env`、`ccalm-web/.env`、`ccalm-miniprogram/config/local.js` 仅本机/服务器保留；小程序腾讯 Key 用 `config/local.example.js` 复制填写。
 - **小程序工具文件**：勿提交 `project.private.config.json`；`project.config.json` 无业务改动时的字段重排可 `git restore` 丢掉。
 - **发布边界**：只改小程序/文档不触发服务器 Deploy，需用微信开发者工具上传；改 `ccalm-web` / `ccalm-api` 才由 Actions 部署。
 
@@ -119,8 +119,7 @@ pnpm install
 
 ```env
 VITE_API_BASE=/api
-VITE_AMAP_KEY=
-VITE_AMAP_SECURITY_JS_CODE=
+VITE_TENCENT_MAP_KEY=
 ```
 
 同域部署时建议使用 `VITE_API_BASE=/api`，由 1Panel 网站反向代理到后端，避免跨域配置复杂化。
@@ -145,9 +144,9 @@ WECHAT_APPSECRET="<小程序 AppSecret>"
 微信公众平台 request 合法域名：
 
 - `https://www.ccalm.xyz`（API）
-- `https://restapi.amap.com`（中文地址逆地理）
+- `https://apis.map.qq.com`（腾讯逆地址解析）
 
-高德 Key：复制 `ccalm-miniprogram/config/local.example.js` 为 `config/local.js`，填入 **Web服务** 类型 Key（勿提交；勿用网页 JS API Key）。
+腾讯位置服务 Key：复制 `ccalm-miniprogram/config/local.example.js` 为 `config/local.js`，填入已启用「微信小程序 + WebServiceAPI」的 Key（勿提交）。
 
 流程：`wx.login` → `POST /api/auth/wechat/login`；未绑定时用现有账号密码绑定；「刷新定位」自动打当前时段；月表支持补卡申请与排休。底部五个 Tab：打卡、缺卡、排班、统计、我的。`deviceToken` 为微信 `openid`。
 
@@ -301,7 +300,7 @@ pm2 save
 - 接口 404：确认 `/api/` 反向代理到 `http://127.0.0.1:3000`，后端代码已设置全局前缀 `/api`。
 - 接口 502：先在服务器执行 `curl -i http://127.0.0.1:3000/api/auth/me`。如果连接失败，检查 `pm2 logs ccalm-api`，并确认 PM2 启动入口是 `ccalm-api/dist/src/main.js`。如果本机返回 `401` 但网站仍 `502`，检查 OpenResty 是否在容器中，必要时把反代地址从 `127.0.0.1` 改为服务器内网 IP。
 - 登录接口跨域：同域部署时前端应使用 `VITE_API_BASE=/api`，不要写成另一个域名。
-- 地图不可用：检查 `VITE_AMAP_KEY` 和 `VITE_AMAP_SECURITY_JS_CODE`，并在高德控制台配置生产域名白名单。
+- 地图不可用：检查 `VITE_TENCENT_MAP_KEY`，并在腾讯位置服务控制台为 Key 配置域名白名单 / 启用 JavaScript API。
 
 ## 手动部署参考（Ubuntu + Nginx + PM2）
 

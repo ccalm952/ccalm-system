@@ -13,12 +13,12 @@ WECHAT_APPID=wxf9d517b49440cd79
 WECHAT_APPSECRET=<AppSecret>
 ```
 
-2. 高德 **Web服务** Key：复制 `config/local.example.js` 为 `config/local.js` 后填写（勿提交）。网页 `VITE_AMAP_KEY` 若是 JS API 类型，逆地理会 `USERKEY_PLAT_NOMATCH`。
+2. 腾讯位置服务 Key：复制 `config/local.example.js` 为 `config/local.js` 后填写（勿提交）。须启用「微信小程序 + WebServiceAPI」，并填写小程序 AppID。
 
 3. 微信公众平台 request 合法域名：
 
 - `https://www.ccalm.xyz`
-- `https://restapi.amap.com`（逆地理）
+- `https://apis.map.qq.com`（逆地理）
 
 ## 打开项目
 
@@ -63,7 +63,7 @@ ccalm-miniprogram/
 │   ├── todo.js                   # 待办列表与审批
 │   ├── unbind.js                 # 解绑申请与审批
 │   ├── badge.js                  # 角标数量（缺卡数）
-│   ├── amap.js                   # 逆地理
+│   ├── tencent-map.js            # 逆地理
 │   └── wechat.js                 # wx.login / wx.getLocation
 ├── store/                        # 登录态
 │   └── session.js                # 登录态读写、是否管理员、requireSession
@@ -77,9 +77,9 @@ ccalm-miniprogram/
 │   ├── review.js                 # 审批状态文案
 │   └── ui.js                     # 消息条/角标/下拉刷新常量
 ├── config/                       # 环境配置
-│   ├── index.js                  # API_BASE、AMAP_KEY
-│   ├── local.example.js          # 高德 Key 示例
-│   └── local.js                  # 本地高德 Key，勿提交
+│   ├── index.js                  # API_BASE、TENCENT_MAP_KEY
+│   ├── local.example.js          # 腾讯 Key 示例
+│   └── local.js                  # 本地腾讯 Key，勿提交
 ├── utils/                        # 纯函数
 │   ├── time.js                   # 日期、月份、格式化
 │   ├── punch-rule.js             # 打卡/补卡/休息规则
