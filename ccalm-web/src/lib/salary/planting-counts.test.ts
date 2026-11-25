@@ -4,7 +4,10 @@ import { applyPlantingCountsToSheet } from "./planting-counts";
 import type { SalaryEmployeeInput, SalarySheetData } from "./types";
 
 function employee(
-  partial: Pick<SalaryEmployeeInput, "id" | "name" | "plantingCount" | "bonusMode">,
+  partial: Pick<
+    SalaryEmployeeInput,
+    "id" | "name" | "plantingCount" | "bonusMode"
+  >,
 ): SalaryEmployeeInput {
   return {
     title: "护士",
