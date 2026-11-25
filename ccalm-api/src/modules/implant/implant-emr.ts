@@ -1,3 +1,5 @@
+import { splitImplantStaffNames } from "./implant-staff";
+
 /** 种植记录自动生成的病历备注，用于识别与覆盖 */
 export const IMPLANT_EMR_REMARK = "从种植记录自动生成";
 
@@ -114,11 +116,5 @@ export function implantEmrDoctor(doctor?: string | null): string {
 
 /** 病历配台：用种植记录的 staff；顿号等旧分隔统一成全角逗号 */
 export function implantEmrNurse(staff?: string | null): string {
-  const raw = staff?.trim() ?? "";
-  if (!raw) return "";
-  return raw
-    .split(/[、,，+\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join("，");
+  return splitImplantStaffNames(staff).join("，");
 }

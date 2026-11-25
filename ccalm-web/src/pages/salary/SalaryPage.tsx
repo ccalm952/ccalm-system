@@ -55,6 +55,10 @@ import {
   resolveDefaultSalarySheet,
 } from "@/lib/salary/defaults";
 import { fetchLeaveQuotasFromSchedule } from "@/lib/salary/schedule-leave";
+import {
+  applyPlantingCountsToSheet,
+  fetchPlantingCountsByName,
+} from "@/lib/salary/planting-counts";
 import type {
   SalaryEmployeeInput,
   SalaryEquipmentInstallment,
@@ -147,6 +151,16 @@ async function applyScheduleLeaveQuotas(
     },
     month,
   );
+}
+
+/** 排班假期 + 种植配台次数对齐到薪资表输入 */
+async function syncSalarySheetInputs(
+  month: string,
+  sheet: SalarySheetData,
+): Promise<SalarySheetData> {
+  const withLeave = await applyScheduleLeaveQuotas(month, sheet);
+  const counts = await fetchPlantingCountsByName(month);
+  return applyPlantingCountsToSheet(withLeave, counts);
 }
 
 function computeWithCarryover(
@@ -324,7 +338,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     async (month: string) => {
       const sheet = sheetsRef.current[month];
       if (!sheet) return;
-      const synced = await applyScheduleLeaveQuotas(month, sheet);
+      const synced = await syncSalarySheetInputs(month, sheet);
       if (synced === sheet) return;
       setSheets((prev) => ({ ...prev, [month]: synced }));
       void api("PUT", `/salary/${month}`, { data: synced }, salaryApi).catch(
@@ -348,7 +362,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         try {
           // 历史月只读缓存，配额变化不回写，避免打开当前月时链式写库
           const data = await fetchMonth(prev, { persist: false });
-          const withQuotas = await applyScheduleLeaveQuotas(prev, data);
+          const withQuotas = await syncSalarySheetInputs(prev, data);
           merged = { ...merged, [prev]: withQuotas };
         } catch {
           break;
@@ -375,7 +389,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         let merged = { ...sheetsNow };
         if (!merged[month]) {
           const data = await fetchMonth(month);
-          const withQuotas = await applyScheduleLeaveQuotas(month, data);
+          const withQuotas = await syncSalarySheetInputs(month, data);
           merged = { ...merged, [month]: withQuotas };
           if (withQuotas !== data) {
             await api(
@@ -394,7 +408,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         const err = e as { status?: number };
         if (err.status === 404) {
           let data = resolveDefaultSalarySheet(month, defaultTemplate);
-          data = await applyScheduleLeaveQuotas(month, data);
+          data = await syncSalarySheetInputs(month, data);
           const merged = await loadMissingPriorSheets(month, {
             ...sheetsRef.current,
             [month]: data,
@@ -437,7 +451,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
         void (async () => {
           // 保存前再按排班假期抵消对齐，避免整表写回盖掉排班刚写入的假期
           const latest = sheetsRef.current[month] ?? data;
-          const synced = await applyScheduleLeaveQuotas(month, latest);
+          const synced = await syncSalarySheetInputs(month, latest);
           if (synced !== latest) {
             setSheets((prev) => ({ ...prev, [month]: synced }));
           }
@@ -554,7 +568,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
     }
     try {
       let data = resolveDefaultSalarySheet(month, defaultTemplate);
-      data = await applyScheduleLeaveQuotas(month, data);
+      data = await syncSalarySheetInputs(month, data);
       await api("PUT", `/salary/${month}`, { data }, salaryApi);
       setSheets((prev) => ({ ...prev, [month]: data }));
       setMonths((prev) => [...prev, month].sort());
@@ -681,7 +695,7 @@ function SalaryPageContent({ onLock }: { onLock: () => void }) {
                         activeMonth,
                         defaultTemplate,
                       );
-                      data = await applyScheduleLeaveQuotas(activeMonth, data);
+                      data = await syncSalarySheetInputs(activeMonth, data);
                       patchSheet(activeMonth, data);
                       toast.success("已恢复为默认");
                     })();
