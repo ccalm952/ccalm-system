@@ -1,5 +1,7 @@
 /** 配台人员字符串拆成一人一名（兼容 +、顿号、中英文逗号、空白） */
-export function splitImplantStaffNames(raw: string | null | undefined): string[] {
+export function splitImplantStaffNames(
+  raw: string | null | undefined,
+): string[] {
   const s = raw?.trim() ?? "";
   if (!s) return [];
   return s
