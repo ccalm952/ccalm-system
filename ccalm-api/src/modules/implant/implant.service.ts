@@ -35,6 +35,7 @@ import {
   implantCountsForPending,
   remainingPendingTeeth,
 } from "./pending-teeth";
+import { countImplantStaffByName } from "./implant-staff";
 import {
   IMPLANT_VISIT_REMARK,
   OPEN_VISIT_STATUSES,
@@ -842,20 +843,7 @@ export class ImplantService {
       },
       select: { staff: true },
     });
-    const counts = new Map<string, number>();
-    for (const v of visits) {
-      const s = v.staff?.trim();
-      if (!s) continue;
-      const parts = s
-        .split("+")
-        .map((x) => x.trim())
-        .filter(Boolean);
-      const names = parts.length ? parts : [s];
-      for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
+    return countImplantStaffByName(visits);
   }
 
   async statsMonths() {
